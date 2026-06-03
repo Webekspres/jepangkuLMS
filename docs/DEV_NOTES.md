@@ -1,0 +1,113 @@
+# 📝 JepangKu LMS - Developer Notes & Architecture Guide
+
+Dokumen ini dirancang sebagai panduan kolaborasi tim (2-man sprint) agar struktur kode tetap konsisten, modular, dan meminimalisir konflik Git selama pengerjaan proyek Fase 1 (Target MVP: 30 Juni 2026).
+
+---
+
+## 🚀 Quick Stack Checklist
+- **Runtime & Package Manager:** Bun
+- **Framework:** Next.js (App Router, TypeScript)
+- **Database Layer:** PostgreSQL (Local Context via `prisma.config.ts`) & Prisma ORM
+- **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state)
+- **Authentication:** Clerk Auth
+
+---
+
+## 🤝 Git & Branching Rules (Anti-Conflict)
+1. **Branch Utama:** `main` harus selalu steril, stabil, dan bisa di-*build* tanpa error.
+2. **Naming Convention Branch Fitur:** `feature/nama-fitur-independen` (Contoh: `feature/quiz-engine`).
+3. **Workflow:**
+   - Selalu tarik branch baru dari `main` yang paling update.
+   - Jangan pernah *merge* langsung ke `main` di lokal. Buat **Pull Request (PR)** di GitHub/GitLab, minta rekan tim untuk *code review* singkat, baru di-*merge*.
+4. **Strategi Pembagian Kerja (Vertikal Slicing):**
+   - **Dev A (Kris):** Fokus pada infrastruktur dasar, autentikasi Clerk, webhook sinkronisasi user, serta fitur **Gamifikasi & Dashboard** (XP, Level, Badge, Leaderboard).
+   - **Dev B (Partner):** Fokus pada fitur **Learning Core & Quiz Engine** (Halaman Materi, Video Player, Evaluasi Skor Kuis, Seeding Excel Materi).
+
+---
+
+## 📁 Feature-Based Folder Architecture
+
+Aplikasi ini menggunakan pola **Feature-Based (Domain-Driven)**. Folder `app/` murni hanya bertindak sebagai "resepsionis/routing", sedangkan seluruh logika bisnis, komponen UI khusus, dan Next.js Server Actions diisolasi penuh di dalam folder `features/`.
+
+```text
+jepangkuLMS/
+├── app/                           # 🌐 ROOT ROUTING & LAYOUTS (Steril)
+│   ├── (authentication)/          # Route Group Auth (Sign-in / Sign-up)
+│   │   ├── sign-in/[[...sign-in]]/page.tsx
+│   │   └── sign-up/[[...sign-up]]/page.tsx
+│   │
+│   ├── (dashboard)/               # Route Group Dashboard (Terproteksi Middleware)
+│   │   ├── dashboard/page.tsx     # Student Dashboard Hub
+│   │   ├── belajar/[courseSlug]/[lessonSlug]/page.tsx # Course & Lesson Workspace
+│   │   ├── kuis/[lessonSlug]/     # Workspace Engine Kuis
+│   │   │   ├── page.tsx           # Halaman Soal Kuis
+│   │   │   └── hasil/page.tsx     # Hasil Evaluasi Kuis
+│   │   ├── leaderboard/page.tsx   # Peringkat Global
+│   │   └── gamifikasi/profil-saya/page.tsx # Profil Pencapaian Siswa
+│   │
+│   ├── admin/                     # Area Khusus Admin (Protected)
+│   │   ├── dashboard/page.tsx
+│   │   ├── pembayaran/page.tsx
+│   │   ├── kursus/                # CMS Kursus & Form
+│   │   │   ├── page.tsx
+│   │   │   └── form/page.tsx
+│   │   ├── lesson/                # CMS Lesson & Form
+│   │   │   ├── page.tsx
+│   │   │   └── form/page.tsx
+│   │   └── quiz/                  # CMS Quiz & Bulk Import CSV
+│   │       ├── page.tsx
+│   │       └── import/page.tsx
+│   │
+│   ├── kursus/page.tsx            # Katalog Kursus Publik
+│   ├── tryout/page.tsx            # Info Tryout Publik
+│   ├── tentang/page.tsx           # Halaman Statis Tentang
+│   ├── cara-belajar/page.tsx      # Halaman Statis Cara Belajar
+│   ├── hubungi/page.tsx           # Halaman Statis Hubungi Kami
+│   │
+│   ├── api/webhooks/clerk/route.ts # Webhook penangkap user baru dari Clerk
+│   ├── layout.tsx                 # Root layout utama
+│   └── page.tsx                   # Public Landing Page
+│
+├── components/                    # 🏗️ SHARED GLOBAL COMPONENTS
+│   ├── layout/                    # Sidebar Navigasi Utama, Navbar Dashboard
+│   ├── providers/                 # ClerkProvider, QueryProvider (TanStack)
+│   └── ui/                        # Komponen Primitif Shadcn UI (Button, Card, dll.)
+│
+├── features/                      # 🧠 JANTUNG BISNIS LOGIC (Isolasi Fitur)
+│   ├── gamification/              # Fitur Progress, XP, Level, & Badge
+│   │   ├── actions/               # Server Actions (claimBadge(), getUserRank())
+│   │   └── components/            # UI khusus (LeaderboardTable.tsx, LevelProgressBar.tsx)
+│   │
+│   ├── learning/                  # Fitur Manajemen Modul & Media Pembelajaran
+│   │   ├── actions/               # Server Actions (completeLesson(), getCourseContent())
+│   │   └── components/            # UI khusus (VideoPlayer.tsx, KanjiCard.tsx)
+│   │
+│   ├── quiz-engine/               # Fitur Algoritma Kuis & State Kuis
+│   │   ├── actions/               # Server Actions (submitQuizAttempt())
+│   │   ├── components/            # UI khusus (QuizWorkspace.tsx, QuestionCard.tsx)
+│   │   └── store/                 # Zustand Store (useQuizStore.ts untuk simpan state jawaban)
+│   │
+│   └── admin-cms/                 # Fitur Manajemen Konten Internal Admin
+│       ├── actions/               # Server Actions (createLesson(), uploadExcelMateri())
+│       └── components/            # UI khusus (MateriTable.tsx)
+│
+├── lib/                           # ⚙️ CORE CONFIGS (prisma.ts singleton, utils.ts)
+├── prisma/                        # 🗄️ DATABASE SCHEMA & SEED (schema.prisma, seed.ts)
+```
+
+---
+
+## 🛠️ Data Fetching & State Rules
+1. **Data Statis / Initial Load:** Gunakan Server Component bawaan Next.js dengan async/await langsung memanggil `prisma.[model].findMany()` untuk performa rendering dan kecepatan muat yang maksimal.
+2. **Mutasi Data (Write/Update):** Wajib menggunakan Next.js Server Actions yang ditaruh di folder `actions/` fitur terkait. Panggil direktif `"use server"` di baris paling atas file.
+3. **Data Interaktif / Auto-Refresh:** Fitur dinamis seperti komentar forum atau real-time Leaderboard wajib di-fetch di sisi client menggunakan TanStack Query melalui API endpoint khusus atau di-trigger dari Server Actions agar UI reaktif tanpa perlu hard-reload halaman.
+4. **Local UI State:** Jawaban kuis sementara yang dipilih user atau status animasi modal wajib dikelola via Zustand Store lokal fitur agar performa render ringan.
+
+---
+
+## 🏃‍♂️ Daily Useful Commands (Bun Version)
+- Run Dev Server: `bun dev`
+- Format Prisma Schema: `bunx prisma format`
+- Push Schema to PostgreSQL: `bunx prisma db push`
+- Open Prisma Studio (GUI Database Ringan): `bunx prisma studio`
+- Execute Seed Data: `bunx prisma db seed`

@@ -1,0 +1,269 @@
+// ====================================================================
+// SETUP PUSAT
+// ====================================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // URL dikelola via prisma.config.ts demi kepatuhan versi terbaru
+}
+
+// ====================================================================
+// ENUMS (Tipe Data Konstan)
+// ====================================================================
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum LevelJLPT {
+  N5
+  N4
+  N3
+  N2
+  N1
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+}
+
+enum QuestionType {
+  QUIZ
+  TRYOUT
+}
+
+enum CategoryType {
+  KANJI
+  KOSAKATA
+  TATA_BAHASA
+}
+
+enum BadgeType {
+  UTAMA
+  MATERI
+  QUIZ
+  GLOBAL
+}
+
+// ====================================================================
+// 1. MANAJEMEN USER & SSO (CLERK)
+// ====================================================================
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique // Jembatan sinkronisasi dari Clerk Auth
+  email     String   @unique
+  name      String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stat        UserStat?
+  enrollments Enrollment[]
+  progress    UserProgress[]
+  attempts    QuizAttempt[]
+  badges      UserBadge[]
+}
+
+// ====================================================================
+// 2. GAMIFIKASI (XP, LEVEL, DAN BADGE)
+// ====================================================================
+model UserStat {
+  id       String @id @default(uuid())
+  userId   String @unique
+  totalXp  Int    @default(0)
+  level    Int    @default(1)
+  
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id          String     @id @default(uuid())
+  name        String     @unique // Sesuai lampiran checklist-lms.pdf
+  description String     @db.Text
+  type        BadgeType  
+  level       LevelJLPT? // Opsional untuk menampung Badge Global
+  imageUrl    String?    
+  
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+// ====================================================================
+// 3. HIRARKI KURSUS & PEMBAYARAN (CMS)
+// ====================================================================
+model Course {
+  id          String      @id @default(uuid())
+  title       String
+  slug        String      @unique
+  description String?     @db.Text
+  level       LevelJLPT   @default(N5)
+  isPublished Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  lessons     Lesson[]
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id        String           @id @default(uuid())
+  userId    String
+  courseId  String
+  status    EnrollmentStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId]) 
+}
+
+model Lesson {
+  id          String  @id @default(uuid())
+  courseId    String
+  title       String
+  slug        String  @unique
+  order       Int     
+  content     String? @db.Text 
+  videoUrl    String? 
+  
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  kanjis      MaterialKanji[]
+  kosakatas   MaterialKosakata[]
+  tataBahasas MaterialTataBahasa[]
+  
+  questions   Question[]
+  progress    UserProgress[]
+  attempts    QuizAttempt[] // <--- INI AMUNISI TAMBAHAN biar error di image_00ea07.png LUNAS!
+}
+
+// ====================================================================
+// 4. MASTER DATA KATEGORI (NORMALISASI 3NF)
+// ====================================================================
+model Category {
+  id    String       @id @default(uuid())
+  name  String       
+  type  CategoryType 
+
+  kanjis      MaterialKanji[]
+  kosakatas   MaterialKosakata[]
+  tataBahasas MaterialTataBahasa[]
+
+  @@unique([name, type])
+}
+
+// ====================================================================
+// 5. MATERI PEMBELAJARAN
+// ====================================================================
+model MaterialKanji {
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String? 
+  huruf         String
+  furigana      String?
+  romaji        String?
+  arti          String
+  onyomi        String?
+  contohOnyomi  String?
+  artiOnyomi    String?
+  kunyomi       String?
+  contohKunyomi String?
+  artiKunyomi   String?
+
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+model MaterialKosakata {
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String? 
+  kosakata      String
+  furigana      String?
+  romaji        String?
+  arti          String
+  contohKalimat String? @db.Text
+
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+model MaterialTataBahasa {
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String? 
+  tataBahasa    String
+  arti          String
+  contohKalimat String? @db.Text
+
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+// ====================================================================
+// 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
+// ====================================================================
+model Question {
+  id            String       @id @default(uuid())
+  lessonId      String?      // Optional: kosong jika ini soal Tryout
+  type          QuestionType @default(QUIZ) 
+  questionText  String       @db.Text
+  explanation   String?      @db.Text 
+  xpReward      Int          @default(10) 
+
+  lesson  Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  options QuestionOption[] 
+}
+
+model QuestionOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String  
+  isCorrect  Boolean @default(false) 
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+// ====================================================================
+// 7. TRACKING PROGRESS SISWA
+// ====================================================================
+model UserProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  lessonId    String
+  isCompleted Boolean  @default(true) 
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model QuizAttempt {
+  id        String       @id @default(uuid())
+  userId    String
+  lessonId  String?      // Optional: Kosong jika ini percobaan Tryout
+  type      QuestionType @default(QUIZ)
+  score     Int      
+  xpEarned  Int      
+  createdAt DateTime     @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+}
