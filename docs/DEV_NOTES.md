@@ -10,6 +10,7 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim (2-man sprint) agar struktu
 - **Database Layer:** PostgreSQL (Local Context via `prisma.config.ts`) & Prisma ORM
 - **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state)
 - **Authentication:** Clerk Auth
+- **Design / UI:** [DESIGN.md](../DESIGN.md) (panduan warna, layout, Shadcn — wajib untuk Agent)
 
 ---
 

@@ -2,6 +2,8 @@
 
 Dokumen ini menjelaskan desain sistem, pola arsitektur, dan struktur folder fisik dari JepangKu LMS (Fase 1 MVP). Struktur ini dirancang untuk skalabilitas, isolasi fitur, serta kolaborasi tim yang efisien.
 
+> **UI & visual:** Untuk warna, komponen, layout per halaman, dan checklist konsistensi antar Agent, gunakan [DESIGN.md](../DESIGN.md) — bukan dokumen ini.
+
 ---
 
 ## 🧭 Desain Arsitektur: Feature-Based (Domain-Driven)

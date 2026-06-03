@@ -22,31 +22,16 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 
 ---
 
-## 🎨 Aturan Khusus Styling & Tailwind CSS v4
-Proyek ini menggunakan **Tailwind CSS v4** dan **Shadcn UI**. Patuhi aturan berikut demi konsistensi visual:
+## 🎨 UI, Styling & Desain
 
-1. **Tanpa `tailwind.config.js`:** Tailwind v4 dikonfigurasi menggunakan CSS-native directive. Jangan membuat file `tailwind.config.js` baru.
-2. **Kustomisasi Tema:** Semua modifikasi warna, font, dan kustomisasi tema utilitas dilakukan langsung di dalam [app/globals.css](file:///d:/ka_treasury/JepangKu/jepangkuLMS/app/globals.css) menggunakan syntax directive `@theme inline` atau CSS custom variables.
-3. **Import Syntax:** Gunakan `@import "tailwindcss";` di bagian atas file CSS global utama.
+**Wajib baca [DESIGN.md](./DESIGN.md) sebelum membuat atau mengubah UI** — palet, tipografi, layout per area, pola komponen, dan checklist Agent ada di sana. Dokumen ini adalah otoritas desain; jangan mengandalkan preferensi warna dari prompt.
 
----
+Ringkasan singkat (detail & contoh di `DESIGN.md`):
 
-## 🎯 Panduan Desain & Merek (Brand Guidelines)
-Seluruh AI Agent wajib mematuhi panduan warna dan tipografi resmi yang tercantum di dalam [app/globals.css](file:///d:/ka_treasury/JepangKu/jepangkuLMS/app/globals.css):
-
-1. **Palet Warna Utama (Branding Colors):**
-   * **Red Japanese (`#EC1D24` / `brand-red`):** Warna primer JepangKu. Dipetakan ke variabel `--primary`. Digunakan untuk aksi utama, tombol utama, status aktif, dan aksen penting.
-   * **Navy (`#1E1B57` / `brand-navy`):** Warna struktural sekunder. Dipetakan ke variabel `--secondary` dan `--sidebar`. Digunakan untuk header, panel, latar belakang sidebar, dan text branding gelap.
-   * **Orange (`#FF4B2B` / `brand-orange`):** Warna aksen sorotan. Dipetakan ke variabel `--accent` dan `--ring` (focus indicator). Digunakan untuk interaksi hover, penarik perhatian, dan promo.
-   * **Yellow (`#F8E71C` / `brand-yellow`):** Warna pencapaian/hadiah. Digunakan untuk medali/badge emas, bonus XP, dan highlight rewards.
-
-2. **Aturan Penulisan Styling:**
-   * **DILARANG** menuliskan hex code warna secara acak/hardcoded di dalam komponen (misalnya: `text-[#EC1D24]`, `bg-[#1E1B57]`).
-   * **WAJIB** menggunakan semantic class bawaan Shadcn UI (`bg-primary`, `bg-secondary`, `bg-accent`, `text-muted-foreground`) atau utilitas brand warna kustom (`bg-brand-red`, `text-brand-navy`, `bg-brand-orange`, `text-brand-yellow`).
-
-3. **Gunakan Shadcn UI untuk Komponen & Primitif:**
-   * Semua elemen UI dasar (button, dialog, input, card, tabs, sheets, dsb.) harus diimpor dari primitif Shadcn UI di folder `components/ui/`.
-   * Jangan menginstal library komponen pihak ketiga lainnya (seperti Material UI atau Chakra) tanpa koordinasi.
+1. **Tailwind CSS v4 + Shadcn UI** — Tanpa `tailwind.config.js`; tema hanya di [app/globals.css](./app/globals.css) (`@theme inline`, `@import "tailwindcss"`).
+2. **Warna** — Token semantic (`primary`, `muted-foreground`, …) atau utilitas `brand-*`; **dilarang** hex hardcoded di komponen.
+3. **Komponen** — Primitif dari `components/ui/`; referensi visual marketing: [app/page.tsx](./app/page.tsx).
+4. **UI kompleks** — Taruh di `features/*/components/`, bukan di `app/**/page.tsx`.
 
 ---
 
@@ -90,6 +75,52 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 * **Clean URLs:** Gunakan slug unik (`[courseSlug]`, `[lessonSlug]`) alih-alih database ID dalam URL halaman belajar siswa untuk optimasi SEO dan estetika URL yang bersih.
 * **Focus Mode Routing:** Workspace kuis ditaruh di top-level route `/kuis/[lessonSlug]` agar terlepas dari layout sidebar utama `/belajar` dan memberikan fokus penuh bagi siswa.
 * **Proxy (Ganti Middleware):** Next.js 16+ mendepresiasi `middleware.ts` dan menggantinya dengan **`proxy.ts`** di root folder. Gunakan named export `export function proxy(request)` untuk memproses request terproteksi dan log redirects/rewrites secara aman.
+
+---
+
+## 📋 Pelacakan Progress (`docs/PROGRESS.md`)
+
+[docs/PROGRESS.md](docs/PROGRESS.md) adalah **living tracker** Fase 1 MVP: apa yang sudah selesai, sebagian, atau belum. Setiap Agent **wajib** memperbarui berkas ini bila pekerjaan dalam sesi (atau PR) menyelesaikan atau secara nyata memajukan suatu fitur.
+
+### Kapan wajib di-update
+
+Perbarui `docs/PROGRESS.md` di **akhir tugas yang sama** (sebelum merespons selesai ke user), jika salah satu berikut terpenuhi:
+
+* Satu **route/halaman** memenuhi spesifikasi di [sitemap.md](sitemap.md) (bukan sekadar `page.tsx` placeholder).
+* Satu **domain `features/`** (actions, components, store) berfungsi end-to-end terhubung DB/auth sesuai desain.
+* **Infrastruktur** (Clerk, proxy, webhook, seed, layout dashboard, dll.) benar-benar dipasang dan diverifikasi, bukan hanya file kosong.
+* **Schema Prisma** atau aturan bisnis baru yang mengubah status item di tracker (mis. model pembayaran, enrollment).
+* Route atau fitur **baru** ditambahkan — update [sitemap.md](sitemap.md) **dulu**, lalu tambah baris di `PROGRESS.md`.
+
+Tidak perlu update untuk refactor kecil, typo, atau perubahan yang tidak mengubah status implementasi terhadap MVP.
+
+### Cara update (wajib)
+
+1. Baca `docs/PROGRESS.md` dan temukan baris yang relevan (§ Infrastruktur, § Halaman, § Domain `features/`, § Data, § Keamanan).
+2. Ubah status: `⬜` → `🟡` (ada kemajuan nyata tapi belum MVP) atau `🟡` → `✅` (sesuai sitemap / kolom "Yang masih kurang" sudah terpenuhi).
+3. Perbarui kolom **Catatan** / **Yang masih kurang** jika masih ada sisa pekerjaan kecil.
+4. Sesuaikan **Ringkasan cepat** (hitungan Selesai / Sebagian / Belum) bila angka berubah.
+5. Set **Terakhir diperbarui** (header) ke tanggal hari ini (`YYYY-MM-DD`).
+6. Tambah satu baris di **Changelog** (tanggal + ringkasan singkat apa yang selesai).
+
+### Aturan status (jangan dilanggar)
+
+| Simbol | Gunakan hanya jika |
+| :---: | :--- |
+| ✅ | Perilaku fitur sesuai MVP; teruji atau jelas terhubung DB/auth/UI final |
+| 🟡 | File/route ada, atau sebagian besar logic belum / masih stub |
+| ⬜ | Belum ada implementasi bermakna |
+| 🔮 | Sengaja di luar Fase 1 |
+
+**DILARANG** menandai ✅ hanya karena file `page.tsx` atau folder `features/` sudah dibuat tanpa fungsi sesuai sitemap.
+
+### Contoh changelog
+
+```text
+| 2026-06-10 | Clerk sign-in/sign-up + webhook sync User/UserStat ke Prisma |
+```
+
+Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerjaan di kolom catatan.
 
 ---
 

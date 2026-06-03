@@ -18,7 +18,7 @@ JepangKu LMS adalah aplikasi web pembelajaran mandiri bahasa Jepang terstruktur 
 
 - **Runtime & Package Manager:** [Bun](https://bun.sh)
 - **Framework:** Next.js 16 (App Router) & React 19
-- **CSS Utility & Styling:** Tailwind CSS v4 & Shadcn UI
+- **CSS Utility & Styling:** Tailwind CSS v4 & Shadcn UI — panduan desain: [DESIGN.md](./DESIGN.md)
 - **Database Layer:** PostgreSQL & Prisma ORM
 - **Authentication:** Clerk Auth Cloud
 - **State Management:** Zustand (Local Client UI State) & TanStack Query (Server Cache State)
@@ -32,6 +32,8 @@ Mengadopsi pola **Feature-Based (Domain-Driven)** di mana folder `app/` murni ha
 
 ```plaintext
 jepangkuLMS/
+├── DESIGN.md                      # 🎨 Panduan UI/UX (wajib untuk AI Agents)
+├── AGENTS.md                      # 🤖 Aturan arsitektur & coding Agent
 ├── app/                           # 🌐 LAYOUT & ROUTING (Thin Layer)
 │   ├── (authentication)/          # Route Group Login & Register via Clerk
 │   ├── (dashboard)/               # Route Group Student Hub, Leaderboard, & Kuis
