@@ -100,8 +100,9 @@ Tidak perlu update untuk refactor kecil, typo, atau perubahan yang tidak menguba
 2. Ubah status: `⬜` → `🟡` (ada kemajuan nyata tapi belum MVP) atau `🟡` → `✅` (sesuai sitemap / kolom "Yang masih kurang" sudah terpenuhi).
 3. Perbarui kolom **Catatan** / **Yang masih kurang** jika masih ada sisa pekerjaan kecil.
 4. Sesuaikan **Ringkasan cepat** (hitungan Selesai / Sebagian / Belum) bila angka berubah.
-5. Set **Terakhir diperbarui** (header) ke tanggal hari ini (`YYYY-MM-DD`).
-6. Tambah satu baris di **Changelog** (tanggal + ringkasan singkat apa yang selesai).
+5. **Hitung ulang progres global** di header `PROGRESS.md` (tabel per area, %, bar ASCII, meta **Progres global Fase 1** — ikuti rumus di dokumen).
+6. Set **Terakhir diperbarui** (header) ke tanggal hari ini (`YYYY-MM-DD`).
+7. Tambah satu baris di **Changelog** (tanggal + ringkasan singkat apa yang selesai).
 
 ### Aturan status (jangan dilanggar)
 
@@ -126,7 +127,11 @@ Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerj
 
 ## 🏃‍♂️ Perintah Terminal Harian
 * Menjalankan Dev Server: `bun dev`
-* Format Schema: `bunx prisma format`
-* Sinkronisasi DB lokal: `bunx prisma db push`
-* Membuka GUI DB: `bunx prisma studio`
-* Menjalankan Seeding DB: `bunx prisma db seed`
+* Prisma (juga via `package.json` scripts):
+  * Generate client: `bun run db:generate`
+  * Format schema: `bun run db:format`
+  * Sinkronisasi DB lokal (dev): `bun run db:push`
+  * Migrasi (dev): `bun run db:migrate` · deploy: `bun run db:migrate:deploy`
+  * Seed: `bun run db:seed`
+  * Studio: `bun run db:studio`
+  * Reset DB (dev): `bun run db:reset`

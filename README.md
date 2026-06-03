@@ -71,23 +71,26 @@ bun install
 ```
 
 ### 3. Setup Variabel Lingkungan (Environment Variables)
-Salin file `.env.example` menjadi `.env` lalu lengkapi kredensial PostgreSQL dan API Key Clerk Anda:
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/jepangku"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
+Salin template env lalu isi kredensial lokal Anda:
+```bash
+cp .env.example .env
 ```
+Variabel wajib & opsional dijelaskan di [`.env.example`](./.env.example). Minimal untuk Prisma lokal:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/jepangku_lms"
+```
+Clerk (`NEXT_PUBLIC_CLERK_*`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`) diperlukan saat auth diaktifkan.
 
 ### 4. Sinkronisasi & Migrasi Database
 Jalankan perintah berikut untuk mensinkronisasikan skema Prisma ke database lokal:
 ```bash
-bunx prisma db push
+bun run db:push
 ```
 
 ### 5. Jalankan Seeding Data Awal
 Untuk mengisi database dengan master data awal (paket kursus, silabus, dan soal kuis dari CSV), jalankan:
 ```bash
-bunx prisma db seed
+bun run db:seed
 ```
 
 ### 6. Jalankan Server Pengembangan (Dev Server)

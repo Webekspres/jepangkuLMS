@@ -108,7 +108,4 @@ jepangkuLMS/
 
 ## 🏃‍♂️ Daily Useful Commands (Bun Version)
 - Run Dev Server: `bun dev`
-- Format Prisma Schema: `bunx prisma format`
-- Push Schema to PostgreSQL: `bunx prisma db push`
-- Open Prisma Studio (GUI Database Ringan): `bunx prisma studio`
-- Execute Seed Data: `bunx prisma db seed`
+- Prisma: `bun run db:format` · `db:push` · `db:migrate` · `db:seed` · `db:studio` · `db:generate` · `db:reset`

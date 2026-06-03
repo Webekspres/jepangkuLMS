@@ -8,6 +8,27 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
 | **Terakhir diperbarui** | 2026-06-03 |
+| **Progres global Fase 1** | **40%** (58 item terlacak) |
+
+### Progres global
+
+```text
+[████████░░░░░░░░░░░░] 40%
+```
+
+| Area | Bobot* | ✅ | 🟡 | ⬜ | % area |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Infrastruktur & platform | 17 | 5 | 8 | 4 | 48% |
+| Halaman & routing | 23 | 0 | 23 | 0 | 40% |
+| Domain `features/` | 4 | 0 | 1 | 3 | 10% |
+| Data & integrasi | 9 | 5 | 0 | 4 | 56% |
+| Keamanan & bisnis | 5 | 0 | 1 | 4 | 8% |
+| **Total** | **58** | **10** | **33** | **15** | **40%** |
+
+\*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
+
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(10 + 13,2) ÷ 58 ≈ 40%`.  
+🟡 = scaffold / sebagian (40% poin); ✅ = sesuai MVP penuh. Setelah ubah status, **hitung ulang** baris Total & persen global di atas.
 
 ---
 
@@ -27,11 +48,11 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area | Selesai | Sebagian | Belum |
 | :--- | ---: | ---: | ---: |
 | Infrastruktur & platform | 4 | 8 | 3 |
-| Halaman & routing (~23) | 1 | 22 | 0 |
+| Halaman & routing (23) | 0 | 23 | 0 |
 | Domain `features/` | 0 | 1 | 3 |
 | Data & integrasi | 1 | 2 | 4 |
 
-**Estimasi keseluruhan Fase 1:** awal fondasi (~15%) — routing & schema ada; bisnis logic dan auth belum.
+**Ringkasan:** Fondasi schema & tooling ada; mayoritas halaman masih stub; auth, `features/`, dan integrasi DB belum. Lihat **Progres global** di atas untuk persentase terkini.
 
 ---
 
@@ -53,8 +74,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Folder `features/` (domain logic) | 🟡 | `features/quiz-engine/store/` ada; domain lain & actions/components belum |
 | `components/layout/` (sidebar dashboard) | ⬜ | Belum ada |
 | Shadcn UI primitif lengkap | 🟡 | Hanya `button`; komponen lain perlu `shadcn add` sesuai kebutuhan |
-| Prisma seed (kursus, soal N5 CSV) | ⬜ | Tidak ada `prisma/seed.ts` / script seed di `package.json` |
-| `.env` / Clerk / DB production-ready | 🟡 | Dokumentasi di README; verifikasi per environment tim |
+| Prisma seed (kursus, soal N5 CSV) | ⬜ | `bun run db:seed` ada; **`prisma/seed.ts` belum** |
+| `.env` / Clerk / DB production-ready | 🟡 | [`.env.example`](../.env.example) + README; isi `.env` lokal & kredensial Clerk per tim |
 | Landing redirect `/` → `/dashboard` jika login | ⬜ | Bagian dari proxy + Clerk |
 
 ---
@@ -183,9 +204,10 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 
 1. Setelah menyelesaikan satu slice vertikal (mis. "Leaderboard read-only"), ubah baris terkait dari ⬜/🟡 → ✅.
 2. Update tanggal **Terakhir diperbarui** di header.
-3. Tambahkan baris singkat di **Changelog** di bawah.
-4. Jika menambah route baru, update [sitemap.md](../sitemap.md) dulu, lalu tambah baris di §2.
-5. Jangan tandai ✅ hanya karena file `page.tsx` ada — harus memenuhi kolom "Yang masih kurang" kosong atau ditandai sengaja deferred.
+3. **Hitung ulang progres global:** sesuaikan hitungan ✅/🟡/⬜ per area, % area, Total, bar ASCII, dan **Progres global Fase 1** di meta (rumus di § Progres global).
+4. Tambahkan baris singkat di **Changelog** di bawah.
+5. Jika menambah route baru, update [sitemap.md](../sitemap.md) dulu, lalu tambah baris di §2 (dan masukkan ke hitungan global).
+6. Jangan tandai ✅ hanya karena file `page.tsx` ada — harus memenuhi kolom "Yang masih kurang" kosong atau ditandai sengaja deferred.
 
 ---
 
@@ -197,3 +219,5 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 | 2026-06-03 | Zustand: `bun add zustand`, `useQuizStore` + selectors di `features/quiz-engine/store/` |
 | 2026-06-03 | Zod: `bun add zod`, shared schemas + `parseInput` di `lib/validations/` |
 | 2026-06-03 | TanStack Query: `AppProviders` di root layout, `lib/query-client`, `lib/query-keys` |
+| 2026-06-03 | Progres global 40% + rumus & tabel per area di header PROGRESS |
+| 2026-06-03 | Tambah `.env.example`; perbaiki `.gitignore` agar template bisa di-commit |
