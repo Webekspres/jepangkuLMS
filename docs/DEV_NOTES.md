@@ -15,7 +15,7 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim (2-man sprint) agar struktu
 
 ## 🤝 Git & Branching Rules (Anti-Conflict)
 1. **Branch Utama:** `main` harus selalu steril, stabil, dan bisa di-*build* tanpa error.
-2. **Naming Convention Branch Fitur:** `feature/nama-fitur-independen` (Contoh: `feature/quiz-engine`).
+2. **Naming Convention Branch:** `dev/nama_dev` (Contoh: `dev/kris` atau `dev/partner`).
 3. **Workflow:**
    - Selalu tarik branch baru dari `main` yang paling update.
    - Jangan pernah *merge* langsung ke `main` di lokal. Buat **Pull Request (PR)** di GitHub/GitLab, minta rekan tim untuk *code review* singkat, baru di-*merge*.
@@ -36,7 +36,7 @@ jepangkuLMS/
 │   │   ├── sign-in/[[...sign-in]]/page.tsx
 │   │   └── sign-up/[[...sign-up]]/page.tsx
 │   │
-│   ├── (dashboard)/               # Route Group Dashboard (Terproteksi Middleware)
+│   ├── (dashboard)/               # Route Group Dashboard (Terproteksi Proxy)
 │   │   ├── dashboard/page.tsx     # Student Dashboard Hub
 │   │   ├── belajar/[courseSlug]/[lessonSlug]/page.tsx # Course & Lesson Workspace
 │   │   ├── kuis/[lessonSlug]/     # Workspace Engine Kuis

@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🗺️ JepangKu LMS - Platform Belajar Bahasa Jepang Interaktif
 
-## Getting Started
+JepangKu LMS adalah aplikasi web pembelajaran mandiri bahasa Jepang terstruktur berbasis kurikulum JLPT (N5 - N1) yang menggabungkan metode pembelajaran modul kursus dengan sistem gamifikasi interaktif. Proyek ini dikembangkan menggunakan Next.js App Router, Bun, dan PostgreSQL.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🚀 Fitur Utama (Fase 1 MVP)
+
+1. **Course & Lesson Terstruktur:** Modul pembelajaran lengkap terintegrasi video lessons, kosakata, tata bahasa, dan materi huruf kanji (fokus awal pada tingkat N5).
+2. **Kuis Interaktif (Focus Mode):** Uji pemahaman materi di setiap akhir lesson dengan pembahasan soal yang komprehensif dan perhitungan skor instan.
+3. **Sistem Gamifikasi:** Peningkatan skor pengalaman (XP), tingkat level akun, perolehan Badge pencapaian (achievements), serta papan peringkat global (Leaderboard).
+4. **Validasi Akses & Bukti Pembayaran Manual:** Alur pendaftaran kelas manual terhubung langsung dengan verifikasi WhatsApp Admin serta panel persetujuan di sisi admin dashboard.
+5. **Admin Capability & CMS:** Panel khusus admin untuk memvalidasi pembayaran siswa, mengelola detail kursus/lesson, serta bulk import bank soal kuis via file CSV/Excel.
+
+---
+
+## 🛠️ Stack Teknologi
+
+- **Runtime & Package Manager:** [Bun](https://bun.sh)
+- **Framework:** Next.js 16 (App Router) & React 19
+- **CSS Utility & Styling:** Tailwind CSS v4 & Shadcn UI
+- **Database Layer:** PostgreSQL & Prisma ORM
+- **Authentication:** Clerk Auth Cloud
+- **State Management:** Zustand (Local Client UI State) & TanStack Query (Server Cache State)
+- **Data Validation:** Zod
+
+---
+
+## 📁 Struktur Folder Utama (Feature-Based)
+
+Mengadopsi pola **Feature-Based (Domain-Driven)** di mana folder `app/` murni hanya bertindak sebagai routing layer, sedangkan logika bisnis diisolasi penuh di dalam folder `features/`:
+
+```plaintext
+jepangkuLMS/
+├── app/                           # 🌐 LAYOUT & ROUTING (Thin Layer)
+│   ├── (authentication)/          # Route Group Login & Register via Clerk
+│   ├── (dashboard)/               # Route Group Student Hub, Leaderboard, & Kuis
+│   ├── admin/                     # Area CMS khusus Admin & Validasi Pembayaran
+│   ├── kursus/                    # Katalog & detail kursus publik
+│   └── api/webhooks/clerk/        # Sync User data dari Clerk Webhook
+├── components/                    # 🏗️ SHARED GLOBAL UI COMPONENTS
+│   ├── layout/                    # Navigasi Sidebar & Header Dashboard
+│   └── providers/                 # QueryProvider, ClerkProvider
+├── features/                      # 🧠 DOMAIN LOGIC (Isolasi Fitur)
+│   ├── gamification/              # Logika XP, Level, Badge, & Leaderboard
+│   ├── learning/                  # Manajemen Modul & Lesson
+│   ├── quiz-engine/               # State, Layout, & Evaluasi Kuis (Zustand Store)
+│   └── admin-cms/                 # CMS Internal Admin & Validasi Pembayaran
+├── lib/                           # ⚙️ Shared Config (Prisma Client Singleton)
+└── prisma/                        # 🗄️ Prisma Database Schema, Seeds, & Migrations
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚙️ Cara Memulai (Getting Started)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Prasyarat (Prerequisites)
+Pastikan Anda sudah menginstal **Bun** di mesin lokal Anda. Jika belum, jalankan:
+```bash
+powershell -c "irm bun.sh/install.ps1 | iex" # Untuk Windows
+# atau
+curl -fsSL https://bun.sh/install | bash     # Untuk macOS/Linux
+```
 
-## Learn More
+### 2. Instalasi Dependensi
+Jalankan perintah berikut di root folder proyek:
+```bash
+bun install
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Setup Variabel Lingkungan (Environment Variables)
+Salin file `.env.example` menjadi `.env` lalu lengkapi kredensial PostgreSQL dan API Key Clerk Anda:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/jepangku"
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Sinkronisasi & Migrasi Database
+Jalankan perintah berikut untuk mensinkronisasikan skema Prisma ke database lokal:
+```bash
+bunx prisma db push
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 5. Jalankan Seeding Data Awal
+Untuk mengisi database dengan master data awal (paket kursus, silabus, dan soal kuis dari CSV), jalankan:
+```bash
+bunx prisma db seed
+```
 
-## Deploy on Vercel
+### 6. Jalankan Server Pengembangan (Dev Server)
+Jalankan dev server menggunakan Bun:
+```bash
+bun dev
+```
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda untuk melihat hasilnya.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Konvensi Kolaborasi Tim & Branching
+1. **Branch Utama:** `main` harus selalu stabil dan dapat di-*build* tanpa error.
+2. **Branching Kolaborasi:** Tarik branch baru dari `main` ter-update dengan penamaan format `dev/nama_dev` (contoh: `dev/kris` atau `dev/partner`) untuk menandakan kepemilikan workspace pengembangan.
+3. **Pull Request (PR):** Jangan lakukan merge langsung ke `main`. Buat Pull Request di repository Git, lakukan review tim, lalu merge setelah disetujui.
+
+---
+
+## 🔗 Referensi Tambahan
+- [sitemap.md](file:///d:/ka_treasury/JepangKu/jepangkuLMS/sitemap.md) - Single Source of Truth untuk URL Routing
+- [docs/ARCHITECTURE.md](file:///d:/ka_treasury/JepangKu/jepangkuLMS/docs/ARCHITECTURE.md) - Panduan Aliran Data & Struktur Detail Arsitektur
+- [docs/DEV_NOTES.md](file:///d:/ka_treasury/JepangKu/jepangkuLMS/docs/DEV_NOTES.md) - Catatan Harian & Kerja Sprint Developer

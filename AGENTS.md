@@ -89,6 +89,7 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 * Rujuklah berkas [sitemap.md](file:///d:/ka_treasury/JepangKu/jepangkuLMS/sitemap.md) sebagai **Single Source of Truth** untuk URL paths.
 * **Clean URLs:** Gunakan slug unik (`[courseSlug]`, `[lessonSlug]`) alih-alih database ID dalam URL halaman belajar siswa untuk optimasi SEO dan estetika URL yang bersih.
 * **Focus Mode Routing:** Workspace kuis ditaruh di top-level route `/kuis/[lessonSlug]` agar terlepas dari layout sidebar utama `/belajar` dan memberikan fokus penuh bagi siswa.
+* **Proxy (Ganti Middleware):** Next.js 16+ mendepresiasi `middleware.ts` dan menggantinya dengan **`proxy.ts`** di root folder. Gunakan named export `export function proxy(request)` untuk memproses request terproteksi dan log redirects/rewrites secara aman.
 
 ---
 

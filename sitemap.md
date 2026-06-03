@@ -19,7 +19,7 @@
 
 ## 1. Public & Marketing Area (No Login Required)
 
-Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/`), Middleware Next.js akan otomatis mengarahkan (redirect) mereka ke `/dashboard`.
+Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/`), Proxy Next.js akan otomatis mengarahkan (redirect) mereka ke `/dashboard`.
 
 ```plaintext
 /

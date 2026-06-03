@@ -128,5 +128,5 @@ graph TD
 ## 🔐 Arsitektur Keamanan & Autentikasi
 
 - **Autentikasi Utama:** Menggunakan **Clerk Auth** Cloud.
-- **Middleware Proteksi:** Next.js Middleware memeriksa status autentikasi untuk folder `app/(dashboard)/*` dan otorisasi role `ADMIN` untuk path `/admin/*`.
+- **Proxy Proteksi:** Next.js Proxy memeriksa status autentikasi untuk folder `app/(dashboard)/*` dan otorisasi role `ADMIN` untuk path `/admin/*`.
 - **Sinkronisasi User DB:** Dikelola melalui Clerk Webhooks. Setiap ada user baru terdaftar di Clerk, webhook `/api/webhooks/clerk` akan dipanggil secara aman untuk membuat records User terkait di database lokal menggunakan Prisma.
