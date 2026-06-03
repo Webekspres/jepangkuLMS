@@ -1,264 +1,153 @@
-# Sitemap JepangKu — LMS
+# 🗺️ Sitemap JepangKu — LMS
 
-> Scope: LMS only (portal berita tidak termasuk)
-> Fase: 1 (MVP akhir Juni 2026)
+- **Scope:** LMS only (Portal berita jepangku.com tidak termasuk dalam sitemap ini)
+- **Fase:** 1 (MVP Target Akhir Juni 2026)
+- **Base Domain:** `kursus.jepangku.com`
 
 ---
 
-## Konvensi
+## 📌 Konvensi Simbol
 
 | Simbol | Keterangan |
-|--------|-----------|
-| `[slug]` | Dynamic route |
-| `*` | Requires login (student) |
-| `**` | Requires login (contributor) |
-| `***` | Requires login (admin) |
-| `[FASE 2]` | Di luar scope Fase 1 |
+| :--- | :--- |
+| `[slug]` | Dynamic route / URL dinamis berdasarkan data |
+| `*` | Requires login (Akses terproteksi khusus Siswa) |
+| `***` | Requires login (Akses terproteksi khusus Admin) |
+| `[FASE 2]` | Fitur ditunda, di luar lingkup pengerjaan Fase 1 |
 
 ---
 
-## 1. Public / Marketing
+## 1. Public & Marketing Area (No Login Required)
 
-```
-/lms
-├── /                          → LMS Landing Page
-│   ├── Section: Hero + CTA daftar
-│   ├── Section: Fitur unggulan (gamifikasi, JLPT, live class)
-│   ├── Section: Testimoni / social proof
-│   ├── Section: Sample learning path N5
-│   ├── Section: Pricing / paket (CTA ke WhatsApp Admin)
-│   └── Section: FAQ
+Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/`), Middleware Next.js akan otomatis mengarahkan (redirect) mereka ke `/dashboard`.
+
+```plaintext
+/
+├── /                            → Landing Page Utama
+│   ├── Section: Hero + CTA Daftar (Redirect ke Auth Portal)
+│   ├── Section: Fitur Unggulan (Gamifikasi XP & JLPT Center)
+│   └── Section: Pricing Paket (CTA langsung ke WhatsApp Admin)
 │
-├── /kursus                    → Katalog Kursus (publik, read-only)
-│   ├── Filter: Level JLPT (N5, N4, N3, N2, N1)
-│   ├── Filter: Kategori (Kosakata, Tata Bahasa, Kanji, Percakapan)
-│   └── /[course-slug]         → Detail Kursus (publik, read-only)
-│       ├── Deskripsi kursus
-│       ├── Silabus / daftar lesson (preview locked)
-│       ├── Instruktur
-│       ├── Total durasi & jumlah lesson
-│       └── CTA: Mulai Belajar / Daftar Kelas
+├── /kursus                      → Katalog Kursus (Read-Only)
+│   ├── Filter: Level JLPT (N5, N4, N3, N2, N1) & Kategori
+│   └── /[course-slug]           → Detail Kursus Publik
+│       ├── Deskripsi & Total Durasi
+│       ├── Silabus (Preview Locked)
+│       └── CTA: Mulai Belajar (Redirect ke login jika belum auth)
 │
-├── /tryout                    → Halaman Tryout JLPT (publik, read-only)
-│   └── Info tryout, jadwal, CTA daftar
-│
-└── /live-class                → Jadwal Live Class (publik, read-only)
-    └── Info sesi, instruktur, CTA daftar via WhatsApp Admin
+└── /tryout                      → Halaman Info Tryout JLPT (Read-Only)
+    └── Info Tryout, Jadwal, & CTA Daftar
 ```
 
 ---
 
-## 2. Auth
+## 2. Auth Area (Custom Flow via Clerk Hooks)
 
-```
-/lms/auth
-├── /register                  → Halaman Daftar Akun
-│   ├── Form: nama, email, password
-│   ├── Pilihan role: Siswa / Kontributor
-│   └── CTA: Sudah punya akun? Login
+Halaman autentikasi fisik yang dibangun menggunakan custom hooks Clerk. Fitur pemulihan password dan verifikasi email dikelola sepenuhnya oleh sistem overlay Clerk Cloud.
+
+```plaintext
+/auth
+├── /register                    → Form Daftar Akun Custom
+│   └── Form: Nama, Email, Password (User otomatis mendapat Role: SISWA)
 │
-├── /login                     → Halaman Login
-│   ├── Form: email, password
-│   ├── Link: Lupa password
-│   └── CTA: Belum punya akun? Daftar
-│
-├── /forgot-password           → Kirim email reset
-├── /reset-password            → Form password baru (via token email)
-└── /verify-email              → Konfirmasi email (opsional Fase 1)
+└── /login                       → Form Login Custom
+    └── Form: Email, Password, & Tombol "Masuk dengan Google" (OAuth)
 ```
 
 ---
 
-## 3. Student Area *
+## 3. Student Area `*` (Requires Login)
 
-```
-/lms/dashboard *               → Student Dashboard
-├── Section: Progress ringkasan (XP, level, badge terbaru)
-├── Section: Kursus yang sedang diikuti
-├── Section: Lesson terakhir dibuka (Continue Learning)
-├── Section: Upcoming live class
-├── Section: Notifikasi (badge baru, kursus baru)
-└── Section: Shortcut ke Tryout & Leaderboard
+Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, dan evaluasi kuis interaktif.
 
-/lms/belajar *
-├── /kursus                    → Daftar kursus yang diikuti
-│   └── /[course-slug] *       → Course Page (akses penuh)
-│       ├── Progress bar kursus
-│       ├── Daftar lesson (locked/unlocked)
-│       └── /lesson/[lesson-slug] *    → Lesson Page
-│           ├── Konten: teks, gambar, audio
-│           ├── Video embed (YouTube / hosted)
-│           ├── Tombol: Sebelumnya / Berikutnya
-│           ├── Mark as Complete
-│           └── /quiz *                → Quiz Page
-│               ├── Soal pilihan ganda / isian
-│               ├── Timer (opsional)
-│               ├── Submit
-│               └── /hasil *           → Halaman Hasil Quiz
-│                   ├── Skor
-│                   ├── Pembahasan jawaban
-│                   ├── XP yang didapat
-│                   └── CTA: Lanjut Lesson / Ulangi Quiz
-│
-├── /tryout *                  → Daftar Tryout JLPT
-│   └── /[tryout-id] *         → Halaman Tryout
-│       ├── Instruksi & durasi
-│       ├── Soal (bank soal N5)
-│       └── /hasil *           → Hasil Tryout
-│           ├── Skor total
-│           ├── Breakdown per bagian (Moji, Bunpou, Dokkai)
-│           ├── Pembahasan
-│           └── XP yang didapat
-│
-└── /live-class *              → Jadwal Live Class
-    ├── Daftar sesi mendatang
-    ├── Status: Terdaftar / Belum
-    └── Link Zoom (muncul saat sesi aktif)
+```plaintext
+/dashboard *                     → Student Hub Utama
+├── Section: Progress Ringkasan (XP, Level, Badge Terbaru)
+├── Section: Kursus yang Sedang Diikuti (Continue Learning)
+└── Section: Shortcut ke Leaderboard & Tryout
+
+/belajar *
+└── /kursus
+    └── /[course-slug] *         → Course Workspace (Akses Penuh)
+        ├── Progress Bar & Silabus Interaktif
+        └── /lesson/[lesson-slug] * → Lesson View Page
+            ├── Konten Pembelajaran (Teks, Gambar, Audio)
+            ├── Secured Video Embed Player
+            ├── Action: Tombol "Mark as Complete"
+            │
+            └── /quiz *          → Halaman Kuis Interaktif
+                ├── Render Soal Pilihan Ganda N5 (Data dari Seed CSV)
+                └── /hasil *     → Halaman Hasil Evaluasi Kuis
+                    ├── Skor Kelulusan & Pembahasan
+                    └── Action: Pemicu Penambahan Point XP
 ```
 
 ---
 
-## 4. Gamifikasi *
+## 4. Gamification Center `*` (Requires Login)
 
-```
-/lms/gamifikasi *
-├── /profil-saya               → Profil Gamifikasi User
-│   ├── Level & XP progress bar
-│   ├── Badge yang dimiliki
-│   ├── Riwayat perolehan XP (aktivitas)
-│   └── Poin saat ini (catatan: redeem manual Fase 1)
+Area pelacakan progres siswa berdasarkan poin pengalaman (XP) yang diperoleh dari penyelesaian kuis dan materi.
+
+```plaintext
+/gamifikasi *
+├── /profil-saya                 → Profil Pencapaian Personal
+│   ├── Grafik Progress XP Mingguan / Bulanan
+│   ├── Riwayat Log Perolehan XP Akhir
+│   └── Galeri Koleksi Badge (Status Unlocked & Locked)
 │
-├── /badge                     → Galeri Badge
-│   ├── Badge dimiliki (unlocked)
-│   └── Badge belum dimiliki (locked + syarat)
-│
-└── /leaderboard               → Leaderboard
-    ├── Filter: Mingguan / Bulanan
-    ├── Ranking berdasarkan XP
-    └── Posisi user sendiri (highlighted)
+└── /leaderboard                 → Papan Peringkat Global
+    ├── Urutan Ranking Top 10 Siswa (Berdasarkan Akumulasi XP)
+    └── Highlight Bar Khusus Posisi Siswa Saat Ini
 ```
 
 ---
 
-## 5. Admin Area ***
+## 5. Admin Area & CMS `***` (Admin Only)
 
-```
-/lms/admin ***
-├── /dashboard                 → Admin Dashboard
-│   ├── Ringkasan: total user, kursus aktif, submission pending
-│   ├── Grafik: registrasi harian, aktivitas belajar
-│   └── Quick action: approve konten, tambah kursus
+Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi dengan memanfaatkan fitur upload CSV untuk bank soal agar tidak perlu membuat dynamic form yang kompleks.
+
+```plaintext
+/admin ***
+├── /dashboard                   → Overview Statistik Sederhana
+│   └── (Total Siswa Aktif, Jumlah Kursus, & Request Pembayaran Pending)
 │
-├── /user                      → Manajemen User
-│   ├── Daftar user + role (student, contributor, admin)
-│   ├── Search & filter
-│   ├── /[user-id]             → Detail User
-│   │   ├── Profil & progress
-│   │   ├── Riwayat XP & badge
-│   │   └── Tombol: Edit role / Suspend
-│   └── /tambah               → Tambah user manual
+├── /pembayaran                  → Manajemen Validasi Akses Manual
+│   ├── Tabel Antrean Request Pembayaran dari WhatsApp Admin
+│   └── Action: Tombol "Approve & Enroll" (Membuka akses kelas untuk siswa)
 │
-├── /kursus                    → Manajemen Kursus
-│   ├── Daftar kursus
-│   ├── /tambah                → Form Buat Kursus Baru
-│   └── /[course-id]           → Edit Kursus
-│       ├── Detail kursus
-│       ├── Manajemen lesson
-│       └── Urutan silabus
+├── /kursus                      → CMS: Manajemen Kursus
+│   ├── Daftar Kursus
+│   └── /form                    → Buat / Edit Detail Kursus (Judul, Deskripsi, Level N5)
 │
-├── /lesson                    → Manajemen Lesson
-│   ├── Daftar lesson (semua kursus)
-│   ├── /tambah                → Form Tambah Lesson
-│   └── /[lesson-id]           → Edit Lesson
-│       ├── Edit konten
-│       ├── Upload video / audio
-│       └── Attach quiz
+├── /lesson                      → CMS: Manajemen Lesson (Materi)
+│   ├── Daftar Lesson (Filter by Kursus)
+│   └── /form                    → Buat / Edit Lesson (Teks Materi & Link Embed Video)
 │
-├── /quiz                      → Manajemen Quiz & Bank Soal
-│   ├── Daftar quiz per kursus/lesson
-│   ├── /tambah                → Form Tambah Quiz
-│   ├── /[quiz-id]             → Edit Quiz
-│   │   ├── Edit soal & pilihan jawaban
-│   │   ├── Set bobot XP
-│   │   └── Preview quiz
-│   └── /bank-soal             → Bank Soal Tryout
-│       ├── Daftar soal N5 (100 soal target Fase 1)
-│       ├── Filter: tipe, tingkat kesulitan, kategori JLPT
-│       └── /tambah-soal       → Form Tambah Soal
-│
-├── /live-class                → Manajemen Live Class
-│   ├── Daftar sesi
-│   ├── /tambah                → Form Buat Sesi
-│   └── /[session-id]          → Edit Sesi (instruktur, link Zoom, waktu)
-│
-├── /gamifikasi                → Manajemen Gamifikasi
-│   ├── Konfigurasi XP per aktivitas
-│   ├── Daftar badge + syarat unlock
-│   ├── /badge                 → Edit / tambah badge
-│   └── Konfigurasi level & threshold XP
-│
-├── /pembayaran                → Manajemen Pembayaran Manual
-│   ├── Daftar request pembayaran (dari WhatsApp Admin)
-│   ├── Konfirmasi manual enroll user ke kursus
-│   └── Riwayat transaksi [FASE 2: integrasi payment gateway]
-│
-└── /analytics                 → Analytics Dashboard
-    ├── Google Analytics 4 embed / summary
-    ├── Statistik: user aktif, completion rate, quiz score rata-rata
-    └── Export laporan (CSV)
+└── /quiz                        → CMS: Manajemen Bank Soal & Kuis
+    ├── Daftar Kuis & Soal
+    └── /import                  → Form Upload File CSV/Excel untuk Soal Kuis
 ```
 
 ---
 
-## 6. Akun & Profil *
+## 6. Halaman Statis Pendukung
 
-```
-/lms/akun *
-├── /profil                    → Edit Profil User
-│   ├── Foto, nama, bio singkat
-│   └── Simpan perubahan
-│
-├── /ubah-password             → Ganti Password
-├── /notifikasi                → Preferensi Notifikasi
-└── /keluar                    → Logout
+```plaintext
+/tentang                         → Profil & Visi JepangKu LMS
+/cara-belajar                    → Panduan Sistem Level, XP, & Belajar
+/hubungi                         → Tautan Integrasi ke WhatsApp Admin
 ```
 
 ---
 
-## 7. Halaman Statis LMS
+## 📊 Ringkasan Estimasi Halaman Fase 1
 
-```
-/lms
-├── /tentang                   → Tentang JepangKu LMS
-├── /cara-belajar              → Panduan Belajar / How It Works
-├── /faq                       → FAQ LMS
-└── /hubungi                   → Kontak / WhatsApp Admin
-```
-
----
-
-## Ringkasan Total Halaman Fase 1
-
-| Area | Jumlah Halaman |
-|------|----------------|
-| Public / Marketing | 5 |
-| Auth | 5 |
-| Student Area | 10 |
-| Gamifikasi | 4 |
-| Admin Area | 20 |
-| Akun & Profil | 4 |
-| Halaman Statis | 4 |
-| **Total** | **~52** |
-
----
-
-## Fitur Ditunda (Fase 2+)
-
-- Payment gateway otomatis
-- Redeem poin → uang / voucher otomatis
-- Mobile app (iOS / Android)
-- Marketplace modul
-- Advanced affiliate / creator storefront
-- Multi-language interface
-- SSO external (Google, LINE)
-- Escrow / advanced contributor payout
+| Area Routing | Jumlah Halaman Aktif |
+| :--- | :--- |
+| Public / Marketing | 3 |
+| Auth Area (Custom UI) | 2 |
+| Student Area (Core LMS) | 7 |
+| Gamification Center | 2 |
+| Admin Area (Termasuk Lean CMS) | 4 |
+| Halaman Statis | 3 |
+| **Total Estimasi Beban Kerja** | **~21 Halaman** |
