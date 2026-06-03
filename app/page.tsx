@@ -14,16 +14,16 @@ export default function Home() {
               <Image
                 src="/brand/logo.png"
                 alt="JepangKu Logo"
-                width={130}
-                height={36}
+                width={150}
+                height={40}
                 className="h-9 w-auto object-contain dark:hidden"
                 priority
               />
               <Image
                 src="/brand/logo-white.png"
                 alt="JepangKu Logo"
-                width={130}
-                height={36}
+                width={150}
+                height={40}
                 className="h-9 w-auto object-contain hidden dark:block"
                 priority
               />
