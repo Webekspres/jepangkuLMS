@@ -23,16 +23,30 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 ---
 
 ## 🎨 Aturan Khusus Styling & Tailwind CSS v4
-Proyek ini menggunakan **Tailwind CSS v4**. Ingat aturan berikut untuk menghindari error kompilasi:
+Proyek ini menggunakan **Tailwind CSS v4** dan **Shadcn UI**. Patuhi aturan berikut demi konsistensi visual:
+
 1. **Tanpa `tailwind.config.js`:** Tailwind v4 dikonfigurasi menggunakan CSS-native directive. Jangan membuat file `tailwind.config.js` baru.
-2. **Kustomisasi Tema:** Semua modifikasi warna, font, dan kustomisasi tema utilitas dilakukan langsung di dalam [app/globals.css](file:///d:/ka_treasury/JepangKu/jepangkuLMS/app/globals.css) menggunakan syntax directive `@theme inline` atau CSS custom variables, contoh:
-   ```css
-   @theme inline {
-     --color-background: var(--background);
-     --color-foreground: var(--foreground);
-   }
-   ```
+2. **Kustomisasi Tema:** Semua modifikasi warna, font, dan kustomisasi tema utilitas dilakukan langsung di dalam [app/globals.css](file:///d:/ka_treasury/JepangKu/jepangkuLMS/app/globals.css) menggunakan syntax directive `@theme inline` atau CSS custom variables.
 3. **Import Syntax:** Gunakan `@import "tailwindcss";` di bagian atas file CSS global utama.
+
+---
+
+## 🎯 Panduan Desain & Merek (Brand Guidelines)
+Seluruh AI Agent wajib mematuhi panduan warna dan tipografi resmi yang tercantum di dalam [app/globals.css](file:///d:/ka_treasury/JepangKu/jepangkuLMS/app/globals.css):
+
+1. **Palet Warna Utama (Branding Colors):**
+   * **Red Japanese (`#EC1D24` / `brand-red`):** Warna primer JepangKu. Dipetakan ke variabel `--primary`. Digunakan untuk aksi utama, tombol utama, status aktif, dan aksen penting.
+   * **Navy (`#1E1B57` / `brand-navy`):** Warna struktural sekunder. Dipetakan ke variabel `--secondary` dan `--sidebar`. Digunakan untuk header, panel, latar belakang sidebar, dan text branding gelap.
+   * **Orange (`#FF4B2B` / `brand-orange`):** Warna aksen sorotan. Dipetakan ke variabel `--accent` dan `--ring` (focus indicator). Digunakan untuk interaksi hover, penarik perhatian, dan promo.
+   * **Yellow (`#F8E71C` / `brand-yellow`):** Warna pencapaian/hadiah. Digunakan untuk medali/badge emas, bonus XP, dan highlight rewards.
+
+2. **Aturan Penulisan Styling:**
+   * **DILARANG** menuliskan hex code warna secara acak/hardcoded di dalam komponen (misalnya: `text-[#EC1D24]`, `bg-[#1E1B57]`).
+   * **WAJIB** menggunakan semantic class bawaan Shadcn UI (`bg-primary`, `bg-secondary`, `bg-accent`, `text-muted-foreground`) atau utilitas brand warna kustom (`bg-brand-red`, `text-brand-navy`, `bg-brand-orange`, `text-brand-yellow`).
+
+3. **Gunakan Shadcn UI untuk Komponen & Primitif:**
+   * Semua elemen UI dasar (button, dialog, input, card, tabs, sheets, dsb.) harus diimpor dari primitif Shadcn UI di folder `components/ui/`.
+   * Jangan menginstal library komponen pihak ketiga lainnya (seperti Material UI atau Chakra) tanpa koordinasi.
 
 ---
 
