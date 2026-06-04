@@ -29,6 +29,7 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 1. **DB LMS** — PostgreSQL mandiri; **jangan** simpan profil lengkap user (email, nama, avatar, XP, level) di Prisma lokal.
 2. **`User` di `schema.prisma`** — hanya **jangkar FK**: field `id` (String) = user id dari Core / Clerk; relasi native ke `Enrollment`, `UserProgress`, `QuizAttempt`.
 3. **Profil & gamifikasi (user aktif)** — dari **JWT claims** yang dikeluarkan Core (`lib/core/jwt-claims.ts`, `getCoreSession()`). Bukan `prisma.user` untuk nama/XP/roles. **Leaderboard & award XP** → Core API (`lib/core/client.ts`).
+4. **Schema Core (Sultan)** — `docs/backend_core_services/backend-core-services.prisma` dan `core_dbdiagram.dbml` **wajib 1:1**; ubah keduanya bersamaan.
 4. **Clerk** — dipasang di **Core Service**, bukan sebagai sumber kebenaran duplikat di LMS.
 5. **`features/gamification/`** — UI + client Core; bukan tabel `UserStat` / `Badge` lokal.
 

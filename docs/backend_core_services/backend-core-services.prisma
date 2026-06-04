@@ -1,7 +1,9 @@
 // ====================================================================
 // JepangKu Core Backend — Database schema (canonical)
+// SYNC 1:1 dengan core_dbdiagram.dbml — ubah keduanya bersamaan
+// Schema version: 2.0.1
 // Repo referensi untuk tim Sultan. Bukan schema LMS.
-// Dokumentasi: README.md · DBML: core_dbdiagram.dbml
+// Dokumentasi: README.md · SCHEMA_REFERENCE.md (per model/field)
 // ====================================================================
 
 datasource db {
@@ -67,10 +69,11 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  level         Level      @relation(fields: [currentLevel], references: [levelNumber])
-  userBadges    UserBadge[]
-  userRoles     UserRole[]
-  gamificationLogs GamificationLog[]
+  level              Level      @relation(fields: [currentLevel], references: [levelNumber])
+  userBadges         UserBadge[]
+  userRoles          UserRole[] @relation("UserRoleMember")
+  rolesGrantedByUser UserRole[] @relation("UserRoleGrantedBy")
+  gamificationLogs   GamificationLog[]
 
   @@index([deletedAt])
   @@map("users")
@@ -96,8 +99,9 @@ model UserRole {
   grantedAt       DateTime @default(now()) @map("granted_at")
   grantedByUserId String?  @map("granted_by_user_id")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user          User  @relation("UserRoleMember", fields: [userId], references: [id], onDelete: Cascade)
+  role          Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  grantedByUser User? @relation("UserRoleGrantedBy", fields: [grantedByUserId], references: [id], onDelete: SetNull)
 
   @@id([userId, roleId])
   @@map("user_roles")

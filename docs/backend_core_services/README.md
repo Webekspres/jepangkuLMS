@@ -6,9 +6,40 @@
 | :--- | :--- |
 | [backend-core-services.prisma](./backend-core-services.prisma) | Schema Prisma (implementasi) |
 | [core_dbdiagram.dbml](./core_dbdiagram.dbml) | Visual ERD di [dbdiagram.io](https://dbdiagram.io) |
-| [README.md](./README.md) | Dokumentasi ini |
+| [SCHEMA_REFERENCE.md](./SCHEMA_REFERENCE.md) | **Referensi per model & per field** (untuk tim Sultan) |
+| [README.md](./README.md) | Dokumentasi ini — aturan bisnis, JWT, seed, alur |
+
+### ⚠️ Aturan sinkronisasi Prisma ↔ DBML (wajib)
+
+Kedua file di atas adalah **ERD yang sama**, format berbeda. **Harus selalu 1:1.**
+
+| Prisma `model` | DBML `Table` | DB PostgreSQL |
+| :--- | :--- | :--- |
+| `Application` | `applications` | `applications` |
+| `ActivityType` | `activity_types` | `activity_types` |
+| `User` | `users` | `users` |
+| `Role` | `roles` | `roles` |
+| `UserRole` | `user_roles` | `user_roles` |
+| `Level` | `levels` | `levels` |
+| `Badge` | `badges` | `badges` |
+| `UserBadge` | `user_badges` | `user_badges` |
+| `GamificationLog` | `gamification_logs` | `gamification_logs` |
+| `BadgeType` (enum) | `badge_type` (enum) | enum Postgres |
+
+**Saat mengubah schema:**
+
+1. Edit **keduanya** dalam satu PR/commit (atau sebutkan di changelog).
+2. Bump `Schema version: X.Y.Z` di header **kedua** file.
+3. Cek: kolom, nullable, unique, FK, index, enum — harus cocok (nama DB = `@@map` / snake_case di DBML).
+4. **Tipe ID:** di DBML pakai `varchar` = Prisma `String` (Clerk ID & UUID string); bukan tipe `uuid` native DBML agar selaras migrasi.
+5. Blok `Ref:` di DBML harus cocok dengan `@relation` + `onDelete` di Prisma.
+6. Import ulang DBML ke dbdiagram.io untuk validasi visual.
+
+**Versi saat ini:** `2.0.1`
 
 **Konteks ekosistem:** [ECOSYSTEM.md](../ECOSYSTEM.md) · **Integrasi LMS:** [lib/core/](../../lib/core/)
+
+> **Handoff Sultan:** Mulai dari [SCHEMA_REFERENCE.md](./SCHEMA_REFERENCE.md) untuk penjelasan tiap tabel & kolom; kembali ke README ini untuk JWT, idempotensi, dan seed.
 
 ---
 
@@ -192,6 +223,7 @@ Seed minimal level `1` dengan `xp_required = 0` agar FK `users.current_level` va
 | Dokumen | Isi |
 | :--- | :--- |
 | **Folder ini** (`backend_core_services/`) | Schema **canonical** — Prisma, DBML, aturan bisnis, seed |
+| **[SCHEMA_REFERENCE.md](./SCHEMA_REFERENCE.md)** | Definisi setiap model & field |
 | **[CORE_ERD.md](../CORE_ERD.md)** | Konsep ringkas (~1 halaman): batas Core vs LMS, JWT, diagram logikal |
 
 Jika ada perbedaan, **yang menang adalah file Prisma di folder ini**.
@@ -217,3 +249,5 @@ File Prisma ini memakai `DATABASE_URL` database **Core**, terpisah dari `DATABAS
 | :--- | :--- | :--- |
 | 1.0 | 2026-06-03 | Draft awal (Kris): users, levels, badges, gamification_logs |
 | 2.0 | 2026-06-03 | Roles, lookup tables, idempotency_key, badge.code, soft delete, README |
+| 2.0.0 | 2026-06-03 | Sinkronisasi penuh Prisma ↔ DBML (enum, index, nullable); aturan 1:1 di README |
+| 2.0.1 | 2026-06-03 | DBML: varchar IDs, Ref eksplisit + onDelete; Prisma: FK granted_by_user_id |

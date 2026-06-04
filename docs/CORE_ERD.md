@@ -1,6 +1,6 @@
 # 🗄️ JepangKu Core Backend — Konsep Arsitektur (Ringkas)
 
-> ⚠️ **Bukan schema implementasi.** Untuk tabel, kolom, Prisma, DBML, seed, dan aturan bisnis → gunakan **[backend_core_services/](./backend_core_services/)** (`README.md` + `backend-core-services.prisma`).
+> ⚠️ **Bukan schema implementasi.** Untuk tabel, kolom, Prisma, DBML, seed, dan aturan bisnis → gunakan **[backend_core_services/](./backend_core_services/)** (`SCHEMA_REFERENCE.md` per field, `README.md` aturan bisnis, `backend-core-services.prisma`).
 
 Dokumen ini menjawab **mengapa** ada database Core terpisah dan **bagaimana** LMS/Berita memakainya. Detail teknis ada di folder canonical di atas.
 
