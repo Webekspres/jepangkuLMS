@@ -5,6 +5,8 @@
 
 Dokumen ini menjelaskan **setiap model Prisma**, **setiap field**, relasi, dan aturan bisnis. Untuk alur integrasi LMS/Berita, JWT, seed, dan changelog → [README.md](./README.md).
 
+> Belum paham **`code`**, tabel **`applications`**, atau **`activity_types`**? Baca dulu [CONCEPTS.md](./CONCEPTS.md).
+
 **Konteks ekosistem:** [ECOSYSTEM.md](../ECOSYSTEM.md) · Diagram visual: import [core_dbdiagram.dbml](./core_dbdiagram.dbml) ke [dbdiagram.io](https://dbdiagram.io).
 
 ---

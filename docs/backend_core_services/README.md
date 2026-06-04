@@ -6,6 +6,7 @@
 | :--- | :--- |
 | [backend-core-services.prisma](./backend-core-services.prisma) | Schema Prisma (implementasi) |
 | [core_dbdiagram.dbml](./core_dbdiagram.dbml) | Visual ERD di [dbdiagram.io](https://dbdiagram.io) |
+| [CONCEPTS.md](./CONCEPTS.md) | **Penjelasan konsep:** `code`, `applications`, `activity_types` |
 | [SCHEMA_REFERENCE.md](./SCHEMA_REFERENCE.md) | **Referensi per model & per field** (untuk tim Sultan) |
 | [README.md](./README.md) | Dokumentasi ini — aturan bisnis, JWT, seed, alur |
 
