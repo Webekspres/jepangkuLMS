@@ -8,7 +8,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
 | **Terakhir diperbarui** | 2026-06-03 |
-| **Progres global Fase 1** | **40%** (58 item terlacak) |
+| **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
+| **Progres global Fase 1** | **40%** (59 item terlacak) |
 
 ### Progres global
 
@@ -18,16 +19,16 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Area | Bobot* | ✅ | 🟡 | ⬜ | % area |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| Infrastruktur & platform | 17 | 5 | 8 | 4 | 48% |
+| Infrastruktur & platform | 18 | 5 | 10 | 3 | 47% |
 | Halaman & routing | 23 | 0 | 23 | 0 | 40% |
 | Domain `features/` | 4 | 0 | 1 | 3 | 10% |
-| Data & integrasi | 9 | 5 | 0 | 4 | 56% |
+| Data & integrasi | 8 | 4 | 0 | 4 | 50% |
 | Keamanan & bisnis | 5 | 0 | 1 | 4 | 8% |
-| **Total** | **58** | **10** | **33** | **15** | **40%** |
+| **Total** | **59** | **10** | **34** | **15** | **40%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(10 + 13,2) ÷ 58 ≈ 40%`.  
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(10 + 13,6) ÷ 59 ≈ 40%`.  
 🟡 = scaffold / sebagian (40% poin); ✅ = sesuai MVP penuh. Setelah ubah status, **hitung ulang** baris Total & persen global di atas.
 
 ---
@@ -47,9 +48,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Area | Selesai | Sebagian | Belum |
 | :--- | ---: | ---: | ---: |
-| Infrastruktur & platform | 4 | 8 | 3 |
+| Infrastruktur & platform | 4 | 9 | 3 |
 | Halaman & routing (23) | 0 | 23 | 0 |
-| Domain `features/` | 0 | 1 | 3 |
+| Domain `features/` | 0 | 2 | 2 |
 | Data & integrasi | 1 | 2 | 4 |
 
 **Ringkasan:** Fondasi schema & tooling ada; mayoritas halaman masih stub; auth, `features/`, dan integrasi DB belum. Lihat **Progres global** di atas untuk persentase terkini.
@@ -63,11 +64,12 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Next.js 16 App Router + React 19 | ✅ | `app/` terstruktur sesuai sitemap |
 | Tailwind CSS v4 + tema brand (`globals.css`) | ✅ | Palet JepangKu + Shadcn semantic tokens |
 | Bun sebagai package manager | ✅ | `bun dev`, dll. |
-| Prisma schema (PostgreSQL) | ✅ | Model lengkap: User, Course, Lesson, Quiz, XP, Badge, dll. |
+| Prisma schema (PostgreSQL LMS) | ✅ | Kursus, kuis, progress; `User` jangkar (`id` = Core user id); gamifikasi **dihapus** dari schema lokal |
+| Integrasi `lib/core/` (JWT claims + API) | 🟡 | `jwt-claims.ts`, `session.ts`; verify JWT & `getCoreSession()` belum; leaderboard/award via API |
 | `lib/prisma.ts` singleton | ✅ | Client siap dipakai RSC/Server Actions |
 | `proxy.ts` (ganti middleware) | 🟡 | Daftar public path ada; **belum** Clerk auth / redirect logged-in user / role ADMIN |
-| Clerk Auth (sign-in, sign-up, OAuth) | ⬜ | Halaman stub; **Clerk belum di `package.json`**; tidak ada `ClerkProvider` di root layout |
-| Webhook `/api/webhooks/clerk` → sync User DB | 🟡 | Route ada; hanya `console.log`, **belum** create/update User + `UserStat` via Prisma |
+| Auth / SSO (JWT + claims dari Core) | ⬜ | Keputusan: profil/XP/roles di **JWT claims**; LMS verify token + upsert `User` jangkar; sign-in stub |
+| Webhook `/api/webhooks/clerk` di LMS | 🟡 | Legacy stub — **target sync user di Core**; LMS hanya perlu FK jangkar jika diperlukan |
 | TanStack Query | 🟡 | `AppProviders` di `app/layout.tsx`; `getQueryClient`, `queryKeys`; **belum** `useQuery` di features |
 | Zustand (quiz store) | 🟡 | `zustand@5` terpasang; `useQuizStore` + selectors di `features/quiz-engine/store/`; **belum** dipakai di UI `/kuis` |
 | Zod validasi | 🟡 | `zod@4` + `lib/validations/` (shared schemas, `parseInput`); skema per-domain di `features/*/schemas/` belum |
@@ -144,7 +146,7 @@ Target struktur: `actions/`, `components/`, `store/` (jika perlu).
 
 | Domain | Folder | Server actions (rencana) | UI / state (rencana) | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **gamification** | `features/gamification/` | `claimBadge`, `getUserRank`, award XP dari kuis/lesson | `LeaderboardTable`, `LevelProgressBar` | ⬜ |
+| **gamification** | `features/gamification/` | Client ke **Core** (bukan Prisma XP lokal) | `LeaderboardTable`, `LevelProgressBar` | 🟡 |
 | **learning** | `features/learning/` | `completeLesson`, `getCourseContent` | `VideoPlayer`, `SilabusAccordion` | ⬜ |
 | **quiz-engine** | `features/quiz-engine/` | `submitQuizAttempt` | `QuizWorkspace`, `QuestionCard`, `useQuizStore` | 🟡 |
 | **admin-cms** | `features/admin-cms/` | `approvePayment`, `uploadExcelMateri`, CRUD kursus/lesson | Tabel CMS, form import | ⬜ |
@@ -155,16 +157,15 @@ Target struktur: `actions/`, `components/`, `store/` (jika perlu).
 
 | Item | Status | Catatan |
 | :--- | :---: | :--- |
-| Schema: User + Clerk `clerkId` | ✅ | |
+| Schema: `User` jangkar (`id` String, Core user id) | ✅ | Tanpa email/nama/XP lokal |
 | Schema: Course, Lesson, materials (Kanji/Kosakata/Tata Bahasa) | ✅ | |
 | Schema: Question + QuestionOption, QuizAttempt | ✅ | |
-| Schema: UserStat, Badge, UserBadge, UserProgress | ✅ | |
-| Schema: Enrollment (PENDING/ACTIVE) | ✅ | Alur pembayaran manual mungkin perlu model tambahan |
+| Schema: UserProgress, Enrollment | ✅ | |
 | Seed data kursus N5 + soal dari CSV | ⬜ | |
 | RSC: Prisma read di halaman publik/katalog | ⬜ | |
 | Server Actions: write paths | ⬜ | |
-| XP otomatis setelah kuis/lesson | ⬜ | |
-| Leaderboard query (top 10 + rank user) | ⬜ | |
+| Event XP ke Core setelah kuis/lesson | ⬜ | Via API Core (kontrak TBD), bukan `UserStat` LMS |
+| Leaderboard dari Core API | ⬜ | JWT untuk user aktif; top-N via API |
 
 ---
 
@@ -192,11 +193,12 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 
 ## 7. Blokir / risiko saat ini
 
-1. **Clerk belum terpasang** — auth, webhook sync, dan proxy protection tertunda.
-2. **`features/` kosong** — pelanggaran konvensi AGENTS.md; refactor diperlulu sebelum logic membesar di `app/`.
-3. **Tidak ada seed** — kuis & demo belajar tidak bisa diuji end-to-end.
-4. **Model pembayaran** — kejelasan entitas "request pembayaran" vs `Enrollment` saja.
-5. **Proxy placeholder** — semua route non-public saat ini lolos tanpa auth (`proxy.ts`).
+1. **Verify JWT di LMS** — `getCoreSession()` belum terhubung cookie/header + JWKS Core.
+2. **Clerk di Core, bukan LMS** — jangan duplikasi sync profil penuh di repo ini.
+3. **`features/` minimal** — refactor ke domain sebelum logic membesar di `app/`.
+4. **Tidak ada seed** — kuis & demo belajar tidak bisa diuji end-to-end.
+5. **Model pembayaran** — kejelasan entitas "request pembayaran" vs `Enrollment` saja.
+6. **Proxy placeholder** — semua route non-public saat ini lolos tanpa auth (`proxy.ts`).
 
 ---
 
@@ -221,3 +223,8 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 | 2026-06-03 | TanStack Query: `AppProviders` di root layout, `lib/query-client`, `lib/query-keys` |
 | 2026-06-03 | Progres global 40% + rumus & tabel per area di header PROGRESS |
 | 2026-06-03 | Tambah `.env.example`; perbaiki `.gitignore` agar template bisa di-commit |
+| 2026-06-03 | Arsitektur ekosistem: `docs/ECOSYSTEM.md`, `lib/core/`, schema `User` jangkar, gamifikasi ke Core |
+| 2026-06-03 | Draft ERD Core normalized: `docs/CORE_ERD.md` (handoff Sultan) |
+| 2026-06-03 | Keputusan JWT claims: docs + `lib/core/jwt-claims.ts`, `session.ts` |
+| 2026-06-03 | Core schema v2: `docs/backend_core_services/` (roles, idempotency, lookup 3NF, README) |
+| 2026-06-03 | `CORE_ERD.md` dipendekkan jadi konsep saja; schema detail hanya di `backend_core_services/` |

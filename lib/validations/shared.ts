@@ -14,10 +14,6 @@ export const levelJlptSchema = z.enum(['N5', 'N4', 'N3', 'N2', 'N1'], {
   message: 'Level JLPT tidak valid',
 });
 
-export const roleSchema = z.enum(['STUDENT', 'ADMIN'], {
-  message: 'Role tidak valid',
-});
-
 export const enrollmentStatusSchema = z.enum(['PENDING', 'ACTIVE'], {
   message: 'Status enrollment tidak valid',
 });

@@ -1,0 +1,101 @@
+// JepangKu Core Backend — dbdiagram.io
+// Import: https://dbdiagram.io · Dokumentasi: README.md
+
+// ====================================================================
+// LOOKUP
+// ====================================================================
+Table applications {
+  id uuid [pk]
+  code varchar [unique, not null, note: 'LMS | PORTAL_BERITA | LPK']
+  name varchar [not null]
+}
+
+Table activity_types {
+  id uuid [pk]
+  code varchar [unique, not null, note: 'COMPLETED_QUIZ | COMPLETED_LESSON | READ_ARTICLE']
+  description text
+}
+
+// ====================================================================
+// USERS & ROLES
+// ====================================================================
+Table users {
+  id varchar [pk, note: 'Clerk User ID']
+  email varchar [unique, not null]
+  name varchar [not null]
+  image_url varchar
+  total_xp integer [default: 0, note: 'Lifetime XP — tidak turun']
+  current_points integer [default: 0, note: 'Saldo poin bisa dibelanjakan']
+  current_level integer [default: 1, ref: > levels.level_number]
+  clerk_synced_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+  deleted_at timestamp [note: 'Soft delete / banned']
+}
+
+Table roles {
+  id uuid [pk]
+  code varchar [unique, not null, note: 'STUDENT | LMS_ADMIN | NEWS_EDITOR | CORE_ADMIN']
+  name varchar [not null]
+  description text
+}
+
+Table user_roles {
+  user_id varchar [pk, ref: > users.id]
+  role_id uuid [pk, ref: > roles.id]
+  granted_at timestamp [default: `now()`]
+  granted_by_user_id varchar [ref: > users.id, note: 'nullable']
+}
+
+// ====================================================================
+// LEVELS
+// ====================================================================
+Table levels {
+  level_number integer [pk, note: '1, 2, 3...']
+  xp_required integer [unique, not null, note: 'Min total_xp KUMULATIF untuk level ini']
+  title varchar
+}
+
+// ====================================================================
+// BADGES
+// ====================================================================
+Table badges {
+  id uuid [pk]
+  code varchar [unique, not null]
+  title varchar [not null]
+  description text
+  image_url varchar [not null]
+  badge_type varchar [not null, note: 'LMS_ACHIEVEMENT | NEWS_CONTRIBUTOR | GLOBAL']
+  is_active boolean [default: true]
+  created_at timestamp [default: `now()`]
+}
+
+Table user_badges {
+  id uuid [pk]
+  user_id varchar [ref: > users.id]
+  badge_id uuid [ref: > badges.id]
+  application_id uuid [ref: > applications.id, note: 'nullable']
+  source_ref_id varchar [note: 'nullable']
+  unlocked_at timestamp [default: `now()`]
+
+  indexes {
+    (user_id, badge_id) [unique]
+  }
+}
+
+// ====================================================================
+// GAMIFICATION LEDGER
+// ====================================================================
+Table gamification_logs {
+  id uuid [pk]
+  user_id varchar [ref: > users.id]
+  application_id uuid [ref: > applications.id]
+  activity_type_id uuid [ref: > activity_types.id]
+  xp_gained integer [default: 0]
+  points_gained integer [default: 0]
+  source_ref_id varchar [note: 'ID record di DB app sumber']
+  idempotency_key varchar [unique, not null, note: 'lms:quiz_attempt:{uuid}']
+  created_at timestamp [default: `now()`]
+
+  Note: 'Setiap insert: update users.total_xp/current_points/current_level dalam satu transaksi'
+}

@@ -1,0 +1,174 @@
+// ====================================================================
+// JepangKu Core Backend — Database schema (canonical)
+// Repo referensi untuk tim Sultan. Bukan schema LMS.
+// Dokumentasi: README.md · DBML: core_dbdiagram.dbml
+// ====================================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ====================================================================
+// ENUMS
+// ====================================================================
+enum BadgeType {
+  LMS_ACHIEVEMENT
+  NEWS_CONTRIBUTOR
+  GLOBAL
+}
+
+// ====================================================================
+// 1. LOOKUP — APLIKASI & JENIS AKTIVITAS (3NF)
+// ====================================================================
+model Application {
+  id    String @id @default(uuid())
+  code  String @unique // LMS | PORTAL_BERITA | LPK
+  name  String
+
+  gamificationLogs GamificationLog[]
+  userBadges       UserBadge[]
+
+  @@map("applications")
+}
+
+model ActivityType {
+  id          String @id @default(uuid())
+  code        String @unique // COMPLETED_QUIZ | COMPLETED_LESSON | READ_ARTICLE | ...
+  description String? @db.Text
+
+  gamificationLogs GamificationLog[]
+
+  @@map("activity_types")
+}
+
+// ====================================================================
+// 2. AUTH, PROFIL & STATS (snapshot untuk JWT claims)
+// ====================================================================
+model User {
+  id            String    @id // Clerk User ID — sama dengan LMS User.id (jangkar FK)
+  email         String    @unique
+  name          String
+  imageUrl      String?   @map("image_url")
+
+  /// XP kumulatif seumur hidup (tidak turun)
+  totalXp       Int       @default(0) @map("total_xp")
+  /// Saldo poin yang bisa dibelanjakan / ditukar (bisa berkurang)
+  currentPoints Int       @default(0) @map("current_points")
+  /// Cache level — harus diselaraskan dengan totalXp + tabel levels dalam transaksi yang sama
+  currentLevel  Int       @default(1) @map("current_level")
+
+  clerkSyncedAt DateTime? @map("clerk_synced_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  level         Level      @relation(fields: [currentLevel], references: [levelNumber])
+  userBadges    UserBadge[]
+  userRoles     UserRole[]
+  gamificationLogs GamificationLog[]
+
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ====================================================================
+// 3. ROLES (JWT jepangku.roles + admin LMS / editor Berita)
+// ====================================================================
+model Role {
+  id          String @id @default(uuid())
+  code        String @unique // STUDENT | LMS_ADMIN | NEWS_EDITOR | CORE_ADMIN
+  name        String
+  description String? @db.Text
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId          String   @map("user_id")
+  roleId          String   @map("role_id")
+  grantedAt       DateTime @default(now()) @map("granted_at")
+  grantedByUserId String?  @map("granted_by_user_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ====================================================================
+// 4. LEVEL ENGINE
+// xp_required = minimum total_xp KUMULATIF untuk berada di level ini
+// ====================================================================
+model Level {
+  levelNumber Int    @id @map("level_number")
+  xpRequired  Int    @unique @map("xp_required")
+  title       String?
+
+  users User[]
+
+  @@map("levels")
+}
+
+// ====================================================================
+// 5. BADGES (MASKOT JEPANGKU)
+// ====================================================================
+model Badge {
+  id          String    @id @default(uuid())
+  code        String    @unique // KUTU_BUKU | NIGHT_LEARNER — untuk unlock programmatic
+  title       String
+  description String    @db.Text
+  imageUrl    String    @map("image_url")
+  badgeType   BadgeType @map("badge_type")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  badgeId       String   @map("badge_id")
+  applicationId String?  @map("application_id")
+  sourceRefId   String?  @map("source_ref_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge       Badge        @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// ====================================================================
+// 6. LEDGER GAMIFIKASI (audit + idempotensi dari LMS/Berita)
+// ====================================================================
+model GamificationLog {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  applicationId  String   @map("application_id")
+  activityTypeId String   @map("activity_type_id")
+  xpGained       Int      @default(0) @map("xp_gained")
+  pointsGained   Int      @default(0) @map("points_gained")
+  sourceRefId    String?  @map("source_ref_id") // ID di DB app sumber (mis. QuizAttempt.id LMS)
+  idempotencyKey String   @unique @map("idempotency_key") // lms:quiz_attempt:{uuid}
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application  Application  @relation(fields: [applicationId], references: [id])
+  activityType ActivityType @relation(fields: [activityTypeId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("gamification_logs")
+}

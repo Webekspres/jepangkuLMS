@@ -1,6 +1,8 @@
 # 📝 JepangKu LMS - Developer Notes & Architecture Guide
 
-Dokumen ini dirancang sebagai panduan kolaborasi tim (2-man sprint) agar struktur kode tetap konsisten, modular, dan meminimalisir konflik Git selama pengerjaan proyek Fase 1 (Target MVP: 30 Juni 2026).
+Dokumen ini dirancang sebagai panduan kolaborasi tim agar struktur kode tetap konsisten selama Fase 1 MVP (target 30 Juni 2026).
+
+**Ekosistem:** LMS ini satu app di antara Core Backend (Sultan) dan Portal Berita (Habibi). Baca **[ECOSYSTEM.md](./ECOSYSTEM.md)** sebelum mengubah `User`, auth, atau gamifikasi.
 
 ---
 
@@ -21,8 +23,9 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim (2-man sprint) agar struktu
    - Selalu tarik branch baru dari `main` yang paling update.
    - Jangan pernah *merge* langsung ke `main` di lokal. Buat **Pull Request (PR)** di GitHub/GitLab, minta rekan tim untuk *code review* singkat, baru di-*merge*.
 4. **Strategi Pembagian Kerja (Vertikal Slicing):**
-   - **Dev A (Kris):** Fokus pada infrastruktur dasar, autentikasi Clerk, webhook sinkronisasi user, serta fitur **Gamifikasi & Dashboard** (XP, Level, Badge, Leaderboard).
-   - **Dev B (Partner):** Fokus pada fitur **Learning Core & Quiz Engine** (Halaman Materi, Video Player, Evaluasi Skor Kuis, Seeding Excel Materi).
+   - **Kris (LMS repo ini):** Learning, quiz engine, CMS LMS, UI dashboard; integrasi **`lib/core/`** untuk profil/XP; **User jangkar** di Prisma.
+   - **Sultan (Core):** Clerk SSO, profil global, mesin gamifikasi, API untuk LMS/Berita.
+   - **Habibi (Portal Berita):** App & DB berita terpisah.
 
 ---
 

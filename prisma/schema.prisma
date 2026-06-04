@@ -13,11 +13,6 @@ datasource db {
 // ====================================================================
 // ENUMS (Tipe Data Konstan)
 // ====================================================================
-enum Role {
-  STUDENT
-  ADMIN
-}
-
 enum LevelJLPT {
   N5
   N4
@@ -42,79 +37,31 @@ enum CategoryType {
   TATA_BAHASA
 }
 
-enum BadgeType {
-  UTAMA
-  MATERI
-  QUIZ
-  GLOBAL
-}
-
 // ====================================================================
-// 1. MANAJEMEN USER & SSO (CLERK)
+// 1. USER JANGKAR (FK ke Core Service / Clerk User ID)
+// Profil, XP, level, badge → JepangKu Core Backend (bukan DB LMS). Lihat docs/ECOSYSTEM.md
 // ====================================================================
 model User {
-  id        String   @id @default(uuid())
-  clerkId   String   @unique // Jembatan sinkronisasi dari Clerk Auth
-  email     String   @unique
-  name      String
-  role      Role     @default(STUDENT)
+  id        String   @id // ID user dari Core Service (Clerk User ID) — tanpa @default(uuid())
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  stat        UserStat?
   enrollments Enrollment[]
   progress    UserProgress[]
   attempts    QuizAttempt[]
-  badges      UserBadge[]
 }
 
 // ====================================================================
-// 2. GAMIFIKASI (XP, LEVEL, DAN BADGE)
-// ====================================================================
-model UserStat {
-  id       String @id @default(uuid())
-  userId   String @unique
-  totalXp  Int    @default(0)
-  level    Int    @default(1)
-  
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Badge {
-  id          String     @id @default(uuid())
-  name        String     @unique // Sesuai lampiran checklist-lms.pdf
-  description String     @db.Text
-  type        BadgeType  
-  level       LevelJLPT? // Opsional untuk menampung Badge Global
-  imageUrl    String?    
-  
-  users       UserBadge[]
-}
-
-model UserBadge {
-  id        String   @id @default(uuid())
-  userId    String
-  badgeId   String
-  earnedAt  DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, badgeId])
-}
-
-// ====================================================================
-// 3. HIRARKI KURSUS & PEMBAYARAN (CMS)
+// 2. HIRARKI KURSUS & PEMBAYARAN (CMS)
 // ====================================================================
 model Course {
-  id          String      @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
-  slug        String      @unique
-  description String?     @db.Text
-  level       LevelJLPT   @default(N5)
-  isPublished Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  
+  slug        String    @unique
+  description String?   @db.Text
+  level       LevelJLPT @default(N5)
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
   lessons     Lesson[]
   enrollments Enrollment[]
 }
@@ -129,36 +76,36 @@ model Enrollment {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, courseId]) 
+  @@unique([userId, courseId])
 }
 
 model Lesson {
-  id          String  @id @default(uuid())
-  courseId    String
-  title       String
-  slug        String  @unique
-  order       Int     
-  content     String? @db.Text 
-  videoUrl    String? 
-  
-  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  id       String  @id @default(uuid())
+  courseId String
+  title    String
+  slug     String  @unique
+  order    Int
+  content  String? @db.Text
+  videoUrl String?
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   kanjis      MaterialKanji[]
   kosakatas   MaterialKosakata[]
   tataBahasas MaterialTataBahasa[]
-  
-  questions   Question[]
-  progress    UserProgress[]
-  attempts    QuizAttempt[] // <--- INI AMUNISI TAMBAHAN biar error di image_00ea07.png LUNAS!
+
+  questions Question[]
+  progress  UserProgress[]
+  attempts  QuizAttempt[] // <--- INI AMUNISI TAMBAHAN biar error di image_00ea07.png LUNAS!
 }
 
 // ====================================================================
 // 4. MASTER DATA KATEGORI (NORMALISASI 3NF)
 // ====================================================================
 model Category {
-  id    String       @id @default(uuid())
-  name  String       
-  type  CategoryType 
+  id   String       @id @default(uuid())
+  name String
+  type CategoryType
 
   kanjis      MaterialKanji[]
   kosakatas   MaterialKosakata[]
@@ -173,7 +120,7 @@ model Category {
 model MaterialKanji {
   id            String  @id @default(uuid())
   lessonId      String
-  categoryId    String? 
+  categoryId    String?
   huruf         String
   furigana      String?
   romaji        String?
@@ -192,7 +139,7 @@ model MaterialKanji {
 model MaterialKosakata {
   id            String  @id @default(uuid())
   lessonId      String
-  categoryId    String? 
+  categoryId    String?
   kosakata      String
   furigana      String?
   romaji        String?
@@ -206,7 +153,7 @@ model MaterialKosakata {
 model MaterialTataBahasa {
   id            String  @id @default(uuid())
   lessonId      String
-  categoryId    String? 
+  categoryId    String?
   tataBahasa    String
   arti          String
   contohKalimat String? @db.Text
@@ -219,22 +166,22 @@ model MaterialTataBahasa {
 // 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
 // ====================================================================
 model Question {
-  id            String       @id @default(uuid())
-  lessonId      String?      // Optional: kosong jika ini soal Tryout
-  type          QuestionType @default(QUIZ) 
-  questionText  String       @db.Text
-  explanation   String?      @db.Text 
-  xpReward      Int          @default(10) 
+  id           String       @id @default(uuid())
+  lessonId     String? // Optional: kosong jika ini soal Tryout
+  type         QuestionType @default(QUIZ)
+  questionText String       @db.Text
+  explanation  String?      @db.Text
+  xpReward     Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
   lesson  Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  options QuestionOption[] 
+  options QuestionOption[]
 }
 
 model QuestionOption {
   id         String  @id @default(uuid())
   questionId String
-  text       String  
-  isCorrect  Boolean @default(false) 
+  text       String
+  isCorrect  Boolean @default(false)
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
@@ -246,7 +193,7 @@ model UserProgress {
   id          String   @id @default(uuid())
   userId      String
   lessonId    String
-  isCompleted Boolean  @default(true) 
+  isCompleted Boolean  @default(true)
   completedAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -258,10 +205,9 @@ model UserProgress {
 model QuizAttempt {
   id        String       @id @default(uuid())
   userId    String
-  lessonId  String?      // Optional: Kosong jika ini percobaan Tryout
+  lessonId  String? // Optional: Kosong jika ini percobaan Tryout
   type      QuestionType @default(QUIZ)
-  score     Int      
-  xpEarned  Int      
+  score     Int
   createdAt DateTime     @default(now())
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)

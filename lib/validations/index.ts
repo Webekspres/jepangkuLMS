@@ -6,7 +6,6 @@ export {
   lessonSlugParamsSchema,
   levelJlptSchema,
   questionTypeSchema,
-  roleSchema,
   slugSchema,
   uuidSchema,
   type LevelJlpt,

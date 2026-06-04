@@ -10,6 +10,7 @@ Dokumen ini adalah **single source of truth untuk UI/UX visual**. Setiap AI Agen
 | [app/globals.css](./app/globals.css) | Implementasi token warna & tema (satu-satunya tempat ubah palet) |
 | [app/page.tsx](./app/page.tsx) | **Referensi visual** landing (header, hero, card, footer) |
 | [sitemap.md](./sitemap.md) | Struktur halaman & area routing |
+| [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) | Batas LMS vs Core (data XP/profil) |
 
 ---
 
@@ -192,6 +193,8 @@ Rujuk [sitemap.md](./sitemap.md) untuk daftar route lengkap.
 
 ### 7.5 Gamifikasi (XP, badge, leaderboard)
 
+**Data dari JepangKu Core Backend** (`lib/core/`) — styling di LMS, penyimpanan XP/badge **bukan** di PostgreSQL LMS.
+
 | Elemen | Gaya |
 | :--- | :--- |
 | XP bar | Gradient merah→oranye→kuning; teks angka `font-bold text-brand-red` |
@@ -199,6 +202,7 @@ Rujuk [sitemap.md](./sitemap.md) untuk daftar route lengkap.
 | Badge featured / baru | `border-brand-yellow/30 bg-brand-yellow/5` |
 | Peringkat user sendiri | Highlight bar `bg-primary/10` atau border `border-primary` |
 | Leaderboard top 3 | Medali visual: gold → `brand-yellow`, silver/bronze → `muted` |
+| Loading / Core down | Skeleton Shadcn + `text-muted-foreground`; jangan tampilkan angka XP palsu dari DB LMS |
 
 ---
 

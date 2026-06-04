@@ -1,8 +1,9 @@
 # 🏛️ JepangKu LMS - System Architecture Guide
 
-Dokumen ini menjelaskan desain sistem, pola arsitektur, dan struktur folder fisik dari JepangKu LMS (Fase 1 MVP). Struktur ini dirancang untuk skalabilitas, isolasi fitur, serta kolaborasi tim yang efisien.
+Dokumen ini menjelaskan desain sistem, pola arsitektur, dan struktur folder fisik dari **JepangKu LMS** (Fase 1 MVP). Struktur ini dirancang untuk skalabilitas, isolasi fitur, serta kolaborasi tim yang efisien.
 
-> **UI & visual:** Untuk warna, komponen, layout per halaman, dan checklist konsistensi antar Agent, gunakan [DESIGN.md](../DESIGN.md) — bukan dokumen ini.
+> **Ekosistem multi-app:** Baca [ECOSYSTEM.md](./ECOSYSTEM.md) — Core Backend, Portal Berita, batas DB LMS, User jangkar, Clerk di Core.  
+> **UI & visual:** [DESIGN.md](../DESIGN.md)
 
 ---
 
@@ -49,13 +50,13 @@ jepangkuLMS/
 │   ├── cara-belajar/              # Halaman Statis Cara Belajar
 │   ├── hubungi/                   # Halaman Statis Hubungi Kami
 │   │
-│   ├── api/webhooks/clerk/        # Webhook Sinkronisasi User Clerk
+│   ├── api/webhooks/clerk/        # (Legacy/temporary) — target sync user di Core Service
 │   ├── layout.tsx                 # Root Layout Utama
 │   └── page.tsx                   # Public Landing Page
 │
 ├── components/                    # 🏗️ SHARED GLOBAL COMPONENTS
 │   ├── layout/                    # Sidebar Navigasi Utama, Navbar Dashboard
-│   ├── providers/                 # ClerkProvider, QueryProvider (TanStack)
+│   ├── providers/                 # QueryProvider; sesi dari JWT claims Core
 │   └── ui/                        # Komponen Primitif Shadcn UI (Button, Card, dll.)
 │
 ├── features/                      # 🧠 DOMAIN LOGIC (Isolasi Fitur)
@@ -65,8 +66,9 @@ jepangkuLMS/
 │   └── admin-cms/                 # CMS Internal Admin & Validasi Pembayaran
 │
 ├── hooks/                         # ⚓ Custom Hooks Global (useMediaQuery, dll.)
-├── lib/                           # ⚙️ Shared Config (Prisma Client, Axios/Fetch)
-└── prisma/                        # 🗄️ Prisma Database Schema & Seeds
+├── lib/                           # ⚙️ prisma.ts, validations, query-client
+│   └── core/                      # 🔗 Abstraksi Core Backend (profil, gamifikasi)
+└── prisma/                        # 🗄️ Schema DB LMS saja (User = jangkar FK)
 ```
 
 ---
@@ -76,18 +78,15 @@ jepangkuLMS/
 Setiap sub-folder di dalam `features/` memiliki batas tanggung jawab yang jelas:
 
 ### 1. `features/gamification`
-- **Tanggung Jawab:** Mengelola XP, level siswa, badge pencapaian, dan leaderboard global.
-- **Server Actions (`actions/`):**
-  - `claimBadge()`: Memvalidasi dan menyimpan badge baru untuk user.
-  - `getUserRank()`: Mengambil ranking user saat ini.
+- **Tanggung Jawab:** UI leaderboard, XP bar, badge gallery — **data dari JepangKu Core** via `lib/core/`, bukan tabel XP di PostgreSQL LMS.
+- **Server Actions / fetch:** User aktif dari **JWT claims**; leaderboard & award XP via Core API — semua lewat `lib/core/`.
 - **Komponen (`components/`):**
-  - `LeaderboardTable.tsx`: Menampilkan top 10 siswa.
-  - `LevelProgressBar.tsx`: Menampilkan XP & Level di dashboard utama.
+  - `LeaderboardTable.tsx`, `LevelProgressBar.tsx` — terima props / query dari Core.
 
 ### 2. `features/learning`
 - **Tanggung Jawab:** Menyediakan konten materi pembelajaran, video streaming, silabus, dan mencatat progres belajar siswa.
 - **Server Actions (`actions/`):**
-  - `completeLesson()`: Menandai lesson sebagai selesai dan memicu XP bonus.
+  - `completeLesson()`: Menandai lesson selesai di DB LMS; event XP ke Core (kontrak TBD).
   - `getCourseContent()`: Mengambil daftar materi dari DB.
 - **Komponen (`components/`):**
   - `VideoPlayer.tsx`: Secured video player embed untuk materi video.
@@ -114,21 +113,26 @@ Aplikasi ini membagi penanganan data menjadi tiga kategori utama untuk menjaga p
 
 ```mermaid
 graph TD
-    A[Data Statis / Initial Load] -->|Server Components| B(Direct Prisma Queries)
-    C[Mutasi Data / Write] -->|User Interaction| D(Next.js Server Actions)
-    E[Real-time / Interactive UI] -->|Client Component| F(TanStack Query Client)
-    G[Local UI State / Quiz Ans] -->|Zustand Store| H(React State)
+    A[Konten LMS / progress] -->|RSC + Prisma| B[(PostgreSQL LMS)]
+    P[Profil / XP user aktif] -->|JWT claims| C[Core Backend]
+    L[Leaderboard / award XP] -->|Core API| C
+    C --> Clerk[Clerk SSO]
+    D[Mutasi LMS] -->|Server Actions| B
+    E[UI interaktif] -->|TanStack Query| P
+    F[Jawaban kuis] -->|Zustand| G[Client state]
 ```
 
-1. **Data Statis / Read-Heavy:** Menggunakan **React Server Components (RSC)** dengan memanggil Prisma client secara langsung (async/await) untuk rendering di sisi server yang cepat.
-2. **Mutasi Data (Write/Update):** Wajib menggunakan **Next.js Server Actions** di folder `actions/` masing-masing fitur.
-3. **Data Interaktif / Auto-Refresh:** Menggunakan **TanStack Query** di sisi client untuk query reaktif tanpa loading halaman penuh.
-4. **Local UI State:** State transient seperti jawaban kuis yang sedang berjalan dikelola menggunakan **Zustand store** lokal fitur.
+1. **Data LMS (kursus, kuis, progress):** Prisma + RSC / Server Actions ke DB lokal.
+2. **Profil & gamifikasi (sesi sendiri):** Parse **JWT claims** via `lib/core/session.ts` — jangan query nama/XP dari `User` Prisma.
+3. **User jangkar:** Pastikan baris `User { id }` ada sebelum FK (`Enrollment`, `QuizAttempt`, …); `id` = Core/Clerk user id.
+4. **TanStack Query:** Cache data Core (leaderboard, profil).
+5. **Zustand:** State kuis sementara di `features/quiz-engine/store/`.
 
 ---
 
-## 🔐 Arsitektur Keamanan & Autentikasi
+## 🔐 Keamanan & identitas
 
-- **Autentikasi Utama:** Menggunakan **Clerk Auth** Cloud.
-- **Proxy Proteksi:** Next.js Proxy memeriksa status autentikasi untuk folder `app/(dashboard)/*` dan otorisasi role `ADMIN` untuk path `/admin/*`.
-- **Sinkronisasi User DB:** Dikelola melalui Clerk Webhooks. Setiap ada user baru terdaftar di Clerk, webhook `/api/webhooks/clerk` akan dipanggil secara aman untuk membuat records User terkait di database lokal menggunakan Prisma.
+- **SSO:** Clerk pada **Core Backend**; Core menerbitkan **JWT + claims** (profil, XP, roles). LMS memverifikasi token lalu `buildSessionFromVerifiedJwt()`.
+- **Proxy:** Proteksi `app/(dashboard)/*` dan `/admin/*` setelah mekanisme sesi jelas.
+- **Admin LMS:** Role/permission dari Core — jangan simpan `Role` enum di DB LMS.
+- **Webhook Clerk di LMS:** Jangan menganggap sebagai arsitektur final; target sync & profil di Core. LMS hanya perlu **upsert `User` jangkar** bila diperlukan untuk FK.

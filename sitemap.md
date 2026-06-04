@@ -1,6 +1,7 @@
 # 🗺️ Sitemap JepangKu — LMS (Optimized)
 
-- **Scope:** LMS only (Portal berita jepangku.com tidak termasuk dalam sitemap ini)
+- **Scope:** **LMS saja** (`kursus.jepangku.com`) — bagian dari ekosistem JepangKu (lihat [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md))
+- **Di luar repo ini:** Portal Berita (`jepangku.com`), Core Backend (SSO Clerk, profil, gamifikasi)
 - **Fase:** 1 (MVP Target Akhir Juni 2026)
 - **Base Domain:** `kursus.jepangku.com`
 

@@ -8,7 +8,29 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # 🤖 JepangKu LMS - AI Coding Agent Guidelines
 
-Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitektur untuk proyek JepangKu LMS. Patuhi pedoman ini secara ketat untuk menjaga kebersihan kode dan menghindari konflik.
+Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitektur untuk proyek **JepangKu LMS** (satu app dalam ekosistem JepangKu). Patuhi pedoman ini secara ketat untuk menjaga kebersihan kode dan menghindari konflik.
+
+---
+
+## 🌐 Ekosistem JepangKu (WAJIB BACA)
+
+**Repo ini = LMS saja** (`kursus.jepangku.com`). Bukan Portal Berita, bukan Core Backend.
+
+| Layanan | Repo / tim | Data |
+| :--- | :--- | :--- |
+| **Core Backend** (Sultan) | Layanan terpisah | Clerk SSO, profil global, XP/level/badge |
+| **Portal Berita** (Habibi) | App + DB sendiri | Artikel, komentar |
+| **LMS** (Kris) | **Repo ini** | Kursus, lesson, kuis, progress belajar |
+
+**Detail lengkap:** [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) · **Schema Core (Sultan):** [docs/backend_core_services/](docs/backend_core_services/)
+
+### Aturan keras untuk Agent
+
+1. **DB LMS** — PostgreSQL mandiri; **jangan** simpan profil lengkap user (email, nama, avatar, XP, level) di Prisma lokal.
+2. **`User` di `schema.prisma`** — hanya **jangkar FK**: field `id` (String) = user id dari Core / Clerk; relasi native ke `Enrollment`, `UserProgress`, `QuizAttempt`.
+3. **Profil & gamifikasi (user aktif)** — dari **JWT claims** yang dikeluarkan Core (`lib/core/jwt-claims.ts`, `getCoreSession()`). Bukan `prisma.user` untuk nama/XP/roles. **Leaderboard & award XP** → Core API (`lib/core/client.ts`).
+4. **Clerk** — dipasang di **Core Service**, bukan sebagai sumber kebenaran duplikat di LMS.
+5. **`features/gamification/`** — UI + client Core; bukan tabel `UserStat` / `Badge` lokal.
 
 ---
 
@@ -18,7 +40,8 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 * **Styling:** **Tailwind CSS v4** (Perhatikan instruksi khusus Tailwind v4 di bawah).
 * **Database ORM:** Prisma ORM dengan PostgreSQL adapter.
 * **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state).
-* **Autentikasi:** Clerk Auth Cloud.
+* **Identitas & SSO:** JepangKu Core Backend (Clerk dipasang di Core); LMS konsumen sesi/API.
+* **Profil & gamifikasi:** Core Service via `lib/core/` (bukan DB LMS).
 
 ---
 
@@ -47,7 +70,7 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 2. **Isolasi Domain (`features/`):**
    * Seluruh logika bisnis, state, Server Actions, dan UI khusus ditaruh di sini.
    * **Domain Terbagi Menjadi:**
-     * `features/gamification/`: Logika XP, Level, Badge, & Leaderboard.
+     * `features/gamification/`: UI Leaderboard/XP/Badge — **data dari Core** (`lib/core/`), bukan Prisma XP lokal.
      * `features/learning/`: Logika Course, Lesson, Silabus, & Video Player.
      * `features/quiz-engine/`: Logika Soal, Navigasi Kuis, Scoring, & Zustand Store.
      * `features/admin-cms/`: Logika Approval Pembayaran & Bulk Import CSV.
@@ -58,7 +81,7 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 
 3. **Shared Components & Core:**
    * Komponen UI primitif / reusable non-domain ditaruh di `components/ui/` (misalnya tombol, dialog, input).
-   * Konfigurasi database ditaruh di `prisma/schema.prisma` dan inisialisasi client ditaruh di `lib/prisma.ts`.
+   * Database LMS: `prisma/schema.prisma` + `lib/prisma.ts`. Integrasi Core: `lib/core/`.
 
 ---
 
