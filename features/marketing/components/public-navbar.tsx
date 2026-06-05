@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,10 +13,12 @@ import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
 
 type PublicNavbarProps = {
-  activeHref?: string;  
+  /** Opsional — override state aktif; default dari pathname saat ini */
+  activeHref?: string;
 };
 
-export function PublicNavbar({ activeHref = '/kursus' }: PublicNavbarProps) {
+export function PublicNavbar({ activeHref }: PublicNavbarProps) {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -25,9 +28,11 @@ export function PublicNavbar({ activeHref = '/kursus' }: PublicNavbarProps) {
     };
   }, [menuOpen]);
 
+  const resolvedActive = activeHref ?? pathname;
+
   const isActive = (href: string) => {
     if (href.startsWith('/#')) return false;
-    return href === activeHref;
+    return resolvedActive === href || resolvedActive.startsWith(`${href}/`);
   };
 
   return (

@@ -11,6 +11,7 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim agar struktur kode tetap ko
 - **Framework:** Next.js (App Router, TypeScript)
 - **Database Layer:** PostgreSQL lokal (dev) via `prisma.config.ts` + Prisma ORM — prod host **TBD**; portabilitas: [DATABASE.md](./DATABASE.md)
 - **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state)
+- **Testing:** Bun test (logic/unit) + Playwright (UI E2E) — lihat [TESTING.md](./TESTING.md)
 - **Authentication:** Clerk Auth
 - **Design / UI:** [DESIGN.md](../DESIGN.md) (panduan warna, layout, Shadcn — wajib untuk Agent)
 
@@ -111,4 +112,6 @@ jepangkuLMS/
 
 ## 🏃‍♂️ Daily Useful Commands (Bun Version)
 - Run Dev Server: `bun dev`
+- Run logic/unit tests: `bun test`
+- Run UI E2E tests: `bunx playwright test`
 - Prisma: `bun run db:format` · `db:push` · `db:migrate` · `db:seed` · `db:studio` · `db:generate` · `db:reset`

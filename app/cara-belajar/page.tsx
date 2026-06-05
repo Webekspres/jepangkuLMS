@@ -1,10 +1,12 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { LearningGuidePage } from '@/features/marketing/components/learning-guide-page';
+
+export const metadata: Metadata = {
+  title: 'Cara Belajar — JepangKu LMS',
+  description:
+    'Panduan belajar di JepangKu: alur lesson & kuis, level JLPT N5–N1, dan sistem XP gamifikasi.',
+};
 
 export default function CaraBelajarPage() {
-  return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Cara Belajar</h1>
-      <p className="text-gray-600">Panduan menggunakan sistem level, perolehan XP, badge, dan kuis JepangKu</p>
-    </div>
-  );
+  return <LearningGuidePage />;
 }

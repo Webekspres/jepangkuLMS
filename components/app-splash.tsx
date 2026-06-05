@@ -91,7 +91,7 @@ export function AppSplash({ children }: AppSplashProps) {
               transition={{ duration: 0.35 }}
               className="flex flex-col items-center gap-8 sm:gap-10"
             >
-              <p className="text-lg tracking-wide text-muted-foreground sm:text-xl">Halo</p>
+              {/* <p className="text-lg tracking-wide text-muted-foreground sm:text-xl">Halo</p> */}
 
               <div className="flex flex-col items-center gap-6 sm:gap-8">
                 <ProgressRevealLogo progress={progress} />

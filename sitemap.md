@@ -131,6 +131,8 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 /tentang                         → Profil & Visi JepangKu LMS
 /cara-belajar                    → Panduan Sistem Level, XP, & Belajar
 /hubungi                         → Tautan Integrasi ke WhatsApp Admin
+/syarat-ketentuan                → Syarat & Ketentuan Penggunaan Platform
+/kebijakan-privasi               → Kebijakan Privasi & Perlindungan Data
 ```
 
 ---
@@ -144,5 +146,5 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 | Student Area (Core LMS) | 4 |
 | Gamification Center | 2 |
 | Admin Area (Termasuk Lean CMS) | 8 |
-| Halaman Statis | 3 |
-| **Total Estimasi Beban Kerja** | **~23 Halaman** |
+| Halaman Statis | 5 |
+| **Total Estimasi Beban Kerja** | **~25 Halaman** |

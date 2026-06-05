@@ -12,6 +12,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/tentang') ||
     pathname.startsWith('/cara-belajar') ||
     pathname.startsWith('/hubungi') ||
+    pathname.startsWith('/syarat-ketentuan') ||
+    pathname.startsWith('/kebijakan-privasi') ||
     pathname.startsWith('/sign-in') ||
     pathname.startsWith('/sign-up') ||
     pathname.startsWith('/api/webhooks/clerk');

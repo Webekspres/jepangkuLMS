@@ -66,7 +66,7 @@ export function LoginPage() {
           <>
             Platform LMS
             <br />
-            <span className="bg-gradient-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
               Bahasa Jepang
             </span>
             <br />
@@ -169,7 +169,7 @@ export function LoginPage() {
               whileTap={!loading ? { scale: 0.98 } : {}}
               className={cn(
                 'mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold text-primary-foreground transition-all',
-                'bg-gradient-to-br from-brand-red to-brand-orange',
+                'bg-linear-to-br from-brand-red to-brand-orange',
                 loading && 'cursor-not-allowed opacity-70',
               )}
             >
@@ -183,8 +183,7 @@ export function LoginPage() {
                   Memverifikasi...
                 </>
               ) : (
-                <>
-                  <Zap className="size-4" />
+                <>                  
                   Masuk ke Dashboard
                 </>
               )}

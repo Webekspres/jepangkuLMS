@@ -21,7 +21,7 @@ export function AuthBrandPanel({
   description,
 }: AuthBrandPanelProps) {
   return (
-    <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-navy via-secondary to-brand-navy lg:flex lg:w-1/2">
+    <div className="relative hidden flex-col justify-between overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy lg:flex lg:w-1/2">
       <div
         className="absolute inset-0 opacity-60"
         style={{ backgroundImage: SEIGAIHA, backgroundSize: '60px 60px' }}
@@ -44,7 +44,7 @@ export function AuthBrandPanel({
         </motion.div>
       ))}
 
-      <div className="relative z-10 flex h-full flex-col justify-between p-10">
+      <div className="relative z-10 flex h-full flex-col justify-between py-10 px-16">
         <Link href="/" className="inline-block">
           <Image
             src="/brand/logo-white.png"

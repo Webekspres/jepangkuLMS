@@ -1,10 +1,12 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { ContactPage } from '@/features/marketing/components/contact-page';
+
+export const metadata: Metadata = {
+  title: 'Hubungi Kami — JepangKu LMS',
+  description:
+    'Hubungi admin JepangKu via WhatsApp untuk pertanyaan kursus, pembayaran, atau bantuan teknis.',
+};
 
 export default function HubungiPage() {
-  return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Hubungi Kami</h1>
-      <p className="text-gray-600">Punya kendala atau pertanyaan? Hubungi admin melalui WhatsApp</p>
-    </div>
-  );
+  return <ContactPage />;
 }

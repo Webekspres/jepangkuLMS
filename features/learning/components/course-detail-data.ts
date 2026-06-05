@@ -1,3 +1,4 @@
+import { ADMIN_WA_NUMBER } from '@/lib/admin-contact';
 import { CATALOG_COURSES, type CatalogCourse } from './courses-data';
 
 export type CourseSyllabusItem = {
@@ -25,8 +26,7 @@ export const PAYMENT_BCA = {
   accountNumber: '1234567890',
 } as const;
 
-/** Placeholder — ganti dengan nomor admin resmi saat go-live. */
-export const ADMIN_WA_NUMBER = '6281234567890';
+export { ADMIN_WA_NUMBER };
 
 type CourseDetailExtras = Omit<CourseDetail, keyof CatalogCourse>;
 

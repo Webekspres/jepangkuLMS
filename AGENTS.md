@@ -41,6 +41,7 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 * **Styling:** **Tailwind CSS v4** (Perhatikan instruksi khusus Tailwind v4 di bawah).
 * **Database ORM:** Prisma ORM + PostgreSQL (`@prisma/adapter-pg`). **Dev:** PostgreSQL lokal. **Prod host DB:** belum ditentukan — lihat [docs/DATABASE.md](docs/DATABASE.md).
 * **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state).
+* **Testing:** `bun test` (logic/unit) + Playwright (`@playwright/test`) untuk E2E UI.
 * **Identitas & SSO:** JepangKu Core Backend (Clerk dipasang di Core); LMS konsumen sesi/API.
 * **Profil & gamifikasi:** Core Service via `lib/core/` (bukan DB LMS).
 
@@ -173,6 +174,10 @@ Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerj
 
 ## 🏃‍♂️ Perintah Terminal Harian
 * Menjalankan Dev Server: `bun dev`
+* Testing:
+  * Logic/unit: `bun test`
+  * E2E UI: `bunx playwright test`
+  * Lihat detail strategi: [docs/TESTING.md](docs/TESTING.md)
 * Prisma (juga via `package.json` scripts):
   * Generate client: `bun run db:generate`
   * Format schema: `bun run db:format`

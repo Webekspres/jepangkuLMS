@@ -98,15 +98,15 @@ export function LandingPage() {
               className={cn(
                 'h-10 rounded-full border-2 px-5 font-semibold shadow-sm transition-colors',
                 scrolled
-                  ? 'border-primary !bg-background !text-primary hover:!border-primary hover:!bg-primary/5 hover:!text-primary'
-                  : '!border-white/80 !bg-white/10 !text-white hover:!border-white hover:!bg-white/25 hover:!text-white',
+                  ? 'border-primary bg-background! text-primary! hover:border-primary! hover:bg-primary/5! hover:text-primary!'
+                  : 'border-white/80! bg-white/10! text-white! hover:border-white! hover:bg-white/25! hover:text-white!',
               )}
             >
               <Link href="/sign-in">Masuk</Link>
             </Button>
             <Button
               asChild
-              className="h-10 rounded-full border-0 bg-gradient-to-br from-brand-red to-brand-orange px-5 font-semibold text-primary-foreground shadow-lg hover:opacity-90"
+              className="h-10 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-5 font-semibold text-primary-foreground shadow-lg hover:opacity-90"
             >
               <Link href="/sign-up">Daftar Gratis</Link>
             </Button>
@@ -167,8 +167,8 @@ export function LandingPage() {
               className={cn(
                 'h-11 w-full rounded-full border-2 font-semibold',
                 scrolled
-                  ? 'border-primary !text-primary hover:!bg-primary/5'
-                  : '!border-white/80 !bg-transparent !text-white hover:!bg-white/15 hover:!text-white',
+                  ? 'border-primary text-primary! hover:bg-primary/5!'
+                  : 'border-white/80! bg-transparent! text-white! hover:bg-white/15! hover:text-white!',
               )}
             >
               <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
@@ -177,7 +177,7 @@ export function LandingPage() {
             </Button>
             <Button
               asChild
-              className="h-11 w-full rounded-full border-0 bg-gradient-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
+              className="h-11 w-full rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
             >
               <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
                 Daftar Gratis
@@ -188,7 +188,7 @@ export function LandingPage() {
       </motion.nav>
 
       {/* Hero */}
-      <section className="relative flex min-h-screen items-center overflow-hidden bg-gradient-to-br from-brand-navy via-secondary to-brand-navy">
+      <section className="relative flex min-h-screen items-center overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy">
         <div
           className="absolute inset-0 opacity-40"
           style={{
@@ -224,7 +224,7 @@ export function LandingPage() {
             <h1 className="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-[1.15] font-extrabold text-white">
               Kuasai Bahasa Jepang
               <br />
-              <span className="bg-gradient-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
                 Dari N5 Sampai N1
               </span>
             </h1>
@@ -237,7 +237,7 @@ export function LandingPage() {
                 <motion.span
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-br from-brand-red to-brand-orange px-8 py-4 text-base font-bold text-primary-foreground shadow-2xl"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-linear-to-br from-brand-red to-brand-orange px-8 py-4 text-base font-bold text-primary-foreground shadow-2xl"
                 >
                   <Play className="size-5" />
                   Mulai Belajar Sekarang
@@ -277,7 +277,7 @@ export function LandingPage() {
                 className="h-80 w-full object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-brand-navy/80 to-transparent" />
               <div className="absolute right-4 bottom-4 left-4">
                 <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
                   <div className="mb-2 flex items-center justify-between">
@@ -286,7 +286,7 @@ export function LandingPage() {
                   </div>
                   <div className="h-2 rounded-full bg-white/20">
                     <motion.div
-                      className="h-2 rounded-full bg-gradient-to-r from-brand-red to-brand-yellow"
+                      className="h-2 rounded-full bg-linear-to-r from-brand-red to-brand-yellow"
                       initial={{ width: 0 }}
                       animate={{ width: '25%' }}
                       transition={{ duration: 1.5, delay: 0.8 }}
@@ -297,7 +297,7 @@ export function LandingPage() {
               </div>
             </div>
             <motion.div
-              className="absolute -top-4 -right-4 rounded-2xl bg-gradient-to-br from-brand-yellow to-amber-500 p-4 shadow-xl"
+              className="absolute -top-4 -right-4 rounded-2xl bg-linear-to-br from-brand-yellow to-amber-500 p-4 shadow-xl"
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 3, repeat: Infinity }}
             >
@@ -445,7 +445,7 @@ export function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="fitur" className="bg-gradient-to-br from-muted/50 to-primary/5 py-24">
+      <section id="fitur" className="bg-linear-to-br from-muted/50 to-primary/5 py-24">
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -481,7 +481,7 @@ export function LandingPage() {
               >
                 <div
                   className={cn(
-                    'mb-5 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br text-primary-foreground shadow-lg transition-transform group-hover:scale-110',
+                    'mb-5 flex size-14 items-center justify-center rounded-2xl bg-linear-to-br text-primary-foreground shadow-lg transition-transform group-hover:scale-110',
                     feat.gradient,
                   )}
                 >
@@ -507,7 +507,7 @@ export function LandingPage() {
       </section>
 
       {/* Platform pillars */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-navy via-secondary to-brand-navy py-20">
+      <section className="relative overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy py-20">
         <div
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{
@@ -588,7 +588,7 @@ export function LandingPage() {
                 )}
               >
                 {plan.highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-red to-brand-orange px-4 py-1 text-xs font-bold text-primary-foreground">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-linear-to-r from-brand-red to-brand-orange px-4 py-1 text-xs font-bold text-primary-foreground">
                     Terpopuler
                   </span>
                 )}
@@ -614,8 +614,8 @@ export function LandingPage() {
                   className={cn(
                     'mt-8 h-11 w-full gap-2 rounded-full font-semibold',
                     plan.highlighted
-                      ? 'border-0 bg-gradient-to-br from-brand-red to-brand-orange text-primary-foreground hover:opacity-90'
-                      : 'border-primary !text-primary hover:!bg-primary/5',
+                      ? 'border-0 bg-linear-to-br from-brand-red to-brand-orange text-primary-foreground hover:opacity-90'
+                      : 'border-primary text-primary! hover:bg-primary/5!',
                   )}
                 >
                   <Link href="/hubungi">
@@ -673,7 +673,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative mx-4 mb-16 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-red via-brand-orange to-brand-navy py-20 md:mx-8">
+      <section className="relative mx-4 mb-16 overflow-hidden rounded-3xl bg-linear-to-br from-brand-red via-brand-orange to-brand-navy py-20 md:mx-8">
         <div
           className="absolute inset-0 opacity-10"
           style={{

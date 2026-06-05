@@ -136,3 +136,12 @@ graph TD
 - **Proxy:** Proteksi `app/(dashboard)/*` dan `/admin/*` setelah mekanisme sesi jelas.
 - **Admin LMS:** Role/permission dari Core — jangan simpan `Role` enum di DB LMS.
 - **Webhook Clerk di LMS:** Jangan menganggap sebagai arsitektur final; target sync & profil di Core. LMS hanya perlu **upsert `User` jangkar** bila diperlukan untuk FK.
+
+---
+
+## ✅ Testing & Quality Gate
+
+- **Unit/logic layer:** gunakan `bun test` untuk fungsi deterministic di `lib/**` dan logic domain di `features/**`.
+- **UI/browser layer:** gunakan Playwright (`@playwright/test`) untuk E2E lintas route dan regresi UI.
+- **Aturan praktis:** setiap perubahan fitur yang menyentuh alur user wajib punya minimal satu test regresi (unit atau E2E sesuai konteks perubahan).
+- **Referensi implementasi & scope lengkap:** [TESTING.md](./TESTING.md).
