@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'motion/react';
 
-const SPLASH_DURATION_MS = 1000;
+const SPLASH_DURATION_MS = 800;
 const LOGO_CLASS = 'h-20 w-auto object-contain sm:h-24';
 
 type AppSplashProps = {
