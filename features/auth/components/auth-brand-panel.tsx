@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { BRAND_LOGO } from '@/lib/brand-logo';
 import { motion } from 'motion/react';
 import {
   AUTH_STATS,
@@ -48,9 +49,9 @@ export function AuthBrandPanel({
           <Image
             src="/brand/logo-white.png"
             alt="JepangKu"
-            width={180}
-            height={48}
-            className="h-11 w-auto object-contain"
+            width={BRAND_LOGO.authPanel.width}
+            height={BRAND_LOGO.authPanel.height}
+            className={BRAND_LOGO.authPanel.className}
             priority
           />
         </Link>

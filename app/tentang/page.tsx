@@ -1,10 +1,12 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { AboutPage } from '@/features/marketing/components';
+
+export const metadata: Metadata = {
+  title: 'Tentang Kami — JepangKu LMS',
+  description:
+    'Profil, visi, dan misi JepangKu LMS — platform belajar bahasa Jepang terstruktur JLPT dengan gamifikasi.',
+};
 
 export default function TentangPage() {
-  return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Tentang JepangKu</h1>
-      <p className="text-gray-600">Visi, misi, dan tim di balik JepangKu LMS</p>
-    </div>
-  );
+  return <AboutPage />;
 }

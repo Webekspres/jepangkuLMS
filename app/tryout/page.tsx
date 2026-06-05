@@ -1,10 +1,12 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { TryoutInfoPage } from '@/features/learning/components';
+
+export const metadata: Metadata = {
+  title: 'Tryout JLPT — JepangKu LMS',
+  description:
+    'Info simulasi ujian JLPT JepangKu: jadwal try out, level N5–N1, dan cara daftar. Ujian interaktif diakses setelah login.',
+};
 
 export default function TryoutPage() {
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Info Tryout JLPT</h1>
-      <p className="text-gray-600">Jadwal evaluasi tryout berkala Bahasa Jepang JepangKu</p>
-    </div>
-  );
+  return <TryoutInfoPage />;
 }

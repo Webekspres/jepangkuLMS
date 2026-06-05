@@ -1,3 +1,4 @@
+export { AboutPage } from './about-page';
 export { LandingPage } from './landing-page';
 export { MarketingFooter } from './marketing-footer';
 export { PublicNavbar } from './public-navbar';

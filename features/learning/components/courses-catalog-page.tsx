@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing-nav-layout';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
 import {
@@ -85,7 +86,12 @@ export function CoursesCatalogPage() {
       </section>
 
       {/* Filters */}
-      <div className="sticky top-[57px] z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:px-8">
+      <div
+        className={cn(
+          'sticky z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:px-8',
+          PUBLIC_NAV_STICKY_TOP,
+        )}
+      >
         <div className="container mx-auto flex flex-col gap-3 sm:flex-row">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {COURSE_LEVELS.map((level) => {

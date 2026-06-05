@@ -1,17 +1,37 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { CourseDetailPage } from '@/features/learning/components/course-detail-page';
+import { getAllCourseSlugs, getCourseBySlug } from '@/features/learning/components/course-detail-data';
 
-interface CourseDetailPageProps {
-  params: Promise<{
-    courseSlug: string;
-  }>;
+type PageProps = {
+  params: Promise<{ courseSlug: string }>;
+};
+
+export async function generateStaticParams() {
+  return getAllCourseSlugs().map((courseSlug) => ({ courseSlug }));
 }
 
-export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { courseSlug } = await params;
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Detail Kursus</h1>
-      <p className="text-gray-600">Mempelajari detail untuk kursus: <span className="font-semibold text-blue-600">{courseSlug}</span></p>
-    </div>
-  );
+  const course = getCourseBySlug(courseSlug);
+
+  if (!course) {
+    return { title: 'Kursus tidak ditemukan — JepangKu LMS' };
+  }
+
+  return {
+    title: `${course.title} — JepangKu LMS`,
+    description: course.desc,
+  };
+}
+
+export default async function KursusDetailRoute({ params }: PageProps) {
+  const { courseSlug } = await params;
+  const course = getCourseBySlug(courseSlug);
+
+  if (!course) {
+    notFound();
+  }
+
+  return <CourseDetailPage course={course} />;
 }

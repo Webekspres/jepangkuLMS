@@ -9,8 +9,8 @@ export type MarketingNavLink = {
 
 export const MARKETING_NAV_LINKS: MarketingNavLink[] = [
   { href: '/kursus', label: 'Kursus', icon: BookOpen },
-  { href: '/#fitur', label: 'Fitur', icon: Sparkles },
-  { href: '/#pricing', label: 'Paket', icon: GraduationCap },
+  // { href: '/#fitur', label: 'Fitur', icon: Sparkles },
+  // { href: '/#pricing', label: 'Paket', icon: GraduationCap },
   { href: '/tryout', label: 'Tryout JLPT', icon: Trophy },
   { href: '/tentang', label: 'Tentang Kami', icon: Star },
 ];

@@ -40,38 +40,10 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
   );
 }
 
-function MinimalRetroLoader({ progress }: { progress: number }) {
-  const displayPercent = Math.round(progress);
-
-  return (
-    <div className="flex w-72 flex-col items-center gap-5 sm:w-80">
-      <p className="font-mono text-sm tracking-[0.4em] text-secondary sm:text-base">Loading</p>
-
-      <div className="flex w-full items-center gap-4">
-        <span className="font-mono text-sm text-secondary/50 sm:text-base" aria-hidden>
-          ┃
-        </span>
-        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted sm:h-2.5">
-          <motion.div
-            className="absolute inset-y-0 left-0 rounded-full bg-primary"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <span className="font-mono text-sm text-secondary/50 sm:text-base" aria-hidden>
-          ┃
-        </span>
-      </div>
-
-      <span className="font-mono text-sm tabular-nums tracking-widest text-muted-foreground sm:text-base">
-        {displayPercent}%
-      </span>
-    </div>
-  );
-}
-
 export function AppSplash({ children }: AppSplashProps) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  const displayPercent = Math.round(progress);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -107,23 +79,27 @@ export function AppSplash({ children }: AppSplashProps) {
             className="fixed inset-0 z-9999 flex items-center justify-center bg-background"
             aria-live="polite"
             aria-busy="true"
-            role="status"
+            role="progressbar"
+            aria-valuenow={displayPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Memuat JepangKu, ${displayPercent} persen`}
           >
-            <div className="flex flex-col items-center">
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
-                className="flex flex-col items-center gap-5"
-              >
-                <p className="text-lg tracking-wide text-muted-foreground sm:text-xl">Halo</p>
-                <ProgressRevealLogo progress={progress} />
-              </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="flex flex-col items-center gap-8 sm:gap-10"
+            >
+              <p className="text-lg tracking-wide text-muted-foreground sm:text-xl">Halo</p>
 
-              <div className="mt-16 sm:mt-20">
-                <MinimalRetroLoader progress={progress} />
+              <div className="flex flex-col items-center gap-6 sm:gap-8">
+                <ProgressRevealLogo progress={progress} />
+                <span className="font-mono text-sm tabular-nums tracking-widest text-muted-foreground sm:text-base">
+                  {displayPercent}%
+                </span>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   ArrowRight,
   BookOpen,
@@ -18,6 +18,10 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { BRAND_LOGO } from '@/lib/brand-logo';
+import { MarketingMobileMenu } from './marketing-mobile-menu';
+import { LANDING_NAV_MENU_TOP } from './marketing-nav-layout';
+import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
 import { MarketingFooter } from './marketing-footer';
 import { Button } from '@/components/ui/button';
@@ -51,42 +55,39 @@ export function LandingPage() {
     };
   }, [menuOpen]);
 
-  const navText = scrolled ? 'text-foreground' : 'text-white/90';
-  const navHover = scrolled ? 'hover:text-primary' : 'hover:text-white';
-
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       {/* Navbar */}
       <motion.nav
         className={cn(
-          'fixed top-0 right-0 left-0 z-50 transition-all duration-300',
+          'fixed top-0 right-0 left-0 transition-all duration-300',
+          menuOpen ? 'z-102' : 'z-50',
           scrolled ? 'border-b border-border bg-background/95 shadow-md backdrop-blur-md' : 'bg-transparent',
         )}
         initial={{ y: -80 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="container mx-auto flex items-center justify-between px-4 py-4 md:px-8">
+        <div className="relative z-60 container mx-auto flex items-center justify-between px-4 py-4 md:px-8">
           <Link href="/" className="inline-block">
             <Image
               src={scrolled ? '/brand/logo.png' : '/brand/logo-white.png'}
               alt="JepangKu"
-              width={150}
-              height={40}
-              className="h-9 w-auto object-contain"
+              width={BRAND_LOGO.nav.width}
+              height={BRAND_LOGO.nav.height}
+              className={BRAND_LOGO.nav.className}
               priority
             />
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
             {MARKETING_NAV_LINKS.map((link) => (
-              <Link
+              <MarketingNavLinkItem
                 key={link.href}
                 href={link.href}
-                className={cn('text-sm font-medium transition-colors', navText, navHover)}
-              >
-                {link.label}
-              </Link>
+                label={link.label}
+                variant={scrolled ? 'default' : 'light'}
+              />
             ))}
           </div>
 
@@ -114,7 +115,7 @@ export function LandingPage() {
           <button
             type="button"
             className={cn(
-              'relative z-[60] rounded-lg p-1 md:hidden',
+              'relative rounded-lg p-1 md:hidden',
               scrolled ? 'text-foreground' : 'text-white',
             )}
             onClick={() => setMenuOpen(!menuOpen)}
@@ -125,81 +126,65 @@ export function LandingPage() {
           </button>
         </div>
 
-        <AnimatePresence>
-          {menuOpen && (
-            <>
-              <motion.button
-                type="button"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 top-16 z-40 bg-brand-navy/60 backdrop-blur-sm md:hidden"
-                aria-label="Tutup menu"
+        <MarketingMobileMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          panelTop={LANDING_NAV_MENU_TOP}
+          panelClassName={cn(
+            'border',
+            scrolled
+              ? 'border-border bg-background/95 backdrop-blur-xl'
+              : 'border-white/15 bg-brand-navy/95 backdrop-blur-xl',
+          )}
+        >
+          <nav className="flex flex-col p-2">
+            {MARKETING_NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
                 onClick={() => setMenuOpen(false)}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.2 }}
                 className={cn(
-                  'absolute top-full right-4 left-4 z-50 overflow-hidden rounded-2xl border shadow-2xl md:hidden',
+                  'flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
                   scrolled
-                    ? 'border-border bg-background/95 backdrop-blur-xl'
-                    : 'border-white/15 bg-brand-navy/95 backdrop-blur-xl',
+                    ? 'text-foreground hover:bg-muted'
+                    : 'text-white/90 hover:bg-white/10 hover:text-white',
                 )}
               >
-                <nav className="flex flex-col p-2">
-                  {MARKETING_NAV_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
-                        scrolled
-                          ? 'text-foreground hover:bg-muted'
-                          : 'text-white/90 hover:bg-white/10 hover:text-white',
-                      )}
-                    >
-                      <link.icon className="size-4 shrink-0 opacity-70" />
-                      {link.label}
-                    </Link>
-                  ))}
-                </nav>
-                <div
-                  className={cn(
-                    'flex flex-col gap-2 border-t p-4',
-                    scrolled ? 'border-border bg-muted/30' : 'border-white/10 bg-black/20',
-                  )}
-                >
-                  <Button
-                    asChild
-                    variant="outline"
-                    className={cn(
-                      'h-11 w-full rounded-full border-2 font-semibold',
-                      scrolled
-                        ? 'border-primary !text-primary hover:!bg-primary/5'
-                        : '!border-white/80 !bg-transparent !text-white hover:!bg-white/15 hover:!text-white',
-                    )}
-                  >
-                    <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
-                      Masuk
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    className="h-11 w-full rounded-full border-0 bg-gradient-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
-                  >
-                    <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
-                      Daftar Gratis
-                    </Link>
-                  </Button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+                <link.icon className="size-4 shrink-0 opacity-70" />
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div
+            className={cn(
+              'flex flex-col gap-2 border-t p-4',
+              scrolled ? 'border-border bg-muted/30' : 'border-white/10 bg-black/20',
+            )}
+          >
+            <Button
+              asChild
+              variant="outline"
+              className={cn(
+                'h-11 w-full rounded-full border-2 font-semibold',
+                scrolled
+                  ? 'border-primary !text-primary hover:!bg-primary/5'
+                  : '!border-white/80 !bg-transparent !text-white hover:!bg-white/15 hover:!text-white',
+              )}
+            >
+              <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
+                Masuk
+              </Link>
+            </Button>
+            <Button
+              asChild
+              className="h-11 w-full rounded-full border-0 bg-gradient-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
+            >
+              <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
+                Daftar Gratis
+              </Link>
+            </Button>
+          </div>
+        </MarketingMobileMenu>
       </motion.nav>
 
       {/* Hero */}

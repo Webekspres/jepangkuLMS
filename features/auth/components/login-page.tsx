@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, Eye, EyeOff, Zap } from 'lucide-react';
+import { BRAND_LOGO } from '@/lib/brand-logo';
 import { cn } from '@/lib/utils';
 import { AuthBrandPanel } from './auth-brand-panel';
 import { AuthGoogleButton } from './auth-google-button';
@@ -81,9 +82,9 @@ export function LoginPage() {
             <Image
               src="/brand/logo.png"
               alt="JepangKu"
-              width={150}
-              height={40}
-              className="h-9 w-auto object-contain"
+              width={BRAND_LOGO.authForm.width}
+              height={BRAND_LOGO.authForm.height}
+              className={BRAND_LOGO.authForm.className}
               priority
             />
           </Link>
@@ -94,7 +95,7 @@ export function LoginPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="mb-8">
+          <div className="mb-8 text-center lg:text-left">
             <h2 className="mb-2 text-3xl font-extrabold text-foreground">Selamat Datang!</h2>
             <p className="text-sm text-muted-foreground">
               Masuk ke akun Jepangku-mu dan lanjutkan belajar.
