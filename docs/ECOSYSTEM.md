@@ -187,6 +187,7 @@ LMS tidak menjadi “monolith data user” untuk seluruh ekosistem.
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur teknis LMS (folder, data flow) |
 | [sitemap.md](../sitemap.md) | URL — scope LMS saja |
 | [PROGRESS.md](./PROGRESS.md) | Status implementasi |
+| [DATABASE.md](./DATABASE.md) | Strategi DB LMS (dev lokal, prod portable) |
 
 | Versi | Tanggal | Perubahan |
 | :--- | :--- | :--- |

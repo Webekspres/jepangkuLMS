@@ -39,7 +39,7 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 * **Runtime & Package Manager:** `Bun` (Gunakan `bun` untuk menginstal dependensi, menjalankan dev server, dan seeding).
 * **Framework:** Next.js (App Router, TS, React 19).
 * **Styling:** **Tailwind CSS v4** (Perhatikan instruksi khusus Tailwind v4 di bawah).
-* **Database ORM:** Prisma ORM dengan PostgreSQL adapter.
+* **Database ORM:** Prisma ORM + PostgreSQL (`@prisma/adapter-pg`). **Dev:** PostgreSQL lokal. **Prod host DB:** belum ditentukan — lihat [docs/DATABASE.md](docs/DATABASE.md).
 * **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state).
 * **Identitas & SSO:** JepangKu Core Backend (Clerk dipasang di Core); LMS konsumen sesi/API.
 * **Profil & gamifikasi:** Core Service via `lib/core/` (bukan DB LMS).
@@ -83,6 +83,28 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 3. **Shared Components & Core:**
    * Komponen UI primitif / reusable non-domain ditaruh di `components/ui/` (misalnya tombol, dialog, input).
    * Database LMS: `prisma/schema.prisma` + `lib/prisma.ts`. Integrasi Core: `lib/core/`.
+
+### Prisma + `@prisma/adapter-pg` (wajib)
+
+Instansiasi Prisma **hanya** lewat [lib/prisma.ts](./lib/prisma.ts): `PrismaClient` + `PrismaPg` + `pg.Pool` (bukan engine default tanpa `adapter`).
+
+* **Jangan** `new PrismaClient()` polos di Server Components, Server Actions, atau route handlers — impor `prisma` dari `@/lib/prisma`.
+* Pool dibatasi (`PG_POOL_MAX`, default `10`) untuk mencegah *connection exhaustion* di dev hot-reload dan VPS.
+* Singleton di dev via `globalThis` agar hot-reload Next.js tidak membuka pool baru setiap reload.
+
+### Database hosting — dev sekarang, prod nanti (portable)
+
+**Kebijakan:** Fase dev memakai **PostgreSQL lokal** (`DATABASE_URL` di `.env`). Keputusan DB production (Neon, Supabase, Postgres di VPS, dll.) **ditunda** sampai deploy pertama — bukan blocker development.
+
+**Wajib menjaga portabilitas** agar pindah host DB hampir tanpa ubah kode aplikasi:
+
+| Lakukan | Jangan |
+| :--- | :--- |
+| Semua query lewat `prisma` dari `@/lib/prisma` | Hardcode host/user/password DB di kode |
+| Schema PostgreSQL standar di `prisma/schema.prisma` | Fitur SQL vendor-specific tanpa kebutuhan jelas |
+| Ganti lingkungan hanya via `DATABASE_URL` (+ `PG_POOL_MAX`) | `new PrismaClient()` tersebar di features |
+
+Saat pindah local → managed/prod: update env → `bun run db:migrate:deploy` → seed/restore. Detail & checklist: **[docs/DATABASE.md](docs/DATABASE.md)**.
 
 ---
 

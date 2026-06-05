@@ -9,7 +9,7 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim agar struktur kode tetap ko
 ## 🚀 Quick Stack Checklist
 - **Runtime & Package Manager:** Bun
 - **Framework:** Next.js (App Router, TypeScript)
-- **Database Layer:** PostgreSQL (Local Context via `prisma.config.ts`) & Prisma ORM
+- **Database Layer:** PostgreSQL lokal (dev) via `prisma.config.ts` + Prisma ORM — prod host **TBD**; portabilitas: [DATABASE.md](./DATABASE.md)
 - **State Management:** Zustand (Client-side UI) & TanStack Query (Server-cache state)
 - **Authentication:** Clerk Auth
 - **Design / UI:** [DESIGN.md](../DESIGN.md) (panduan warna, layout, Shadcn — wajib untuk Agent)
