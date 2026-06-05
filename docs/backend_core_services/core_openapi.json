@@ -1,0 +1,3567 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "JepangKu Core API",
+    "description": "Global identity, JWT claims, and gamification engine for the JepangKu ecosystem.\n\n**Consumers:** LMS (`jepangku-lms`) and Portal Berita.\n\n### Authentication\n\n| Flow | Header | Used for |\n|------|--------|----------|\n| Clerk session | `Authorization: Bearer <clerk_session>` | `POST /auth/token` |\n| Core JWT | `Authorization: Bearer <core_jwt>` | `GET /users/me` |\n| Service token | `Authorization: Bearer <CORE_SERVICE_TOKEN>` | `POST /gamification/award` |\n| Svix webhook | `svix-id`, `svix-timestamp`, `svix-signature` | `POST /auth/webhooks/clerk` |\n\n### Idempotency (award XP)\n\nSend a stable `idempotencyKey` per business event. Duplicate keys return **200** with `idempotent: true` and the original log — no double XP.\n\nSee [docs/API.md](https://github.com/webekspres/jepangku-core/blob/main/docs/API.md) for integration examples.",
+    "version": "0.1.0",
+    "contact": {
+      "name": "JepangKu Core (Sultan)"
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service health probes"
+    },
+    {
+      "name": "Auth",
+      "description": "Clerk sync webhook and Core JWT issuance"
+    },
+    {
+      "name": "Users",
+      "description": "User profiles (private and public)"
+    },
+    {
+      "name": "Roles",
+      "description": "Role catalog lookup"
+    },
+    {
+      "name": "Gamification",
+      "description": "Server-to-server XP award (LMS, Portal Berita)"
+    },
+    {
+      "name": "Leaderboard",
+      "description": "Global XP rankings"
+    },
+    {
+      "name": "Badges",
+      "description": "Badge catalog and per-user unlocks"
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development"
+    },
+    {
+      "url": "http://jepangku_core:8080",
+      "description": "Docker network (LMS / Portal containers)"
+    },
+    {
+      "url": "https://core.jepangku.com",
+      "description": "Production (if exposed via reverse proxy)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "coreJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JepangKu Core JWT from POST /api/v1/auth/token. Contains jepangku.* gamification claims."
+      },
+      "clerkSession": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Clerk session token from the client SSO login."
+      },
+      "serviceToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Shared secret CORE_SERVICE_TOKEN for server-to-server award XP calls."
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getHealth",
+        "summary": "Health check (root)",
+        "description": "Used by Docker healthcheck. Prefer this over /api/v1/health for probes.",
+        "tags": ["Health"]
+      }
+    },
+    "/api/v1/health/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "examples": ["ok"],
+                      "type": "string"
+                    },
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "redis": {
+                      "anyOf": [
+                        {
+                          "const": "connected",
+                          "type": "string"
+                        },
+                        {
+                          "const": "disabled",
+                          "type": "string"
+                        },
+                        {
+                          "const": "unavailable",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status", "service", "timestamp"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1Health",
+        "tags": ["Health"],
+        "summary": "Health check (API prefix)",
+        "description": "Docker healthcheck should use GET /health at root."
+      }
+    },
+    "/api/v1/auth/webhooks/clerk": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["received"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["received"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["received"]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiV1AuthWebhooksClerk",
+        "tags": ["Auth"],
+        "summary": "Clerk user sync webhook",
+        "description": "Clerk sends `user.created`, `user.updated`, and `user.deleted` events. Verify Svix headers (`svix-id`, `svix-timestamp`, `svix-signature`)."
+      }
+    },
+    "/api/v1/auth/token": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "description": "JepangKu Core JWT (RS256)",
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "examples": ["7d"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["token", "expiresIn"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "description": "JepangKu Core JWT (RS256)",
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "examples": ["7d"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["token", "expiresIn"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "description": "JepangKu Core JWT (RS256)",
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "examples": ["7d"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["token", "expiresIn"]
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiV1AuthToken",
+        "tags": ["Auth"],
+        "summary": "Issue Core JWT from Clerk session",
+        "description": "Exchange a Clerk session token for a JepangKu JWT with gamification claims (`jepangku.totalXp`, `jepangku.roles`, etc.).",
+        "security": [
+          {
+            "clerkSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "allOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "imageUrl",
+                  "totalXp",
+                  "currentPoints",
+                  "currentLevel",
+                  "levelTitle"
+                ],
+                "properties": {
+                  "id": {
+                    "description": "Clerk user ID",
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "imageUrl": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "totalXp": {
+                    "minimum": 0,
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "currentPoints": {
+                    "minimum": 0,
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "currentLevel": {
+                    "minimum": 1,
+                    "anyOf": [
+                      {
+                        "format": "integer",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "levelTitle": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["email", "roles", "clerkSyncedAt", "createdAt"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "description": "Role code, e.g. STUDENT",
+                      "type": "string"
+                    }
+                  },
+                  "clerkSyncedAt": {
+                    "nullable": true,
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "createdAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                }
+              }
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1UsersMe",
+        "tags": ["Users"],
+        "summary": "Current user profile",
+        "security": [
+          {
+            "coreJwt": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Clerk user ID",
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Clerk user ID",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totalXp": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentPoints": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentLevel": {
+                      "minimum": 1,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "levelTitle": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "imageUrl",
+                    "totalXp",
+                    "currentPoints",
+                    "currentLevel",
+                    "levelTitle"
+                  ]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Clerk user ID",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totalXp": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentPoints": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentLevel": {
+                      "minimum": 1,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "levelTitle": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "imageUrl",
+                    "totalXp",
+                    "currentPoints",
+                    "currentLevel",
+                    "levelTitle"
+                  ]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Clerk user ID",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "imageUrl": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totalXp": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentPoints": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "currentLevel": {
+                      "minimum": 1,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "levelTitle": {
+                      "nullable": true,
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "imageUrl",
+                    "totalXp",
+                    "currentPoints",
+                    "currentLevel",
+                    "levelTitle"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1UsersById",
+        "tags": ["Users"],
+        "summary": "Public user profile (no auth required)"
+      }
+    },
+    "/api/v1/roles/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "code", "name", "description"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "examples": ["STUDENT", "LMS_ADMIN"],
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["roles"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "code", "name", "description"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "examples": ["STUDENT", "LMS_ADMIN"],
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["roles"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["id", "code", "name", "description"],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "examples": ["STUDENT", "LMS_ADMIN"],
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["roles"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1Roles",
+        "tags": ["Roles"],
+        "summary": "List all roles (no auth required)"
+      }
+    },
+    "/api/v1/gamification/award": {
+      "post": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idempotent": {
+                      "description": "true when idempotency_key was already processed",
+                      "type": "boolean"
+                    },
+                    "log": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "xpGained",
+                        "pointsGained",
+                        "idempotencyKey",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "xpGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "pointsGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "idempotencyKey": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": ["totalXp", "currentPoints", "currentLevel"],
+                      "properties": {
+                        "totalXp": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentPoints": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentLevel": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": ["idempotent", "log", "user"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idempotent": {
+                      "description": "true when idempotency_key was already processed",
+                      "type": "boolean"
+                    },
+                    "log": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "xpGained",
+                        "pointsGained",
+                        "idempotencyKey",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "xpGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "pointsGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "idempotencyKey": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": ["totalXp", "currentPoints", "currentLevel"],
+                      "properties": {
+                        "totalXp": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentPoints": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentLevel": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": ["idempotent", "log", "user"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idempotent": {
+                      "description": "true when idempotency_key was already processed",
+                      "type": "boolean"
+                    },
+                    "log": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "xpGained",
+                        "pointsGained",
+                        "idempotencyKey",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "xpGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "pointsGained": {
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "idempotencyKey": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "user": {
+                      "type": "object",
+                      "required": ["totalXp", "currentPoints", "currentLevel"],
+                      "properties": {
+                        "totalXp": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentPoints": {
+                          "minimum": 0,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          ]
+                        },
+                        "currentLevel": {
+                          "minimum": 1,
+                          "anyOf": [
+                            {
+                              "format": "integer",
+                              "default": 0,
+                              "type": "string"
+                            },
+                            {
+                              "minimum": 1,
+                              "type": "integer"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": ["idempotent", "log", "user"]
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiV1GamificationAward",
+        "tags": ["Gamification"],
+        "summary": "Award XP / points",
+        "description": "Server-to-server endpoint for LMS and Portal Berita. Requires CORE_SERVICE_TOKEN. Idempotent replays return 200 with idempotent=true.",
+        "security": [
+          {
+            "serviceToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "application",
+                  "activityType",
+                  "xpGained",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "userId": {
+                    "minLength": 1,
+                    "description": "Clerk user ID",
+                    "type": "string"
+                  },
+                  "application": {
+                    "minLength": 1,
+                    "description": "Application code",
+                    "examples": ["LMS", "PORTAL_BERITA"],
+                    "type": "string"
+                  },
+                  "activityType": {
+                    "minLength": 1,
+                    "description": "Activity type code",
+                    "examples": ["COMPLETED_QUIZ", "READ_ARTICLE"],
+                    "type": "string"
+                  },
+                  "xpGained": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "pointsGained": {
+                    "minimum": 0,
+                    "description": "Defaults to xpGained when omitted",
+                    "type": "number"
+                  },
+                  "sourceRefId": {
+                    "description": "Client-side reference, e.g. quiz attempt ID",
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "minLength": 1,
+                    "description": "Stable key for deduplication",
+                    "examples": [
+                      "lms:quiz_attempt:550e8400-e29b-41d4-a716-446655440000"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "application",
+                  "activityType",
+                  "xpGained",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "userId": {
+                    "minLength": 1,
+                    "description": "Clerk user ID",
+                    "type": "string"
+                  },
+                  "application": {
+                    "minLength": 1,
+                    "description": "Application code",
+                    "examples": ["LMS", "PORTAL_BERITA"],
+                    "type": "string"
+                  },
+                  "activityType": {
+                    "minLength": 1,
+                    "description": "Activity type code",
+                    "examples": ["COMPLETED_QUIZ", "READ_ARTICLE"],
+                    "type": "string"
+                  },
+                  "xpGained": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "pointsGained": {
+                    "minimum": 0,
+                    "description": "Defaults to xpGained when omitted",
+                    "type": "number"
+                  },
+                  "sourceRefId": {
+                    "description": "Client-side reference, e.g. quiz attempt ID",
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "minLength": 1,
+                    "description": "Stable key for deduplication",
+                    "examples": [
+                      "lms:quiz_attempt:550e8400-e29b-41d4-a716-446655440000"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "application",
+                  "activityType",
+                  "xpGained",
+                  "idempotencyKey"
+                ],
+                "properties": {
+                  "userId": {
+                    "minLength": 1,
+                    "description": "Clerk user ID",
+                    "type": "string"
+                  },
+                  "application": {
+                    "minLength": 1,
+                    "description": "Application code",
+                    "examples": ["LMS", "PORTAL_BERITA"],
+                    "type": "string"
+                  },
+                  "activityType": {
+                    "minLength": 1,
+                    "description": "Activity type code",
+                    "examples": ["COMPLETED_QUIZ", "READ_ARTICLE"],
+                    "type": "string"
+                  },
+                  "xpGained": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "pointsGained": {
+                    "minimum": 0,
+                    "description": "Defaults to xpGained when omitted",
+                    "type": "number"
+                  },
+                  "sourceRefId": {
+                    "description": "Client-side reference, e.g. quiz attempt ID",
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "minLength": 1,
+                    "description": "Stable key for deduplication",
+                    "examples": [
+                      "lms:quiz_attempt:550e8400-e29b-41d4-a716-446655440000"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/leaderboard/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Max 100, default 20",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "description": "Default 0",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": ["rank"],
+                            "properties": {
+                              "rank": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "imageUrl",
+                              "totalXp",
+                              "currentPoints",
+                              "currentLevel",
+                              "levelTitle"
+                            ],
+                            "properties": {
+                              "id": {
+                                "description": "Clerk user ID",
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "totalXp": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentPoints": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentLevel": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "levelTitle": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "limit": {
+                      "minimum": 1,
+                      "maximum": 100,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "maximum": 100,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "offset": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["items", "total", "limit", "offset"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": ["rank"],
+                            "properties": {
+                              "rank": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "imageUrl",
+                              "totalXp",
+                              "currentPoints",
+                              "currentLevel",
+                              "levelTitle"
+                            ],
+                            "properties": {
+                              "id": {
+                                "description": "Clerk user ID",
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "totalXp": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentPoints": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentLevel": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "levelTitle": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "limit": {
+                      "minimum": 1,
+                      "maximum": 100,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "maximum": 100,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "offset": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["items", "total", "limit", "offset"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": ["rank"],
+                            "properties": {
+                              "rank": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "imageUrl",
+                              "totalXp",
+                              "currentPoints",
+                              "currentLevel",
+                              "levelTitle"
+                            ],
+                            "properties": {
+                              "id": {
+                                "description": "Clerk user ID",
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "totalXp": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentPoints": {
+                                "minimum": 0,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 0,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "currentLevel": {
+                                "minimum": 1,
+                                "anyOf": [
+                                  {
+                                    "format": "integer",
+                                    "default": 0,
+                                    "type": "string"
+                                  },
+                                  {
+                                    "minimum": 1,
+                                    "type": "integer"
+                                  }
+                                ]
+                              },
+                              "levelTitle": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "limit": {
+                      "minimum": 1,
+                      "maximum": 100,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 1,
+                          "maximum": 100,
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "offset": {
+                      "minimum": 0,
+                      "anyOf": [
+                        {
+                          "format": "integer",
+                          "default": 0,
+                          "type": "string"
+                        },
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["items", "total", "limit", "offset"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1Leaderboard",
+        "tags": ["Leaderboard"],
+        "summary": "Global XP leaderboard (no auth required)"
+      }
+    },
+    "/api/v1/badges/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "code",
+                          "title",
+                          "description",
+                          "imageUrl",
+                          "badgeType"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "imageUrl": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "badgeType": {
+                            "anyOf": [
+                              {
+                                "const": "LMS_ACHIEVEMENT",
+                                "type": "string"
+                              },
+                              {
+                                "const": "NEWS_CONTRIBUTOR",
+                                "type": "string"
+                              },
+                              {
+                                "const": "GLOBAL",
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "code",
+                          "title",
+                          "description",
+                          "imageUrl",
+                          "badgeType"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "imageUrl": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "badgeType": {
+                            "anyOf": [
+                              {
+                                "const": "LMS_ACHIEVEMENT",
+                                "type": "string"
+                              },
+                              {
+                                "const": "NEWS_CONTRIBUTOR",
+                                "type": "string"
+                              },
+                              {
+                                "const": "GLOBAL",
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "code",
+                          "title",
+                          "description",
+                          "imageUrl",
+                          "badgeType"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "imageUrl": {
+                            "nullable": true,
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "badgeType": {
+                            "anyOf": [
+                              {
+                                "const": "LMS_ACHIEVEMENT",
+                                "type": "string"
+                              },
+                              {
+                                "const": "NEWS_CONTRIBUTOR",
+                                "type": "string"
+                              },
+                              {
+                                "const": "GLOBAL",
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1Badges",
+        "tags": ["Badges"],
+        "summary": "List active badges (no auth required)"
+      }
+    },
+    "/api/v1/badges/users/{userId}": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Clerk user ID",
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "code",
+                              "title",
+                              "description",
+                              "imageUrl",
+                              "badgeType"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "badgeType": {
+                                "anyOf": [
+                                  {
+                                    "const": "LMS_ACHIEVEMENT",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "NEWS_CONTRIBUTOR",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "GLOBAL",
+                                    "type": "string"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["application", "unlockedAt"],
+                            "properties": {
+                              "application": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "description": "Application code, e.g. LMS",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "unlockedAt": {
+                                "format": "date-time",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "code",
+                              "title",
+                              "description",
+                              "imageUrl",
+                              "badgeType"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "badgeType": {
+                                "anyOf": [
+                                  {
+                                    "const": "LMS_ACHIEVEMENT",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "NEWS_CONTRIBUTOR",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "GLOBAL",
+                                    "type": "string"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["application", "unlockedAt"],
+                            "properties": {
+                              "application": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "description": "Application code, e.g. LMS",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "unlockedAt": {
+                                "format": "date-time",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "badges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "allOf": [
+                          {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "code",
+                              "title",
+                              "description",
+                              "imageUrl",
+                              "badgeType"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "imageUrl": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "badgeType": {
+                                "anyOf": [
+                                  {
+                                    "const": "LMS_ACHIEVEMENT",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "NEWS_CONTRIBUTOR",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "const": "GLOBAL",
+                                    "type": "string"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": ["application", "unlockedAt"],
+                            "properties": {
+                              "application": {
+                                "nullable": true,
+                                "anyOf": [
+                                  {
+                                    "description": "Application code, e.g. LMS",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "unlockedAt": {
+                                "format": "date-time",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["badges"]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": ["code", "message"],
+                      "properties": {
+                        "code": {
+                          "description": "Machine-readable error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1BadgesUsersByUserId",
+        "tags": ["Badges"],
+        "summary": "Badges unlocked by user (no auth required)"
+      }
+    },
+    "/api/v1/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "version": {
+                      "examples": ["0.1.0"],
+                      "type": "string"
+                    },
+                    "docs": {
+                      "examples": ["/api/v1/swagger"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["service", "version", "docs"]
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "version": {
+                      "examples": ["0.1.0"],
+                      "type": "string"
+                    },
+                    "docs": {
+                      "examples": ["/api/v1/swagger"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["service", "version", "docs"]
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "examples": ["jepangku-core"],
+                      "type": "string"
+                    },
+                    "version": {
+                      "examples": ["0.1.0"],
+                      "type": "string"
+                    },
+                    "docs": {
+                      "examples": ["/api/v1/swagger"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["service", "version", "docs"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiV1",
+        "summary": "API metadata"
+      }
+    }
+  }
+}
