@@ -1,10 +1,12 @@
-import React from 'react';
+import type { Metadata } from 'next';
+import { CoursesCatalogPage } from '@/features/learning/components';
+
+export const metadata: Metadata = {
+  title: 'Katalog Kursus — JepangKu LMS',
+  description:
+    'Jelajahi kursus bahasa Jepang dari N5 hingga N1. Filter berdasarkan level JLPT dan kategori — video lesson, flashcard, dan quiz interaktif.',
+};
 
 export default function KursusCatalogPage() {
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Katalog Kursus</h1>
-      <p className="text-gray-600">Daftar paket belajar Bahasa Jepang (N5 - N1)</p>
-    </div>
-  );
+  return <CoursesCatalogPage />;
 }
