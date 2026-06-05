@@ -1,0 +1,8 @@
+# Static dev tunnel for LMS — claim the domain once at https://dashboard.ngrok.com/domains
+# then keep this URL stable for Clerk (Sultan registers it; no changes on restart).
+version: "3"
+endpoints:
+  - name: lms
+    url: https://walk-ravine-smuggler.ngrok-free.dev
+    upstream:
+      url: 3000
