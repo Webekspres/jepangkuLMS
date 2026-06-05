@@ -4,42 +4,62 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, Eye, EyeOff, Zap } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AuthBrandPanel } from './auth-brand-panel';
 import { AuthGoogleButton } from './auth-google-button';
-import { INTEGRATION_MESSAGE_LOGIN, authInputClass } from './auth-shared';
+import {
+  INTEGRATION_MESSAGE_SIGNUP,
+  authInputClass,
+} from './auth-shared';
 
 /**
- * Custom login shell (Figma Make → adapted for Next.js).
- * Auth: redirect ke Core/Clerk — bukan Clerk `<SignIn />` default.
- * @see docs/ECOSYSTEM.md
+ * Custom sign-up shell — selaras dengan login-page & DESIGN.md.
+ * Auth: redirect ke Core/Clerk — bukan komponen bawaan Clerk.
  */
-export function LoginPage() {
+export function SignUpPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const redirectToCoreAuth = async (provider?: 'google') => {
-    // TODO: window.location.href = `${CORE_AUTH_URL}/login?return_to=...&provider=google`
+    // TODO: window.location.href = `${CORE_AUTH_URL}/register?return_to=...`
     await new Promise((r) => setTimeout(r, 600));
     setError(
       provider === 'google'
-        ? `${INTEGRATION_MESSAGE_LOGIN} (Google SSO)`
-        : INTEGRATION_MESSAGE_LOGIN,
+        ? `${INTEGRATION_MESSAGE_SIGNUP} (Google SSO)`
+        : INTEGRATION_MESSAGE_SIGNUP,
     );
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email.trim() || !password.trim()) {
-      setError('Email dan password tidak boleh kosong.');
+
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      setError('Semua field wajib diisi.');
       return;
     }
+    if (password.length < 8) {
+      setError('Password minimal 8 karakter.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Konfirmasi password tidak cocok.');
+      return;
+    }
+    if (!acceptedTerms) {
+      setError('Anda harus menyetujui Syarat & Ketentuan.');
+      return;
+    }
+
     setLoading(true);
     try {
       await redirectToCoreAuth();
@@ -58,21 +78,41 @@ export function LoginPage() {
     }
   };
 
+  const PasswordToggle = ({
+    show,
+    onToggle,
+    label,
+  }: {
+    show: boolean;
+    onToggle: () => void;
+    label: string;
+  }) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+      aria-label={label}
+    >
+      {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  );
+
   return (
     <div className="flex min-h-screen font-sans">
       <AuthBrandPanel
+        badge="無料で始めよう"
         title={
           <>
-            Platform LMS
+            Mulai Belajar
             <br />
             <span className="bg-gradient-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
               Bahasa Jepang
             </span>
             <br />
-            <span className="text-white">#1 Indonesia</span>
+            <span className="text-white">Hari Ini</span>
           </>
         }
-        description="Kuasai JLPT N5 hingga N1 dengan metode gamifikasi yang membuat belajar terasa seperti bermain game."
+        description="Buat akun JepangKu gratis dan akses ribuan materi JLPT, kuis interaktif, serta sistem XP yang membuatmu betah belajar."
       />
 
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-6 py-10 sm:px-12 lg:w-1/2">
@@ -95,9 +135,9 @@ export function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="mb-8">
-            <h2 className="mb-2 text-3xl font-extrabold text-foreground">Selamat Datang!</h2>
+            <h2 className="mb-2 text-3xl font-extrabold text-foreground">Buat Akun Baru</h2>
             <p className="text-sm text-muted-foreground">
-              Masuk ke akun Jepangku-mu dan lanjutkan belajar.
+              Daftar gratis dan mulai perjalanan JLPT-mu bersama JepangKu.
             </p>
           </div>
 
@@ -115,11 +155,23 @@ export function LoginPage() {
             )}
           </AnimatePresence>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignUp} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                Email / Username
+                Nama Lengkap
               </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Kenji Tanaka"
+                autoComplete="name"
+                className={authInputClass(Boolean(name))}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-foreground">Email</label>
               <input
                 type="email"
                 value={email}
@@ -131,35 +183,68 @@ export function LoginPage() {
             </div>
 
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-sm font-semibold text-foreground">Password</label>
-                <span className="cursor-not-allowed text-xs font-medium text-primary opacity-60">
-                  Lupa password?
-                </span>
-              </div>
+              <label className="mb-1.5 block text-sm font-semibold text-foreground">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
+                  placeholder="Minimal 8 karakter"
+                  autoComplete="new-password"
                   className={cn(authInputClass(Boolean(password)), 'pr-12')}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                </button>
+                <PasswordToggle
+                  show={showPassword}
+                  onToggle={() => setShowPassword(!showPassword)}
+                  label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                />
               </div>
             </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-foreground">
+                Konfirmasi Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Ulangi password"
+                  autoComplete="new-password"
+                  className={cn(authInputClass(Boolean(confirmPassword)), 'pr-12')}
+                />
+                <PasswordToggle
+                  show={showConfirmPassword}
+                  onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+                  label={
+                    showConfirmPassword
+                      ? 'Sembunyikan konfirmasi password'
+                      : 'Tampilkan konfirmasi password'
+                  }
+                />
+              </div>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-primary"
+              />
+              <span className="text-xs leading-relaxed text-muted-foreground">
+                Saya setuju dengan{' '}
+                <Link href="/tentang" className="font-semibold text-primary hover:underline">
+                  Syarat & Ketentuan
+                </Link>{' '}
+                dan{' '}
+                <Link href="/tentang" className="font-semibold text-primary hover:underline">
+                  Kebijakan Privasi
+                </Link>{' '}
+                JepangKu.
+              </span>
+            </label>
 
             <motion.button
               type="submit"
@@ -179,12 +264,12 @@ export function LoginPage() {
                     transition={{ repeat: Infinity, duration: 0.8 }}
                     className="size-5 rounded-full border-2 border-white/30 border-t-white"
                   />
-                  Memverifikasi...
+                  Membuat akun...
                 </>
               ) : (
                 <>
-                  <Zap className="size-4" />
-                  Masuk ke Dashboard
+                  <UserPlus className="size-4" />
+                  Daftar Sekarang
                 </>
               )}
             </motion.button>
@@ -192,21 +277,21 @@ export function LoginPage() {
 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">atau masuk dengan</span>
+            <span className="text-xs font-medium text-muted-foreground">atau daftar dengan</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <AuthGoogleButton
             loading={googleLoading}
             onClick={handleGoogle}
-            idleLabel="Masuk dengan Google"
+            idleLabel="Daftar dengan Google"
             loadingLabel="Menghubungkan Google..."
           />
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Belum punya akun?{' '}
-            <Link href="/sign-up" className="font-bold text-primary hover:underline">
-              Daftar Sekarang
+            Sudah punya akun?{' '}
+            <Link href="/sign-in" className="font-bold text-primary hover:underline">
+              Masuk di sini
             </Link>
           </p>
         </motion.div>
