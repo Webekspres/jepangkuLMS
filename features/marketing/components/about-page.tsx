@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight, Sparkles, Target, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LANDING_SEIGAIHA } from '@/features/marketing/components/landing-data';
+import { MarketingCtaBand } from '@/features/marketing/components/marketing-cta-band';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { MarketingPageHero } from '@/features/marketing/components/marketing-page-hero';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
 import {
@@ -23,53 +24,24 @@ export function AboutPage() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <PublicNavbar activeHref="/tentang" />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy px-4 py-20 text-center sm:py-28 md:px-8">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative mx-auto max-w-3xl"
-        >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2">
-            <span className="text-sm text-brand-yellow">{ABOUT_HERO.badge}</span>
-          </div>
-          <h1 className="mb-5 text-[clamp(2rem,5vw,3.25rem)] leading-tight font-extrabold text-white">
-            {ABOUT_HERO.title.split(' ').slice(0, -1).join(' ')}{' '}
-            <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-              {ABOUT_HERO.title.split(' ').slice(-1)}
-            </span>
-          </h1>
-          <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
-            {ABOUT_HERO.subtitle}
-          </p>
-        </motion.div>
-
-        <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 leading-none">
-          <svg
-            viewBox="0 0 1440 60"
-            fill="none"
-            className="block h-12 w-full sm:h-16"
-            preserveAspectRatio="none"
-            aria-hidden
-          >
-            <path
-              d="M0 60H1440V0C1440 0 1080 60 720 60C360 60 0 0 0 0V60Z"
-              className="fill-background"
-            />
-          </svg>
+      <MarketingPageHero>
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
+          <Sparkles className="size-4 text-primary" />
+          <span className="text-sm font-medium text-muted-foreground">{ABOUT_HERO.badge}</span>
         </div>
-      </section>
+        <h1 className="mb-5 text-[clamp(2rem,5vw,3.25rem)] leading-tight font-extrabold text-foreground">
+          {ABOUT_HERO.title.split(' ').slice(0, -1).join(' ')}{' '}
+          <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+            {ABOUT_HERO.title.split(' ').slice(-1)}
+          </span>
+        </h1>
+        <p className="mx-auto max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          {ABOUT_HERO.subtitle}
+        </p>
+      </MarketingPageHero>
 
       {/* Facts — faktual, tanpa angka palsu */}
-      <section className="relative z-10 -mt-px py-12">
+      <section className="relative z-10 py-12 pt-14 sm:pt-16">
         <div className="container mx-auto grid grid-cols-2 gap-4 px-4 md:px-8 lg:grid-cols-4">
           {ABOUT_FACTS.map((fact, i) => (
             <motion.div
@@ -222,40 +194,29 @@ export function AboutPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-4 mb-16 rounded-3xl bg-linear-to-br from-brand-navy via-secondary to-brand-navy px-6 py-16 text-center md:mx-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-        >
-          <p className="mb-3 font-mono text-sm tracking-[0.35em] text-white/50">一緒に頑張ろう</p>
-          <h2 className="mb-4 text-2xl font-extrabold text-white sm:text-3xl">
-            Mulai Perjalanan Japanmu
-          </h2>
-          <p className="mx-auto mb-8 max-w-lg text-white/70">
-            Jadilah bagian dari komunitas awal JepangKu — daftar gratis dan mulai dari modul N5.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
-              <Link href="/sign-up">
-                <Zap className="size-4" />
-                Daftar Gratis
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-12 gap-2 px-8 text-base font-semibold"
-            >
-              <Link href="/kursus">
-                Lihat Kursus
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-        </motion.div>
-      </section>
+      <MarketingCtaBand>
+        <p className="mb-3 font-mono text-sm tracking-[0.35em] text-muted-foreground">一緒に頑張ろう</p>
+        <h2 className="mb-4 text-2xl font-extrabold text-foreground sm:text-3xl">
+          Mulai perjalanan Japanmu
+        </h2>
+        <p className="mx-auto mb-8 max-w-lg text-muted-foreground">
+          Jadilah bagian dari komunitas awal JepangKu — daftar gratis dan mulai dari modul N5.
+        </p>
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button asChild size="lg" className="h-12 w-full gap-2 px-8 sm:w-auto">
+            <Link href="/sign-up">
+              <Zap className="size-4" />
+              Daftar Gratis
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-12 w-full gap-2 px-8 sm:w-auto">
+            <Link href="/kursus">
+              Lihat Kursus
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </MarketingCtaBand>
 
       <MarketingFooter />
     </div>

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { LANDING_SEIGAIHA } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { MarketingPageHero } from '@/features/marketing/components/marketing-page-hero';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import type { LegalDocument } from './legal-data';
 
@@ -17,29 +17,16 @@ export function LegalDocumentPage({ document }: LegalDocumentPageProps) {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <PublicNavbar />
 
-      <section className="relative overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy px-4 py-16 text-center sm:py-20 md:px-8">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative mx-auto max-w-2xl"
-        >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2">
-            <FileText className="size-4 text-brand-yellow" />
-            <span className="text-sm text-brand-yellow">{document.badge}</span>
-          </div>
-          <h1 className="mb-3 text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-white">
-            {document.title}
-          </h1>
-          <p className="text-sm text-white/60">Terakhir diperbarui: {document.lastUpdated}</p>
-        </motion.div>
-      </section>
+      <MarketingPageHero contentClassName="px-4 py-14 text-center sm:py-16 md:px-8">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
+          <FileText className="size-4 text-primary" />
+          <span className="text-sm font-medium text-muted-foreground">{document.badge}</span>
+        </div>
+        <h1 className="mb-3 text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-foreground">
+          {document.title}
+        </h1>
+        <p className="text-sm text-muted-foreground">Terakhir diperbarui: {document.lastUpdated}</p>
+      </MarketingPageHero>
 
       <div className="container mx-auto max-w-3xl px-4 py-10 md:px-8 md:py-14">
         <Link

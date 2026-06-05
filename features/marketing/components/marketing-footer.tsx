@@ -20,13 +20,13 @@ function FooterLinkGroup({
 }) {
   return (
     <div>
-      <h3 className="mb-4 text-sm font-bold tracking-wide text-white">{title}</h3>
+      <h3 className="mb-4 text-sm font-bold tracking-wide text-foreground">{title}</h3>
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
-              className="text-sm text-white/60 transition-colors hover:text-white"
+              className="text-sm text-muted-foreground transition-colors hover:text-primary"
             >
               {link.label}
             </Link>
@@ -39,21 +39,20 @@ function FooterLinkGroup({
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-brand-navy text-white/60">
+    <footer className="bg-background">
       <div className="container mx-auto px-4 py-14 md:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
-          {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-4">
             <Link href="/" className="inline-block">
               <Image
-                src="/brand/logo-white.png"
+                src="/brand/logo.png"
                 alt="JepangKu"
                 width={150}
                 height={40}
                 className="h-9 w-auto object-contain"
               />
             </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
               Platform belajar bahasa Jepang terstruktur JLPT — video lesson, kuis interaktif, try
               out, dan gamifikasi XP.
             </p>
@@ -63,7 +62,7 @@ export function MarketingFooter() {
                 Chat Admin
               </a>
             </Button>
-            <p className="mt-3 text-xs text-white/40">{ADMIN_CONTACT.hours}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{ADMIN_CONTACT.hours}</p>
           </div>
 
           <div className="lg:col-span-8">
@@ -75,9 +74,9 @@ export function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
           <p>© 2026 JepangKu. Semua hak dilindungi.</p>
-          <p className="text-white/40">Bagian dari ekosistem JepangKu · kursus.jepangku.com</p>
+          <p>Bagian dari ekosistem JepangKu · kursus.jepangku.com</p>
         </div>
       </div>
     </footer>

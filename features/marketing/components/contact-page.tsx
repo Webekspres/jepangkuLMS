@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Clock, Mail, MessageCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LANDING_SEIGAIHA } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { MarketingPageHero } from '@/features/marketing/components/marketing-page-hero';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import {
   ADMIN_CONTACT,
@@ -21,56 +21,27 @@ export function ContactPage() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <PublicNavbar />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy px-4 py-20 text-center sm:py-24 md:px-8">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative mx-auto max-w-2xl"
-        >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2">
-            <span className="text-sm text-brand-yellow">{CONTACT_HERO.badge}</span>
-          </div>
-          <h1 className="mb-5 text-[clamp(2rem,5vw,3rem)] font-extrabold text-white">
-            {CONTACT_HERO.title}
-          </h1>
-          <p className="mx-auto text-base leading-relaxed text-white/70 sm:text-lg">
-            {CONTACT_HERO.subtitle}
-          </p>
-          <Button asChild size="lg" className="mt-8 h-12 gap-2 px-8 text-base font-bold">
-            <a href={CONTACT_WA_DEFAULT_URL} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="size-5" />
-              Chat via WhatsApp
-            </a>
-          </Button>
-        </motion.div>
-
-        <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 leading-none">
-          <svg
-            viewBox="0 0 1440 60"
-            fill="none"
-            className="block h-12 w-full sm:h-16"
-            preserveAspectRatio="none"
-            aria-hidden
-          >
-            <path
-              d="M0 60H1440V0C1440 0 1080 60 720 60C360 60 0 0 0 0V60Z"
-              className="fill-background"
-            />
-          </svg>
+      <MarketingPageHero>
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
+          <MessageCircle className="size-4 text-primary" />
+          <span className="text-sm font-medium text-muted-foreground">{CONTACT_HERO.badge}</span>
         </div>
-      </section>
+        <h1 className="mb-5 text-[clamp(2rem,5vw,3rem)] font-extrabold text-foreground">
+          {CONTACT_HERO.title}
+        </h1>
+        <p className="mx-auto text-base leading-relaxed text-muted-foreground sm:text-lg">
+          {CONTACT_HERO.subtitle}
+        </p>
+        <Button asChild size="lg" className="mt-8 h-12 gap-2 px-8 text-base font-bold">
+          <a href={CONTACT_WA_DEFAULT_URL} target="_blank" rel="noopener noreferrer">
+            <MessageCircle className="size-5" />
+            Chat via WhatsApp
+          </a>
+        </Button>
+      </MarketingPageHero>
 
       {/* Contact info cards */}
-      <section className="relative z-10 -mt-px py-12">
+      <section className="relative z-10 py-12 pt-14 sm:pt-16">
         <div className="container mx-auto grid gap-4 px-4 sm:grid-cols-3 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 16 }}

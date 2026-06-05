@@ -3,7 +3,10 @@ export { ContactPage } from './contact-page';
 export { LandingPage } from './landing-page';
 export { LearningGuidePage } from './learning-guide-page';
 export { LegalDocumentPage } from './legal-document-page';
+export { MarketingCtaBand } from './marketing-cta-band';
 export { MarketingFooter } from './marketing-footer';
+export { MarketingLightSurface } from './marketing-light-surface';
+export { MarketingPageHero } from './marketing-page-hero';
 export { PublicNavbar } from './public-navbar';
 export {
   MARKETING_FOOTER_EXPLORE,

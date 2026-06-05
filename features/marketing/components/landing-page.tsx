@@ -23,7 +23,9 @@ import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { LANDING_NAV_MENU_TOP } from './marketing-nav-layout';
 import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
+import { MarketingCtaBand } from './marketing-cta-band';
 import { MarketingFooter } from './marketing-footer';
+import { MarketingLightSurface } from './marketing-light-surface';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -32,11 +34,7 @@ import {
   JLPT_ACCENT,
   JLPT_LEVELS,
   LANDING_FEATURES,
-  LANDING_HERO_COLOR_BAND_GRADIENT,
-  LANDING_HERO_COLOR_BAND_GRID_STYLE,
-  LANDING_HERO_GRID_STYLE,
   LANDING_PILLARS,
-  LANDING_SEIGAIHA,
   LANDING_VALUE_PROPS,
   PRICING_PLANS,
 } from './landing-data';
@@ -145,21 +143,11 @@ export function LandingPage() {
       </motion.nav>
 
       {/* Hero */}
-      <section className="relative flex min-h-[min(100svh,900px)] items-center overflow-hidden rounded-b-[3rem] bg-background sm:min-h-[min(100svh,880px)] sm:rounded-b-[4rem] lg:rounded-b-[5rem]">
-        <div className="pointer-events-none absolute inset-0 opacity-55" style={LANDING_HERO_GRID_STYLE} />
-
-        {/* Pita gradien membulat di dasar hero (Updraft-style) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(30%,210px)] overflow-hidden rounded-b-[inherit] sm:h-[min(32%,230px)]">
-          <div
-            className="absolute inset-0"
-            style={{ backgroundImage: LANDING_HERO_COLOR_BAND_GRADIENT }}
-          />
-          <div className="absolute inset-0 opacity-55" style={LANDING_HERO_COLOR_BAND_GRID_STYLE} />
-          <div className="absolute inset-x-0 top-0 h-px bg-white/70" />
-          <div className="absolute inset-0 bg-linear-to-t from-transparent via-transparent via-70% to-background/95" />
-        </div>
-
-        <div className="relative container mx-auto grid w-full items-center gap-6 px-4 pt-20 pb-10 sm:gap-8 sm:pt-24 sm:pb-12 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+      <MarketingLightSurface
+        roundedBottom
+        className="flex min-h-[min(100svh,900px)] items-center sm:min-h-[min(100svh,880px)]"
+        contentClassName="container mx-auto grid w-full items-center gap-6 px-4 pt-20 pb-10 sm:gap-8 sm:pt-24 sm:pb-12 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12"
+      >
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm backdrop-blur-sm">
               <Sparkles className="size-4 text-primary" />
@@ -296,8 +284,7 @@ export function LandingPage() {
               </Link>
             </p>
           </motion.div>
-        </div>
-      </section>
+      </MarketingLightSurface>
 
       {/* JLPT levels */}
       <section id="kursus" className="relative z-10 bg-background pt-14 pb-20 sm:pt-20 md:pt-24 lg:pt-28 sm:pb-24">
@@ -463,29 +450,26 @@ export function LandingPage() {
       </section>
 
       {/* Platform pillars */}
-      <section className="relative overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy py-20">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '40px 40px',
-          }}
-        />
-        <div className="container relative mx-auto px-4 md:px-8">
+      <MarketingLightSurface contentClassName="py-20 sm:py-24">
+        <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-16 text-center"
+            className="mb-12 text-center sm:mb-16"
           >
-            <h2 className="mb-3 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-white">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
+              <Sparkles className="size-4 text-primary" />
+              <span className="text-sm font-medium text-muted-foreground">Nilai platform</span>
+            </div>
+            <h2 className="mb-3 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
               Yang Kami <span className="text-brand-yellow">Bangun</span>
             </h2>
-            <p className="text-white/60">
+            <p className="mx-auto max-w-xl text-muted-foreground">
               Fokus pada nilai platform — tanpa angka yang belum bisa kami buktikan
             </p>
           </motion.div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
             {LANDING_PILLARS.map((pillar, i) => (
               <motion.div
                 key={pillar.title}
@@ -493,18 +477,18 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center backdrop-blur-sm"
+                className="rounded-2xl border border-border bg-card/90 p-6 text-center shadow-sm backdrop-blur-sm"
               >
-                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/20 text-white">
+                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
                   <pillar.icon className="size-6" />
                 </div>
-                <h3 className="mb-2 text-lg font-bold text-white">{pillar.title}</h3>
-                <p className="text-sm leading-relaxed text-white/60">{pillar.desc}</p>
+                <h3 className="mb-2 text-lg font-bold text-foreground">{pillar.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{pillar.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
-      </section>
+      </MarketingLightSurface>
 
       {/* Pricing — sitemap: Section Pricing Paket + CTA WhatsApp */}
       <section id="pricing" className="bg-background py-24">
@@ -580,8 +564,8 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Value props — menggantikan testimoni palsu */}
-      <section className="bg-muted/30 py-24">
+      {/* Value props + CTA — satu zona muted tanpa garis pemisah */}
+      <section className="bg-muted/30 pt-24 pb-10">
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -623,48 +607,41 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative mx-4 mb-16 overflow-hidden rounded-3xl bg-linear-to-br from-brand-red via-brand-orange to-brand-navy py-20 md:mx-8">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '50px 50px',
-          }}
-        />
-        <div className="relative container mx-auto max-w-3xl px-4 text-center md:px-8">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <p className="mb-3 text-[clamp(3rem,10vw,5.5rem)] leading-none font-black tracking-wide text-white drop-shadow-lg">
-              始めよう
-            </p>
-            <h2 className="mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-white">
-              Mulai Perjalanan Japanmu
-              <br />
-              Hari Ini!
-            </h2>
-            <p className="mb-8 text-white/70">
-              Jadilah bagian dari komunitas awal JepangKu. Daftar gratis dan mulai dari modul N5 —
-              konsultasi paket via tim admin.
-            </p>
-            <Button asChild size="lg" className="mx-auto h-auto gap-2 px-10 py-4 text-base font-bold">
-              <Link href="/sign-up">
-                <Zap className="size-5" />
-                Mulai Belajar Sekarang — Gratis!
-                <ArrowRight className="size-5" />
-              </Link>
-            </Button>
-            <p className="mt-4">
-              <Link href="/hubungi" className="text-sm text-white/80 underline-offset-4 hover:text-white hover:underline">
-                Atau hubungi admin via WhatsApp untuk paket kursus
-              </Link>
-            </p>
-          </motion.div>
+      <MarketingCtaBand className="[&>div]:pt-6 [&>div]:pb-20 sm:[&>div]:pt-8 sm:[&>div]:pb-24">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm backdrop-blur-sm">
+          <Sparkles className="size-4 text-primary" />
+          <span className="text-sm font-medium text-muted-foreground">始めよう · Mulai dari N5</span>
         </div>
-      </section>
+        <h2 className="mb-4 text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.12] font-extrabold tracking-tight text-foreground">
+          Mulai perjalanan Japanmu
+          <br />
+          <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+            hari ini
+          </span>
+        </h2>
+        <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-muted-foreground">
+          Jadilah bagian dari komunitas awal JepangKu. Daftar gratis, mulai modul N5, atau konsultasi
+          paket lewat tim admin.
+        </p>
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Button asChild size="lg" className="h-11 w-full gap-2 px-8 sm:h-12 sm:w-auto">
+            <Link href="/sign-up">
+              <Zap className="size-4" />
+              Daftar Gratis
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-11 w-full px-8 sm:h-12 sm:w-auto">
+            <Link href="/hubungi">Hubungi Admin</Link>
+          </Button>
+        </div>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Sudah punya akun?{' '}
+          <Link href="/sign-in" className="font-semibold text-primary underline-offset-4 hover:underline">
+            Masuk di sini
+          </Link>
+        </p>
+      </MarketingCtaBand>
 
       <MarketingFooter />
     </div>

@@ -14,7 +14,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { MarketingCtaBand } from '@/features/marketing/components/marketing-cta-band';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { MarketingPageHero } from '@/features/marketing/components/marketing-page-hero';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
 import {
@@ -29,16 +31,10 @@ export function TryoutInfoPage() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <PublicNavbar activeHref="/tryout" />
 
-      {/* Hero */}
-      <section className="bg-linear-to-br from-secondary/5 via-background to-primary/5 px-4 py-16 text-center sm:py-20 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background px-4 py-2 shadow-sm">
+      <MarketingPageHero contentClassName="px-4 py-14 text-center sm:py-16 md:px-8 md:py-20">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
             <Trophy className="size-4 text-primary" />
-            <span className="text-sm font-medium text-primary">JLPT Try Out Center</span>
+            <span className="text-sm font-medium text-muted-foreground">JLPT Try Out Center</span>
           </div>
           <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] font-extrabold text-foreground">
             Simulasi Ujian
@@ -51,19 +47,18 @@ export function TryoutInfoPage() {
             Halaman info try out JepangKu — jadwal simulasi, level yang tersedia, dan cara mulai.
             Ujian interaktif diakses setelah login dari dashboard.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button asChild className="h-11 gap-2 px-6">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button asChild className="h-11 w-full gap-2 px-6 sm:w-auto">
               <Link href="/sign-up">
                 <Zap className="size-4" />
                 Daftar untuk Try Out
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 px-6">
+            <Button asChild variant="outline" className="h-11 w-full px-6 sm:w-auto">
               <Link href="/sign-in">Sudah punya akun? Masuk</Link>
             </Button>
           </div>
-        </motion.div>
-      </section>
+      </MarketingPageHero>
 
       {/* Benefits */}
       <section className="border-y border-border bg-muted/30 py-12">
@@ -273,30 +268,23 @@ export function TryoutInfoPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-4 mb-16 rounded-3xl bg-linear-to-br from-brand-navy via-secondary to-brand-navy px-6 py-16 text-center md:mx-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-        >
-          <p className="mb-2 font-mono text-sm tracking-[0.35em] text-white/50">試験</p>
-          <h2 className="mb-4 text-2xl font-extrabold text-white sm:text-3xl">
-            Siap Uji Level JLPT-mu?
-          </h2>
-          <p className="mx-auto mb-8 max-w-lg text-white/70">
-            Daftar gratis untuk mengakses try out. Ujian interaktif dilakukan setelah login — bukan
-            di halaman ini.
-          </p>
-          <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
-            <Link href="/sign-up">
-              <Zap className="size-4" />
-              Daftar Sekarang
-              <ChevronRight className="size-4" />
-            </Link>
-          </Button>
-        </motion.div>
-      </section>
+      <MarketingCtaBand>
+        <p className="mb-2 font-mono text-sm tracking-[0.35em] text-muted-foreground">試験</p>
+        <h2 className="mb-4 text-2xl font-extrabold text-foreground sm:text-3xl">
+          Siap uji level JLPT-mu?
+        </h2>
+        <p className="mx-auto mb-8 max-w-lg text-muted-foreground">
+          Daftar gratis untuk mengakses try out. Ujian interaktif dilakukan setelah login — bukan di
+          halaman ini.
+        </p>
+        <Button asChild size="lg" className="mx-auto h-12 gap-2 px-8 text-base font-bold">
+          <Link href="/sign-up">
+            <Zap className="size-4" />
+            Daftar Sekarang
+            <ChevronRight className="size-4" />
+          </Link>
+        </Button>
+      </MarketingCtaBand>
 
       <MarketingFooter />
     </div>
