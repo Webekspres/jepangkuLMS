@@ -57,10 +57,7 @@ export function MarketingFooter() {
               Platform belajar bahasa Jepang terstruktur JLPT — video lesson, kuis interaktif, try
               out, dan gamifikasi XP.
             </p>
-            <Button
-              asChild
-              className="mt-5 h-10 gap-2 rounded-full border-0 bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-600/90"
-            >
+            <Button asChild className="mt-5 h-10 gap-2 px-5 text-sm font-semibold">
               <a href={FOOTER_WA_URL} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
                 Chat Admin

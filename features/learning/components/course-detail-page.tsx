@@ -264,10 +264,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                 )}
 
                 {isAvailable && isFree ? (
-                  <Button
-                    asChild
-                    className="h-11 w-full gap-2 rounded-xl border-0 bg-emerald-600 font-bold text-white hover:bg-emerald-600/90"
-                  >
+                  <Button asChild className="h-11 w-full gap-2 font-bold">
                     <Link href="/sign-in">
                       <Play className="size-4" />
                       Mulai Belajar Gratis
@@ -324,7 +321,8 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                     </div>
                     <Button
                       asChild
-                      className="mb-3 h-11 w-full gap-2 rounded-xl border-0 bg-emerald-600 font-bold text-white hover:bg-emerald-600/90"
+                      variant="secondary"
+                      className="mb-3 h-11 w-full gap-2 font-bold"
                     >
                       <a
                         href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waPaymentText}`}
@@ -335,7 +333,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                         Konfirmasi Pembayaran
                       </a>
                     </Button>
-                    <Button asChild variant="outline" className="h-11 w-full gap-2 rounded-xl border-2 font-bold">
+                    <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
                       <a
                         href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waConsultText}`}
                         target="_blank"
@@ -348,16 +346,13 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                   </>
                 ) : (
                   <>
-                    <Button
-                      asChild
-                      className="mb-3 h-11 w-full gap-2 rounded-xl border-0 bg-linear-to-br from-brand-red to-brand-orange font-bold text-primary-foreground hover:opacity-90"
-                    >
+                    <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
                       <Link href="/sign-up">
                         Daftar untuk Notifikasi Rilis
                         <ChevronRight className="size-4" />
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" className="h-11 w-full gap-2 rounded-xl border-2 font-semibold">
+                    <Button asChild variant="outline" className="h-11 w-full gap-2 font-semibold">
                       <a
                         href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waConsultText}`}
                         target="_blank"

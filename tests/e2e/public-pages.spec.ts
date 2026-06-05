@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { gotoAndReady } from './helpers';
 
 const PUBLIC_PAGES: { path: string; heading: RegExp }[] = [
-  { path: '/', heading: /Kuasai Bahasa Jepang/i },
+  { path: '/', heading: /Kursus bahasa Jepang/i },
   { path: '/kursus', heading: /Temukan Kursus/i },
   { path: '/kursus/jlpt-n5-kursus-lengkap', heading: /JLPT N5/i },
   { path: '/tryout', heading: /Simulasi Ujian/i },

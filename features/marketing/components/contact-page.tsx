@@ -45,10 +45,7 @@ export function ContactPage() {
           <p className="mx-auto text-base leading-relaxed text-white/70 sm:text-lg">
             {CONTACT_HERO.subtitle}
           </p>
-          <Button
-            asChild
-            className="mt-8 h-12 gap-2 rounded-full border-0 bg-emerald-600 px-8 text-base font-bold text-white hover:bg-emerald-600/90"
-          >
+          <Button asChild size="lg" className="mt-8 h-12 gap-2 px-8 text-base font-bold">
             <a href={CONTACT_WA_DEFAULT_URL} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="size-5" />
               Chat via WhatsApp
@@ -189,13 +186,10 @@ export function ContactPage() {
           Lihat panduan belajar atau jelajahi katalog kursus terlebih dahulu.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button asChild variant="outline" className="h-11 rounded-full border-2 px-6 font-semibold">
+          <Button asChild variant="outline" className="h-11 px-6">
             <Link href="/cara-belajar">Cara Belajar</Link>
           </Button>
-          <Button
-            asChild
-            className="h-11 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-6 font-semibold text-primary-foreground hover:opacity-90"
-          >
+          <Button asChild className="h-11 px-6">
             <Link href="/kursus">Lihat Kursus</Link>
           </Button>
         </div>

@@ -8,13 +8,13 @@ import {
   ArrowRight,
   BookOpen,
   ChevronRight,
+  CheckCircle2,
   GraduationCap,
   Menu,
   MessageCircle,
   Play,
   Sparkles,
   Star,
-  Trophy,
   X,
   Zap,
 } from 'lucide-react';
@@ -27,10 +27,14 @@ import { MarketingFooter } from './marketing-footer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  FLOATING_KANJI,
+  HERO_MOCK_MODULES,
+  HERO_TRUST_LEVELS,
   JLPT_ACCENT,
   JLPT_LEVELS,
   LANDING_FEATURES,
+  LANDING_HERO_COLOR_BAND_GRADIENT,
+  LANDING_HERO_COLOR_BAND_GRID_STYLE,
+  LANDING_HERO_GRID_STYLE,
   LANDING_PILLARS,
   LANDING_SEIGAIHA,
   LANDING_VALUE_PROPS,
@@ -71,7 +75,7 @@ export function LandingPage() {
         <div className="relative z-60 container mx-auto flex items-center justify-between px-4 py-4 md:px-8">
           <Link href="/" className="inline-block">
             <Image
-              src={scrolled ? '/brand/logo.png' : '/brand/logo-white.png'}
+              src="/brand/logo.png"
               alt="JepangKu"
               width={BRAND_LOGO.nav.width}
               height={BRAND_LOGO.nav.height}
@@ -82,42 +86,22 @@ export function LandingPage() {
 
           <div className="hidden items-center gap-8 md:flex">
             {MARKETING_NAV_LINKS.map((link) => (
-              <MarketingNavLinkItem
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                variant={scrolled ? 'default' : 'light'}
-              />
+              <MarketingNavLinkItem key={link.href} href={link.href} label={link.label} />
             ))}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Button
-              asChild
-              variant="outline"
-              className={cn(
-                'h-10 rounded-full border-2 px-5 font-semibold shadow-sm transition-colors',
-                scrolled
-                  ? 'border-primary bg-background! text-primary! hover:border-primary! hover:bg-primary/5! hover:text-primary!'
-                  : 'border-white/80! bg-white/10! text-white! hover:border-white! hover:bg-white/25! hover:text-white!',
-              )}
-            >
+            <Button asChild variant="outline" className="h-10 px-5">
               <Link href="/sign-in">Masuk</Link>
             </Button>
-            <Button
-              asChild
-              className="h-10 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-5 font-semibold text-primary-foreground shadow-lg hover:opacity-90"
-            >
+            <Button asChild className="h-10 px-5">
               <Link href="/sign-up">Daftar Gratis</Link>
             </Button>
           </div>
 
           <button
             type="button"
-            className={cn(
-              'relative rounded-lg p-1 md:hidden',
-              scrolled ? 'text-foreground' : 'text-white',
-            )}
+            className="relative rounded-lg p-1 text-foreground md:hidden"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
             aria-expanded={menuOpen}
@@ -130,12 +114,7 @@ export function LandingPage() {
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
-          panelClassName={cn(
-            'border',
-            scrolled
-              ? 'border-border bg-background/95 backdrop-blur-xl'
-              : 'border-white/15 bg-brand-navy/95 backdrop-blur-xl',
-          )}
+          panelClassName="border border-border bg-background/95 backdrop-blur-xl"
         >
           <nav className="flex flex-col p-2">
             {MARKETING_NAV_LINKS.map((link) => (
@@ -143,42 +122,20 @@ export function LandingPage() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
-                  scrolled
-                    ? 'text-foreground hover:bg-muted'
-                    : 'text-white/90 hover:bg-white/10 hover:text-white',
-                )}
+                className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >
                 <link.icon className="size-4 shrink-0 opacity-70" />
                 {link.label}
               </Link>
             ))}
           </nav>
-          <div
-            className={cn(
-              'flex flex-col gap-2 border-t p-4',
-              scrolled ? 'border-border bg-muted/30' : 'border-white/10 bg-black/20',
-            )}
-          >
-            <Button
-              asChild
-              variant="outline"
-              className={cn(
-                'h-11 w-full rounded-full border-2 font-semibold',
-                scrolled
-                  ? 'border-primary text-primary! hover:bg-primary/5!'
-                  : 'border-white/80! bg-transparent! text-white! hover:bg-white/15! hover:text-white!',
-              )}
-            >
+          <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
+            <Button asChild variant="outline" className="h-11 w-full">
               <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
                 Masuk
               </Link>
             </Button>
-            <Button
-              asChild
-              className="h-11 w-full rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
-            >
+            <Button asChild className="h-11 w-full">
               <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
                 Daftar Gratis
               </Link>
@@ -188,163 +145,162 @@ export function LandingPage() {
       </motion.nav>
 
       {/* Hero */}
-      <section className="relative flex min-h-screen items-center overflow-hidden bg-linear-to-br from-brand-navy via-secondary to-brand-navy">
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {FLOATING_KANJI.map((char, i) => (
-            <motion.div
-              key={char}
-              className="absolute text-white/5 select-none"
-              style={{
-                fontSize: `${48 + (i % 3) * 24}px`,
-                left: `${(i * 13) % 100}%`,
-                top: `${(i * 17 + 5) % 90}%`,
-              }}
-              animate={{ y: [0, -20, 0], opacity: [0.04, 0.12, 0.04] }}
-              transition={{ duration: 4 + i, repeat: Infinity, delay: i * 0.6 }}
-            >
-              {char}
-            </motion.div>
-          ))}
-        </div>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,color-mix(in_srgb,var(--primary)_20%,transparent),transparent_60%)]" />
+      <section className="relative flex min-h-[min(100svh,900px)] items-center overflow-hidden rounded-b-[3rem] bg-background sm:min-h-[min(100svh,880px)] sm:rounded-b-[4rem] lg:rounded-b-[5rem]">
+        <div className="pointer-events-none absolute inset-0 opacity-55" style={LANDING_HERO_GRID_STYLE} />
 
-        <div className="relative container mx-auto grid w-full items-center gap-12 px-4 pt-28 pb-16 md:px-8 lg:grid-cols-2">
-          <motion.div initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7 }}>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2">
-              <Sparkles className="size-4 text-brand-yellow" />
-              <span className="text-sm text-white/80">Peluncuran 2026 — Platform LMS Bahasa Jepang</span>
+        {/* Pita gradien membulat di dasar hero (Updraft-style) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[min(30%,210px)] overflow-hidden rounded-b-[inherit] sm:h-[min(32%,230px)]">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundImage: LANDING_HERO_COLOR_BAND_GRADIENT }}
+          />
+          <div className="absolute inset-0 opacity-55" style={LANDING_HERO_COLOR_BAND_GRID_STYLE} />
+          <div className="absolute inset-x-0 top-0 h-px bg-white/70" />
+          <div className="absolute inset-0 bg-linear-to-t from-transparent via-transparent via-70% to-background/95" />
+        </div>
+
+        <div className="relative container mx-auto grid w-full items-center gap-6 px-4 pt-20 pb-10 sm:gap-8 sm:pt-24 sm:pb-12 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm backdrop-blur-sm">
+              <Sparkles className="size-4 text-primary" />
+              <span className="text-sm font-medium text-muted-foreground">Powered by JepangKu</span>
             </div>
-            <h1 className="mb-6 text-[clamp(2rem,5vw,3.5rem)] leading-[1.15] font-extrabold text-white">
-              Kuasai Bahasa Jepang
+            <h1 className="mb-5 text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-foreground">
+              Kursus bahasa Jepang
               <br />
-              <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-                Dari N5 Sampai N1
+              terstruktur untuk JLPT
+              <br />
+              <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+                N5 sampai N1
               </span>
             </h1>
-            <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/70">
-              Platform baru untuk belajar Jepang secara terstruktur — mulai dari N5, dengan video
-              lesson, kuis interaktif, dan try out JLPT. Bergabung sebagai siswa awal.
+            <p className="mb-6 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg">
+              Belajar dengan video lesson, modul bertahap, kuis interaktif, dan try out JLPT — dimulai
+              dari N5 saat peluncuran awal.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/sign-up">
-                <motion.span
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-linear-to-br from-brand-red to-brand-orange px-8 py-4 text-base font-bold text-primary-foreground shadow-2xl"
-                >
-                  <Play className="size-5" />
-                  Mulai Belajar Sekarang
-                </motion.span>
-              </Link>
-              <Link href="/tryout">
-                <motion.span
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 rounded-2xl border-2 border-white/30 bg-white/5 px-8 py-4 text-base font-bold text-white backdrop-blur-sm transition-colors hover:border-white/60"
-                >
-                  <BookOpen className="size-5" />
-                  Coba JLPT Try Out
-                </motion.span>
-              </Link>
+
+            <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Kurikulum JLPT N5–N1</p>
+              <div className="flex -space-x-2.5" aria-hidden>
+                {HERO_TRUST_LEVELS.map((level, index) => (
+                  <div
+                    key={level}
+                    className={cn(
+                      'flex size-9 items-center justify-center rounded-full border-2 border-background text-xs font-bold shadow-sm',
+                      index === 0
+                        ? 'bg-linear-to-br from-brand-red to-brand-orange text-primary-foreground'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {level}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 backdrop-blur-sm">
-              <Zap className="size-4 text-brand-yellow" />
-              <p className="text-sm text-white/80">
-                Akses awal tersedia — modul N5 dibuka lebih dulu, level lain menyusul
-              </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Button asChild variant="outline" size="lg" className="h-11 w-full px-6 sm:h-12 sm:w-auto">
+                <Link href="/sign-in">Masuk</Link>
+              </Button>
+              <Button asChild size="lg" className="h-11 w-full px-6 sm:h-12 sm:w-auto">
+                <Link href="/kursus" className="inline-flex items-center gap-2">
+                  Jelajahi Semua Kursus
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="size-4 shrink-0 text-primary" />
+              <span>Modul N5 dibuka lebih dulu — level lain menyusul</span>
             </div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative hidden lg:block"
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.12 }}
+            className="relative mx-auto w-full max-w-xl lg:max-w-none lg:mt-0"
           >
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
-              <Image
-                src="https://images.unsplash.com/photo-1681317474675-494bd8e91d7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800"
-                alt="Pemandangan Jepang — Gunung Fuji dan pagoda"
-                width={800}
-                height={480}
-                className="h-80 w-full object-cover"
-                priority
-              />
-              <div className="absolute inset-0 bg-linear-to-t from-brand-navy/80 to-transparent" />
-              <div className="absolute right-4 bottom-4 left-4">
-                <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">Contoh: Modul N5</span>
-                    <span className="text-sm font-bold text-brand-yellow">3/12</span>
+            <div className="origin-center transition-transform duration-500 transform-[perspective(1400px)_rotateY(-8deg)_rotateX(4deg)] hover:transform-[perspective(1400px)_rotateY(-5deg)_rotateX(2deg)]">
+              <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_28px_80px_-16px_rgba(15,23,42,0.22)]">
+                <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-3">
+                  <div className="size-3 rounded-full bg-red-400/90" />
+                  <div className="size-3 rounded-full bg-amber-400/90" />
+                  <div className="size-3 rounded-full bg-emerald-400/90" />
+                  <span className="ml-2 truncate text-xs text-muted-foreground">jepangku.com/kursus/n5</span>
+                </div>
+                <div className="flex min-h-[260px] sm:min-h-[300px]">
+                  <aside className="hidden w-40 shrink-0 border-r border-border bg-muted/25 p-3 sm:block md:w-44">
+                    <p className="mb-3 px-2 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                      Modul N5
+                    </p>
+                    <ul className="space-y-1">
+                      {HERO_MOCK_MODULES.map((module) => (
+                        <li
+                          key={module.title}
+                          className={cn(
+                            'flex items-center gap-2 rounded-lg px-2 py-2 text-xs',
+                            module.active
+                              ? 'bg-primary/10 font-semibold text-primary'
+                              : 'text-muted-foreground',
+                          )}
+                        >
+                          {module.active ? (
+                            <Play className="size-3 shrink-0 fill-primary" />
+                          ) : (
+                            <BookOpen className="size-3 shrink-0 opacity-60" />
+                          )}
+                          <span className="line-clamp-2">{module.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </aside>
+                  <div className="relative flex flex-1 flex-col bg-linear-to-br from-muted/20 to-background p-3 sm:p-4">
+                    <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-brand-navy">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--primary)_35%,transparent),transparent_55%)]" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
+                      <motion.div
+                        className="relative z-10 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl sm:size-16"
+                        whileHover={{ scale: 1.06 }}
+                      >
+                        <Play className="size-6 fill-current pl-0.5 sm:size-7" />
+                      </motion.div>
+                      <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between text-[11px] text-white/85 sm:text-xs">
+                        <span>Lesson 1: Hiragana Dasar</span>
+                        <span>12:34</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 sm:mt-4">
+                      <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                        <span>Progress modul</span>
+                        <span className="font-semibold text-foreground">25%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted">
+                        <motion.div
+                          className="h-1.5 rounded-full bg-linear-to-r from-brand-red to-brand-orange"
+                          initial={{ width: 0 }}
+                          animate={{ width: '25%' }}
+                          transition={{ duration: 1.2, delay: 0.5 }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-white/20">
-                    <motion.div
-                      className="h-2 rounded-full bg-linear-to-r from-brand-red to-brand-yellow"
-                      initial={{ width: 0 }}
-                      animate={{ width: '25%' }}
-                      transition={{ duration: 1.5, delay: 0.8 }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-white/50">Ilustrasi tampilan progress belajar</p>
                 </div>
               </div>
             </div>
-            <motion.div
-              className="absolute -top-4 -right-4 rounded-2xl bg-linear-to-br from-brand-yellow to-amber-500 p-4 shadow-xl"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <div className="flex items-center gap-2">
-                <Trophy className="size-5 text-white" />
-                <div>
-                  <p className="text-xs text-white/80">XP Hari Ini</p>
-                  <p className="font-bold text-white">+250 XP</p>
-                </div>
-              </div>
-            </motion.div>
-            <motion.div
-              className="absolute -bottom-4 -left-4 rounded-2xl bg-card p-4 shadow-xl"
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-full bg-primary">
-                  <Zap className="size-4 text-primary-foreground" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Contoh Streak</p>
-                  <p className="font-bold text-foreground">🔥 Gamifikasi</p>
-                </div>
-              </div>
-            </motion.div>
+            <p className="mt-5 text-center text-sm text-muted-foreground">
+              Bagian dari ekosistem{' '}
+              <Link href="/tentang" className="font-semibold text-foreground underline-offset-4 hover:underline">
+                JepangKu
+              </Link>
+            </p>
           </motion.div>
-        </div>
-
-        <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 leading-none">
-          <svg
-            viewBox="0 0 1440 80"
-            fill="none"
-            className="block h-16 w-full md:h-20"
-            preserveAspectRatio="none"
-            aria-hidden
-          >
-            <path
-              d="M0 80H1440V0C1440 0 1080 80 720 80C360 80 0 0 0 0V80Z"
-              className="fill-background"
-            />
-          </svg>
         </div>
       </section>
 
       {/* JLPT levels */}
-      <section id="kursus" className="relative z-10 -mt-px bg-background py-24">
+      <section id="kursus" className="relative z-10 bg-background pt-14 pb-20 sm:pt-20 md:pt-24 lg:pt-28 sm:pb-24">
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -611,12 +567,7 @@ export function LandingPage() {
                 <Button
                   asChild
                   variant={plan.highlighted ? 'default' : 'outline'}
-                  className={cn(
-                    'mt-8 h-11 w-full gap-2 rounded-full font-semibold',
-                    plan.highlighted
-                      ? 'border-0 bg-linear-to-br from-brand-red to-brand-orange text-primary-foreground hover:opacity-90'
-                      : 'border-primary text-primary! hover:bg-primary/5!',
-                  )}
+                  className="mt-8 h-11 w-full gap-2"
                 >
                   <Link href="/hubungi">
                     <MessageCircle className="size-4" />
@@ -699,17 +650,13 @@ export function LandingPage() {
               Jadilah bagian dari komunitas awal JepangKu. Daftar gratis dan mulai dari modul N5 —
               konsultasi paket via tim admin.
             </p>
-            <Link href="/sign-up">
-              <motion.span
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.97 }}
-                className="mx-auto inline-flex items-center gap-2 rounded-2xl bg-brand-yellow px-10 py-4 font-bold text-brand-navy shadow-2xl"
-              >
+            <Button asChild size="lg" className="mx-auto h-auto gap-2 px-10 py-4 text-base font-bold">
+              <Link href="/sign-up">
                 <Zap className="size-5" />
                 Mulai Belajar Sekarang — Gratis!
                 <ArrowRight className="size-5" />
-              </motion.span>
-            </Link>
+              </Link>
+            </Button>
             <p className="mt-4">
               <Link href="/hubungi" className="text-sm text-white/80 underline-offset-4 hover:text-white hover:underline">
                 Atau hubungi admin via WhatsApp untuk paket kursus

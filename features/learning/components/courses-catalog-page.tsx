@@ -228,15 +228,7 @@ export function CoursesCatalogPage() {
                       </span>
                     </div>
 
-                    <Button
-                      asChild
-                      className={cn(
-                        'mt-4 h-10 w-full gap-1.5 rounded-xl font-semibold',
-                        course.price === 'Gratis'
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-600/90'
-                          : 'border-0 bg-linear-to-br from-brand-red to-brand-orange text-primary-foreground hover:opacity-90',
-                      )}
-                    >
+                    <Button asChild className="mt-4 h-10 w-full gap-1.5">
                       <Link href={`/kursus/${course.slug}`}>
                         <Play className="size-4" />
                         Lihat Detail
@@ -266,10 +258,7 @@ export function CoursesCatalogPage() {
         <p className="mb-6 text-sm text-muted-foreground">
           Ambil tes penempatan gratis untuk mengetahui level JLPT kamu saat ini.
         </p>
-        <Button
-          asChild
-          className="h-12 gap-2 rounded-2xl border-0 bg-linear-to-br from-brand-red to-brand-orange px-8 text-base font-bold text-primary-foreground hover:opacity-90"
-        >
+        <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
           <Link href="/tryout">
             <Zap className="size-4" />
             Tes Penempatan Gratis

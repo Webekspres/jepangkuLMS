@@ -52,16 +52,13 @@ export function TryoutInfoPage() {
             Ujian interaktif diakses setelah login dari dashboard.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              asChild
-              className="h-11 gap-2 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-6 font-semibold text-primary-foreground hover:opacity-90"
-            >
+            <Button asChild className="h-11 gap-2 px-6">
               <Link href="/sign-up">
                 <Zap className="size-4" />
                 Daftar untuk Try Out
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 rounded-full border-2 px-6 font-semibold">
+            <Button asChild variant="outline" className="h-11 px-6">
               <Link href="/sign-in">Sudah punya akun? Masuk</Link>
             </Button>
           </div>
@@ -161,11 +158,7 @@ export function TryoutInfoPage() {
                   <Button
                     asChild
                     variant={item.status === 'tersedia' ? 'default' : 'outline'}
-                    className={cn(
-                      'h-10 w-full rounded-xl font-semibold',
-                      item.status === 'tersedia' &&
-                        'border-0 bg-linear-to-br from-brand-red to-brand-orange text-primary-foreground hover:opacity-90',
-                    )}
+                    className="h-10 w-full"
                   >
                     <Link href={item.status === 'tersedia' ? '/sign-up' : '/hubungi'}>
                       {item.status === 'tersedia' ? 'Daftar & Mulai' : 'Info Jadwal'}
@@ -295,10 +288,7 @@ export function TryoutInfoPage() {
             Daftar gratis untuk mengakses try out. Ujian interaktif dilakukan setelah login — bukan
             di halaman ini.
           </p>
-          <Button
-            asChild
-            className="h-12 gap-2 rounded-2xl border-0 bg-brand-yellow px-8 text-base font-bold text-brand-navy hover:bg-brand-yellow/90"
-          >
+          <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
             <Link href="/sign-up">
               <Zap className="size-4" />
               Daftar Sekarang

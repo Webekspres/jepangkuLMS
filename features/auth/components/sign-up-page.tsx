@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, Eye, EyeOff, UserPlus } from 'lucide-react';
 import { BRAND_LOGO } from '@/lib/brand-logo';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { AuthBrandPanel } from './auth-brand-panel';
 import { AuthGoogleButton } from './auth-google-button';
 import {
@@ -247,24 +248,18 @@ export function SignUpPage() {
               </span>
             </label>
 
-            <motion.button
+            <Button
               type="submit"
               disabled={loading}
-              whileHover={!loading ? { scale: 1.02 } : {}}
-              whileTap={!loading ? { scale: 0.98 } : {}}
+              size="lg"
               className={cn(
-                'mt-2 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold text-primary-foreground transition-all',
-                'bg-linear-to-br from-brand-red to-brand-orange',
+                'mt-2 w-full py-4 text-sm font-bold',
                 loading && 'cursor-not-allowed opacity-70',
               )}
             >
               {loading ? (
                 <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 0.8 }}
-                    className="size-5 rounded-full border-2 border-white/30 border-t-white"
-                  />
+                  <span className="size-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Membuat akun...
                 </>
               ) : (
@@ -273,7 +268,7 @@ export function SignUpPage() {
                   Daftar Sekarang
                 </>
               )}
-            </motion.button>
+            </Button>
           </form>
 
           <div className="my-6 flex items-center gap-3">

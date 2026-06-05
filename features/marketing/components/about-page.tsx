@@ -237,10 +237,7 @@ export function AboutPage() {
             Jadilah bagian dari komunitas awal JepangKu — daftar gratis dan mulai dari modul N5.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              asChild
-              className="h-12 gap-2 rounded-2xl border-0 bg-brand-yellow px-8 text-base font-bold text-brand-navy hover:bg-brand-yellow/90"
-            >
+            <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
               <Link href="/sign-up">
                 <Zap className="size-4" />
                 Daftar Gratis
@@ -249,7 +246,7 @@ export function AboutPage() {
             <Button
               asChild
               variant="outline"
-              className="h-12 gap-2 rounded-2xl border-2 border-white/30 bg-transparent px-8 text-base font-semibold text-white hover:bg-white/10"
+              className="h-12 gap-2 px-8 text-base font-semibold"
             >
               <Link href="/kursus">
                 Lihat Kursus

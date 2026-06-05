@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type AuthGoogleButtonProps = {
@@ -17,23 +17,18 @@ export function AuthGoogleButton({
   loadingLabel,
 }: AuthGoogleButtonProps) {
   return (
-    <motion.button
+    <Button
       type="button"
+      variant="outline"
       onClick={onClick}
       disabled={loading}
-      whileHover={!loading ? { scale: 1.01 } : {}}
-      whileTap={!loading ? { scale: 0.99 } : {}}
       className={cn(
-        'flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-border py-3.5 text-sm font-semibold text-foreground transition-all hover:border-muted-foreground/30',
+        'h-auto w-full gap-3 py-3.5 font-semibold',
         loading && 'cursor-not-allowed opacity-70',
       )}
     >
       {loading ? (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 0.8 }}
-          className="size-5 rounded-full border-2 border-muted border-t-foreground"
-        />
+        <span className="size-5 animate-spin rounded-full border-2 border-muted border-t-foreground" />
       ) : (
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
           <path
@@ -55,6 +50,6 @@ export function AuthGoogleButton({
         </svg>
       )}
       {loading ? loadingLabel : idleLabel}
-    </motion.button>
+    </Button>
   );
 }

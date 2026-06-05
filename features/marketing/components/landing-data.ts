@@ -22,6 +22,37 @@ export function formatDisplayNumber(value: number): string {
 
 export const LANDING_SEIGAIHA = `<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><circle cx='30' cy='40' r='28' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.08'/><circle cx='0' cy='40' r='28' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.08'/><circle cx='60' cy='40' r='28' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.08'/><circle cx='15' cy='14' r='28' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.08'/><circle cx='45' cy='14' r='28' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-opacity='0.08'/></svg>`;
 
+/** Grid halus hero terang (Updraft-style). */
+export const LANDING_HERO_GRID_STYLE = {
+  backgroundImage: [
+    'linear-gradient(to right, color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px)',
+    'linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 7%, transparent) 1px, transparent 1px)',
+  ].join(', '),
+  backgroundSize: '48px 48px',
+} as const;
+
+/** Grid di atas pita gradien warna di dasar hero. */
+export const LANDING_HERO_COLOR_BAND_GRID_STYLE = {
+  backgroundImage: [
+    'linear-gradient(to right, rgba(255,255,255,0.35) 1px, transparent 1px)',
+    'linear-gradient(to bottom, rgba(255,255,255,0.35) 1px, transparent 1px)',
+  ].join(', '),
+  backgroundSize: '48px 48px',
+} as const;
+
+/** Gradien pastel lembut di dasar hero — tidak terlalu mencolok. */
+export const LANDING_HERO_COLOR_BAND_GRADIENT =
+  'linear-gradient(to right, color-mix(in srgb, #7dd3fc 32%, transparent), color-mix(in srgb, #f9a8d4 26%, transparent) 35%, color-mix(in srgb, #fde68a 24%, transparent) 65%, color-mix(in srgb, #86efac 30%, transparent))';
+
+export const HERO_TRUST_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
+
+export const HERO_MOCK_MODULES = [
+  { title: 'Hiragana & Katakana', active: true },
+  { title: 'Kanji Dasar N5', active: false },
+  { title: 'Tata Bahasa N5', active: false },
+  { title: 'Kuis & Try Out', active: false },
+] as const;
+
 export type JlptLevelStatus = 'tersedia' | 'segera';
 
 export const JLPT_LEVELS = [

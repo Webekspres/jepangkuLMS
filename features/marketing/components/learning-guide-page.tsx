@@ -230,10 +230,7 @@ export function LearningGuidePage() {
             Daftar akun gratis dan mulai dari modul N5 yang sudah tersedia.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              asChild
-              className="h-11 gap-2 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-6 font-semibold text-primary-foreground hover:opacity-90"
-            >
+            <Button asChild className="h-11 gap-2 px-6">
               <Link href="/sign-up">
                 Daftar Gratis
                 <ArrowRight className="size-4" />
@@ -242,7 +239,7 @@ export function LearningGuidePage() {
             <Button
               asChild
               variant="outline"
-              className="h-11 gap-2 rounded-full border-2 border-white/30 bg-white/10 px-6 font-semibold text-white hover:bg-white/20 hover:text-white"
+              className="h-11 gap-2 px-6"
             >
               <Link href="/kursus">
                 Lihat Katalog Kursus

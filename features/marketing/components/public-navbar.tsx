@@ -66,13 +66,10 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button asChild variant="outline" className="h-10 rounded-full border-2 px-5 font-semibold">
+          <Button asChild variant="outline" className="h-10 px-5">
             <Link href="/sign-in">Masuk</Link>
           </Button>
-          <Button
-            asChild
-            className="h-10 rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange px-5 font-semibold text-primary-foreground shadow-lg hover:opacity-90"
-          >
+          <Button asChild className="h-10 px-5">
             <Link href="/sign-up">Daftar Gratis</Link>
           </Button>
         </div>
@@ -112,15 +109,12 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
-          <Button asChild variant="outline" className="h-11 w-full rounded-full border-2 font-semibold">
+          <Button asChild variant="outline" className="h-11 w-full">
             <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
               Masuk
             </Link>
           </Button>
-          <Button
-            asChild
-            className="h-11 w-full rounded-full border-0 bg-linear-to-br from-brand-red to-brand-orange font-semibold text-primary-foreground shadow-lg"
-          >
+          <Button asChild className="h-11 w-full">
             <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
               Daftar Gratis
             </Link>
