@@ -52,6 +52,8 @@ CMD ["node", "server.js"]
 FROM oven/bun:1 AS migrator
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY prisma ./prisma
+COPY prisma/schema.prisma prisma/schema.prisma
+COPY prisma/migrations prisma/migrations
+COPY prisma/seed.ts prisma/seed.ts
 COPY prisma.config.ts package.json bun.lock ./
 ENTRYPOINT ["bunx", "prisma", "migrate", "deploy"]
