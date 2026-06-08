@@ -15,6 +15,27 @@ import {
   authInputClass,
 } from './auth-shared';
 
+function PasswordToggle({
+  show,
+  onToggle,
+  label,
+}: {
+  show: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+      aria-label={label}
+    >
+      {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  );
+}
+
 /**
  * Custom sign-up shell — selaras dengan login-page & DESIGN.md.
  * Auth: redirect ke Core/Clerk — bukan komponen bawaan Clerk.
@@ -79,25 +100,6 @@ export function SignUpPage() {
       setGoogleLoading(false);
     }
   };
-
-  const PasswordToggle = ({
-    show,
-    onToggle,
-    label,
-  }: {
-    show: boolean;
-    onToggle: () => void;
-    label: string;
-  }) => (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-      aria-label={label}
-    >
-      {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-    </button>
-  );
 
   return (
     <div className="flex min-h-screen font-sans">
