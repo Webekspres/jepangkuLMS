@@ -1,0 +1,151 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - dev-sultan
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-lms-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bunx prisma generate
+      - run: bun run lint
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: meta
+        run: |
+          echo "image=ghcr.io/webekspres/jepangku-lms" >> "$GITHUB_OUTPUT"
+          echo "version_tag=staging" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:staging
+            ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrator
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:migrate-staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      DEPLOY_PATH: /opt/jepangku-staging
+      LMS_IMAGE_TAG: staging
+      HEALTH_URL: http://127.0.0.1:3003/
+    steps:
+      - name: Setup SSH key
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KEY_B64: ${{ secrets.VPS_SSH_KEY_B64 }}
+        run: |
+          VPS_HOST="$(echo "$VPS_HOST" | tr -d ' \r\n')"
+          VPS_PORT="$(echo "$VPS_PORT" | tr -d ' \r\n')"
+          VPS_USER="$(echo "$VPS_USER" | tr -d ' \r\n')"
+          test -n "$VPS_HOST" && test -n "$VPS_PORT" && test -n "$VPS_USER"
+
+          install -m 700 -d ~/.ssh
+          if [ -n "${VPS_SSH_KEY:-}" ] && [[ "$VPS_SSH_KEY" == -----BEGIN* ]]; then
+            printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          elif [ -n "${VPS_SSH_KEY_B64:-}" ]; then
+            echo "$VPS_SSH_KEY_B64" | tr -d '\r\n ' | base64 -d > ~/.ssh/deploy_key
+          else
+            echo "::error::Set VPS_SSH_KEY or VPS_SSH_KEY_B64 in staging environment"
+            exit 1
+          fi
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          echo "VPS_HOST=$VPS_HOST" >> "$GITHUB_ENV"
+          echo "VPS_PORT=$VPS_PORT" >> "$GITHUB_ENV"
+          echo "VPS_USER=$VPS_USER" >> "$GITHUB_ENV"
+
+      - name: Deploy LMS to staging VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          export DEPLOY_PATH="/opt/jepangku-staging"
+          export LMS_IMAGE_TAG="staging"
+          export HEALTH_URL="http://127.0.0.1:3003/"
+
+          cd "$DEPLOY_PATH"
+
+          set -a
+          source .env
+          set +a
+
+          # 1) Migrate first
+          docker run --rm \
+            --network jepangku_staging_net \
+            -e DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@jepangku_staging_db:5432/stg_jepangku_lms" \
+            ghcr.io/webekspres/jepangku-lms:migrate-staging
+
+          # 2) Pull + start app (runner image)
+          docker compose pull lms
+          docker compose up -d --force-recreate lms
+
+          # 3) Wait for Next.js
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3003/ >/dev/null 2>&1; then
+              echo "Health OK"
+              break
+            fi
+            [ "$i" -eq 30 ] && { echo "Health check failed"; exit 1; }
+            echo "Waiting for LMS... ($i/30)"
+            sleep 3
+          done
+
+          curl -fsS "$HEALTH_URL"
+          echo "Deploy OK: lms @ ${LMS_IMAGE_TAG}"
+          REMOTE
