@@ -286,7 +286,7 @@ export function DashboardPage() {
                 />
               </div>
               <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-                <Link href={STUDENT_ROUTES.profil}>Lihat Profil XP</Link>
+                <Link href={STUDENT_ROUTES.achievements}>Lihat Badge Pencapaian</Link>
               </Button>
             </div>
           </DashboardSection>

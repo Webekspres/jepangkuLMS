@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Award,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -18,6 +19,7 @@ import { STUDENT_ROUTES } from './student-routes';
 const MENU_ITEMS = [
   { href: STUDENT_ROUTES.home, label: 'Beranda', icon: LayoutDashboard },
   { href: STUDENT_ROUTES.profil, label: 'Profil & XP', icon: User },
+  { href: STUDENT_ROUTES.achievements, label: 'Pencapaian', icon: Award },
   { href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard', icon: Trophy },
 ] as const;
 
