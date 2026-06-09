@@ -25,12 +25,14 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.4.3",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@tanstack/react-query": "^5.101.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "jose": "^6.2.3",
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "next": "16.2.6",

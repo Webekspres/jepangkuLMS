@@ -1,17 +1,18 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Flame, Target, Trophy, Zap } from 'lucide-react';
+import { Award, Target, Trophy, Zap } from 'lucide-react';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
+  getLeaderboardPodium,
   getLeaderboardUserContext,
-  LEADERBOARD_PODIUM,
-  LEADERBOARD_TOP_10,
-  type LeaderboardEntry,
-} from './student-leaderboard-data';
+} from '@/features/student/lib/leaderboard-helpers';
+import type { StudentLeaderboardEntry } from '@/features/student/types/student-core-data';
+import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
 const PODIUM_META = [
@@ -40,12 +41,29 @@ function LeaderboardAvatar({
   size = 'md',
   highlight = false,
 }: {
-  entry: LeaderboardEntry;
+  entry: StudentLeaderboardEntry;
   size?: 'sm' | 'md' | 'lg';
   highlight?: boolean;
 }) {
   const sizeClass =
     size === 'lg' ? 'size-14 text-sm' : size === 'md' ? 'size-10 text-xs' : 'size-8 text-[10px]';
+
+  if (entry.imageUrl) {
+    return (
+      <Image
+        src={entry.imageUrl}
+        alt=""
+        width={size === 'lg' ? 56 : size === 'md' ? 40 : 32}
+        height={size === 'lg' ? 56 : size === 'md' ? 40 : 32}
+        className={cn(
+          'shrink-0 rounded-full border-2 object-cover ring-2',
+          sizeClass,
+          highlight ? 'ring-brand-yellow/70' : 'ring-border',
+          entry.isYou && 'border-primary',
+        )}
+      />
+    );
+  }
 
   return (
     <div
@@ -67,7 +85,7 @@ function PodiumSlot({
   center = false,
   delay,
 }: {
-  entry: LeaderboardEntry;
+  entry: StudentLeaderboardEntry;
   meta: (typeof PODIUM_META)[number];
   center?: boolean;
   delay: number;
@@ -107,7 +125,7 @@ function PodiumSlot({
   );
 }
 
-function LeaderboardRow({ entry, index }: { entry: LeaderboardEntry; index: number }) {
+function LeaderboardRow({ entry, index }: { entry: StudentLeaderboardEntry; index: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -8 }}
@@ -134,9 +152,7 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntry; index: numb
             <span className="ml-1 text-[10px] font-bold uppercase text-primary">· Kamu</span>
           )}
         </p>
-        <p className="text-[11px] text-muted-foreground">
-          {entry.level} · {entry.streakDays}d streak
-        </p>
+        <p className="text-[11px] text-muted-foreground">{entry.levelLabel}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-sm font-bold tabular-nums text-foreground">
         <Zap className="size-3.5 text-brand-yellow" />
@@ -147,11 +163,18 @@ function LeaderboardRow({ entry, index }: { entry: LeaderboardEntry; index: numb
 }
 
 export function StudentLeaderboardPage() {
-  const context = getLeaderboardUserContext();
+  const core = useStudentCoreData();
+  const top10 = core.leaderboardTop10;
+  const context = getLeaderboardUserContext(top10, {
+    globalRank: core.globalRank,
+    totalXp: core.totalXp,
+    leaderboardTotal: core.leaderboardTotal,
+  });
+  const podium = getLeaderboardPodium(top10);
+  const rest = top10.filter((entry) => entry.rank > 3);
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header + stats */}
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -163,24 +186,26 @@ export function StudentLeaderboardPage() {
               Leaderboard
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Top 10 siswa berdasarkan total XP — update setiap hari.
+              Top 10 siswa berdasarkan total XP dari JepangKu Core.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:min-w-[16rem]">
             <div className="rounded-xl border border-border bg-muted/30 p-3">
               <p className="text-[11px] text-muted-foreground">Rank kamu</p>
-              <p className="text-2xl font-black text-primary">#{context.rank}</p>
+              <p className="text-2xl font-black text-primary">
+                {context.rank != null ? `#${context.rank}` : '—'}
+              </p>
             </div>
             <div className="rounded-xl border border-border bg-muted/30 p-3">
               <p className="text-[11px] text-muted-foreground">Total siswa</p>
               <p className="text-lg font-bold tabular-nums text-foreground">
-                {context.totalLearnersLabel}+
+                {context.totalLearnersLabel}
               </p>
             </div>
           </div>
         </div>
 
-        {context.xpToNext > 0 && (
+        {context.xpToNext > 0 && context.nextRankName && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-brand-yellow/25 bg-brand-yellow/10 px-3 py-2 text-sm">
             <Target className="size-4 text-amber-700" />
             <span className="text-foreground">
@@ -191,53 +216,65 @@ export function StudentLeaderboardPage() {
         )}
       </section>
 
-      {/* Podium */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="font-bold text-foreground">Podium Top 3</h2>
-          <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground uppercase">
-            Top 10
-          </span>
-        </div>
-
-        <div className="border-b border-border bg-muted/20 px-4 py-6 sm:px-6">
-          <div className="mx-auto flex max-w-lg items-end justify-center gap-2 sm:gap-4">
-            {LEADERBOARD_PODIUM.map((entry, index) => (
-              <PodiumSlot
-                key={entry.rank}
-                entry={entry}
-                meta={PODIUM_META[index]!}
-                center={index === 1}
-                delay={0.1 + index * 0.08}
-              />
-            ))}
+      {top10.length >= 3 ? (
+        <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <h2 className="font-bold text-foreground">Podium Top 3</h2>
+            <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground uppercase">
+              Top 10
+            </span>
           </div>
-        </div>
 
-        {/* Rank 4–10 */}
-        <div className="p-4 sm:p-5">
-          <p className="mb-3 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Rank 4 – 10
+          <div className="border-b border-border bg-muted/20 px-4 py-6 sm:px-6">
+            <div className="mx-auto flex max-w-lg items-end justify-center gap-2 sm:gap-4">
+              {podium.map((entry, index) => (
+                <PodiumSlot
+                  key={entry.userId}
+                  entry={entry}
+                  meta={PODIUM_META[index]!}
+                  center={index === 1}
+                  delay={0.1 + index * 0.08}
+                />
+              ))}
+            </div>
+          </div>
+
+          {rest.length > 0 && (
+            <div className="p-4 sm:p-5">
+              <p className="mb-3 px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Rank 4 – 10
+              </p>
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                {rest.map((entry, index) => (
+                  <LeaderboardRow key={entry.userId} entry={entry} index={index} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-border px-4 py-4 sm:px-5">
+            <Button asChild variant="outline" className="w-full gap-2">
+              <Link href={STUDENT_ROUTES.achievements}>
+                <Award className="size-4" />
+                Lihat koleksi badge
+              </Link>
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+          <p className="text-sm text-muted-foreground">
+            {core.coreConnected
+              ? 'Leaderboard masih kosong.'
+              : 'Menghubungkan ke Core untuk memuat leaderboard…'}
           </p>
-          <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-            {LEADERBOARD_TOP_10.slice(3).map((entry, index) => (
-              <LeaderboardRow key={entry.rank} entry={entry} index={index} />
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-border px-4 py-4 sm:px-5">
-          <Button asChild variant="outline" className="w-full gap-2">
-            <Link href={STUDENT_ROUTES.achievements}>
-              <Flame className="size-4" />
-              Lihat koleksi badge
-            </Link>
-          </Button>
-        </div>
-      </section>
+        </section>
+      )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Data demo — ranking akan diambil dari Core XP service setelah auth siap.
+        {core.coreConnected
+          ? `Ranking dari Core · XP kamu: ${formatDisplayNumber(core.totalXp)}`
+          : 'Menunggu sinkron Core JWT…'}
       </p>
     </div>
   );
