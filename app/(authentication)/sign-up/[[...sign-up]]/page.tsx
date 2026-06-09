@@ -3,9 +3,9 @@ import { SignUpPage } from '@/features/auth/components';
 
 export const metadata: Metadata = {
   title: 'Daftar — JepangKu LMS',
-  description: 'Buat akun JepangKu gratis dan mulai belajar bahasa Jepang dari N5 hingga N1.',
+  description: 'Buat akun JepangKu gratis dan mulai belajar bahasa Jepang.',
 };
 
-export default function SignUpRoutePage() {
+export default function SignUpCatchAllPage() {
   return <SignUpPage />;
 }

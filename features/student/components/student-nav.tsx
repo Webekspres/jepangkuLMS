@@ -4,20 +4,27 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Flame, Menu, X, Zap } from 'lucide-react';
+import { Coins, Menu, X, Zap } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MarketingMobileMenu } from '@/features/marketing/components/marketing-mobile-menu';
 import { MarketingNavLinkItem } from '@/features/marketing/components/marketing-nav-link';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { BRAND_LOGO } from '@/lib/brand-logo';
 import { cn } from '@/lib/utils';
-import { DASHBOARD_MOCK_USER } from './dashboard-data';
+import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
+import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
 import { STUDENT_ROUTES } from './student-routes';
 import { StudentUserProfile } from './student-user-profile';
 
 export function StudentNav() {
   const pathname = usePathname();
+  const { identity } = useClerkIdentity();
+  const core = useStudentCoreData();
+  const displayName = identity?.displayName ?? core.displayName ?? '…';
   const [menuOpen, setMenuOpen] = useState(false);
+  const statsPending =
+    !core.coreConnected && core.leaderboardTotal === 0 && core.leaderboardTop10.length === 0;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -64,15 +71,21 @@ export function StudentNav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold">
-            <Zap className="size-3.5 text-primary" />
-            <span className="tabular-nums text-foreground">
-              {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} XP
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <Flame className="size-3.5 text-amber-500" />
-            <span className="tabular-nums text-foreground">{DASHBOARD_MOCK_USER.streakDays}d</span>
-          </div>
+          {statsPending ? (
+            <Skeleton className="h-8 w-30 rounded-sm" aria-hidden />
+          ) : (
+            <div className="flex items-center gap-2 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold">
+              <Zap className="size-3.5 text-primary" />
+              <span className="tabular-nums text-foreground">
+                {formatDisplayNumber(core.totalXp)} XP
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <Coins className="size-3.5 text-amber-500" />
+              <span className="tabular-nums text-foreground">
+                {formatDisplayNumber(core.currentPoints)}
+              </span>
+            </div>
+          )}
 
           <StudentUserProfile />
         </div>
@@ -94,11 +107,14 @@ export function StudentNav() {
         panelClassName="border border-border bg-background/95 backdrop-blur-xl"
       >
         <div className="border-b border-border px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">{DASHBOARD_MOCK_USER.displayName}</p>
-          <p className="text-xs text-muted-foreground">
-            Level {DASHBOARD_MOCK_USER.level} · {DASHBOARD_MOCK_USER.jlptFocus} ·{' '}
-            {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} XP
-          </p>
+          <p className="text-sm font-semibold text-foreground">{displayName}</p>
+          {identity?.email ? (
+            <p className="truncate text-xs text-muted-foreground">{identity.email}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Lv.{core.level} · {formatDisplayNumber(core.totalXp)} XP
+            </p>
+          )}
         </div>
         <nav className="flex flex-col p-2">
           {STUDENT_NAV_LINKS.map((link) => (

@@ -34,11 +34,11 @@ export function buildSessionFromVerifiedJwt(payload: unknown): CoreSession | nul
 
 /**
  * Ambil sesi user aktif (server-only).
- * TODO: baca cookie/header Authorization, verify JWT dengan kunci Core, lalu panggil buildSessionFromVerifiedJwt.
+ * @deprecated Import from `@/lib/core/get-core-session` — implementasi aktif di sana.
  */
 export async function getCoreSession(): Promise<CoreSession | null> {
-  // Placeholder sampai proxy/auth middleware mengikat token dari Core
-  return null;
+  const { getCoreSession: loadSession } = await import('./get-core-session');
+  return loadSession();
 }
 
 export function hasRole(session: CoreSession, roleCode: string): boolean {

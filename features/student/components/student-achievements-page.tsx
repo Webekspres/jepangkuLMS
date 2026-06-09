@@ -18,15 +18,17 @@ import {
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { DASHBOARD_MOCK_USER } from './dashboard-data';
+import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
+import { useStudentCoreData } from './student-core-data-context';
 import {
-  ACHIEVEMENT_MILESTONES,
+  buildAchievementMilestones,
   BADGE_RARITY_ORDER,
   BADGE_RARITY_STYLES,
   filterAchievementBadges,
   getAchievementSummary,
   getBadgeXpByRarity,
   type AchievementBadge,
+  type AchievementMilestone,
   type BadgeFilter,
   type BadgeRarity,
   type BadgeSort,
@@ -53,12 +55,17 @@ function BadgeIcon({ badge, size = 'md' }: { badge: AchievementBadge; size?: 'sm
   return (
     <div
       className={cn(
-        'relative flex items-center justify-center rounded-2xl border bg-card shadow-sm',
+        'relative flex items-center justify-center overflow-hidden rounded-2xl border bg-card shadow-sm',
         sizeClass,
         badge.unlocked ? 'border-border' : 'border-border/60 opacity-60 grayscale',
       )}
     >
-      <span>{badge.icon}</span>
+      {badge.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={badge.imageUrl} alt="" className="size-full object-cover" />
+      ) : (
+        <span>{badge.icon}</span>
+      )}
       {!badge.unlocked && (
         <Lock className="absolute -bottom-1 -right-1 size-3.5 rounded-full bg-muted p-0.5 text-muted-foreground" />
       )}
@@ -107,7 +114,7 @@ function BadgeCard({
       <p className="mt-0.5 text-[10px] text-muted-foreground">
         {badge.unlocked ? badge.date : 'Terkunci'}
       </p>
-      {badge.unlocked && (
+      {badge.unlocked && badge.xp > 0 && (
         <div className={cn('mt-2 inline-flex items-center gap-0.5 rounded-lg px-2 py-0.5', style.chip)}>
           <Zap className="size-2.5" />
           <span className="text-[10px] font-bold">+{badge.xp}</span>
@@ -117,7 +124,7 @@ function BadgeCard({
   );
 }
 
-function MilestoneRow({ milestone, index }: { milestone: (typeof ACHIEVEMENT_MILESTONES)[number]; index: number }) {
+function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; index: number }) {
   const statusIcon =
     milestone.status === 'completed' ? (
       <CheckCircle2 className="size-4 text-emerald-600" />
@@ -237,12 +244,14 @@ function BadgeDetailModal({
             <h3 className="mt-3 text-xl font-extrabold text-foreground">{badge.name}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{badge.desc}</p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                <Zap className="mx-auto mb-1 size-5 text-brand-yellow" />
-                <p className="font-bold text-foreground">+{badge.xp} XP</p>
-                <p className="text-xs text-muted-foreground">Hadiah XP</p>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/30 p-3">
+              {badge.xp > 0 && (
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <Zap className="mx-auto mb-1 size-5 text-brand-yellow" />
+                  <p className="font-bold text-foreground">+{badge.xp} XP</p>
+                  <p className="text-xs text-muted-foreground">Hadiah XP</p>
+                </div>
+              )}
+              <div className={cn('rounded-xl border border-border bg-muted/30 p-3', badge.xp <= 0 && 'col-span-2')}>
                 <Calendar className="mx-auto mb-1 size-5 text-muted-foreground" />
                 <p className="font-bold text-foreground">{badge.date}</p>
                 <p className="text-xs text-muted-foreground">Diraih</p>
@@ -259,7 +268,14 @@ function BadgeDetailModal({
 }
 
 export function StudentAchievementsPage() {
-  const summary = getAchievementSummary();
+  const { identity } = useClerkIdentity();
+  const core = useStudentCoreData();
+  const badges = core.badges;
+  const summary = getAchievementSummary(badges);
+  const milestones = buildAchievementMilestones(core.totalXp);
+  const displayName = identity?.displayName ?? core.displayName ?? 'Pengguna';
+  const userInitial = displayName.charAt(0).toUpperCase();
+
   const [filter, setFilter] = useState<BadgeFilter>('all');
   const [rarityFilter, setRarityFilter] = useState<BadgeRarity | 'all'>('all');
   const [sort, setSort] = useState<BadgeSort>('default');
@@ -267,16 +283,14 @@ export function StudentAchievementsPage() {
   const [celebrate, setCelebrate] = useState(false);
 
   const filteredBadges = useMemo(
-    () => filterAchievementBadges(filter, rarityFilter, sort),
-    [filter, rarityFilter, sort],
+    () => filterAchievementBadges(badges, filter, rarityFilter, sort),
+    [badges, filter, rarityFilter, sort],
   );
 
   const handleCelebrate = () => {
     setCelebrate(true);
     window.setTimeout(() => setCelebrate(false), 2800);
   };
-
-  const userInitial = DASHBOARD_MOCK_USER.displayName.charAt(0).toUpperCase();
 
   return (
     <div className="space-y-6 pb-8">
@@ -289,7 +303,7 @@ export function StudentAchievementsPage() {
                 {userInitial}
               </div>
               <div className="absolute -right-2 -bottom-2 flex size-10 items-center justify-center rounded-xl border-2 border-card bg-brand-yellow text-sm font-black text-foreground shadow-sm">
-                {DASHBOARD_MOCK_USER.level}
+                {core.level}
               </div>
             </div>
 
@@ -298,20 +312,26 @@ export function StudentAchievementsPage() {
                 <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
                   Pencapaian Saya
                 </h1>
-                <span className="rounded-xl bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
-                  {DASHBOARD_MOCK_USER.jlptFocus}
-                </span>
+                {core.levelTitle ? (
+                  <span className="rounded-xl bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
+                    {core.levelTitle}
+                  </span>
+                ) : null}
               </div>
               <p className="text-sm text-muted-foreground">
-                {DASHBOARD_MOCK_USER.levelTitle} · Lv.{DASHBOARD_MOCK_USER.level} ·{' '}
-                {summary.unlockedCount} dari {summary.totalCount} badge diraih
+                {displayName} · Lv.{core.level} · {summary.unlockedCount} dari {summary.totalCount}{' '}
+                badge diraih
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
-                  { icon: '⚡', label: 'Total XP', value: formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp) },
+                  { icon: '⚡', label: 'Total XP', value: formatDisplayNumber(core.totalXp) },
                   { icon: '🏆', label: 'Badge', value: `${summary.unlockedCount}/${summary.totalCount}` },
-                  { icon: '🔥', label: 'Streak', value: `${DASHBOARD_MOCK_USER.streakDays} Hari` },
-                  { icon: '🥇', label: 'Rank', value: `#${DASHBOARD_MOCK_USER.globalRank}` },
+                  { icon: '💰', label: 'Poin', value: formatDisplayNumber(core.currentPoints) },
+                  {
+                    icon: '🥇',
+                    label: 'Rank',
+                    value: core.globalRank != null ? `#${core.globalRank}` : '—',
+                  },
                 ].map((stat) => (
                   <div
                     key={stat.label}
@@ -339,7 +359,7 @@ export function StudentAchievementsPage() {
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 40}
                     initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 40 * (1 - summary.levelProgress / 100) }}
+                    animate={{ strokeDashoffset: 2 * Math.PI * 40 * 0.25 }}
                     transition={{ duration: 1.5, delay: 0.2 }}
                   />
                   <defs>
@@ -350,13 +370,12 @@ export function StudentAchievementsPage() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-foreground">{summary.levelProgress}%</span>
-                  <span className="text-[10px] text-muted-foreground">ke Lv.{DASHBOARD_MOCK_USER.level + 1}</span>
+                  <span className="text-lg font-black text-foreground">Lv.{core.level}</span>
+                  <span className="text-[10px] text-muted-foreground">level</span>
                 </div>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} /{' '}
-                {formatDisplayNumber(DASHBOARD_MOCK_USER.xpToNextLevel)} XP
+                {formatDisplayNumber(core.totalXp)} XP · {formatDisplayNumber(core.currentPoints)} poin
               </p>
             </div>
           </div>
@@ -464,7 +483,14 @@ export function StudentAchievementsPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-            {filteredBadges.map((badge, index) => (
+            {filteredBadges.length === 0 ? (
+              <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
+                {core.coreConnected
+                  ? 'Belum ada badge di katalog Core.'
+                  : 'Menghubungkan ke Core…'}
+              </p>
+            ) : (
+              filteredBadges.map((badge, index) => (
               <motion.div
                 key={badge.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -473,7 +499,8 @@ export function StudentAchievementsPage() {
               >
                 <BadgeCard badge={badge} onSelect={setSelectedBadge} />
               </motion.div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -483,7 +510,7 @@ export function StudentAchievementsPage() {
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {BADGE_RARITY_ORDER.map((rarity) => {
-                const { count, xp } = getBadgeXpByRarity(rarity);
+                const { count, xp } = getBadgeXpByRarity(badges, rarity);
                 const style = BADGE_RARITY_STYLES[rarity];
                 return (
                   <div key={rarity} className={cn('rounded-xl border p-3 text-center', style.legend)}>
@@ -503,7 +530,7 @@ export function StudentAchievementsPage() {
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="relative pl-1">
               <div className="absolute top-6 bottom-6 left-5 w-px bg-border" />
-              {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
+              {milestones.map((milestone, index) => (
                 <MilestoneRow key={milestone.level} milestone={milestone} index={index} />
               ))}
             </div>
@@ -515,7 +542,7 @@ export function StudentAchievementsPage() {
                 href: STUDENT_ROUTES.home,
                 icon: BookOpen,
                 label: 'Lanjutkan Belajar',
-                sub: `${DASHBOARD_MOCK_USER.jlptFocus} — Bab 12`,
+                sub: `Lv.${core.level} · ${formatDisplayNumber(core.totalXp)} XP`,
                 accent: 'text-primary bg-primary/10',
               },
               {
@@ -529,7 +556,10 @@ export function StudentAchievementsPage() {
                 href: STUDENT_ROUTES.leaderboard,
                 icon: Users,
                 label: 'Leaderboard Global',
-                sub: `Kamu #${DASHBOARD_MOCK_USER.globalRank} dari 32.000+`,
+                sub:
+                  core.globalRank != null
+                    ? `Kamu #${core.globalRank} dari ${formatDisplayNumber(core.leaderboardTotal)}+`
+                    : 'Lihat peringkat global',
                 accent: 'text-violet-700 bg-violet-500/10',
               },
             ].map((item) => (
@@ -553,7 +583,9 @@ export function StudentAchievementsPage() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Data demo — badge & XP akan diambil dari Core service setelah auth siap.
+        {core.coreConnected
+          ? 'Badge & XP dari JepangKu Core · perjalanan JLPT masih estimasi lokal.'
+          : 'Menghubungkan ke Core untuk memuat badge…'}
       </p>
 
       <BadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />

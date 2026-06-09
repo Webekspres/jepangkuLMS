@@ -4,6 +4,8 @@ Dokumen ini dirancang sebagai panduan kolaborasi tim agar struktur kode tetap ko
 
 **Ekosistem:** LMS ini satu app di antara Core Backend (Sultan) dan Portal Berita (Habibi). Baca **[ECOSYSTEM.md](./ECOSYSTEM.md)** sebelum mengubah `User`, auth, atau gamifikasi.
 
+**Integrasi Core (status live):** **[CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md)** — blocker production, keputusan Clerk-only sementara, checklist backend LMS yang boleh dikerjakan paralel.
+
 ---
 
 ## 🚀 Quick Stack Checklist

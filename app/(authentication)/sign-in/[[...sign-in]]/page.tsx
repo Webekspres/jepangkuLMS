@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: 'Login ke akun JepangKu dan lanjutkan perjalanan belajar bahasa Jepang.',
 };
 
-export default function SignInPage() {
+export default function SignInCatchAllPage() {
   return <LoginPage />;
 }
