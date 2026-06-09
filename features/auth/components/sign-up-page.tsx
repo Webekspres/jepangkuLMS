@@ -6,6 +6,27 @@ import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { AuthPageShell } from './auth-page-shell';
 import { clerkAppearance } from './clerk-appearance';
 
+function PasswordToggle({
+  show,
+  onToggle,
+  label,
+}: {
+  show: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute top-1/2 right-4 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+      aria-label={label}
+    >
+      {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  );
+}
+
 /**
  * Sign-up shell + Clerk prebuilt SignUp.
  * Setelah Clerk session → dashboard (Core JWT di-sync di background).
