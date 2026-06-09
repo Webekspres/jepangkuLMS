@@ -34,12 +34,6 @@ export const AUTH_STATS = [
   { val: 'N5–N1', label: 'Level Lengkap' },
 ] as const;
 
-export const INTEGRATION_MESSAGE_LOGIN =
-  'Login SSO via Core Backend sedang diintegrasikan. UI siap — auth menyusul kontrak Sultan.';
-
-export const INTEGRATION_MESSAGE_SIGNUP =
-  'Registrasi SSO via Core Backend sedang diintegrasikan. UI siap — auth menyusul kontrak Sultan.';
-
 export function authInputClass(hasValue: boolean) {
   return cn(
     'w-full rounded-2xl border-2 bg-background px-4 py-3.5 text-sm text-foreground outline-none transition-all',

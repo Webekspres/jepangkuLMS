@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useClerk } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import {
   Award,
@@ -41,7 +42,9 @@ function UserAvatar({ className }: { className?: string }) {
 
 export function StudentUserProfile() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -131,15 +134,25 @@ export function StudentUserProfile() {
           </ul>
 
           <div className="border-t border-border p-1.5">
-            <Link
-              href="/sign-in"
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+              disabled={signingOut}
+              onClick={async () => {
+                setOpen(false);
+                setSigningOut(true);
+                try {
+                  await fetch('/api/auth/sign-out', { method: 'POST' });
+                  await signOut({ redirectUrl: '/sign-in' });
+                } finally {
+                  setSigningOut(false);
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 disabled:opacity-60"
             >
               <LogOut className="size-4 shrink-0" />
               Keluar
-            </Link>
+            </button>
           </div>
         </div>
       )}

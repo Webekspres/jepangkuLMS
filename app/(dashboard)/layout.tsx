@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 import { StudentShell } from '@/features/student/components';
 
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <StudentShell>{children}</StudentShell>;
+  return (
+    <StudentShell>
+      <CoreSessionSync />
+      {children}
+    </StudentShell>
+  );
 }

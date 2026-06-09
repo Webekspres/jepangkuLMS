@@ -176,3 +176,66 @@
     @apply font-sans;
   }
 }
+
+/* Clerk SignIn/SignUp — samakan tombol dengan `components/ui/button.tsx` */
+.clerk-auth-primary-btn.cl-button {
+  border-radius: 0.125rem !important;
+  border: 1px solid #c91d24 !important;
+  background: linear-gradient(to bottom, #f2343a, #ec1d24) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.3) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.1) inset,
+    0 5px 0 0 #b8151c,
+    0 8px 16px -8px rgba(184, 21, 28, 0.5) !important;
+}
+
+.clerk-auth-primary-btn.cl-button:hover {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.3) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.1) inset,
+    0 6px 0 0 #b8151c,
+    0 12px 20px -8px rgba(184, 21, 28, 0.55) !important;
+}
+
+.clerk-auth-primary-btn.cl-button:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.25) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 2px 0 0 #b8151c,
+    0 4px 10px -8px rgba(184, 21, 28, 0.45) !important;
+}
+
+.clerk-auth-social-btn.cl-button {
+  border-radius: 0.125rem !important;
+  border: 1px solid #cbd5e1 !important;
+  background: linear-gradient(to bottom, #fff, #f1f5f9) !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 4px 0 0 #e2e8f0,
+    0 5px 0 0 #94a3b8,
+    0 8px 14px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+.clerk-auth-social-btn.cl-button:hover {
+  background: linear-gradient(to bottom, #fff, #fff) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 5px 0 0 #cbd5e1,
+    0 6px 0 0 #94a3b8,
+    0 11px 18px -10px rgba(15, 23, 42, 0.22) !important;
+}
+
+.clerk-auth-social-btn.cl-button:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 2px 0 0 #cbd5e1,
+    0 3px 0 0 #94a3b8,
+    0 5px 10px -10px rgba(15, 23, 42, 0.18) !important;
+}

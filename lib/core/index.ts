@@ -6,7 +6,8 @@ export {
   getUserProfile,
   getUserProfileFromClaims,
 } from './user-profile';
-export { buildSessionFromVerifiedJwt, getCoreSession, hasRole } from './session';
+export { getCoreSession } from './get-core-session';
+export { buildSessionFromVerifiedJwt, hasRole } from './session';
 export {
   getRolesFromClaims,
   mapClaimsToGamificationSummary,
