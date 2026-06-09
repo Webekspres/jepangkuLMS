@@ -1,23 +1,17 @@
 import type { Metadata } from 'next';
-import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
-import { StudentCoreDataProvider } from '@/features/student/components/student-core-data-context';
-import { StudentShell } from '@/features/student/components';
-import { loadStudentCoreData } from '@/features/student/lib/load-student-core-data';
+import { Suspense } from 'react';
+import { StudentCoreDataBoundary } from '@/features/student/components/student-core-data-boundary';
+import { StudentLayoutSkeleton } from '@/features/student/components/skeletons';
 
 export const metadata: Metadata = {
   title: 'Dashboard — JepangKu LMS',
   description: 'Student hub — progress belajar, XP, dan lanjutkan materi JLPT.',
 };
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const coreData = await loadStudentCoreData();
-
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <StudentCoreDataProvider data={coreData}>
-      <StudentShell>
-        <CoreSessionSync />
-        {children}
-      </StudentShell>
-    </StudentCoreDataProvider>
+    <Suspense fallback={<StudentLayoutSkeleton />}>
+      <StudentCoreDataBoundary>{children}</StudentCoreDataBoundary>
+    </Suspense>
   );
 }

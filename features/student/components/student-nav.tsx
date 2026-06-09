@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Coins, Menu, X, Zap } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MarketingMobileMenu } from '@/features/marketing/components/marketing-mobile-menu';
 import { MarketingNavLinkItem } from '@/features/marketing/components/marketing-nav-link';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
@@ -22,6 +23,8 @@ export function StudentNav() {
   const core = useStudentCoreData();
   const displayName = identity?.displayName ?? core.displayName ?? '…';
   const [menuOpen, setMenuOpen] = useState(false);
+  const statsPending =
+    !core.coreConnected && core.leaderboardTotal === 0 && core.leaderboardTop10.length === 0;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -68,17 +71,21 @@ export function StudentNav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold">
-            <Zap className="size-3.5 text-primary" />
-            <span className="tabular-nums text-foreground">
-              {formatDisplayNumber(core.totalXp)} XP
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <Coins className="size-3.5 text-amber-500" />
-            <span className="tabular-nums text-foreground">
-              {formatDisplayNumber(core.currentPoints)}
-            </span>
-          </div>
+          {statsPending ? (
+            <Skeleton className="h-8 w-30 rounded-sm" aria-hidden />
+          ) : (
+            <div className="flex items-center gap-2 rounded-sm border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold">
+              <Zap className="size-3.5 text-primary" />
+              <span className="tabular-nums text-foreground">
+                {formatDisplayNumber(core.totalXp)} XP
+              </span>
+              <span className="text-muted-foreground">·</span>
+              <Coins className="size-3.5 text-amber-500" />
+              <span className="tabular-nums text-foreground">
+                {formatDisplayNumber(core.currentPoints)}
+              </span>
+            </div>
+          )}
 
           <StudentUserProfile />
         </div>

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import {
   fetchCoreBadgeCatalog,
@@ -41,7 +42,7 @@ function toPreviewRows(entries: StudentLeaderboardEntry[]): StudentLeaderboardRo
 }
 
 /** Muat XP, poin, level, rank, badge, leaderboard dari Core (server-only). */
-export async function loadStudentCoreData(): Promise<StudentCoreData> {
+export const loadStudentCoreData = cache(async function loadStudentCoreData(): Promise<StudentCoreData> {
   const { userId } = await auth();
   const clerkUser = userId ? await currentUser() : null;
 
@@ -131,4 +132,4 @@ export async function loadStudentCoreData(): Promise<StudentCoreData> {
   }
 
   return data;
-}
+});
