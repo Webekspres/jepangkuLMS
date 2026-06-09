@@ -5,7 +5,7 @@ Living document untuk melacak **integrasi JepangKu Core** di repo LMS: masalah s
 | Meta | Nilai |
 | :--- | :--- |
 | **Status integrasi** | 🟡 **Clerk-only gate aktif** — Core JWT exchange best-effort (non-blocking) |
-| **Terakhir diperbarui** | 2026-06-05 |
+| **Terakhir diperbarui** | 2026-06-09 |
 | **Tim terkait** | Kris (LMS), Sultan (Core), Habibi (Portal Berita) |
 | **Dokumen arsitektur target** | [ECOSYSTEM.md](./ECOSYSTEM.md), [CORE_ERD.md](./CORE_ERD.md) |
 
@@ -37,8 +37,8 @@ Diskusi dengan dev Portal Berita (`jepangku-news`):
 | :--- | :--- |
 | Auth login | **Clerk saja** — tidak wajib Core JWT saat login |
 | Integrasi Core | **Belum terhubung** (sama seperti LMS saat ini) |
-| Sync user lokal | JIT upsert ke tabel `users` dari Clerk (`ensureLocalUserFromClerk`) |
-| Implikasi LMS | Pola **Clerk-first + backend lokal** adalah **valid** untuk fase ini; tidak perlu memblokir fitur belajar menunggu Core |
+| Sync user lokal | JIT upsert ke tabel `users` dari Clerk | News: profil portal; LMS: anchor FK |
+| Implikasi LMS | Pola **Clerk-first + Core best-effort** valid untuk fase ini | News Fase 3 cutover selesai di kode — lihat `jepangku-core/docs/PHASE0-PHASE1.md` |
 
 Portal Berita dan LMS **sama-sama konsumen Clerk** (app `knowing-ghost-18`). Target jangka panjang tetap: profil + gamifikasi global via Core — lihat [ECOSYSTEM.md](./ECOSYSTEM.md).
 
