@@ -161,7 +161,7 @@ Route sitemap (`/leaderboard`, `/gamifikasi/profil-saya`, XP di dashboard) **tet
 ## 6. Autentikasi & Clerk
 
 - **Clerk** dipakai di LMS (dan Portal Berita) untuk gate login; **Core JWT** adalah lapisan gamifikasi/profil global (target ekosistem).
-- **Status integrasi (2026-06-05):** Production Core `POST /auth/token` belum stabil — LMS memakai **Clerk-only gate** + sync Core **non-blocking**. Portal Berita juga belum terhubung Core. Detail & checklist → **[CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md)**.
+- **Status integrasi (2026-06-09):** Dev lokal — Core JWT exchange ✅. LMS & News memakai **Clerk-only gate** + sync Core **non-blocking**. Fase 1 coded di kedua klien. Detail → **[CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md)** · runbook → [`jepangku-core/docs/PHASE0-PHASE1.md`](../../jepangku-core/docs/PHASE0-PHASE1.md).
 - **Target:** LMS menerima **JWT dari Core** setelah login; data user aktif dibaca dari **claims**, bukan DB LMS.
 - Env LMS: `JEPANGKU_CORE_JWT_*` untuk verify + `JEPANGKU_CORE_API_URL` untuk leaderboard/award XP (lihat `.env.example`).
 
@@ -183,7 +183,7 @@ LMS tidak menjadi “monolith data user” untuk seluruh ekosistem.
 | Dokumen | Isi |
 | :--- | :--- |
 | [AGENTS.md](../AGENTS.md) | Aturan coding Agent + ringkasan ekosistem |
-| [backend_core_services/](./backend_core_services/) | **Schema canonical** (Prisma + DBML + README) — handoff Sultan |
+| [jepangku-core/docs/](../../jepangku-core/docs/) | **Schema canonical Core** (Prisma + DBML + README) |
 | [CORE_ERD.md](./CORE_ERD.md) | Konsep ringkas Core DB (bukan schema detail) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur teknis LMS (folder, data flow) |
 | [sitemap.md](../sitemap.md) | URL — scope LMS saja |
@@ -196,3 +196,4 @@ LMS tidak menjadi “monolith data user” untuk seluruh ekosistem.
 | 1.0 | 2026-06-03 | Arsitektur ekosistem: Core + Berita + LMS; User jangkar; gamifikasi ke Core |
 | 1.1 | 2026-06-03 | Keputusan: profil/gamifikasi user aktif via **JWT claims**; leaderboard/award via API |
 | 1.2 | 2026-06-05 | §6: status integrasi aktual + link ke `CORE_INTEGRATION_STATUS.md` |
+| 1.3 | 2026-06-09 | §6: News+LMS Fase 1 coded; schema canonical → repo Core |

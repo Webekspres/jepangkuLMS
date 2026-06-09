@@ -4,43 +4,36 @@ Living document untuk melacak **integrasi JepangKu Core** di repo LMS: masalah s
 
 | Meta | Nilai |
 | :--- | :--- |
-| **Status integrasi** | 🟡 **Clerk-only gate aktif** — Core JWT exchange best-effort (non-blocking) |
+| **Status integrasi** | 🟢 **Dev lokal OK** — Clerk gate + Core JWT exchange; 🟡 prod Core token belum diverifikasi |
 | **Terakhir diperbarui** | 2026-06-09 |
 | **Tim terkait** | Kris (LMS), Sultan (Core), Habibi (Portal Berita) |
 | **Dokumen arsitektur target** | [ECOSYSTEM.md](./ECOSYSTEM.md), [CORE_ERD.md](./CORE_ERD.md) |
 
 ---
 
-## 1. Ringkasan masalah
+## 1. Ringkasan status
 
-Integrasi penuh LMS ↔ Core (Clerk → Core JWT → claims XP/level) **belum bisa diandalkan di production** karena endpoint Core untuk pertukaran token gagal.
+| Lingkungan | Core JWT exchange | Catatan |
+| :--- | :--- | :--- |
+| **Dev lokal** | ✅ `POST /api/auth/core-token` → 200 | Core `:8080`, satu instance saja |
+| **Production** | ⏳ belum diverifikasi | Pastikan `JWT_PRIVATE_KEY` prod ↔ public key LMS |
 
-| Gejala | Detail |
-| :--- | :--- |
-| Endpoint | `POST https://core.jepangku.com/api/v1/auth/token` |
-| Respons | HTTP **500** — body `{ "error": "INTERNAL_ERROR" }` |
-| Input | Clerk session valid (Google OAuth / SSO berhasil) |
-| Dampak UX | User **tetap masuk dashboard**; XP/poin/badge menampilkan placeholder (0 / "Menghubungkan ke Core") |
-| Leaderboard publik | Sebagian endpoint Core **tanpa auth** masih bisa dipanggil (mis. top-N global) |
+**Pola UX:** Clerk-only gate — gagal Core tidak memblokir dashboard. Sukses exchange → cookie `jepangku_core_jwt` + refresh UI.
 
-**Penyebab kemungkinan (tim Core):** konfigurasi `JWT_PRIVATE_KEY` production tidak selaras dengan `JEPANGKU_CORE_JWT_PUBLIC_KEY` di LMS, deploy auth module belum terbaru, atau error internal saat `syncClerkUserById`.
-
-LMS `.env` sudah memetakan URL, issuer, audience, public key, dan service token sesuai handoff Sultan. **Blocker utama ada di server Core**, bukan di gate Clerk LMS.
+**Blocker prod historis:** `POST https://core.jepangku.com/api/v1/auth/token` → 500 (`JWT_PRIVATE_KEY` / deploy). Dev sudah diperbaiki; prod butuh deploy modul auth terbaru + sync public key.
 
 ---
 
-## 2. Konfirmasi Portal Berita (2026-06-05)
-
-Diskusi dengan dev Portal Berita (`jepangku-news`):
+## 2. Portal Berita & LMS (2026-06-09)
 
 | Topik | Keputusan |
 | :--- | :--- |
-| Auth login | **Clerk saja** — tidak wajib Core JWT saat login |
-| Integrasi Core | **Belum terhubung** (sama seperti LMS saat ini) |
-| Sync user lokal | JIT upsert ke tabel `users` dari Clerk | News: profil portal; LMS: anchor FK |
-| Implikasi LMS | Pola **Clerk-first + Core best-effort** valid untuk fase ini | News Fase 3 cutover selesai di kode — lihat `jepangku-core/docs/PHASE0-PHASE1.md` |
+| Auth login | **Clerk saja** — Core JWT tidak wajib untuk gate |
+| Integrasi Core | **Fase 1+3 coded** di News & LMS — lihat [`jepangku-core/docs/PHASE0-PHASE1.md`](../../jepangku-core/docs/PHASE0-PHASE1.md) |
+| Sync user | News: profil JIT; LMS: anchor FK (`User.id` = Clerk ID) |
+| Pola bersama | **Clerk-first + Core best-effort** (non-blocking) |
 
-Portal Berita dan LMS **sama-sama konsumen Clerk** (app `knowing-ghost-18`). Target jangka panjang tetap: profil + gamifikasi global via Core — lihat [ECOSYSTEM.md](./ECOSYSTEM.md).
+Kedua app memakai **satu Clerk application** (`knowing-ghost-18`).
 
 ---
 
@@ -86,9 +79,9 @@ Clerk login → /dashboard (langsung, tanpa gate Core)
 | Nama, avatar tampilan | **Clerk** (sementara) / Core claims (nanti) | ✅ Clerk |
 | Kursus, lesson, materi | **DB LMS** | ⬜ Backend belum terhubung UI |
 | Enrollment, progress, quiz | **DB LMS** | ⬜ Backend belum terhubung UI |
-| XP, level, poin, badge | **Core** | 🟡 UI ada; data real menunggu JWT |
-| Leaderboard global | **Core API** | 🟡 Public top-N partial; user stats butuh JWT |
-| Award XP setelah kuis/lesson | **Core API** | ⬜ Stub / TBD |
+| XP, level, poin, badge | **Core** | 🟢 Dev: JWT claims; prod ⏳ |
+| Leaderboard global | **Core API** | 🟡 Public top-N; user stats butuh JWT |
+| Award XP setelah kuis/lesson | **Core API** | ✅ `learning-actions.ts` → `awardCoreXp()` |
 
 Model `User` di Prisma LMS tetap **jangkar FK** (`id` = Clerk User ID), bukan sumber profil:
 
@@ -191,7 +184,7 @@ Lihat juga [TESTING.md](./TESTING.md) — E2E auth saat ini fokus UI, bukan logi
 | :--- | :--- |
 | [PROGRESS.md](./PROGRESS.md) | Progres global Fase 1 MVP |
 | [ECOSYSTEM.md](./ECOSYSTEM.md) | Batas LMS / Core / Berita (target) |
-| [backend_core_services/README.md](./backend_core_services/README.md) | Schema & API canonical Core |
+| [jepangku-core/docs/](../../jepangku-core/docs/) | Schema & API canonical Core |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Struktur folder & data flow LMS |
 
 ---
