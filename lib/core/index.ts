@@ -7,6 +7,16 @@ export {
   getUserProfileFromClaims,
 } from './user-profile';
 export { getCoreSession } from './get-core-session';
+export {
+  fetchCoreBadgeCatalog,
+  fetchCoreLeaderboard,
+  fetchCoreUserBadges,
+  fetchCoreUserMe,
+  type CoreBadgeCatalogItem,
+  type CoreLeaderboardItem,
+  type CoreUserBadgeItem,
+  type CoreUserProfileResponse,
+} from './api';
 export { buildSessionFromVerifiedJwt, hasRole } from './session';
 export {
   getRolesFromClaims,

@@ -1,20 +1,25 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { syncCoreSessionSilent } from '@/features/auth/lib/sync-core-session';
 
 /**
- * Best-effort Core JWT exchange after Clerk login (shadow mode, seperti Portal Berita).
- * Tidak memblokir dashboard jika Core belum siap.
+ * Best-effort Core JWT exchange setelah Clerk login.
+ * Refresh server data kalau exchange sukses.
  */
 export function CoreSessionSync() {
+  const router = useRouter();
   const attempted = useRef(false);
 
   useEffect(() => {
     if (attempted.current) return;
     attempted.current = true;
-    void syncCoreSessionSilent();
-  }, []);
+
+    void syncCoreSessionSilent().then((ok) => {
+      if (ok) router.refresh();
+    });
+  }, [router]);
 
   return null;
 }

@@ -1,23 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
-import { CheckCircle, Flame, Play, Trophy, Zap } from 'lucide-react';
+import { Award, Coins, Trophy, Zap } from 'lucide-react';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
+import type { StudentCoreData } from '@/features/student/types/student-core-data';
 import { STUDENT_ROUTES } from './student-routes';
-
-/** Mock sesi siswa — ganti dengan Core JWT claims saat auth siap */
-export const DASHBOARD_MOCK_USER = {
-  displayName: 'Kamu',
-  level: 12,
-  levelTitle: 'Samurai Belajar',
-  jlptFocus: 'N4' as const,
-  totalXp: 6200,
-  xpToday: 250,
-  xpToNextLevel: 8000,
-  streakDays: 14,
-  bestStreak: 21,
-  globalRank: 4,
-  lessonsCompleted: 47,
-  lessonsThisWeek: 3,
-};
 
 export type DashboardStat = {
   label: string;
@@ -27,36 +12,45 @@ export type DashboardStat = {
   accentClass: string;
 };
 
-export const DASHBOARD_STATS: DashboardStat[] = [
-  {
-    label: 'Total XP',
-    value: formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp),
-    sub: `+${DASHBOARD_MOCK_USER.xpToday} hari ini`,
-    icon: Zap,
-    accentClass: 'text-primary bg-primary/10',
-  },
-  {
-    label: 'Streak Harian',
-    value: `${DASHBOARD_MOCK_USER.streakDays} Hari`,
-    sub: `Terbaik: ${DASHBOARD_MOCK_USER.bestStreak} hari`,
-    icon: Flame,
-    accentClass: 'text-amber-600 bg-amber-500/10',
-  },
-  {
-    label: 'Pelajaran Selesai',
-    value: String(DASHBOARD_MOCK_USER.lessonsCompleted),
-    sub: `${DASHBOARD_MOCK_USER.lessonsThisWeek} pekan ini`,
-    icon: CheckCircle,
-    accentClass: 'text-emerald-600 bg-emerald-500/10',
-  },
-  {
-    label: 'Rank Global',
-    value: `#${DASHBOARD_MOCK_USER.globalRank}`,
-    sub: 'Top 0,01%',
-    icon: Trophy,
-    accentClass: 'text-violet-600 bg-violet-500/10',
-  },
-];
+export function buildDashboardStats(core: StudentCoreData): DashboardStat[] {
+  const rankSub =
+    core.globalRank != null && core.leaderboardTotal > 0
+      ? `dari ${formatDisplayNumber(core.leaderboardTotal)} pelajar`
+      : core.coreConnected
+        ? 'Belum masuk ranking'
+        : 'Menghubungkan ke Core…';
+
+  return [
+    {
+      label: 'Total XP',
+      value: formatDisplayNumber(core.totalXp),
+      sub: core.coreConnected ? 'Dari JepangKu Core' : 'Menunggu sinkron Core',
+      icon: Zap,
+      accentClass: 'text-primary bg-primary/10',
+    },
+    {
+      label: 'Poin',
+      value: formatDisplayNumber(core.currentPoints),
+      sub: 'Saldo poin spendable',
+      icon: Coins,
+      accentClass: 'text-amber-600 bg-amber-500/10',
+    },
+    {
+      label: 'Badge',
+      value: String(core.badgeCount),
+      sub: core.badgeCount > 0 ? 'Badge terbuka' : 'Belum ada badge',
+      icon: Award,
+      accentClass: 'text-emerald-600 bg-emerald-500/10',
+    },
+    {
+      label: 'Rank Global',
+      value: core.globalRank != null ? `#${core.globalRank}` : '—',
+      sub: rankSub,
+      icon: Trophy,
+      accentClass: 'text-violet-600 bg-violet-500/10',
+    },
+  ];
+}
 
 export type JlptPathItem = {
   level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
@@ -144,11 +138,11 @@ export type LeaderboardPreviewRow = {
 };
 
 export const DASHBOARD_LEADERBOARD_PREVIEW: LeaderboardPreviewRow[] = [
-  { rank: 1, name: 'Sakura_ID', xp: 12400 },
-  { rank: 2, name: 'Budi_Nihongo', xp: 9800 },
-  { rank: 3, name: 'Anisa_Sensei', xp: 8450 },
-  { rank: 4, name: 'Kamu', xp: 6200, isYou: true },
-  { rank: 5, name: 'Rio_Kanji', xp: 5900 },
+  { rank: 1, name: '—', xp: 0 },
+  { rank: 2, name: '—', xp: 0 },
+  { rank: 3, name: '—', xp: 0 },
+  { rank: 4, name: '—', xp: 0, isYou: true },
+  { rank: 5, name: '—', xp: 0 },
 ];
 
 export const DASHBOARD_LIVE_SCHEDULE = [
