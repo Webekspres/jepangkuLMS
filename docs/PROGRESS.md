@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase** | 1 (MVP) |
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
-| **Terakhir diperbarui** | 2026-06-03 |
+| **Terakhir diperbarui** | 2026-06-05 |
 | **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **40%** (59 item terlacak) |
 
@@ -193,12 +193,14 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 
 ## 7. Blokir / risiko saat ini
 
-1. **Verify JWT di LMS** — `getCoreSession()` belum terhubung cookie/header + JWKS Core.
-2. **Clerk di Core, bukan LMS** — jangan duplikasi sync profil penuh di repo ini.
-3. **`features/` minimal** — refactor ke domain sebelum logic membesar di `app/`.
-4. **Tidak ada seed** — kuis & demo belajar tidak bisa diuji end-to-end.
-5. **Model pembayaran** — kejelasan entitas "request pembayaran" vs `Enrollment` saja.
-6. **Proxy placeholder** — semua route non-public saat ini lolos tanpa auth (`proxy.ts`).
+> **Integrasi Core (2026-06-05):** Detail blocker, keputusan Clerk-only sementara, dan rencana dev LMS tanpa Core → **[CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md)**.
+
+1. **Core JWT exchange production** — `POST /api/v1/auth/token` mengembalikan 500; gamifikasi real menunggu tim Core. Login LMS **tidak** diblokir (Clerk-only).
+2. **Verify JWT di LMS** — layer ada (`lib/core/verify-jwt.ts`); data XP bergantung exchange Core sukses.
+3. **Clerk di ekosistem** — LMS & Portal Berita sama-sama Clerk-first; jangan duplikasi profil penuh di DB LMS.
+4. **`features/` minimal** — refactor ke domain sebelum logic membesar di `app/`.
+5. **Tidak ada seed** — kuis & demo belajar tidak bisa diuji end-to-end.
+6. **Model pembayaran** — kejelasan entitas "request pembayaran" vs `Enrollment` saja.
 
 ---
 
@@ -228,3 +230,4 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 | 2026-06-03 | Keputusan JWT claims: docs + `lib/core/jwt-claims.ts`, `session.ts` |
 | 2026-06-03 | Core schema v2: `docs/backend_core_services/` (roles, idempotency, lookup 3NF, README) |
 | 2026-06-03 | `CORE_ERD.md` dipendekkan jadi konsep saja; schema detail hanya di `backend_core_services/` |
+| 2026-06-05 | `CORE_INTEGRATION_STATUS.md`: blocker Core 500, Clerk-only sementara, checklist dev LMS + handoff Core |

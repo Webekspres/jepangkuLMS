@@ -160,8 +160,9 @@ Route sitemap (`/leaderboard`, `/gamifikasi/profil-saya`, XP di dashboard) **tet
 
 ## 6. Autentikasi & Clerk
 
-- **Clerk dipasang di Core Backend** (managed identity, SSO ekosistem).
-- LMS menerima **JWT dari Core** (setelah login via ekosistem Clerk); data user aktif dibaca dari **claims**, bukan DB LMS.
+- **Clerk** dipakai di LMS (dan Portal Berita) untuk gate login; **Core JWT** adalah lapisan gamifikasi/profil global (target ekosistem).
+- **Status integrasi (2026-06-05):** Production Core `POST /auth/token` belum stabil — LMS memakai **Clerk-only gate** + sync Core **non-blocking**. Portal Berita juga belum terhubung Core. Detail & checklist → **[CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md)**.
+- **Target:** LMS menerima **JWT dari Core** setelah login; data user aktif dibaca dari **claims**, bukan DB LMS.
 - Env LMS: `JEPANGKU_CORE_JWT_*` untuk verify + `JEPANGKU_CORE_API_URL` untuk leaderboard/award XP (lihat `.env.example`).
 
 ---
@@ -187,9 +188,11 @@ LMS tidak menjadi “monolith data user” untuk seluruh ekosistem.
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur teknis LMS (folder, data flow) |
 | [sitemap.md](../sitemap.md) | URL — scope LMS saja |
 | [PROGRESS.md](./PROGRESS.md) | Status implementasi |
+| [CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md) | Blocker Core, Clerk-only sementara, rencana dev LMS |
 | [DATABASE.md](./DATABASE.md) | Strategi DB LMS (dev lokal, prod portable) |
 
 | Versi | Tanggal | Perubahan |
 | :--- | :--- | :--- |
 | 1.0 | 2026-06-03 | Arsitektur ekosistem: Core + Berita + LMS; User jangkar; gamifikasi ke Core |
 | 1.1 | 2026-06-03 | Keputusan: profil/gamifikasi user aktif via **JWT claims**; leaderboard/award via API |
+| 1.2 | 2026-06-05 | §6: status integrasi aktual + link ke `CORE_INTEGRATION_STATUS.md` |
