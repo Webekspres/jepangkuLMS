@@ -1,5 +1,7 @@
 import { getCoreApiBaseUrl } from './client';
 
+const CORE_FETCH_TIMEOUT_MS = 4_000;
+
 type CoreErrorBody = {
   error?: { code?: string; message?: string };
 };
@@ -17,6 +19,7 @@ async function fetchCoreJson<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
     cache: 'no-store',
+    signal: AbortSignal.timeout(CORE_FETCH_TIMEOUT_MS),
   });
 
   if (!response.ok) {

@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
 
   experimental: {
+    optimizePackageImports: ['lucide-react', 'motion/react'],
     // Biar Server Actions aman pas nerima kiriman form lewat Ngrok
     serverActions: {
       allowedOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],

@@ -14,6 +14,7 @@ import { MarketingNavLinkItem } from '@/features/marketing/components/marketing-
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
@@ -29,7 +30,10 @@ export function StudentNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const statsPending =
-    !core.coreConnected && core.leaderboardTotal === 0 && core.leaderboardTop10.length === 0;
+    isCoreIntegrationEnabled() &&
+    !core.coreConnected &&
+    core.leaderboardTotal === 0 &&
+    core.leaderboardTop10.length === 0;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';

@@ -48,8 +48,14 @@ next-env.d.ts
 
 /app/generated/prisma
 
-# docs
+# docs — binary/reference files stay local (README, markdown OK)
 docs/*.pdf
+docs/*.xlsx
+docs/*.xls
+docs/*.doc
+docs/*.docx
+docs/*.ppt
+docs/*.pptx
 # urgent quest tracker — local sprint/deadline notes (not shared via repo)
 docs/urgent_quest/
 

@@ -2,6 +2,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
+import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
+
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
 const CATALOG = [
@@ -99,24 +101,6 @@ async function main() {
     update: {},
   });
 
-  const categories = await Promise.all([
-    prisma.category.upsert({
-      where: { name_type: { name: 'Dasar', type: 'KANJI' } },
-      create: { name: 'Dasar', type: 'KANJI' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Pengenalan', type: 'KOSAKATA' } },
-      create: { name: 'Pengenalan', type: 'KOSAKATA' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Partikel', type: 'TATA_BAHASA' } },
-      create: { name: 'Partikel', type: 'TATA_BAHASA' },
-      update: {},
-    }),
-  ]);
-
   for (const course of CATALOG) {
     await prisma.course.upsert({
       where: { slug: course.slug },
@@ -148,75 +132,7 @@ async function main() {
     });
   }
 
-  const introLesson = await prisma.lesson.findUniqueOrThrow({
-    where: { slug: 'pengenalan-aksara-jepang' },
-  });
-
-  const existingKanji = await prisma.materialKanji.count({
-    where: { lessonId: introLesson.id },
-  });
-
-  if (existingKanji === 0) {
-    await prisma.materialKanji.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '日',
-          furigana: 'にち',
-          romaji: 'nichi',
-          arti: 'hari / matahari',
-          onyomi: 'ニチ',
-          contohOnyomi: '日本',
-          artiOnyomi: 'Jepang',
-        },
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '本',
-          furigana: 'ほん',
-          romaji: 'hon',
-          arti: 'buku',
-          onyomi: 'ホン',
-          contohOnyomi: '日本語',
-          artiOnyomi: 'bahasa Jepang',
-        },
-      ],
-    });
-
-    await prisma.materialKosakata.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[1].id,
-          kosakata: 'こんにちは',
-          romaji: 'konnichiwa',
-          arti: 'halo / selamat siang',
-          contohKalimat: 'こんにちは、元気ですか。',
-        },
-      ],
-    });
-
-    const question = await prisma.question.create({
-      data: {
-        lessonId: introLesson.id,
-        type: 'QUIZ',
-        questionText: 'Aksara mana yang digunakan untuk menulis kata asli bahasa Jepang?',
-        explanation: 'Hiragana dipakai untuk kata asli Jepang dan okurigana.',
-        xpReward: 10,
-        options: {
-          create: [
-            { text: 'Hiragana', isCorrect: true },
-            { text: 'Katakana', isCorrect: false },
-            { text: 'Romaji', isCorrect: false },
-            { text: 'Kanji saja', isCorrect: false },
-          ],
-        },
-      },
-    });
-
-    console.log(`Created sample quiz question ${question.id}`);
-  }
+  await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
 
   await prisma.enrollment.upsert({
     where: {
@@ -233,10 +149,18 @@ async function main() {
   const counts = await prisma.$transaction([
     prisma.course.count(),
     prisma.lesson.count(),
+    prisma.materialKanji.count(),
+    prisma.materialKosakata.count(),
+    prisma.materialTataBahasa.count(),
     prisma.question.count(),
+    prisma.category.count(),
   ]);
 
-  console.log(`Seed complete: ${counts[0]} courses, ${counts[1]} lessons, ${counts[2]} questions`);
+  console.log(
+    `Seed complete: ${counts[0]} courses, ${counts[1]} lessons, ` +
+      `${counts[2]} kanji, ${counts[3]} kosakata, ${counts[4]} tata bahasa, ` +
+      `${counts[5]} questions, ${counts[6]} categories`,
+  );
   await prisma.$disconnect();
 }
 
