@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { SignUp } from '@clerk/nextjs';
+import { useClerkAppearance } from '@/features/auth/hooks/use-clerk-appearance';
+import { useClerkRedirectUrls } from '@/features/auth/hooks/use-clerk-redirect-urls';
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { AuthPageShell } from './auth-page-shell';
-import { clerkAppearance } from './clerk-appearance';
 
 /**
  * Sign-up shell + Clerk prebuilt SignUp.
  * Setelah Clerk session → dashboard (Core JWT di-sync di background).
  */
 export function SignUpPage() {
+  const { appearance, appearanceKey } = useClerkAppearance();
+  const clerkUrls = useClerkRedirectUrls();
+
   return (
     <AuthPageShell
       brandPanel={{
@@ -46,12 +50,13 @@ export function SignUpPage() {
       }
     >
       <SignUp
+        key={appearanceKey}
         routing="path"
         path={AUTH_ROUTES.signUp}
-        signInUrl={AUTH_ROUTES.signIn}
-        fallbackRedirectUrl={AUTH_ROUTES.dashboard}
-        forceRedirectUrl={AUTH_ROUTES.dashboard}
-        appearance={clerkAppearance}
+        signInUrl={clerkUrls.signIn}
+        fallbackRedirectUrl={clerkUrls.postAuth}
+        forceRedirectUrl={clerkUrls.postAuth}
+        appearance={appearance}
       />
     </AuthPageShell>
   );

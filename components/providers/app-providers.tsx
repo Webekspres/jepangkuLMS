@@ -1,9 +1,12 @@
 'use client';
 
 import { ClerkProvider } from '@clerk/nextjs';
+import { ui } from '@clerk/ui';
 import { AppSplash } from '@/components/app-splash';
 import QueryProvider from '@/components/providers/query-provider';
-import { AUTH_ROUTES } from '@/lib/auth/constants';
+import { ThemeProvider } from '@/components/theme/theme-provider';
+import { getClerkAppearance } from '@/features/auth/components/clerk-appearance';
+import { getClerkPostAuthRedirectUrl } from '@/lib/auth/clerk-redirect-urls';
 import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
 
 /**
@@ -13,14 +16,20 @@ import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
+      ui={ui}
       signInUrl={getClerkSignInUrl()}
       signUpUrl={getClerkSignUpUrl()}
-      signInFallbackRedirectUrl={AUTH_ROUTES.dashboard}
-      signUpFallbackRedirectUrl={AUTH_ROUTES.dashboard}
+      signInFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
+      signUpFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
+      signInForceRedirectUrl={getClerkPostAuthRedirectUrl()}
+      signUpForceRedirectUrl={getClerkPostAuthRedirectUrl()}
+      appearance={getClerkAppearance()}
     >
-      <QueryProvider>
-        <AppSplash>{children}</AppSplash>
-      </QueryProvider>
+      <ThemeProvider>
+        <QueryProvider>
+          <AppSplash>{children}</AppSplash>
+        </QueryProvider>
+      </ThemeProvider>
     </ClerkProvider>
   );
 }

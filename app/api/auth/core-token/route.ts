@@ -15,8 +15,12 @@ function mapExchangeError(error: CoreTokenExchangeError) {
     };
   }
 
-  if (error.status === 401) {
-    return { status: 401, message: 'Sesi Clerk tidak valid. Silakan masuk ulang.' };
+  if (error.code === 'INVALID_SESSION' || error.status === 401) {
+    return {
+      status: 401,
+      message:
+        'Core menolak sesi Clerk (INVALID_SESSION). Pastikan LMS dan Core memakai app Clerk yang sama — sk_test dengan sk_test, atau sk_live dengan sk_live.',
+    };
   }
 
   if (error.code === 'AUTH_NOT_CONFIGURED' || error.code === 'CORE_NOT_CONFIGURED') {
@@ -58,7 +62,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const clerkToken = await getToken();
+  const clerkToken = await getToken({ skipCache: true });
   if (!clerkToken) {
     return NextResponse.json({ error: 'Clerk session token missing' }, { status: 401 });
   }

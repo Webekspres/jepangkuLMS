@@ -59,6 +59,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Brand colors and variables for Light Theme */
   --background: #ffffff;
   --foreground: #12112d; /* Dark navy-tinted black for better readability */
@@ -114,6 +115,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   /* Deep dark navy theme based on Navy (#1E1B57) */
   --background: #0b0a19;
   --foreground: #f4f4f9;
@@ -207,35 +209,57 @@
     0 4px 10px -8px rgba(184, 21, 28, 0.45) !important;
 }
 
-.clerk-auth-social-btn.cl-button {
-  border-radius: 0.125rem !important;
-  border: 1px solid #cbd5e1 !important;
-  background: linear-gradient(to bottom, #fff, #f1f5f9) !important;
-  color: #1e293b !important;
+/* OAuth light — 3D outline selaras tombol marketing; dark mode diatur via appearance API */
+:root:not(.dark) .clerk-auth-social-btn.cl-button {
+  border-radius: 0.75rem !important;
+  border: 1px solid var(--border) !important;
+  background: linear-gradient(to bottom, #fff, #f8fafc) !important;
+  color: var(--foreground) !important;
   font-weight: 600 !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 3px 0 0 #e2e8f0,
+    0 4px 0 0 #cbd5e1,
+    0 6px 12px -8px rgba(15, 23, 42, 0.12) !important;
+}
+
+:root:not(.dark) .clerk-auth-social-btn.cl-button:hover {
+  background: linear-gradient(to bottom, #fff, #fff) !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
     0 4px 0 0 #e2e8f0,
     0 5px 0 0 #94a3b8,
-    0 8px 14px -10px rgba(15, 23, 42, 0.18) !important;
+    0 8px 14px -8px rgba(15, 23, 42, 0.16) !important;
 }
 
-.clerk-auth-social-btn.cl-button:hover {
-  background: linear-gradient(to bottom, #fff, #fff) !important;
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
-    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
-    0 5px 0 0 #cbd5e1,
-    0 6px 0 0 #94a3b8,
-    0 11px 18px -10px rgba(15, 23, 42, 0.22) !important;
-}
-
-.clerk-auth-social-btn.cl-button:active {
+:root:not(.dark) .clerk-auth-social-btn.cl-button:active {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 1px 0 0 #e2e8f0,
     0 2px 0 0 #cbd5e1,
-    0 3px 0 0 #94a3b8,
-    0 5px 10px -10px rgba(15, 23, 42, 0.18) !important;
+    0 4px 8px -8px rgba(15, 23, 42, 0.14) !important;
+}
+
+/* Dark OAuth — flat, tanpa shadow stack (appearance API + ini sebagai fallback ringan) */
+.dark .clerk-auth-social-btn.cl-button {
+  border-radius: 0.75rem !important;
+  border: 1px solid var(--border) !important;
+  background: color-mix(in srgb, var(--muted) 35%, transparent) !important;
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.dark .clerk-auth-social-btn.cl-button:hover {
+  background: color-mix(in srgb, var(--muted) 55%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.dark .clerk-auth-social-btn.cl-button:active {
+  background: color-mix(in srgb, var(--muted) 70%, transparent) !important;
+  box-shadow: none !important;
+  transform: none !important;
 }

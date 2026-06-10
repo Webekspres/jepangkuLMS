@@ -50,3 +50,6 @@ next-env.d.ts
 
 # docs
 docs/*.pdf
+
+# clerk configuration (can include secrets)
+/.clerk/

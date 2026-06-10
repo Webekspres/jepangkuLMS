@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
+import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
@@ -165,15 +166,10 @@ export function StudentUserProfile() {
               type="button"
               role="menuitem"
               disabled={signingOut}
-              onClick={async () => {
+              onClick={() => {
                 setOpen(false);
                 setSigningOut(true);
-                try {
-                  await fetch('/api/auth/sign-out', { method: 'POST' });
-                  await signOut({ redirectUrl: '/sign-in' });
-                } finally {
-                  setSigningOut(false);
-                }
+                void signOutFromApp(signOut).finally(() => setSigningOut(false));
               }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 disabled:opacity-60"
             >
