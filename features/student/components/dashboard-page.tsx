@@ -4,9 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
+  Award,
   Calendar,
   ChevronRight,
-  Flame,
+  Coins,
   Play,
   Star,
   TrendingUp,
@@ -19,14 +20,14 @@ import {
   formatDisplayNumber,
   LANDING_HERO_GRID_STYLE,
 } from '@/features/marketing/components/landing-data';
+import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { cn } from '@/lib/utils';
+import { useStudentCoreData } from './student-core-data-context';
 import { DashboardJlptPath } from './dashboard-jlpt-path';
 import {
+  buildDashboardStats,
   DASHBOARD_CONTINUE_LESSONS,
-  DASHBOARD_LEADERBOARD_PREVIEW,
   DASHBOARD_LIVE_SCHEDULE,
-  DASHBOARD_MOCK_USER,
-  DASHBOARD_STATS,
   DASHBOARD_WEEKLY_XP,
   DASHBOARD_WEEKLY_XP_MAX,
   LESSON_CATEGORY_STYLE,
@@ -61,13 +62,23 @@ function DashboardSection({
 }
 
 export function DashboardPage() {
-  const xpProgress = Math.round(
-    (DASHBOARD_MOCK_USER.totalXp / DASHBOARD_MOCK_USER.xpToNextLevel) * 100,
-  );
+  const { identity } = useClerkIdentity();
+  const core = useStudentCoreData();
+  const displayName =
+    identity?.displayName ?? core.displayName ?? '…';
+  const stats = buildDashboardStats(core);
+  const leaderboardPreview =
+    core.leaderboardPreview.length > 0
+      ? core.leaderboardPreview
+      : core.leaderboardTop10.slice(0, 5).map(({ rank, name, xp, isYou }) => ({
+          rank,
+          name,
+          xp,
+          isYou,
+        }));
 
   return (
     <div className="space-y-6 pb-10 sm:space-y-8">
-      {/* Welcome — grid texture only */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,28 +92,36 @@ export function DashboardPage() {
               おはよう
             </p>
             <h1 className="text-[clamp(1.35rem,3vw,1.75rem)] font-extrabold tracking-tight text-foreground">
-              Halo, {DASHBOARD_MOCK_USER.displayName}!{' '}
-              <span className="inline-block" aria-hidden>
-                👋
-              </span>
+              Halo, {displayName}!{' '}           
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Fokus {DASHBOARD_MOCK_USER.jlptFocus} · Terus semangat belajar hari ini
+              {core.levelTitle
+                ? `${core.levelTitle} · Lv.${core.level}`
+                : `Level ${core.level}`}{' '}
+              · Terus semangat belajar hari ini
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
-                <Flame className="size-3.5" />
-                {DASHBOARD_MOCK_USER.streakDays} hari streak
-              </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/25 bg-brand-yellow/10 px-3 py-1 text-xs font-semibold text-amber-700">
                 <Zap className="size-3.5 text-primary" />
-                {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} XP
+                {formatDisplayNumber(core.totalXp)} XP
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
-                <Star className="size-3.5 text-primary" />
-                Rank #{DASHBOARD_MOCK_USER.globalRank}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
+                <Coins className="size-3.5" />
+                {formatDisplayNumber(core.currentPoints)} poin
               </span>
+              {core.globalRank != null ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
+                  <Star className="size-3.5 text-primary" />
+                  Rank #{core.globalRank}
+                </span>
+              ) : null}
+              {core.badgeCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  <Award className="size-3.5" />
+                  {core.badgeCount} badge
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -115,9 +134,8 @@ export function DashboardPage() {
         </div>
       </motion.section>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {DASHBOARD_STATS.map((stat, i) => (
+        {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 16 }}
@@ -138,11 +156,9 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* JLPT path */}
       <DashboardJlptPath />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main column */}
         <div className="space-y-6 lg:col-span-2">
           <DashboardSection
             title="Lanjutkan Belajar"
@@ -201,27 +217,32 @@ export function DashboardPage() {
             </div>
           </DashboardSection>
 
-          <DashboardSection title="XP Mingguan" icon={TrendingUp}>
-            <div className="flex h-36 items-end justify-between gap-1 sm:gap-2">
-              {DASHBOARD_WEEKLY_XP.map((day) => (
-                <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(day.xp / DASHBOARD_WEEKLY_XP_MAX) * 100}%` }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className="w-full min-h-[8px] max-h-24 rounded-t-md bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow"
-                  />
-                  <span className="text-[10px] font-medium text-muted-foreground">{day.day}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Total minggu ini:{' '}
-              <span className="font-semibold text-foreground">
-                {formatDisplayNumber(DASHBOARD_WEEKLY_XP.reduce((s, d) => s + d.xp, 0))} XP
-              </span>
-            </p>
-          </DashboardSection>
+          {!core.coreConnected ? (
+            <DashboardSection title="XP Mingguan" icon={TrendingUp}>
+              <p className="text-sm text-muted-foreground">
+                Grafik XP mingguan belum tersedia — menunggu koneksi ke Core Backend.
+              </p>
+            </DashboardSection>
+          ) : (
+            <DashboardSection title="XP Mingguan" icon={TrendingUp}>
+              <div className="flex h-36 items-end justify-between gap-1 sm:gap-2">
+                {DASHBOARD_WEEKLY_XP.map((day) => (
+                  <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(day.xp / DASHBOARD_WEEKLY_XP_MAX) * 100}%` }}
+                      transition={{ duration: 0.6, delay: 0.1 }}
+                      className="w-full min-h-[8px] max-h-24 rounded-t-md bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow opacity-40"
+                    />
+                    <span className="text-[10px] font-medium text-muted-foreground">{day.day}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Breakdown harian belum tersedia di Core API — total XP di atas dari Core.
+              </p>
+            </DashboardSection>
+          )}
 
           <DashboardSection
             title="Leaderboard"
@@ -232,61 +253,78 @@ export function DashboardPage() {
               </Link>
             }
           >
-            <ul className="space-y-2">
-              {DASHBOARD_LEADERBOARD_PREVIEW.map((row) => (
-                <li
-                  key={row.rank}
-                  className={cn(
-                    'flex items-center justify-between rounded-xl px-3 py-2.5 text-sm',
-                    row.isYou ? 'border border-primary/20 bg-primary/5 font-semibold' : 'bg-muted/30',
-                  )}
-                >
-                  <span className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        'flex size-7 items-center justify-center rounded-full text-xs font-bold',
-                        row.rank <= 3 ? 'bg-brand-yellow/20 text-amber-700' : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {row.rank}
-                    </span>
-                    {row.name}
-                    {row.isYou && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
-                        Kamu
-                      </span>
+            {leaderboardPreview.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {core.coreConnected
+                  ? 'Leaderboard kosong.'
+                  : 'Menghubungkan ke Core untuk memuat leaderboard…'}
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {leaderboardPreview.map((row) => (
+                  <li
+                    key={row.rank}
+                    className={cn(
+                      'flex items-center justify-between rounded-xl px-3 py-2.5 text-sm',
+                      row.isYou ? 'border border-primary/20 bg-primary/5 font-semibold' : 'bg-muted/30',
                     )}
-                  </span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatDisplayNumber(row.xp)} XP
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          'flex size-7 items-center justify-center rounded-full text-xs font-bold',
+                          row.rank <= 3 ? 'bg-brand-yellow/20 text-amber-700' : 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {row.rank}
+                      </span>
+                      {row.name}
+                      {row.isYou && (
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
+                          Kamu
+                        </span>
+                      )}
+                    </span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {formatDisplayNumber(row.xp)} XP
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </DashboardSection>
         </div>
 
-        {/* Sidebar column */}
         <div className="space-y-6">
           <DashboardSection title="Gamifikasi" icon={Zap}>
             <div className="text-center">
               <div className="mx-auto mb-3 flex size-20 items-center justify-center rounded-full border-4 border-primary/20 bg-primary/5">
-                <span className="text-2xl font-black text-primary">Lv.{DASHBOARD_MOCK_USER.level}</span>
+                <span className="text-2xl font-black text-primary">Lv.{core.level}</span>
               </div>
-              <p className="font-bold text-foreground">{DASHBOARD_MOCK_USER.levelTitle}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} /{' '}
-                {formatDisplayNumber(DASHBOARD_MOCK_USER.xpToNextLevel)} XP ke Level{' '}
-                {DASHBOARD_MOCK_USER.level + 1}
+              <p className="font-bold text-foreground">
+                {core.levelTitle ?? 'Pemula'}
               </p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
-                  style={{ width: `${xpProgress}%` }}
-                />
-              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatDisplayNumber(core.totalXp)} XP ·{' '}
+                {formatDisplayNumber(core.currentPoints)} poin
+              </p>
+              {core.recentBadges.length > 0 ? (
+                <div className="mt-4 flex justify-center gap-2">
+                  {core.recentBadges.map((badge) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={badge.unlockedAt + badge.title}
+                      src={badge.imageUrl}
+                      alt={badge.title}
+                      className="size-10 rounded-lg object-cover"
+                    />
+                  ))}
+                </div>
+              ) : null}
               <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-                <Link href={STUDENT_ROUTES.achievements}>Lihat Badge Pencapaian</Link>
+                <Link href={STUDENT_ROUTES.achievements}>
+                  Lihat Badge ({core.badgeCount})
+                </Link>
               </Button>
             </div>
           </DashboardSection>
@@ -317,7 +355,9 @@ export function DashboardPage() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Data demo — akan terhubung ke Core JWT & progress Prisma setelah auth siap.
+        {core.coreConnected
+          ? 'XP, poin, rank, dan badge dari JepangKu Core.'
+          : 'Menghubungkan ke Core… Refresh otomatis setelah JWT siap.'}
       </p>
     </div>
   );

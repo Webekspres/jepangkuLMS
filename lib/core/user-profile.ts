@@ -1,8 +1,24 @@
+import {
+  fetchCoreLeaderboard,
+  type CoreLeaderboardResponse,
+} from './api';
 import { getCoreSession } from './session';
 import { isCoreApiConfigured } from './client';
 import type { CoreGamificationSummary, CoreLeaderboardEntry, CoreUserProfile } from './types';
 import type { JepangKuJwtClaims } from './jwt-claims';
 import { mapClaimsToGamificationSummary, mapClaimsToUserProfile } from './jwt-claims';
+
+function mapLeaderboardItem(
+  item: CoreLeaderboardResponse['items'][number],
+): CoreLeaderboardEntry {
+  return {
+    rank: item.rank,
+    userId: item.id,
+    displayName: item.name,
+    avatarUrl: item.imageUrl,
+    totalXp: item.totalXp,
+  };
+}
 
 /**
  * Profil dari JWT claims (alur utama yang disepakati tim).
@@ -60,6 +76,10 @@ export async function getLeaderboard(limit = 10): Promise<CoreLeaderboardEntry[]
     return [];
   }
 
-  void limit;
-  return [];
+  try {
+    const data = await fetchCoreLeaderboard(limit);
+    return data.items.map(mapLeaderboardItem);
+  } catch {
+    return [];
+  }
 }

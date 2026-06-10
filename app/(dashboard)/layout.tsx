@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-import { StudentShell } from '@/features/student/components';
+import { Suspense } from 'react';
+import { StudentCoreDataBoundary } from '@/features/student/components/student-core-data-boundary';
+import { StudentLayoutSkeleton } from '@/features/student/components/skeletons';
 
 export const metadata: Metadata = {
   title: 'Dashboard — JepangKu LMS',
@@ -7,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <StudentShell>{children}</StudentShell>;
+  return (
+    <Suspense fallback={<StudentLayoutSkeleton />}>
+      <StudentCoreDataBoundary>{children}</StudentCoreDataBoundary>
+    </Suspense>
+  );
 }

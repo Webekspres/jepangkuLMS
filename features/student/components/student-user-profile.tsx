@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
+import { useClerk } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import {
   Award,
@@ -11,9 +13,10 @@ import {
   Trophy,
   User,
 } from 'lucide-react';
+import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
-import { DASHBOARD_MOCK_USER } from './dashboard-data';
+import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
 const MENU_ITEMS = [
@@ -23,8 +26,26 @@ const MENU_ITEMS = [
   { href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard', icon: Trophy },
 ] as const;
 
-function UserAvatar({ className }: { className?: string }) {
-  const initial = DASHBOARD_MOCK_USER.displayName.charAt(0).toUpperCase();
+function UserAvatar({
+  className,
+  imageUrl,
+  initial,
+}: {
+  className?: string;
+  imageUrl: string | null;
+  initial: string;
+}) {
+  if (imageUrl) {
+    return (
+      <Image
+        src={imageUrl}
+        alt=""
+        width={32}
+        height={32}
+        className={cn('size-8 shrink-0 rounded-full border-2 border-primary/20 object-cover', className)}
+      />
+    );
+  }
 
   return (
     <span
@@ -41,7 +62,15 @@ function UserAvatar({ className }: { className?: string }) {
 
 export function StudentUserProfile() {
   const pathname = usePathname();
+  const { signOut } = useClerk();
+  const { identity } = useClerkIdentity();
+  const core = useStudentCoreData();
+  const displayName = identity?.displayName ?? '…';
+  const email = identity?.email;
+  const imageUrl = identity?.imageUrl ?? null;
+  const initial = identity?.initial ?? '?';
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,8 +108,8 @@ export function StudentUserProfile() {
           open && 'translate-y-px shadow-[0_1px_0_0_color-mix(in_srgb,var(--foreground)_10%,transparent)]',
         )}
       >
-        <UserAvatar />
-        <span className="max-w-28 truncate">{DASHBOARD_MOCK_USER.displayName}</span>
+        <UserAvatar imageUrl={imageUrl} initial={initial} />
+        <span className="max-w-28 truncate">{displayName}</span>
         <ChevronDown
           className={cn('size-4 text-muted-foreground transition-transform', open && 'rotate-180')}
         />
@@ -93,14 +122,15 @@ export function StudentUserProfile() {
         >
           <div className="border-b border-border px-4 py-3">
             <div className="flex items-center gap-3">
-              <UserAvatar className="size-10 text-sm" />
+              <UserAvatar className="size-10 text-sm" imageUrl={imageUrl} initial={initial} />
               <div className="min-w-0">
-                <p className="truncate font-semibold text-foreground">
-                  {DASHBOARD_MOCK_USER.displayName}
-                </p>
+                <p className="truncate font-semibold text-foreground">{displayName}</p>
+                {email ? (
+                  <p className="truncate text-xs text-muted-foreground">{email}</p>
+                ) : null}
                 <p className="truncate text-xs text-muted-foreground">
-                  Lv.{DASHBOARD_MOCK_USER.level} · {DASHBOARD_MOCK_USER.jlptFocus} ·{' '}
-                  {formatDisplayNumber(DASHBOARD_MOCK_USER.totalXp)} XP
+                  Lv.{core.level} · {formatDisplayNumber(core.totalXp)} XP ·{' '}
+                  {formatDisplayNumber(core.currentPoints)} poin
                 </p>
               </div>
             </div>
@@ -131,15 +161,25 @@ export function StudentUserProfile() {
           </ul>
 
           <div className="border-t border-border p-1.5">
-            <Link
-              href="/sign-in"
+            <button
+              type="button"
               role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+              disabled={signingOut}
+              onClick={async () => {
+                setOpen(false);
+                setSigningOut(true);
+                try {
+                  await fetch('/api/auth/sign-out', { method: 'POST' });
+                  await signOut({ redirectUrl: '/sign-in' });
+                } finally {
+                  setSigningOut(false);
+                }
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 disabled:opacity-60"
             >
               <LogOut className="size-4 shrink-0" />
               Keluar
-            </Link>
+            </button>
           </div>
         </div>
       )}
