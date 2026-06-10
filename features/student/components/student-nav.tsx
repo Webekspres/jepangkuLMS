@@ -48,7 +48,7 @@ export function StudentNav() {
   return (
     <nav
       className={cn(
-        'sticky top-0 border-b border-border bg-background/95 shadow-sm backdrop-blur-md',
+        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md dark:backdrop-blur-none',
         menuOpen ? 'z-102' : 'z-50',
       )}
     >
@@ -106,7 +106,7 @@ export function StudentNav() {
       <MarketingMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        panelClassName="border border-border bg-background/95 backdrop-blur-xl"
+        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
       >
         <div className="border-b border-border px-4 py-3">
           <p className="text-sm font-semibold text-foreground">{displayName}</p>

@@ -22,11 +22,8 @@ const buttonVariants = cva(
         ),
         outline: cn(
           gamePress,
-          "border border-slate-300 bg-linear-to-b from-white to-slate-100 text-slate-800 font-semibold",
-          "shadow-[0_1px_0_0_rgba(255,255,255,0.95)_inset,0_2px_0_0_rgba(255,255,255,0.7)_inset,0_4px_0_0_#e2e8f0,0_5px_0_0_#94a3b8,0_8px_14px_-10px_rgba(15,23,42,0.18)]",
-          "hover:from-white hover:to-white hover:shadow-[0_1px_0_0_rgba(255,255,255,0.95)_inset,0_2px_0_0_rgba(255,255,255,0.7)_inset,0_5px_0_0_#cbd5e1,0_6px_0_0_#94a3b8,0_11px_18px_-10px_rgba(15,23,42,0.22)]",
-          "active:shadow-[0_1px_0_0_rgba(255,255,255,0.9)_inset,0_2px_0_0_rgba(255,255,255,0.7)_inset,0_2px_0_0_#cbd5e1,0_3px_0_0_#94a3b8,0_5px_10px_-10px_rgba(15,23,42,0.18)]",
-          "aria-expanded:bg-white aria-expanded:text-slate-800 dark:bg-white/95 dark:hover:bg-white",
+          "btn-3d-outline font-semibold",
+          "aria-expanded:bg-white aria-expanded:text-slate-800 dark:aria-expanded:bg-[#1a1936] dark:aria-expanded:text-[#f4f4f9]",
         ),
         secondary: cn(
           gamePress,

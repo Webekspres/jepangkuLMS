@@ -29,8 +29,9 @@ const clerkSocialButtonShared = [
   'active:translate-y-[3px] active:scale-[0.995]',
 ].join(' ');
 
-const clerkSocialButtonClass = `${clerkSocialButtonShared} clerk-auth-social-btn--light`;
-const clerkSocialButtonDarkClass = `${clerkSocialButtonShared} clerk-auth-social-btn--dark`;
+/** Warna via `.btn-3d-outline` / `.btn-3d-outline-dark` di globals.css */
+const clerkSocialButtonClass = `${clerkSocialButtonShared} btn-3d-outline`;
+const clerkSocialButtonDarkClass = `${clerkSocialButtonShared} btn-3d-outline-dark`;
 
 const clerkLastUsedBadgeClass = [
   'rounded-full border border-border bg-muted px-2 py-0.5',
@@ -56,7 +57,7 @@ function buildElements(isDark: boolean): NonNullable<ClerkAppearance['elements']
     socialButtons: 'gap-3',
     socialButtonsBlockButton: isDark ? clerkSocialButtonDarkClass : clerkSocialButtonClass,
     socialButtonsBlockButtonText: isDark
-      ? '!text-sm !font-semibold !text-foreground'
+      ? '!text-sm !font-semibold !text-[#f4f4f9]'
       : '!text-sm !font-semibold !text-slate-800',
     lastAuthenticationStrategyBadge: clerkLastUsedBadgeClass,
     dividerLine: 'bg-border',

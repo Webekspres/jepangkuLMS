@@ -64,7 +64,7 @@ export function LandingPage() {
         className={cn(
           'fixed top-0 right-0 left-0 transition-all duration-300',
           menuOpen ? 'z-102' : 'z-50',
-          scrolled ? 'border-b border-border bg-background/95 shadow-md backdrop-blur-md' : 'bg-transparent',
+          scrolled ? 'border-b border-border bg-header shadow-md backdrop-blur-md dark:backdrop-blur-none' : 'bg-transparent',
         )}
         initial={{ y: -80 }}
         animate={{ y: 0 }}
@@ -109,7 +109,7 @@ export function LandingPage() {
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
-          panelClassName="border border-border bg-background/95 backdrop-blur-xl"
+          panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
         >
           <nav className="flex flex-col p-2">
             {MARKETING_NAV_LINKS.map((link) => (
