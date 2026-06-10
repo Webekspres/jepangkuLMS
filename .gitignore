@@ -50,6 +50,8 @@ next-env.d.ts
 
 # docs
 docs/*.pdf
+# urgent quest tracker — local sprint/deadline notes (not shared via repo)
+docs/urgent_quest/
 
 # clerk configuration (can include secrets)
 /.clerk/

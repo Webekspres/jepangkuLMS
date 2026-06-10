@@ -20,42 +20,44 @@ const clerkPrimaryButtonClass = [
   'active:!shadow-[0_1px_0_0_rgba(255,255,255,0.25)_inset,0_2px_0_0_rgba(255,255,255,0.08)_inset,0_2px_0_0_#b8151c,0_4px_10px_-8px_rgba(184,21,28,0.45)]',
 ].join(' ');
 
-/** OAuth — light: 3D outline (globals.css); dark: flat & bersih */
-const clerkSocialButtonLight = [
+/** Interaksi 3D — warna di globals.css via modifier --light / --dark */
+const clerkSocialButtonShared = [
   'clerk-auth-social-btn',
-  'h-11 w-full !rounded-xl !border !border-border !bg-background !text-foreground',
-  '!text-sm !font-semibold !shadow-none',
-  'transition-colors duration-150 hover:!bg-muted/50',
+  'h-11 w-full !rounded-sm',
+  'transition-[transform,box-shadow,filter] duration-150 ease-out',
+  'hover:scale-[1.03] hover:brightness-105',
+  'active:translate-y-[3px] active:scale-[0.995]',
 ].join(' ');
 
-const clerkSocialButtonDark = [
-  'clerk-auth-social-btn',
-  'h-11 w-full !rounded-xl !border !border-border',
-  '!bg-muted/20 !text-foreground !shadow-none',
-  '!text-sm !font-semibold',
-  'transition-colors duration-150 hover:!bg-muted/40 active:!bg-muted/50',
-  '!scale-100 hover:!scale-100 active:!translate-y-0',
-].join(' ');
+const clerkSocialButtonClass = `${clerkSocialButtonShared} clerk-auth-social-btn--light`;
+const clerkSocialButtonDarkClass = `${clerkSocialButtonShared} clerk-auth-social-btn--dark`;
 
 const clerkLastUsedBadgeClass = [
   'rounded-full border border-border bg-muted px-2 py-0.5',
   'text-[10px] font-medium leading-none text-muted-foreground shadow-none',
 ].join(' ');
 
+const clerkCardLightClass =
+  'clerk-auth-card--light flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-none';
+
+const clerkCardDarkClass =
+  'clerk-auth-card--dark flex flex-col gap-5 overflow-hidden rounded-2xl border border-border bg-popover p-6 shadow-none';
+
 function buildElements(isDark: boolean): NonNullable<ClerkAppearance['elements']> {
   return {
     rootBox: 'w-full',
-    cardBox: 'w-full shadow-none bg-transparent',
-    card: isDark
-      ? 'flex flex-col gap-5 border-0 bg-transparent p-0 shadow-none'
-      : 'flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-none',
+    cardBox: isDark ? 'clerk-auth-card-box--dark w-full shadow-none bg-popover' : 'w-full shadow-none',
+    card: isDark ? clerkCardDarkClass : clerkCardLightClass,
+    main: isDark ? 'clerk-auth-main--dark bg-popover' : undefined,
     header: 'hidden',
     headerTitle: 'hidden',
     headerSubtitle: 'hidden',
     socialButtonsRoot: 'gap-3',
     socialButtons: 'gap-3',
-    socialButtonsBlockButton: isDark ? clerkSocialButtonDark : clerkSocialButtonLight,
-    socialButtonsBlockButtonText: '!text-sm !font-semibold !text-foreground',
+    socialButtonsBlockButton: isDark ? clerkSocialButtonDarkClass : clerkSocialButtonClass,
+    socialButtonsBlockButtonText: isDark
+      ? '!text-sm !font-semibold !text-foreground'
+      : '!text-sm !font-semibold !text-slate-800',
     lastAuthenticationStrategyBadge: clerkLastUsedBadgeClass,
     dividerLine: 'bg-border',
     dividerText: 'text-xs font-medium text-muted-foreground',
@@ -65,12 +67,19 @@ function buildElements(isDark: boolean): NonNullable<ClerkAppearance['elements']
       : 'rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground shadow-none focus:border-primary focus:ring-2 focus:ring-primary/20',
     formButtonPrimary: clerkPrimaryButtonClass,
     formButtonPrimaryIcon: '!hidden',
-    footer: {
-      background: 'transparent',
-      marginTop: 0,
-      paddingTop: '1rem',
-      borderTop: '1px solid color-mix(in srgb, var(--border) 80%, transparent)',
-    },
+    footer: isDark
+      ? {
+          background: 'var(--popover)',
+          marginTop: 0,
+          paddingTop: '1rem',
+          borderTop: '1px solid color-mix(in srgb, var(--border) 80%, transparent)',
+        }
+      : {
+          background: 'transparent',
+          marginTop: 0,
+          paddingTop: '1rem',
+          borderTop: '1px solid color-mix(in srgb, var(--border) 80%, transparent)',
+        },
     footerItem: {
       background: 'transparent',
       width: '100%',
@@ -78,10 +87,15 @@ function buildElements(isDark: boolean): NonNullable<ClerkAppearance['elements']
     footerAction: 'pt-1',
     footerActionLink: 'font-bold text-primary hover:underline',
     footerActionText: 'text-sm text-muted-foreground',
-    footerPages: {
-      background: 'transparent',
-      color: 'var(--muted-foreground)',
-    },
+    footerPages: isDark
+      ? {
+          background: 'var(--popover)',
+          color: 'var(--muted-foreground)',
+        }
+      : {
+          background: 'transparent',
+          color: 'var(--muted-foreground)',
+        },
     identityPreviewEditButton: 'text-primary',
     formFieldAction: 'text-xs font-medium text-primary',
     alert: 'rounded-xl border border-destructive/30 bg-destructive/5 text-destructive',
@@ -111,6 +125,11 @@ export function getClerkAppearance({ isDark = false }: ClerkAppearanceOptions = 
       colorPrimary: 'var(--primary)',
       colorDanger: 'var(--destructive)',
       colorSuccess: 'var(--primary)',
+      colorBackground: isDark ? 'var(--popover)' : 'var(--card)',
+      colorInputBackground: isDark ? 'var(--muted)' : 'var(--background)',
+      colorText: 'var(--foreground)',
+      colorTextSecondary: 'var(--muted-foreground)',
+      colorInputText: 'var(--foreground)',
       borderRadius: '0.75rem',
       fontFamily: 'var(--font-sans), system-ui, sans-serif',
     },

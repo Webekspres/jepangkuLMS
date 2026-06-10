@@ -12,7 +12,7 @@ import { AuthPageShell } from './auth-page-shell';
  * Setelah Clerk session → dashboard (Core JWT di-sync di background).
  */
 export function SignUpPage() {
-  const { appearance, appearanceKey } = useClerkAppearance();
+  const { appearance, appearanceKey, mounted } = useClerkAppearance();
   const clerkUrls = useClerkRedirectUrls();
 
   return (
@@ -49,15 +49,19 @@ export function SignUpPage() {
         </p>
       }
     >
-      <SignUp
-        key={appearanceKey}
-        routing="path"
-        path={AUTH_ROUTES.signUp}
-        signInUrl={clerkUrls.signIn}
-        fallbackRedirectUrl={clerkUrls.postAuth}
-        forceRedirectUrl={clerkUrls.postAuth}
-        appearance={appearance}
-      />
+      {mounted ? (
+        <SignUp
+          key={appearanceKey}
+          routing="path"
+          path={AUTH_ROUTES.signUp}
+          signInUrl={clerkUrls.signIn}
+          fallbackRedirectUrl={clerkUrls.postAuth}
+          forceRedirectUrl={clerkUrls.postAuth}
+          appearance={appearance}
+        />
+      ) : (
+        <div aria-hidden className="h-[360px] animate-pulse rounded-2xl bg-muted/30" />
+      )}
     </AuthPageShell>
   );
 }
