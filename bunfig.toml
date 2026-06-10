@@ -1,0 +1,4 @@
+# Bun test hanya unit tests — E2E Playwright ada di tests/e2e/*.spec.ts
+# dan harus dijalankan via `bun run test:e2e`, bukan `bun test`.
+[test]
+root = "./tests/unit"

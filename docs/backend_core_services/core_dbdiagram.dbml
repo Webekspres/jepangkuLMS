@@ -1,0 +1,142 @@
+// ====================================================================
+// JepangKu Core Backend — DBML (dbdiagram.io)
+// SYNC 1:1 dengan backend-core-services.prisma — ubah keduanya bersamaan
+// Schema version: 2.0.1
+// ====================================================================
+// Import: https://dbdiagram.io
+// Dokumentasi: README.md · SCHEMA_REFERENCE.md (per model/field)
+//
+// Konvensi tipe: varchar = Prisma String (Clerk ID & UUID string @default(uuid()))
+
+Enum badge_type {
+  LMS_ACHIEVEMENT
+  NEWS_CONTRIBUTOR
+  GLOBAL
+}
+
+// ====================================================================
+// 1. LOOKUP — APLIKASI & JENIS AKTIVITAS (3NF)
+// ====================================================================
+Table applications {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  code varchar [unique, not null, note: 'LMS | PORTAL_BERITA | LPK']
+  name varchar [not null]
+}
+
+Table activity_types {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  code varchar [unique, not null, note: 'COMPLETED_QUIZ | COMPLETED_LESSON | READ_ARTICLE | ...']
+  description text [note: 'nullable']
+}
+
+// ====================================================================
+// 2. AUTH, PROFIL & STATS
+// ====================================================================
+Table users {
+  id varchar [pk, note: 'Clerk User ID — sama dengan LMS User.id']
+  email varchar [unique, not null]
+  name varchar [not null]
+  image_url varchar [note: 'nullable']
+  total_xp integer [not null, default: 0, note: 'Lifetime XP — tidak turun']
+  current_points integer [not null, default: 0, note: 'Saldo poin bisa dibelanjakan']
+  current_level integer [not null, default: 1]
+  clerk_synced_at timestamp [note: 'nullable']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null]
+  deleted_at timestamp [note: 'nullable — soft delete']
+
+  indexes {
+    deleted_at [name: 'users_deleted_at_idx']
+  }
+}
+
+// ====================================================================
+// 3. ROLES
+// ====================================================================
+Table roles {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  code varchar [unique, not null, note: 'STUDENT | LMS_ADMIN | NEWS_EDITOR | CORE_ADMIN']
+  name varchar [not null]
+  description text [note: 'nullable']
+}
+
+Table user_roles {
+  user_id varchar [pk, note: 'FK → users.id (Clerk ID)']
+  role_id varchar [pk, note: 'FK → roles.id (UUID string)']
+  granted_at timestamp [not null, default: `now()`]
+  granted_by_user_id varchar [note: 'nullable — FK → users.id (admin pemberi role)']
+}
+
+// ====================================================================
+// 4. LEVEL ENGINE
+// ====================================================================
+Table levels {
+  level_number integer [pk, note: '1, 2, 3...']
+  xp_required integer [unique, not null, note: 'Min total_xp KUMULATIF untuk level ini']
+  title varchar [note: 'nullable']
+}
+
+// ====================================================================
+// 5. BADGES
+// ====================================================================
+Table badges {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  code varchar [unique, not null]
+  title varchar [not null]
+  description text [not null]
+  image_url varchar [not null]
+  badge_type badge_type [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table user_badges {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  user_id varchar [not null, note: 'FK → users.id']
+  badge_id varchar [not null, note: 'FK → badges.id']
+  application_id varchar [note: 'nullable — FK → applications.id']
+  source_ref_id varchar [note: 'nullable']
+  unlocked_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, badge_id) [unique, name: 'user_badges_user_id_badge_id_key']
+  }
+}
+
+// ====================================================================
+// 6. LEDGER GAMIFIKASI
+// ====================================================================
+Table gamification_logs {
+  id varchar [pk, note: 'UUID string — Prisma String @default(uuid())']
+  user_id varchar [not null, note: 'FK → users.id']
+  application_id varchar [not null, note: 'FK → applications.id']
+  activity_type_id varchar [not null, note: 'FK → activity_types.id']
+  xp_gained integer [not null, default: 0]
+  points_gained integer [not null, default: 0]
+  source_ref_id varchar [note: 'nullable — ID di DB app sumber']
+  idempotency_key varchar [unique, not null, note: 'lms:quiz_attempt:{uuid}']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, created_at) [name: 'gamification_logs_user_id_created_at_idx']
+  }
+
+  Note: 'Setiap insert: update users.total_xp, current_points, current_level dalam satu transaksi'
+}
+
+// ====================================================================
+// RELATIONS & FOREIGN KEYS (eksplisit — selaras onDelete Prisma)
+// ====================================================================
+Ref: users.current_level > levels.level_number
+
+Ref: user_roles.user_id > users.id [delete: cascade]
+Ref: user_roles.role_id > roles.id [delete: cascade]
+Ref: user_roles.granted_by_user_id > users.id [delete: set null]
+
+Ref: user_badges.user_id > users.id [delete: cascade]
+Ref: user_badges.badge_id > badges.id [delete: cascade]
+Ref: user_badges.application_id > applications.id [delete: set null]
+
+Ref: gamification_logs.user_id > users.id [delete: cascade]
+Ref: gamification_logs.application_id > applications.id
+Ref: gamification_logs.activity_type_id > activity_types.id

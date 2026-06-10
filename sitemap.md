@@ -1,6 +1,7 @@
-# 🗺️ Sitemap JepangKu — LMS
+# 🗺️ Sitemap JepangKu — LMS (Optimized)
 
-- **Scope:** LMS only (Portal berita jepangku.com tidak termasuk dalam sitemap ini)
+- **Scope:** **LMS saja** (`kursus.jepangku.com`) — bagian dari ekosistem JepangKu (lihat [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md))
+- **Di luar repo ini:** Portal Berita (`jepangku.com`), Core Backend (SSO Clerk, profil, gamifikasi)
 - **Fase:** 1 (MVP Target Akhir Juni 2026)
 - **Base Domain:** `kursus.jepangku.com`
 
@@ -19,7 +20,7 @@
 
 ## 1. Public & Marketing Area (No Login Required)
 
-Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/`), Middleware Next.js akan otomatis mengarahkan (redirect) mereka ke `/dashboard`.
+Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/`), Proxy Next.js akan otomatis mengarahkan (redirect) mereka ke `/dashboard`.
 
 ```plaintext
 /
@@ -30,7 +31,7 @@ Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/
 │
 ├── /kursus                      → Katalog Kursus (Read-Only)
 │   ├── Filter: Level JLPT (N5, N4, N3, N2, N1) & Kategori
-│   └── /[course-slug]           → Detail Kursus Publik
+│   └── /[courseSlug]            → Detail Kursus Publik
 │       ├── Deskripsi & Total Durasi
 │       ├── Silabus (Preview Locked)
 │       └── CTA: Mulai Belajar (Redirect ke login jika belum auth)
@@ -41,24 +42,23 @@ Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/
 
 ---
 
-## 2. Auth Area (Custom Flow via Clerk Hooks)
+## 2. Auth Area (Clerk Out-of-the-Box Flow)
 
-Halaman autentikasi fisik yang dibangun menggunakan custom hooks Clerk. Fitur pemulihan password dan verifikasi email dikelola sepenuhnya oleh sistem overlay Clerk Cloud.
+Menggunakan default route Clerk untuk kemudahan integrasi dan stabilitas Clerk hooks.
 
 ```plaintext
-/auth
-├── /register                    → Form Daftar Akun Custom
-│   └── Form: Nama, Email, Password (User otomatis mendapat Role: SISWA)
+├── /sign-in                     → Form Login Custom via Clerk
+│   └── Form: Email, Password, & Tombol "Masuk dengan Google" (OAuth)
 │
-└── /login                       → Form Login Custom
-    └── Form: Email, Password, & Tombol "Masuk dengan Google" (OAuth)
+└── /sign-up                     → Form Daftar Akun Custom via Clerk
+    └── Form: Nama, Email, Password (User otomatis mendapat Role: STUDENT)
 ```
 
 ---
 
 ## 3. Student Area `*` (Requires Login)
 
-Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, dan evaluasi kuis interaktif.
+Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, dan kuis.
 
 ```plaintext
 /dashboard *                     → Student Hub Utama
@@ -66,20 +66,16 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 ├── Section: Kursus yang Sedang Diikuti (Continue Learning)
 └── Section: Shortcut ke Leaderboard & Tryout
 
-/belajar *
-└── /kursus
-    └── /[course-slug] *         → Course Workspace (Akses Penuh)
-        ├── Progress Bar & Silabus Interaktif
-        └── /lesson/[lesson-slug] * → Lesson View Page
-            ├── Konten Pembelajaran (Teks, Gambar, Audio)
-            ├── Secured Video Embed Player
-            ├── Action: Tombol "Mark as Complete"
-            │
-            └── /quiz *          → Halaman Kuis Interaktif
-                ├── Render Soal Pilihan Ganda N5 (Data dari Seed CSV)
-                └── /hasil *     → Halaman Hasil Evaluasi Kuis
-                    ├── Skor Kelulusan & Pembahasan
-                    └── Action: Pemicu Penambahan Point XP
+/belajar/[courseSlug]/[lessonSlug] * → Course Workspace & Lesson View Page
+├── Konten Pembelajaran (Teks, Gambar, Audio)
+├── Secured Video Embed Player
+└── Action: Tombol "Mark as Complete"
+
+/kuis/[lessonSlug] *             → Halaman Kuis Interaktif (Focus Mode)
+├── Render Soal Pilihan Ganda N5 (Data dari Seed CSV)
+└── /hasil *                     → Halaman Hasil Evaluasi Kuis
+    ├── Skor Kelulusan & Pembahasan
+    └── Action: Pemicu Penambahan Point XP
 ```
 
 ---
@@ -89,15 +85,14 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 Area pelacakan progres siswa berdasarkan poin pengalaman (XP) yang diperoleh dari penyelesaian kuis dan materi.
 
 ```plaintext
-/gamifikasi *
-├── /profil-saya                 → Profil Pencapaian Personal
-│   ├── Grafik Progress XP Mingguan / Bulanan
-│   ├── Riwayat Log Perolehan XP Akhir
-│   └── Galeri Koleksi Badge (Status Unlocked & Locked)
-│
-└── /leaderboard                 → Papan Peringkat Global
-    ├── Urutan Ranking Top 10 Siswa (Berdasarkan Akumulasi XP)
-    └── Highlight Bar Khusus Posisi Siswa Saat Ini
+/leaderboard *                   → Papan Peringkat Global
+├── Urutan Ranking Top 10 Siswa (Berdasarkan Akumulasi XP)
+└── Highlight Bar Khusus Posisi Siswa Saat Ini
+
+/gamifikasi/profil-saya *        → Profil Pencapaian Personal
+├── Grafik Progress XP Mingguan / Bulanan
+├── Riwayat Log Perolehan XP Akhir
+└── Galeri Koleksi Badge (Status Unlocked & Locked)
 ```
 
 ---
@@ -136,6 +131,8 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 /tentang                         → Profil & Visi JepangKu LMS
 /cara-belajar                    → Panduan Sistem Level, XP, & Belajar
 /hubungi                         → Tautan Integrasi ke WhatsApp Admin
+/syarat-ketentuan                → Syarat & Ketentuan Penggunaan Platform
+/kebijakan-privasi               → Kebijakan Privasi & Perlindungan Data
 ```
 
 ---
@@ -144,10 +141,10 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 
 | Area Routing | Jumlah Halaman Aktif |
 | :--- | :--- |
-| Public / Marketing | 3 |
+| Public / Marketing | 4 |
 | Auth Area (Custom UI) | 2 |
-| Student Area (Core LMS) | 7 |
+| Student Area (Core LMS) | 4 |
 | Gamification Center | 2 |
-| Admin Area (Termasuk Lean CMS) | 4 |
-| Halaman Statis | 3 |
-| **Total Estimasi Beban Kerja** | **~21 Halaman** |
+| Admin Area (Termasuk Lean CMS) | 8 |
+| Halaman Statis | 5 |
+| **Total Estimasi Beban Kerja** | **~25 Halaman** |
