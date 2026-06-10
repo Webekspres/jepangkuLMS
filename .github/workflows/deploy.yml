@@ -46,6 +46,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate Clerk build secret
+        run: |
+          if [ -z "${{ secrets.CLERK_PUBLISHABLE_KEY }}" ]; then
+            echo "::error::CLERK_PUBLISHABLE_KEY is empty. Add pk_live_... to staging environment secrets."
+            exit 1
+          fi
+
       - name: Resolve image tag
         id: meta
         run: |
@@ -65,6 +72,11 @@ jobs:
           context: .
           target: runner
           push: true
+          build-args: |
+            NEXT_PUBLIC_APP_URL=https://dev.kursus.jepangku.com
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://dev.kursus.jepangku.com/sign-in
+            NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://dev.kursus.jepangku.com/sign-up
           tags: |
             ${{ steps.meta.outputs.image }}:staging
             ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
