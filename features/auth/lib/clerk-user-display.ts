@@ -1,4 +1,13 @@
-import type { UserResource } from '@clerk/types';
+/** Shape used from `useUser().user` — avoids direct @clerk/types dependency. */
+type ClerkUserLike = {
+  id: string;
+  fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  imageUrl: string;
+  primaryEmailAddress?: { emailAddress: string } | null;
+};
 
 export type ClerkIdentity = {
   userId: string;
@@ -9,7 +18,7 @@ export type ClerkIdentity = {
 };
 
 /** Nama tampilan dari profil Clerk (Google SSO, email, dll.). */
-export function resolveClerkIdentity(user: UserResource | null | undefined): ClerkIdentity | null {
+export function resolveClerkIdentity(user: ClerkUserLike | null | undefined): ClerkIdentity | null {
   if (!user) return null;
 
   const displayName =

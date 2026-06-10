@@ -25,6 +25,16 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx prisma generate
       - run: bun run lint
+      - run: bun test
+      - run: bun run build
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
+          JEPANGKU_CORE_API_URL: http://localhost:8080
+          JEPANGKU_CORE_JWT_ISSUER: https://core.jepangku.com
+          JEPANGKU_CORE_JWT_AUDIENCE: jepangku
+          JEPANGKU_CORE_JWT_PUBLIC_KEY: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuD1rWw+ly5wBc7bI22Hv\nuJEIx8lgxGuPwKg55nQsEv2BZufqQSRBQoT9Nk+nCEEt6/hZYuFmzIC52AVRDXCX\nFEnmZOjuqJsVkXFEVZPRCcgkSNrnLBnZShAlcNRvreHQnITwU1BOefKVcGucpxXd\nTo+AEE52ajYdh2dAE8pvxzbqRVTsLe51G+SyXcvZTR9Zthjc5sqpQzDgAt4CXTDD\nnPoB046y1I8k2CNL5MK7gWqjnUADaHwqzdOF/2Ayc6fnNnKkFt9zAGWR0O0yg+mJ\n2HpmLa9I4aXxc0Is2sgv7AW3OITFSakfMMhkCR8qhjhnOIeal71G9sC9quXCXPWR\nFQIDAQAB\n-----END PUBLIC KEY-----"
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          CLERK_SECRET_KEY: sk_test_placeholder
 
   build:
     needs: test
