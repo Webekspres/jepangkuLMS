@@ -90,13 +90,15 @@ export async function submitQuizAnswers(input: {
   const userId = await requireUserId();
 
   const questions = await prisma.question.findMany({
-    where: { lessonId: input.lessonId, type: 'QUIZ' },
+    where: { lessonId: input.lessonId },
     include: { options: true },
   });
 
   if (questions.length === 0) {
     throw new Error('Tidak ada soal untuk lesson ini');
   }
+
+  const attemptType = questions.some((q) => q.type === 'TRYOUT') ? 'TRYOUT' : 'QUIZ';
 
   let correct = 0;
   for (const question of questions) {
@@ -113,7 +115,7 @@ export async function submitQuizAnswers(input: {
       userId,
       lessonId: input.lessonId,
       score,
-      type: 'QUIZ',
+      type: attemptType,
     },
   });
 

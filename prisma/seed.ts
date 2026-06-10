@@ -3,6 +3,8 @@ import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
+import { N5_ALL_LESSONS, N5_LESSON_COUNT } from './lib/n5-curriculum';
+import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
 
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
@@ -12,7 +14,7 @@ const CATALOG = [
     title: 'JLPT N5 — Kursus Lengkap',
     level: 'N5' as LevelJLPT,
     description:
-      'Dari nol sampai lulus N5! Hiragana, Katakana, 80 Kanji, tata bahasa dasar.',
+      'Dari nol sampai lulus N5! Hiragana, Katakana, 100 Kanji, 200+ kosakata, 64 pola tata bahasa, dan simulasi ujian.',
     isPublished: true,
   },
   {
@@ -49,34 +51,6 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Latih percakapan natural dan listening skill dengan dialog audio native speaker.',
     isPublished: false,
-  },
-] as const;
-
-const N5_LESSONS = [
-  {
-    slug: 'pengenalan-aksara-jepang',
-    title: 'Pengenalan aksara Jepang',
-    order: 1,
-    content: 'Mengenal Hiragana, Katakana, dan Kanji sebagai dasar membaca bahasa Jepang.',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-  {
-    slug: 'hiragana-a-ta',
-    title: 'Hiragana baris あ–た',
-    order: 2,
-    content: 'Belajar menulis dan membaca Hiragana baris あ, い, う, え, お hingga た.',
-  },
-  {
-    slug: 'hiragana-na-n',
-    title: 'Hiragana baris な–ん',
-    order: 3,
-    content: 'Menyelesaikan semua karakter Hiragana dasar.',
-  },
-  {
-    slug: 'katakana-lengkap',
-    title: 'Katakana lengkap',
-    order: 4,
-    content: 'Pengenalan Katakana untuk kata serapan dan nama asing.',
   },
 ] as const;
 
@@ -118,19 +92,32 @@ async function main() {
     where: { slug: 'jlpt-n5-kursus-lengkap' },
   });
 
-  for (const lesson of N5_LESSONS) {
-    await prisma.lesson.upsert({
+  const lessonIdsBySlug: Record<string, string> = {};
+
+  for (const lesson of N5_ALL_LESSONS) {
+    const row = await prisma.lesson.upsert({
       where: { slug: lesson.slug },
-      create: { ...lesson, courseId: n5.id },
+      create: {
+        slug: lesson.slug,
+        title: lesson.title,
+        order: lesson.order,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl ?? null,
+        courseId: n5.id,
+      },
       update: {
         title: lesson.title,
         order: lesson.order,
         content: lesson.content,
-        videoUrl: 'videoUrl' in lesson ? (lesson.videoUrl ?? null) : null,
+        videoUrl: lesson.videoUrl ?? null,
         courseId: n5.id,
       },
     });
+    lessonIdsBySlug[lesson.slug] = row.id;
   }
+
+  const aksaraCount = await seedN5AksaraMateri(prisma, lessonIdsBySlug);
+  console.log(`  Seeded ${aksaraCount} aksara flashcard rows`);
 
   await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
 
@@ -148,7 +135,7 @@ async function main() {
 
   const counts = await prisma.$transaction([
     prisma.course.count(),
-    prisma.lesson.count(),
+    prisma.lesson.count({ where: { courseId: n5.id } }),
     prisma.materialKanji.count(),
     prisma.materialKosakata.count(),
     prisma.materialTataBahasa.count(),
@@ -157,7 +144,7 @@ async function main() {
   ]);
 
   console.log(
-    `Seed complete: ${counts[0]} courses, ${counts[1]} lessons, ` +
+    `Seed complete: ${counts[0]} courses, ${counts[1]} N5 lessons (expected ${N5_LESSON_COUNT}), ` +
       `${counts[2]} kanji, ${counts[3]} kosakata, ${counts[4]} tata bahasa, ` +
       `${counts[5]} questions, ${counts[6]} categories`,
   );

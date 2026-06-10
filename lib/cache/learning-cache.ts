@@ -120,7 +120,7 @@ export function getCachedLessonMaterials(lessonId: string) {
           take: 50,
           orderBy: { tataBahasa: 'asc' },
         }),
-        prisma.question.count({ where: { lessonId: id, type: 'QUIZ' } }),
+        prisma.question.count({ where: { lessonId: id } }),
       ]);
 
       return { kanjis, kosakatas, tataBahasas, quizCount };

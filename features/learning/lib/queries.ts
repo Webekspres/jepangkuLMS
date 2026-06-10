@@ -137,7 +137,7 @@ export async function getLessonWorkspace(
   const questions =
     quizCount > 0
       ? await prisma.question.findMany({
-          where: { lessonId: lesson.id, type: 'QUIZ' },
+          where: { lessonId: lesson.id },
           include: { options: { orderBy: { id: 'asc' } } },
           orderBy: { id: 'asc' },
         })
@@ -178,7 +178,6 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
     include: {
       course: true,
       questions: {
-        where: { type: 'QUIZ' },
         include: { options: { orderBy: { id: 'asc' } } },
         orderBy: { id: 'asc' },
       },
