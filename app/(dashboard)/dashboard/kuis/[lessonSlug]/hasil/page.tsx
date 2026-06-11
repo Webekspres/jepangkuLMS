@@ -1,8 +1,7 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { QuizResultView } from '@/features/learning/components/quiz-result-view';
 import { getLessonQuizBySlug } from '@/features/learning/lib/queries';
-import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
+import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 interface KuisHasilProps {
@@ -19,10 +18,12 @@ interface KuisHasilProps {
 export default async function KuisHasilPage({ params, searchParams }: KuisHasilProps) {
   const { lessonSlug } = await params;
   const query = await searchParams;
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-
-  await syncUserAnchor(userId);
+  let userId: string;
+  try {
+    userId = await requireAuthUserId();
+  } catch {
+    redirect('/sign-in');
+  }
 
   const quiz = await getLessonQuizBySlug(lessonSlug, userId);
   if (!quiz || quiz.accessDenied || quiz.empty) {

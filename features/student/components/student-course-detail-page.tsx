@@ -2,13 +2,14 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronRight,
   Clock,
-  Lock,
+  ExternalLink,
   Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { CourseDetail } from '@/features/learning/components/course-detail-data';
+import { CourseSyllabusAccordion } from '@/features/learning/components/course-syllabus-accordion';
+import {
+  getDefaultExpandedModuleIds,
+  groupLessonsByModule,
+} from '@/features/learning/lib/n5-lesson-modules';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from './student-routes';
@@ -60,6 +66,27 @@ export function StudentCourseDetailPage({
   const whatYouLearn = marketing?.whatYouLearn ?? [];
   const fullDesc = marketing?.fullDesc ?? course.desc;
 
+  const syllabusGroups = useMemo(() => {
+    const mapped = course.lessons.map((lesson, index) => ({
+      ...lesson,
+      locked: !isEnrolled && index > 0,
+      href: isEnrolled ? STUDENT_ROUTES.belajar(course.slug, lesson.slug) : undefined,
+    }));
+    return groupLessonsByModule(mapped);
+  }, [course.lessons, course.slug, isEnrolled]);
+
+  const [expandedIds, setExpandedIds] = useState<string[]>(() =>
+    getDefaultExpandedModuleIds(syllabusGroups, continueLessonSlug),
+  );
+
+  const handleModuleToggle = (moduleId: string) => {
+    setExpandedIds((prev) =>
+      prev.includes(moduleId) ? prev.filter((id) => id !== moduleId) : [...prev, moduleId],
+    );
+  };
+
+  const moduleCount = syllabusGroups.length;
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -98,7 +125,7 @@ export function StudentCourseDetailPage({
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Play className="size-4 text-primary" />
-                {course.lessonCount} pelajaran
+                {course.lessonCount} pelajaran · {moduleCount} modul
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-4 text-primary" />
@@ -130,39 +157,20 @@ export function StudentCourseDetailPage({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3">
-              <CardTitle className="text-base">Silabus kursus</CardTitle>
+              <div>
+                <CardTitle className="text-base">Kurikulum kursus</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {moduleCount} modul · klik modul untuk melihat daftar pelajaran
+                </p>
+              </div>
               <Badge variant="outline">Preview</Badge>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {course.lessons.map((lesson, index) => {
-                const locked = !isEnrolled && index > 0;
-                return (
-                  <div
-                    key={lesson.id}
-                    className={cn(
-                      'flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3',
-                      locked && 'opacity-60',
-                    )}
-                  >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground">{lesson.title}</p>
-                      {lesson.content && (
-                        <p className="line-clamp-1 text-xs text-muted-foreground">{lesson.content}</p>
-                      )}
-                    </div>
-                    {locked ? (
-                      <Lock className="size-4 shrink-0 text-muted-foreground" />
-                    ) : lesson.hasQuiz ? (
-                      <Badge variant="secondary" className="shrink-0">
-                        Quiz
-                      </Badge>
-                    ) : null}
-                  </div>
-                );
-              })}
+            <CardContent>
+              <CourseSyllabusAccordion
+                groups={syllabusGroups}
+                expandedIds={expandedIds}
+                onToggle={handleModuleToggle}
+              />
             </CardContent>
           </Card>
         </div>
@@ -203,8 +211,11 @@ export function StudentCourseDetailPage({
                   </Button>
                 </>
               )}
-              <Button asChild variant="ghost" className="w-full">
-                <Link href={`/kursus/${course.slug}`}>Lihat halaman publik</Link>
+              <Button asChild variant="outline" className="h-11 w-full gap-2">
+                <Link href={`/kursus/${course.slug}`}>
+                  <ExternalLink className="size-4" />
+                  Lihat halaman publik
+                </Link>
               </Button>
             </CardContent>
           </Card>

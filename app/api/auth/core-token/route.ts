@@ -5,6 +5,9 @@ import { getCoreJwtCookieOptions } from '@/lib/auth/cookie-options';
 import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
 import { CoreTokenExchangeError } from '@/lib/core/exchange-token';
 import { exchangeClerkSessionForCoreJwtWithRetry } from '@/lib/core/exchange-token-with-retry';
+import { loggers, serializeError } from '@/lib/logger';
+
+const apiLog = loggers.api.child({ route: 'POST /api/auth/core-token' });
 
 function mapExchangeError(error: CoreTokenExchangeError) {
   if (error.code === 'USER_NOT_FOUND') {
@@ -59,39 +62,46 @@ export async function POST() {
   const { userId, getToken } = await auth();
 
   if (!userId) {
+    apiLog.warn('Core token exchange rejected — no Clerk session');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const clerkToken = await getToken({ skipCache: true });
   if (!clerkToken) {
+    apiLog.warn({ userId }, 'Core token exchange rejected — Clerk session token missing');
     return NextResponse.json({ error: 'Clerk session token missing' }, { status: 401 });
   }
 
+  apiLog.info({ userId }, 'Core token exchange started');
+
   try {
-    const { token } = await exchangeClerkSessionForCoreJwtWithRetry(clerkToken);
+    const { token, expiresIn } = await exchangeClerkSessionForCoreJwtWithRetry(clerkToken);
 
     try {
       await syncUserAnchor(userId);
     } catch (dbError) {
-      console.error('[auth/core-token] LMS user anchor sync failed (Core JWT OK):', dbError);
+      apiLog.error(
+        { userId, expiresIn, ...serializeError(dbError) },
+        'LMS user anchor sync failed after successful Core JWT exchange',
+      );
     }
 
     const response = NextResponse.json({ ok: true });
     response.cookies.set(CORE_JWT_COOKIE, token, getCoreJwtCookieOptions());
 
+    apiLog.info({ userId, expiresIn }, 'Core token exchange completed — cookie set');
     return response;
   } catch (error) {
     if (error instanceof CoreTokenExchangeError) {
-      console.error('[auth/core-token] Core exchange failed:', {
-        code: error.code,
-        status: error.status,
-        message: error.message,
-      });
       const mapped = mapExchangeError(error);
+      apiLog.error(
+        { userId, code: error.code, status: error.status, httpStatus: mapped.status },
+        `Core token exchange failed: ${error.message}`,
+      );
       return NextResponse.json({ error: mapped.message, code: error.code }, { status: mapped.status });
     }
 
-    console.error('[auth/core-token]', error);
+    apiLog.error({ userId, ...serializeError(error) }, 'Core token exchange unexpected error');
     return NextResponse.json({ error: 'Gagal menghubungkan ke Core Backend.' }, { status: 503 });
   }
 }

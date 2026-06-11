@@ -2,6 +2,9 @@ import { getCoreApiBaseUrl } from './client';
 import { CORE_APPLICATION_LMS, getCoreServiceToken, isCoreAwardConfigured } from './config';
 import type { LmsActivityKind } from './activity-map';
 import { buildLmsIdempotencyKey, toCoreActivityType } from './activity-map';
+import { loggers } from '@/lib/logger';
+
+const coreLog = loggers.core;
 
 export type CoreAwardXpResponse = {
   idempotent: boolean;
@@ -25,6 +28,10 @@ export { isCoreAwardConfigured };
 
 export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpResponse | null> {
   if (!isCoreAwardConfigured() || input.xpGained <= 0) {
+    coreLog.debug(
+      { userId: input.userId, kind: input.kind, xpGained: input.xpGained },
+      'Core XP award skipped (not configured or zero XP)',
+    );
     return null;
   }
 
@@ -40,6 +47,9 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
       input.sourceRefId ?? undefined,
     );
 
+  const activityType = toCoreActivityType(input.kind);
+  const started = Date.now();
+
   const response = await fetch(`${baseUrl}/api/v1/gamification/award`, {
     method: 'POST',
     headers: {
@@ -50,7 +60,7 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
     body: JSON.stringify({
       userId: input.userId,
       application: CORE_APPLICATION_LMS,
-      activityType: toCoreActivityType(input.kind),
+      activityType,
       xpGained: input.xpGained,
       pointsGained: input.pointsGained ?? input.xpGained,
       sourceRefId: input.sourceRefId,
@@ -59,11 +69,39 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
     cache: 'no-store',
   });
 
+  const durationMs = Date.now() - started;
+
   if (!response.ok) {
     const body = await response.text();
-    console.warn('[core/gamification] award failed:', response.status, body);
+    coreLog.warn(
+      {
+        userId: input.userId,
+        kind: input.kind,
+        activityType,
+        xpGained: input.xpGained,
+        idempotencyKey,
+        status: response.status,
+        durationMs,
+        responseBody: body.slice(0, 500),
+      },
+      'Core gamification award request failed',
+    );
     return null;
   }
 
-  return (await response.json()) as CoreAwardXpResponse;
+  const result = (await response.json()) as CoreAwardXpResponse;
+  coreLog.info(
+    {
+      userId: input.userId,
+      kind: input.kind,
+      activityType,
+      xpGained: input.xpGained,
+      idempotencyKey,
+      idempotent: result.idempotent,
+      totalXp: result.user.totalXp,
+      durationMs,
+    },
+    'Core gamification XP awarded',
+  );
+  return result;
 }

@@ -1,9 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getLessonQuizBySlug } from '@/features/learning/lib/queries';
-import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
+import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 interface KuisWorkspaceProps {
@@ -15,10 +14,12 @@ interface KuisWorkspaceProps {
 /** Deep link lama — arahkan ke tab Quiz di halaman belajar (inline, tanpa halaman terpisah). */
 export default async function KuisWorkspacePage({ params }: KuisWorkspaceProps) {
   const { lessonSlug } = await params;
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-
-  await syncUserAnchor(userId);
+  let userId: string;
+  try {
+    userId = await requireAuthUserId();
+  } catch {
+    redirect('/sign-in');
+  }
 
   const quiz = await getLessonQuizBySlug(lessonSlug, userId);
 

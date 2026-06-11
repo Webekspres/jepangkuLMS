@@ -34,6 +34,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# application logs (JSON dari Pino — lihat lib/logger)
+/logs/*.log
+/logs/*.log.*
+
+
 # env files — keep `.env.example` committed for onboarding
 .env
 .env*.local

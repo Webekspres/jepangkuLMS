@@ -1,4 +1,7 @@
 import { CoreTokenExchangeError, exchangeClerkSessionForCoreJwt } from './exchange-token';
+import { loggers } from '@/lib/logger';
+
+const coreLog = loggers.core;
 
 const WEBHOOK_SYNC_DELAYS_MS = [0, 1200, 2400, 3600, 5000];
 
@@ -12,21 +15,45 @@ function isRetryableExchangeError(error: CoreTokenExchangeError): boolean {
 export async function exchangeClerkSessionForCoreJwtWithRetry(clerkSessionToken: string) {
   let lastError: CoreTokenExchangeError | undefined;
 
-  for (const delayMs of WEBHOOK_SYNC_DELAYS_MS) {
+  for (let i = 0; i < WEBHOOK_SYNC_DELAYS_MS.length; i++) {
+    const delayMs = WEBHOOK_SYNC_DELAYS_MS[i];
+    const attempt = i + 1;
+
     if (delayMs > 0) {
+      coreLog.debug(
+        { attempt, delayMs, code: lastError?.code },
+        'Retrying Core JWT exchange after delay',
+      );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
     try {
-      return await exchangeClerkSessionForCoreJwt(clerkSessionToken);
+      const result = await exchangeClerkSessionForCoreJwt(clerkSessionToken);
+      if (attempt > 1) {
+        coreLog.info({ attempt }, 'Core JWT exchange succeeded after retry');
+      }
+      return result;
     } catch (error) {
       if (error instanceof CoreTokenExchangeError && isRetryableExchangeError(error)) {
         lastError = error;
+        coreLog.warn(
+          { attempt, maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length, code: error.code, status: error.status },
+          'Core JWT exchange attempt failed — will retry if attempts remain',
+        );
         continue;
       }
       throw error;
     }
   }
+
+  coreLog.error(
+    {
+      maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
+      code: lastError?.code,
+      status: lastError?.status,
+    },
+    'Core JWT exchange exhausted all retries',
+  );
 
   throw (
     lastError ??

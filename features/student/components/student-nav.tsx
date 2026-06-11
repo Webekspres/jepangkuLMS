@@ -8,7 +8,6 @@ import { Coins, LogOut, Menu, X, Zap } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { MarketingMobileMenu } from '@/features/marketing/components/marketing-mobile-menu';
 import { MarketingNavLinkItem } from '@/features/marketing/components/marketing-nav-link';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
@@ -73,7 +72,6 @@ export function StudentNav() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
           {statsPending ? (
             <Skeleton className="h-8 w-30 rounded-sm" aria-hidden />
           ) : (
@@ -93,8 +91,8 @@ export function StudentNav() {
           <StudentUserProfile />
         </div>
 
-        <div className="flex items-center gap-1 lg:hidden">
-          <ThemeToggle size="icon-sm" />
+        <div className="flex items-center gap-1 md:hidden">
+          <StudentUserProfile />
           <button
             type="button"
             className="rounded-lg p-1"
@@ -138,11 +136,6 @@ export function StudentNav() {
               {link.label}
             </Link>
           ))}
-          <div className="my-2 border-t border-border" />
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
-            <ThemeToggle size="icon-sm" />
-          </div>
           {STUDENT_PROFILE_LINKS.map((link) => (
             <Link
               key={link.href}

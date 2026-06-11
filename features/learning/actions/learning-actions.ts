@@ -1,14 +1,17 @@
 'use server';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { requireAuthUserId } from '@/lib/auth/require-auth-user';
+import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsXp, isCoreAwardConfigured } from '@/lib/core/gamification';
 import { prisma } from '@/lib/prisma';
+import { loggers } from '@/lib/logger';
+
+const learningLog = loggers.learning;
 
 async function requireUserId(): Promise<string> {
-  return requireAuthUserId();
+  return requireAuthUserWithAnchor();
 }
 
 /** Request enrollment — creates PENDING row + user anchor. */
@@ -24,6 +27,7 @@ export async function requestEnrollment(courseId: string) {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  learningLog.info({ userId, courseId, status: enrollment.status }, 'Enrollment requested');
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
 
@@ -44,6 +48,7 @@ export async function enrollInCourse(courseSlug: string) {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  learningLog.info({ userId, courseSlug, courseId: course.id, status: enrollment.status }, 'Course enrollment activated');
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
 }
 
@@ -56,6 +61,7 @@ export async function markLessonComplete(lessonId: string, xpReward = 10) {
   });
 
   if (existing?.isCompleted) {
+    learningLog.debug({ userId, lessonId }, 'Lesson already marked complete');
     return { alreadyCompleted: true as const };
   }
 
@@ -79,6 +85,7 @@ export async function markLessonComplete(lessonId: string, xpReward = 10) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/belajar');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
   return { success: true as const };
 }
 
@@ -132,6 +139,19 @@ export async function submitQuizAnswers(input: {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  learningLog.info(
+    {
+      userId,
+      lessonId: input.lessonId,
+      attemptId: attempt.id,
+      score,
+      correct,
+      total: questions.length,
+      type: attemptType,
+      xpReward,
+    },
+    'Quiz submitted',
+  );
   return {
     attemptId: attempt.id,
     score,
