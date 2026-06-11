@@ -6,6 +6,7 @@ export type LessonVideoPlayerProps = {
   videoUrl: string;
   title: string;
   isDemo?: boolean;
+  isActive?: boolean;
 };
 
 /**

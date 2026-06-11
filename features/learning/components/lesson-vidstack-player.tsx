@@ -4,11 +4,13 @@ import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 import './lesson-vidstack-theme.css';
 
+import { useEffect, useRef } from 'react';
 import {
   isYouTubeProvider,
   MediaPlayer,
   MediaProvider,
   Poster,
+  type MediaPlayerInstance,
   type MediaProviderAdapter,
 } from '@vidstack/react';
 import {
@@ -16,6 +18,10 @@ import {
   defaultLayoutIcons,
   type DefaultLayoutTranslations,
 } from '@vidstack/react/player/layouts/default';
+import {
+  LessonYouTubeQualityMenu,
+  LessonYouTubeQualityProvider,
+} from '@/features/learning/components/lesson-youtube-quality-menu';
 import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
@@ -26,6 +32,8 @@ export type LessonVidstackPlayerProps = {
   videoUrl: string;
   title: string;
   isDemo?: boolean;
+  /** Pause saat tab bukan video — hindari unmount yang memicu error Vidstack. */
+  isActive?: boolean;
 };
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -49,17 +57,59 @@ const ID_LAYOUT_TRANSLATIONS: DefaultLayoutTranslations = {
 };
 
 function onProviderChange(provider: MediaProviderAdapter | null) {
-  if (provider && isYouTubeProvider(provider)) {
+  if (!provider) return;
+  if (isYouTubeProvider(provider)) {
     provider.cookies = false;
   }
+}
+
+function isProviderDestroyedRejection(reason: unknown) {
+  return reason === 'provider destroyed';
+}
+
+let providerDestroyedGuardCount = 0;
+
+function onProviderDestroyedRejection(event: PromiseRejectionEvent) {
+  if (isProviderDestroyedRejection(event.reason)) {
+    event.preventDefault();
+  }
+}
+
+function retainProviderDestroyedGuard() {
+  if (typeof window === 'undefined') return () => undefined;
+  providerDestroyedGuardCount += 1;
+  if (providerDestroyedGuardCount === 1) {
+    window.addEventListener('unhandledrejection', onProviderDestroyedRejection);
+  }
+  return () => {
+    providerDestroyedGuardCount -= 1;
+    if (providerDestroyedGuardCount === 0) {
+      window.removeEventListener('unhandledrejection', onProviderDestroyedRejection);
+    }
+  };
 }
 
 export function LessonVidstackPlayer({
   videoUrl,
   title,
   isDemo = false,
+  isActive = true,
 }: LessonVidstackPlayerProps) {
+  const playerRef = useRef<MediaPlayerInstance>(null);
   const videoId = extractYouTubeVideoId(videoUrl);
+
+  useEffect(() => retainProviderDestroyedGuard(), []);
+
+  useEffect(() => {
+    if (isActive) return;
+    playerRef.current?.pause().catch(() => undefined);
+  }, [isActive]);
+
+  useEffect(() => {
+    return () => {
+      playerRef.current?.pause().catch(() => undefined);
+    };
+  }, []);
 
   if (!videoId) {
     return (
@@ -73,30 +123,37 @@ export function LessonVidstackPlayer({
   const poster = getYouTubeThumbnailUrl(videoId, 'maxresdefault');
 
   return (
-    <div className="space-y-3">
-      <div className="jepangku-vidstack-player overflow-hidden rounded-2xl border border-border shadow-md">
+    <div className="space-y-2 sm:space-y-3">
+      <div className="jepangku-vidstack-player rounded-2xl border border-border shadow-md">
         <MediaPlayer
-          key={src}
+          ref={playerRef}
           title={title}
           src={src}
           playsInline
           load="visible"
+          logLevel="error"
           fullscreenOrientation="none"
           onProviderChange={onProviderChange}
         >
-          <MediaProvider />
-          <DefaultVideoLayout
-            icons={defaultLayoutIcons}
-            colorScheme="dark"
-            playbackRates={PLAYBACK_RATES}
-            translations={ID_LAYOUT_TRANSLATIONS}
-          />
-          <Poster className="vds-poster" src={poster} alt="" />
+          <LessonYouTubeQualityProvider>
+            <MediaProvider />
+            <DefaultVideoLayout
+              icons={defaultLayoutIcons}
+              colorScheme="dark"
+              playbackRates={PLAYBACK_RATES}
+              translations={ID_LAYOUT_TRANSLATIONS}
+              noModal
+              slots={{
+                settingsMenuItemsStart: <LessonYouTubeQualityMenu />,
+              }}
+            />
+            <Poster className="vds-poster" src={poster} alt="" />
+          </LessonYouTubeQualityProvider>
         </MediaPlayer>
       </div>
 
       {isDemo && (
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-[11px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">
           Menampilkan video contoh dari YouTube — materi final akan diganti tim kurikulum.
         </p>
       )}

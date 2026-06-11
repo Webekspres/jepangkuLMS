@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -11,9 +11,11 @@ import {
   Circle,
   HelpCircle,
   Layers,
+  List,
   Loader2,
   Lock,
   Play,
+  X,
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -133,6 +135,190 @@ function findTrackLesson(syllabus: LessonNavItem[], match: string) {
   return syllabus.find((item) => item.slug.includes(match));
 }
 
+type SyllabusGroup = ReturnType<typeof groupLessonsByModule>[number];
+
+type LessonCurriculumListProps = {
+  syllabusGroups: SyllabusGroup[];
+  expandedModuleIds: string[];
+  onToggleModule: (moduleId: string) => void;
+  courseSlug: string;
+  currentLessonSlug: string;
+  onLessonSelect?: () => void;
+};
+
+function LessonCurriculumList({
+  syllabusGroups,
+  expandedModuleIds,
+  onToggleModule,
+  courseSlug,
+  currentLessonSlug,
+  onLessonSelect,
+}: LessonCurriculumListProps) {
+  let globalIndex = 0;
+
+  return (
+    <>
+      {syllabusGroups.map((group) => {
+        const isModuleOpen = expandedModuleIds.includes(group.module);
+        const moduleCompleted = group.lessons.every((item) => item.isCompleted);
+        const moduleHasCurrent = group.lessons.some((item) => item.slug === currentLessonSlug);
+
+        return (
+          <div key={group.module} className="border-b border-border/60 last:border-none">
+            <button
+              type="button"
+              onClick={() => onToggleModule(group.module)}
+              className={cn(
+                'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/40',
+                moduleHasCurrent && 'bg-primary/5',
+              )}
+              aria-expanded={isModuleOpen}
+            >
+              <ChevronDown
+                className={cn(
+                  'size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 ease-out',
+                  isModuleOpen && 'rotate-180',
+                )}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-foreground">
+                  {group.title}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {group.lessons.length} pelajaran
+                  {moduleCompleted ? ' · selesai' : ''}
+                </p>
+              </div>
+              {moduleCompleted && <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />}
+            </button>
+
+            <AnimatedCollapse open={isModuleOpen}>
+              <div>
+                {group.lessons.map((item) => {
+                  globalIndex += 1;
+                  const index = globalIndex;
+                  const isCurrent = item.slug === currentLessonSlug;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={STUDENT_ROUTES.belajar(courseSlug, item.slug)}
+                      onClick={onLessonSelect}
+                      className={cn(
+                        'flex items-start gap-3 border-t border-border/40 px-4 py-3 transition-colors hover:bg-muted/30',
+                        isCurrent && 'bg-primary/5',
+                      )}
+                    >
+                      <span className="mt-0.5 shrink-0">
+                        {item.isCompleted ? (
+                          <CheckCircle2 className="size-5 text-emerald-600" />
+                        ) : isCurrent ? (
+                          <span className="flex size-7 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-xs font-bold text-primary">
+                            {index}
+                          </span>
+                        ) : (
+                          <Circle className="size-5 text-muted-foreground" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            'line-clamp-2 text-xs font-semibold leading-snug',
+                            item.isCompleted ? 'text-muted-foreground' : 'text-foreground',
+                          )}
+                        >
+                          {item.title}
+                        </p>
+                      </div>
+                      {item.hasQuiz && (
+                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                          Quiz
+                        </Badge>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </AnimatedCollapse>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+type LessonXpPanelProps = {
+  xpTasks: { label: string; xp: string; done: boolean }[];
+  completed: boolean;
+  isPending: boolean;
+  onComplete: () => void;
+  compact?: boolean;
+};
+
+function LessonXpPanel({
+  xpTasks,
+  completed,
+  isPending,
+  onComplete,
+  compact = false,
+}: LessonXpPanelProps) {
+  return (
+    <Card className={compact ? 'border-dashed shadow-none' : 'shadow-sm'}>
+      <CardContent className={cn('space-y-3', compact ? 'p-3.5 sm:p-4' : 'p-4')}>
+        <div className="flex items-center gap-2">
+          <Zap className="size-4 text-brand-yellow" />
+          <span
+            className={cn(
+              'font-bold text-foreground',
+              compact ? 'text-sm' : 'text-sm md:text-base',
+            )}
+          >
+            XP pelajaran ini
+          </span>
+        </div>
+        {xpTasks.map((task) => (
+          <div key={task.label} className="flex items-center justify-between gap-2">
+            <span
+              className={cn(
+                'flex items-center gap-1.5 text-muted-foreground',
+                compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm',
+              )}
+            >
+              {task.done ? (
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+              ) : (
+                <span className="size-3.5 rounded-full border border-border" />
+              )}
+              {task.label}
+            </span>
+            <span
+              className={cn(
+                'text-xs font-bold',
+                task.done ? 'text-emerald-600' : 'text-muted-foreground',
+              )}
+            >
+              {task.xp}
+            </span>
+          </div>
+        ))}
+        <Button
+          size="sm"
+          className="mt-2 w-full"
+          disabled={completed || isPending}
+          onClick={onComplete}
+        >
+          {isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : completed ? (
+            'Pelajaran selesai'
+          ) : (
+            'Tandai selesai'
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function LessonWorkspace({
   course,
   lesson,
@@ -144,10 +330,23 @@ export function LessonWorkspace({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [completed, setCompleted] = useState(lesson.isCompleted);
-  const [curriculumOpen, setCurriculumOpen] = useState(true);
+  const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
   const [flashcardVisited, setFlashcardVisited] = useState(initialTab === 'flashcard');
   const [quizPassed, setQuizPassed] = useState(false);
+
+  useEffect(() => {
+    setMobileCurriculumOpen(false);
+  }, [lesson.slug]);
+
+  useEffect(() => {
+    if (!mobileCurriculumOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileCurriculumOpen]);
 
   const syllabusGroups = useMemo(() => groupLessonsByModule(syllabus), [syllabus]);
 
@@ -223,22 +422,68 @@ export function LessonWorkspace({
   const hasQuiz = questions.length > 0;
   const { url: videoUrl, isDemo: isDemoVideo } = resolveLessonVideoUrl(lesson.videoUrl);
 
+  const contentTabs = (
+    <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5">
+      {(
+        [
+          { id: 'video', label: 'Video', icon: Play },
+          { id: 'flashcard', label: 'Flashcard', icon: Layers },
+          { id: 'quiz', label: 'Quiz', icon: HelpCircle },
+        ] as const
+      ).map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => handleTabChange(tab.id)}
+          className={cn(
+            'inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:justify-start sm:gap-1.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-sm',
+            activeTab === tab.id
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted/50',
+          )}
+        >
+          <tab.icon className="size-3.5 sm:size-4" />
+          <span className="truncate">{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const curriculumPanel = (
+    <LessonCurriculumList
+      syllabusGroups={syllabusGroups}
+      expandedModuleIds={expandedModuleIds}
+      onToggleModule={toggleModule}
+      courseSlug={course.slug}
+      currentLessonSlug={lesson.slug}
+      onLessonSelect={() => setMobileCurriculumOpen(false)}
+    />
+  );
+
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <Link href={STUDENT_ROUTES.home} className="hover:text-primary">
+    <div className="space-y-3 pb-[calc(5.25rem+env(safe-area-inset-bottom,0))] sm:space-y-4 md:space-y-5 lg:pb-10">
+      <nav
+        aria-label="Breadcrumb"
+        className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground sm:gap-1.5 sm:text-sm"
+      >
+        <Link href={STUDENT_ROUTES.home} className="shrink-0 hover:text-primary">
           Dashboard
         </Link>
-        <ChevronRight className="size-3.5" />
-        <Link href={STUDENT_ROUTES.kursusDetail(course.slug)} className="hover:text-primary">
+        <ChevronRight className="size-3 shrink-0" aria-hidden />
+        <Link
+          href={STUDENT_ROUTES.kursusDetail(course.slug)}
+          className="line-clamp-1 min-w-0 hover:text-primary"
+        >
           {course.title}
         </Link>
-        <ChevronRight className="size-3.5" />
-        <span className="font-medium text-foreground">{lesson.title}</span>
-      </div>
+        <ChevronRight className="hidden size-3 shrink-0 lg:block" aria-hidden />
+        <span className="hidden line-clamp-1 font-medium text-foreground lg:inline">
+          {lesson.title}
+        </span>
+      </nav>
 
       {currentTrack !== 'umum' && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:px-0">
           {TRACKS.map((track) => {
             const target = findTrackLesson(syllabus, track.match);
             const isActive = currentTrack === track.id;
@@ -248,7 +493,7 @@ export function LessonWorkspace({
                 key={track.id}
                 href={STUDENT_ROUTES.belajar(course.slug, target.slug)}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all',
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm',
                   isActive ? track.activeClass : track.idleClass,
                 )}
               >
@@ -267,210 +512,41 @@ export function LessonWorkspace({
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-4">
-        <aside className="space-y-4 lg:col-span-1">
-          <Card className="overflow-hidden py-0">
-            <button
-              type="button"
-              onClick={() => setCurriculumOpen((v) => !v)}
-              className="flex w-full items-center justify-between px-4 py-4 text-left font-semibold text-foreground hover:bg-muted/40"
-            >
-              <span className="flex items-center gap-2 text-sm">
-                <BookOpen className="size-4 text-primary" />
-                Kurikulum
-                <span className="text-xs font-normal text-muted-foreground">
-                  · {syllabusGroups.length} modul
-                </span>
-              </span>
-              <ChevronDown
-                className={cn(
-                  'size-4 text-muted-foreground transition-transform duration-300 ease-out',
-                  curriculumOpen && 'rotate-180',
-                )}
-              />
-            </button>
-            <AnimatedCollapse open={curriculumOpen}>
-              <div className="max-h-[min(70vh,32rem)] overflow-y-auto border-t border-border pb-2">
-                {(() => {
-                  let globalIndex = 0;
-                  return syllabusGroups.map((group) => {
-                    const isModuleOpen = expandedModuleIds.includes(group.module);
-                    const moduleCompleted = group.lessons.every((item) => item.isCompleted);
-                    const moduleHasCurrent = group.lessons.some((item) => item.slug === lesson.slug);
+      <div className="grid gap-4 sm:gap-5 md:gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,20rem)] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-3 sm:space-y-4 md:space-y-5">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="lg:hidden">
+              <h1 className="text-base font-bold leading-snug text-foreground sm:text-lg md:text-xl">
+                {lesson.title}
+              </h1>
+              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{course.title}</p>
+            </div>
+            {contentTabs}
+          </div>
 
-                    return (
-                      <div key={group.module} className="border-b border-border/60 last:border-none">
-                        <button
-                          type="button"
-                          onClick={() => toggleModule(group.module)}
-                          className={cn(
-                            'flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/40',
-                            moduleHasCurrent && 'bg-primary/5',
-                          )}
-                          aria-expanded={isModuleOpen}
-                        >
-                          <ChevronDown
-                            className={cn(
-                              'size-3.5 shrink-0 text-muted-foreground transition-transform duration-300 ease-out',
-                              isModuleOpen && 'rotate-180',
-                            )}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-foreground">
-                              {group.title}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {group.lessons.length} pelajaran
-                              {moduleCompleted ? ' · selesai' : ''}
-                            </p>
-                          </div>
-                          {moduleCompleted && (
-                            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
-                          )}
-                        </button>
-
-                        <AnimatedCollapse open={isModuleOpen}>
-                          <div>
-                            {group.lessons.map((item) => {
-                              globalIndex += 1;
-                              const index = globalIndex;
-                              const isCurrent = item.slug === lesson.slug;
-                              return (
-                                <Link
-                                  key={item.id}
-                                  href={STUDENT_ROUTES.belajar(course.slug, item.slug)}
-                                  className={cn(
-                                    'flex items-start gap-3 border-t border-border/40 px-4 py-3 transition-colors hover:bg-muted/30',
-                                    isCurrent && 'bg-primary/5',
-                                  )}
-                                >
-                                  <span className="mt-0.5 shrink-0">
-                                    {item.isCompleted ? (
-                                      <CheckCircle2 className="size-5 text-emerald-600" />
-                                    ) : isCurrent ? (
-                                      <span className="flex size-7 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-xs font-bold text-primary">
-                                        {index}
-                                      </span>
-                                    ) : (
-                                      <Circle className="size-5 text-muted-foreground" />
-                                    )}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <p
-                                      className={cn(
-                                        'line-clamp-2 text-xs font-semibold leading-snug',
-                                        item.isCompleted ? 'text-muted-foreground' : 'text-foreground',
-                                      )}
-                                    >
-                                      {item.title}
-                                    </p>
-                                  </div>
-                                  {item.hasQuiz && (
-                                    <Badge variant="outline" className="shrink-0 text-[10px]">
-                                      Quiz
-                                    </Badge>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </AnimatedCollapse>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </AnimatedCollapse>
-          </Card>
-
-          <Card>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-center gap-2">
-                <Zap className="size-4 text-brand-yellow" />
-                <span className="text-sm font-bold text-foreground">XP pelajaran ini</span>
-              </div>
-              {xpTasks.map((task) => (
-                <div key={task.label} className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    {task.done ? (
-                      <CheckCircle2 className="size-3.5 text-emerald-600" />
-                    ) : (
-                      <span className="size-3.5 rounded-full border border-border" />
-                    )}
-                    {task.label}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-xs font-bold',
-                      task.done ? 'text-emerald-600' : 'text-muted-foreground',
-                    )}
-                  >
-                    {task.xp}
-                  </span>
-                </div>
-              ))}
-              <Button
-                size="sm"
-                className="mt-2 w-full"
-                disabled={completed || isPending}
-                onClick={handleComplete}
-              >
-                {isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : completed ? (
-                  'Pelajaran selesai'
-                ) : (
-                  'Tandai selesai'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </aside>
-
-        <div className="space-y-5 lg:col-span-3">
-          <div className="inline-flex gap-1 rounded-2xl border border-border bg-card p-1.5 shadow-sm">
-            {(
-              [
-                { id: 'video', label: 'Video Lesson', icon: Play },
-                { id: 'flashcard', label: 'Flashcard', icon: Layers },
-                { id: 'quiz', label: 'Quiz', icon: HelpCircle },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-muted/50',
-                )}
-              >
-                <tab.icon className="size-4" />
-                {tab.label}
-              </button>
-            ))}
+          <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
+            <LessonVideoPlayer
+              videoUrl={videoUrl}
+              title={lesson.title}
+              isDemo={isDemoVideo}
+              isActive={activeTab === 'video'}
+            />
           </div>
 
           {activeTab === 'video' && (
-            <div className="space-y-4">
-              <LessonVideoPlayer
-                videoUrl={videoUrl}
-                title={lesson.title}
-                isDemo={isDemoVideo}
-              />
-
-              <Card>
-                <CardContent className="space-y-4 p-5 sm:p-6">
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground sm:text-xl">{lesson.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{course.title}</p>
+            <div className="space-y-3 sm:space-y-4">
+              <Card className="border-border/80 shadow-sm">
+                <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5 md:p-6">
+                  <div className="hidden lg:block">
+                    <h2 className="text-xl font-bold text-foreground md:text-2xl">{lesson.title}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground md:text-base">{course.title}</p>
                   </div>
                   {lesson.content && (
-                    <p className="text-sm leading-relaxed text-muted-foreground">{lesson.content}</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:text-base">
+                      {lesson.content}
+                    </p>
                   )}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="hidden flex-wrap gap-2 sm:flex">
                     <Button variant="outline" size="sm" onClick={() => handleTabChange('flashcard')}>
                       <Layers className="size-4" />
                       Flashcard
@@ -484,16 +560,28 @@ export function LessonWorkspace({
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="lg:hidden">
+                <LessonXpPanel
+                  xpTasks={xpTasks}
+                  completed={completed}
+                  isPending={isPending}
+                  onComplete={handleComplete}
+                  compact
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'flashcard' && (
-            <Card>
-              <CardContent className="p-5 sm:p-8">
-                <div className="mb-6 flex items-center justify-between gap-3">
-                  <h2 className="font-bold text-foreground">Flashcard — {lesson.title}</h2>
-                  <span className="text-xs text-muted-foreground">
-                    {flashcards.length} kartu tersedia
+            <Card className="border-border/80 shadow-sm">
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
+                  <h2 className="text-sm font-bold leading-snug text-foreground sm:text-base md:text-lg">
+                    Flashcard — {lesson.title}
+                  </h2>
+                  <span className="shrink-0 text-[11px] text-muted-foreground sm:text-xs">
+                    {flashcards.length} kartu
                   </span>
                 </div>
                 <FlashcardDeck
@@ -507,11 +595,15 @@ export function LessonWorkspace({
           )}
 
           {activeTab === 'quiz' && (
-            <Card>
-              <CardContent className="p-5 sm:p-8">
-                <div className="mb-6 flex items-center justify-between gap-3">
-                  <h2 className="font-bold text-foreground">Quiz — {lesson.title}</h2>
-                  <Badge className={cn('text-white', trackColorClass)}>{trackJp}</Badge>
+            <Card className="border-border/80 shadow-sm">
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
+                  <h2 className="text-sm font-bold leading-snug text-foreground sm:text-base md:text-lg">
+                    Quiz — {lesson.title}
+                  </h2>
+                  <Badge className={cn('shrink-0 text-[10px] text-white sm:text-xs', trackColorClass)}>
+                    {trackJp}
+                  </Badge>
                 </div>
                 {hasQuiz ? (
                   <LessonQuizPanel
@@ -536,7 +628,93 @@ export function LessonWorkspace({
             </Card>
           )}
         </div>
+
+        <aside className="hidden space-y-4 lg:block lg:sticky lg:top-6 lg:self-start">
+          <Card className="overflow-hidden py-0">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <BookOpen className="size-4 text-primary" />
+                Konten kursus
+              </span>
+              <span className="text-xs text-muted-foreground">{syllabusGroups.length} modul</span>
+            </div>
+            <div className="max-h-[min(70vh,36rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+          </Card>
+
+          <LessonXpPanel
+            xpTasks={xpTasks}
+            completed={completed}
+            isPending={isPending}
+            onComplete={handleComplete}
+          />
+        </aside>
       </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6 lg:hidden">
+        <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
+            onClick={() => setMobileCurriculumOpen(true)}
+          >
+            <List className="size-4 shrink-0" />
+            <span className="truncate">Daftar materi</span>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-10 shrink-0 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm"
+            disabled={completed || isPending}
+            onClick={handleComplete}
+          >
+            {isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : completed ? (
+              'Selesai'
+            ) : (
+              <>
+                <span className="sm:hidden">Tandai</span>
+                <span className="hidden sm:inline">Tandai selesai</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {mobileCurriculumOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Tutup daftar materi"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileCurriculumOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[min(88vh,640px)] flex-col rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom,0)] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-3.5">
+              <div>
+                <p className="text-sm font-semibold text-foreground sm:text-base">Konten kursus</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">
+                  {syllabus.length} pelajaran · {syllabusGroups.length} modul
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Tutup"
+                onClick={() => setMobileCurriculumOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+              {curriculumPanel}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

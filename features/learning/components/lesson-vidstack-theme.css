@@ -10,26 +10,6 @@
   --media-focus-ring-color: var(--brand-orange);
 }
 
-.jepangku-vidstack-player [data-media-player] {
-  width: 100%;
-  border-radius: 1rem;
-  overflow: hidden;
-  background: #000;
-}
-
-/* Toolbar — cursor pointer di semua kontrol interaktif */
-.jepangku-vidstack-player .vds-button,
-.jepangku-vidstack-player .vds-slider,
-.jepangku-vidstack-player .vds-slider-track,
-.jepangku-vidstack-player .vds-slider-thumb,
-.jepangku-vidstack-player .vds-menu-button,
-.jepangku-vidstack-player .vds-menu-item,
-.jepangku-vidstack-player .vds-time-slider,
-.jepangku-vidstack-player .vds-volume-slider,
-.jepangku-vidstack-player [data-media-player] :is(button, [role='slider']) {
-  cursor: pointer;
-}
-
 /* JepangKu — Vidstack player theme (DESIGN.md tokens) */
 
 .jepangku-vidstack-player {
@@ -52,6 +32,7 @@
   width: 100%;
   border-radius: 1rem;
   overflow: hidden;
+  isolation: isolate;
   background: #000;
 }
 
@@ -113,12 +94,17 @@
   border-radius: 9999px;
 }
 
-/* Menu pengaturan — gelap + blur */
-.jepangku-vidstack-player .vds-menu-items {
+/* Menu pengaturan — popover di dalam area player, bukan bottom sheet layar penuh */
+.jepangku-vidstack-player .vds-menu-items,
+.jepangku-vidstack-player .vds-settings-menu-items {
+  z-index: 50;
+  max-height: min(60vh, 18rem);
+  overflow-y: auto;
   border-radius: 0.75rem;
   border: 1px solid rgb(255 255 255 / 0.1);
-  background: rgb(0 0 0 / 0.9);
+  background: rgb(0 0 0 / 0.92);
   backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
 }
 
 .jepangku-vidstack-player .vds-menu-item[data-hocus] {
