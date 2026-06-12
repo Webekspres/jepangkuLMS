@@ -88,7 +88,7 @@ export function CoursesCatalogPage() {
       {/* Filters */}
       <div
         className={cn(
-          'sticky z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:px-8',
+          'sticky z-30 border-b border-border bg-header px-4 py-3 backdrop-blur-md md:px-8 dark:backdrop-blur-none',
           PUBLIC_NAV_STICKY_TOP,
         )}
       >

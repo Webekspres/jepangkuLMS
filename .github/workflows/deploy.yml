@@ -49,7 +49,7 @@ jobs:
       - name: Validate Clerk build secret
         run: |
           if [ -z "${{ secrets.CLERK_PUBLISHABLE_KEY }}" ]; then
-            echo "::error::CLERK_PUBLISHABLE_KEY is empty. Add pk_live_... to staging environment secrets."
+            echo "::error::CLERK_PUBLISHABLE_KEY is empty. Add it to the staging environment secrets."
             exit 1
           fi
 

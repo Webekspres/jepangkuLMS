@@ -1,4 +1,7 @@
 import { getCoreApiBaseUrl } from './client';
+import { loggers } from '@/lib/logger';
+
+const coreLog = loggers.core;
 
 type CoreTokenSuccess = {
   token: string;
@@ -28,6 +31,7 @@ export async function exchangeClerkSessionForCoreJwt(
 ): Promise<CoreTokenSuccess> {
   const baseUrl = getCoreApiBaseUrl();
   if (!baseUrl) {
+    coreLog.error('Core token exchange aborted — JEPANGKU_CORE_API_URL not set');
     throw new CoreTokenExchangeError(
       'JEPANGKU_CORE_API_URL belum dikonfigurasi.',
       503,
@@ -56,8 +60,13 @@ export async function exchangeClerkSessionForCoreJwt(
       // ignore parse errors
     }
 
+    coreLog.warn(
+      { status: response.status, code, message },
+      'Core JWT token exchange rejected',
+    );
     throw new CoreTokenExchangeError(message, response.status, code);
   }
 
+  coreLog.info({ status: response.status }, 'Core JWT token exchange succeeded');
   return (await response.json()) as CoreTokenSuccess;
 }

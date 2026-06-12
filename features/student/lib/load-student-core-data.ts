@@ -7,6 +7,7 @@ import {
   fetchCoreUserMe,
 } from '@/lib/core/api';
 import { isCoreApiConfigured } from '@/lib/core/client';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { getCoreJwtFromCookies, getCoreSession } from '@/lib/core/get-core-session';
 import { mergeCoreBadges, mapUnlockedCoreBadges } from '@/features/student/lib/core-badge-mapper';
 import { getInitials } from '@/features/student/lib/leaderboard-helpers';
@@ -57,7 +58,7 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
       null,
   };
 
-  if (!isCoreApiConfigured()) {
+  if (!isCoreIntegrationEnabled() || !isCoreApiConfigured()) {
     return data;
   }
 
@@ -126,7 +127,7 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
           data.globalRank = you.rank;
         }
       } catch {
-        // ignore
+        // ignore — termasuk timeout Core
       }
     }
   }

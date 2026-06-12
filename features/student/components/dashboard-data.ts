@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Award, Coins, Trophy, Zap } from 'lucide-react';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import type { StudentCoreData } from '@/features/student/types/student-core-data';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { STUDENT_ROUTES } from './student-routes';
 
 export type DashboardStat = {
@@ -13,18 +14,27 @@ export type DashboardStat = {
 };
 
 export function buildDashboardStats(core: StudentCoreData): DashboardStat[] {
+  const coreOff = !isCoreIntegrationEnabled();
   const rankSub =
     core.globalRank != null && core.leaderboardTotal > 0
       ? `dari ${formatDisplayNumber(core.leaderboardTotal)} pelajar`
-      : core.coreConnected
-        ? 'Belum masuk ranking'
-        : 'Menghubungkan ke Core…';
+      : coreOff
+        ? 'Leaderboard via Core (nanti)'
+        : core.coreConnected
+          ? 'Belum masuk ranking'
+          : 'Menghubungkan ke Core…';
+
+  const xpSub = coreOff
+    ? 'Integrasi Core dinonaktifkan di dev'
+    : core.coreConnected
+      ? 'Dari JepangKu Core'
+      : 'Menunggu sinkron Core';
 
   return [
     {
       label: 'Total XP',
       value: formatDisplayNumber(core.totalXp),
-      sub: core.coreConnected ? 'Dari JepangKu Core' : 'Menunggu sinkron Core',
+      sub: xpSub,
       icon: Zap,
       accentClass: 'text-primary bg-primary/10',
     },

@@ -2,6 +2,10 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
+import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
+import { N5_ALL_LESSONS, N5_LESSON_COUNT } from './lib/n5-curriculum';
+import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
+
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
 const CATALOG = [
@@ -10,7 +14,7 @@ const CATALOG = [
     title: 'JLPT N5 — Kursus Lengkap',
     level: 'N5' as LevelJLPT,
     description:
-      'Dari nol sampai lulus N5! Hiragana, Katakana, 80 Kanji, tata bahasa dasar.',
+      'Dari nol sampai lulus N5! Hiragana, Katakana, 100 Kanji, 200+ kosakata, 64 pola tata bahasa, dan simulasi ujian.',
     isPublished: true,
   },
   {
@@ -50,34 +54,6 @@ const CATALOG = [
   },
 ] as const;
 
-const N5_LESSONS = [
-  {
-    slug: 'pengenalan-aksara-jepang',
-    title: 'Pengenalan aksara Jepang',
-    order: 1,
-    content: 'Mengenal Hiragana, Katakana, dan Kanji sebagai dasar membaca bahasa Jepang.',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-  {
-    slug: 'hiragana-a-ta',
-    title: 'Hiragana baris あ–た',
-    order: 2,
-    content: 'Belajar menulis dan membaca Hiragana baris あ, い, う, え, お hingga た.',
-  },
-  {
-    slug: 'hiragana-na-n',
-    title: 'Hiragana baris な–ん',
-    order: 3,
-    content: 'Menyelesaikan semua karakter Hiragana dasar.',
-  },
-  {
-    slug: 'katakana-lengkap',
-    title: 'Katakana lengkap',
-    order: 4,
-    content: 'Pengenalan Katakana untuk kata serapan dan nama asing.',
-  },
-] as const;
-
 function createPrisma(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -99,24 +75,6 @@ async function main() {
     update: {},
   });
 
-  const categories = await Promise.all([
-    prisma.category.upsert({
-      where: { name_type: { name: 'Dasar', type: 'KANJI' } },
-      create: { name: 'Dasar', type: 'KANJI' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Pengenalan', type: 'KOSAKATA' } },
-      create: { name: 'Pengenalan', type: 'KOSAKATA' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Partikel', type: 'TATA_BAHASA' } },
-      create: { name: 'Partikel', type: 'TATA_BAHASA' },
-      update: {},
-    }),
-  ]);
-
   for (const course of CATALOG) {
     await prisma.course.upsert({
       where: { slug: course.slug },
@@ -134,89 +92,34 @@ async function main() {
     where: { slug: 'jlpt-n5-kursus-lengkap' },
   });
 
-  for (const lesson of N5_LESSONS) {
-    await prisma.lesson.upsert({
+  const lessonIdsBySlug: Record<string, string> = {};
+
+  for (const lesson of N5_ALL_LESSONS) {
+    const row = await prisma.lesson.upsert({
       where: { slug: lesson.slug },
-      create: { ...lesson, courseId: n5.id },
+      create: {
+        slug: lesson.slug,
+        title: lesson.title,
+        order: lesson.order,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl ?? null,
+        courseId: n5.id,
+      },
       update: {
         title: lesson.title,
         order: lesson.order,
         content: lesson.content,
-        videoUrl: 'videoUrl' in lesson ? (lesson.videoUrl ?? null) : null,
+        videoUrl: lesson.videoUrl ?? null,
         courseId: n5.id,
       },
     });
+    lessonIdsBySlug[lesson.slug] = row.id;
   }
 
-  const introLesson = await prisma.lesson.findUniqueOrThrow({
-    where: { slug: 'pengenalan-aksara-jepang' },
-  });
+  const aksaraCount = await seedN5AksaraMateri(prisma, lessonIdsBySlug);
+  console.log(`  Seeded ${aksaraCount} aksara flashcard rows`);
 
-  const existingKanji = await prisma.materialKanji.count({
-    where: { lessonId: introLesson.id },
-  });
-
-  if (existingKanji === 0) {
-    await prisma.materialKanji.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '日',
-          furigana: 'にち',
-          romaji: 'nichi',
-          arti: 'hari / matahari',
-          onyomi: 'ニチ',
-          contohOnyomi: '日本',
-          artiOnyomi: 'Jepang',
-        },
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '本',
-          furigana: 'ほん',
-          romaji: 'hon',
-          arti: 'buku',
-          onyomi: 'ホン',
-          contohOnyomi: '日本語',
-          artiOnyomi: 'bahasa Jepang',
-        },
-      ],
-    });
-
-    await prisma.materialKosakata.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[1].id,
-          kosakata: 'こんにちは',
-          romaji: 'konnichiwa',
-          arti: 'halo / selamat siang',
-          contohKalimat: 'こんにちは、元気ですか。',
-        },
-      ],
-    });
-
-    const question = await prisma.question.create({
-      data: {
-        lessonId: introLesson.id,
-        type: 'QUIZ',
-        questionText: 'Aksara mana yang digunakan untuk menulis kata asli bahasa Jepang?',
-        explanation: 'Hiragana dipakai untuk kata asli Jepang dan okurigana.',
-        xpReward: 10,
-        options: {
-          create: [
-            { text: 'Hiragana', isCorrect: true },
-            { text: 'Katakana', isCorrect: false },
-            { text: 'Romaji', isCorrect: false },
-            { text: 'Kanji saja', isCorrect: false },
-          ],
-        },
-      },
-    });
-
-    console.log(`Created sample quiz question ${question.id}`);
-  }
+  await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
 
   await prisma.enrollment.upsert({
     where: {
@@ -232,11 +135,19 @@ async function main() {
 
   const counts = await prisma.$transaction([
     prisma.course.count(),
-    prisma.lesson.count(),
+    prisma.lesson.count({ where: { courseId: n5.id } }),
+    prisma.materialKanji.count(),
+    prisma.materialKosakata.count(),
+    prisma.materialTataBahasa.count(),
     prisma.question.count(),
+    prisma.category.count(),
   ]);
 
-  console.log(`Seed complete: ${counts[0]} courses, ${counts[1]} lessons, ${counts[2]} questions`);
+  console.log(
+    `Seed complete: ${counts[0]} courses, ${counts[1]} N5 lessons (expected ${N5_LESSON_COUNT}), ` +
+      `${counts[2]} kanji, ${counts[3]} kosakata, ${counts[4]} tata bahasa, ` +
+      `${counts[5]} questions, ${counts[6]} categories`,
+  );
   await prisma.$disconnect();
 }
 

@@ -31,6 +31,7 @@ import {
   DASHBOARD_WEEKLY_XP,
   DASHBOARD_WEEKLY_XP_MAX,
   LESSON_CATEGORY_STYLE,
+  type ContinueLesson,
 } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
 
@@ -61,7 +62,11 @@ function DashboardSection({
   );
 }
 
-export function DashboardPage() {
+export function DashboardPage({
+  continueLessons = DASHBOARD_CONTINUE_LESSONS,
+}: {
+  continueLessons?: ContinueLesson[];
+}) {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
   const displayName =
@@ -126,7 +131,7 @@ export function DashboardPage() {
           </div>
 
           <Button asChild size="lg" className="h-11 shrink-0 gap-2 px-6">
-            <Link href={DASHBOARD_CONTINUE_LESSONS[0].href}>
+            <Link href={continueLessons[0]?.href ?? STUDENT_ROUTES.kursus}>
               <Play className="size-4" />
               Lanjutkan Belajar
             </Link>
@@ -170,7 +175,15 @@ export function DashboardPage() {
             }
           >
             <div className="space-y-3">
-              {DASHBOARD_CONTINUE_LESSONS.map((lesson) => {
+              {continueLessons.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Belum ada kursus aktif.{' '}
+                  <Link href={STUDENT_ROUTES.kursus} className="font-semibold text-primary hover:underline">
+                    Daftar kursus N5
+                  </Link>
+                </p>
+              ) : (
+                continueLessons.map((lesson) => {
                 const cat = LESSON_CATEGORY_STYLE[lesson.category];
                 return (
                   <Link
@@ -213,7 +226,8 @@ export function DashboardPage() {
                     <ChevronRight className="size-4 shrink-0 self-center text-muted-foreground group-hover:text-primary" />
                   </Link>
                 );
-              })}
+              })
+              )}
             </div>
           </DashboardSection>
 

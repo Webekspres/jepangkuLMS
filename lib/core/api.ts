@@ -1,4 +1,8 @@
 import { getCoreApiBaseUrl } from './client';
+import { loggers, serializeError } from '@/lib/logger';
+
+const coreLog = loggers.core;
+const CORE_FETCH_TIMEOUT_MS = 4_000;
 
 type CoreErrorBody = {
   error?: { code?: string; message?: string };
@@ -7,30 +11,61 @@ type CoreErrorBody = {
 async function fetchCoreJson<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = getCoreApiBaseUrl();
   if (!baseUrl) {
+    coreLog.error({ path }, 'Core API base URL not configured');
     throw new Error('JEPANGKU_CORE_API_URL belum dikonfigurasi');
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...init?.headers,
-    },
-    cache: 'no-store',
-  });
+  const started = Date.now();
+  const method = init?.method ?? 'GET';
 
-  if (!response.ok) {
-    let message = `Core API error (${response.status})`;
-    try {
-      const body = (await response.json()) as CoreErrorBody;
-      message = body.error?.message ?? message;
-    } catch {
-      // ignore
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(CORE_FETCH_TIMEOUT_MS),
+    });
+
+    const durationMs = Date.now() - started;
+
+    if (!response.ok) {
+      let code: string | undefined;
+      let message = `Core API error (${response.status})`;
+      try {
+        const body = (await response.json()) as CoreErrorBody;
+        code = body.error?.code;
+        message = body.error?.message ?? message;
+      } catch {
+        // ignore
+      }
+
+      coreLog.warn(
+        { path, method, status: response.status, code, durationMs },
+        `Core API request failed: ${message}`,
+      );
+      throw new Error(message);
     }
-    throw new Error(message);
-  }
 
-  return (await response.json()) as T;
+    coreLog.debug({ path, method, status: response.status, durationMs }, 'Core API request OK');
+    return (await response.json()) as T;
+  } catch (error) {
+    const durationMs = Date.now() - started;
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      coreLog.error(
+        { path, method, durationMs, timeoutMs: CORE_FETCH_TIMEOUT_MS },
+        'Core API request timed out',
+      );
+    } else if (!(error instanceof Error && error.message.startsWith('Core API error'))) {
+      coreLog.error(
+        { path, method, durationMs, ...serializeError(error) },
+        'Core API request error',
+      );
+    }
+    throw error;
+  }
 }
 
 export type CoreLeaderboardItem = {

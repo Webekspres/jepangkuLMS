@@ -22,7 +22,16 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
         alt=""
         width={280}
         height={80}
-        className={`${LOGO_CLASS} grayscale opacity-40`}
+        className={`${LOGO_CLASS} grayscale opacity-40 dark:hidden`}
+        priority
+        aria-hidden
+      />
+      <Image
+        src="/brand/logo-white.png"
+        alt=""
+        width={280}
+        height={80}
+        className={`${LOGO_CLASS} hidden grayscale opacity-40 dark:block`}
         priority
         aria-hidden
       />
@@ -32,7 +41,15 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
           alt="JepangKu"
           width={280}
           height={80}
-          className={LOGO_CLASS}
+          className={`${LOGO_CLASS} dark:hidden`}
+          priority
+        />
+        <Image
+          src="/brand/logo-white.png"
+          alt="JepangKu"
+          width={280}
+          height={80}
+          className={`${LOGO_CLASS} hidden dark:block`}
           priority
         />
       </div>

@@ -1,26 +1,22 @@
 'use client';
 
-import { ClerkProvider } from '@clerk/nextjs';
 import { AppSplash } from '@/components/app-splash';
+import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
-import { AUTH_ROUTES } from '@/lib/auth/constants';
-import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
+import { ThemeProvider } from '@/components/theme/theme-provider';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
- * Tambahkan provider baru di sini agar root layout tetap Server Component.
+ * ThemeProvider di luar Clerk agar appearance Clerk ikut light/dark.
  */
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider
-      signInUrl={getClerkSignInUrl()}
-      signUpUrl={getClerkSignUpUrl()}
-      signInFallbackRedirectUrl={AUTH_ROUTES.dashboard}
-      signUpFallbackRedirectUrl={AUTH_ROUTES.dashboard}
-    >
-      <QueryProvider>
-        <AppSplash>{children}</AppSplash>
-      </QueryProvider>
-    </ClerkProvider>
+    <ThemeProvider>
+      <ClerkProviderThemed>
+        <QueryProvider>
+          <AppSplash>{children}</AppSplash>
+        </QueryProvider>
+      </ClerkProviderThemed>
+    </ThemeProvider>
   );
 }

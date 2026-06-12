@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth, useClerk } from '@clerk/nextjs';
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { resolvePostAuthRedirect } from '@/lib/auth/oauth-urls';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { Button } from '@/components/ui/button';
 import { syncCoreSessionAndRedirect } from '@/features/auth/lib/sync-core-session';
+import { signOutFromApp } from '@/lib/auth/sign-out-client';
 
 const SESSION_WAIT_MS = 2500;
 /** Retry Core exchange can take ~12s server-side */
@@ -38,6 +40,11 @@ export function AuthCompletePage() {
   useEffect(() => {
     if (!isLoaded) return;
 
+    if (!isCoreIntegrationEnabled()) {
+      window.location.replace(resolvePostAuthRedirect());
+      return;
+    }
+
     if (!isSignedIn || !userId) {
       const timer = window.setTimeout(() => {
         window.location.replace(AUTH_ROUTES.signIn);
@@ -66,7 +73,7 @@ export function AuthCompletePage() {
   }, [isExchanging, error]);
 
   const handleSignOut = () => {
-    void signOut({ redirectUrl: AUTH_ROUTES.signIn });
+    void signOutFromApp(signOut);
   };
 
   const handleRetry = () => {
@@ -95,6 +102,14 @@ export function AuthCompletePage() {
               Untuk akun baru: pastikan Clerk webhook mengarah ke{' '}
               <code className="text-[11px]">https://core.jepangku.com/api/v1/auth/webhooks/clerk</code>{' '}
               (bukan ke LMS).
+            </p>
+          ) : null}
+          {errorCode === 'INVALID_SESSION' ? (
+            <p className="text-xs text-muted-foreground">
+              LMS pakai Clerk <strong>dev</strong> (<code className="text-[11px]">pk_test_…</code>)
+              tapi Core production mungkin masih <strong>sk_live_…</strong> — atau sebaliknya. Minta
+              tim Core samakan <code className="text-[11px]">CLERK_SECRET_KEY</code> dengan app Clerk
+              yang dipakai LMS, lalu restart container Core.
             </p>
           ) : null}
           {errorCode === 'INTERNAL_ERROR' ? (
