@@ -1,7 +1,9 @@
+import { logApiWarn } from '@/lib/errors/api-error';
 import {
-  fetchCoreLeaderboard,
-  type CoreLeaderboardResponse,
+    fetchCoreLeaderboard,
+    type CoreLeaderboardResponse,
 } from './api';
+import { CoreApiError } from './core-api-error';
 import { getCoreSession } from './session';
 import { isCoreApiConfigured } from './client';
 import type { CoreGamificationSummary, CoreLeaderboardEntry, CoreUserProfile } from './types';
@@ -9,15 +11,15 @@ import type { JepangKuJwtClaims } from './jwt-claims';
 import { mapClaimsToGamificationSummary, mapClaimsToUserProfile } from './jwt-claims';
 
 function mapLeaderboardItem(
-  item: CoreLeaderboardResponse['items'][number],
+    item: CoreLeaderboardResponse['items'][number],
 ): CoreLeaderboardEntry {
-  return {
-    rank: item.rank,
-    userId: item.id,
-    displayName: item.name,
-    avatarUrl: item.imageUrl,
-    totalXp: item.totalXp,
-  };
+    return {
+        rank: item.rank,
+        userId: item.id,
+        displayName: item.name,
+        avatarUrl: item.imageUrl,
+        totalXp: item.totalXp,
+    };
 }
 
 /**
@@ -25,13 +27,13 @@ function mapLeaderboardItem(
  * Gunakan di Server Component / Server Action setelah token diverifikasi.
  */
 export function getUserProfileFromClaims(claims: JepangKuJwtClaims): CoreUserProfile {
-  return mapClaimsToUserProfile(claims);
+    return mapClaimsToUserProfile(claims);
 }
 
 export function getGamificationFromClaims(
-  claims: JepangKuJwtClaims
+    claims: JepangKuJwtClaims
 ): CoreGamificationSummary | null {
-  return mapClaimsToGamificationSummary(claims);
+    return mapClaimsToGamificationSummary(claims);
 }
 
 /**
@@ -39,47 +41,60 @@ export function getGamificationFromClaims(
  * Fallback: jika hanya `userId` diketahui tanpa token, return minimal (dev).
  */
 export async function getUserProfile(userId?: string): Promise<CoreUserProfile | null> {
-  const session = await getCoreSession();
-  if (session) {
-    return session.profile;
-  }
+    const session = await getCoreSession();
+    if (session) {
+        return session.profile;
+    }
 
-  if (userId) {
-    return { id: userId, displayName: null, avatarUrl: null };
-  }
+    if (userId) {
+        return { id: userId, displayName: null, avatarUrl: null };
+    }
 
-  return null;
+    return null;
 }
 
 export async function getGamificationSummary(
-  userId?: string
+    userId?: string
 ): Promise<CoreGamificationSummary | null> {
-  const session = await getCoreSession();
-  if (session?.gamification) {
-    return session.gamification;
-  }
+    const session = await getCoreSession();
+    if (session?.gamification) {
+        return session.gamification;
+    }
 
-  if (!isCoreApiConfigured()) {
+    if (!isCoreApiConfigured()) {
+        return null;
+    }
+
+    // Leaderboard / user lain: tetap via Core API bila claims hanya untuk user sendiri
+    void userId;
     return null;
-  }
-
-  // Leaderboard / user lain: tetap via Core API bila claims hanya untuk user sendiri
-  void userId;
-  return null;
 }
 
 /**
  * Top N leaderboard — biasanya membutuhkan Core API (bukan JWT per user).
  */
 export async function getLeaderboard(limit = 10): Promise<CoreLeaderboardEntry[]> {
-  if (!isCoreApiConfigured()) {
-    return [];
-  }
+    if (!isCoreApiConfigured()) {
+        return [];
+    }
 
-  try {
-    const data = await fetchCoreLeaderboard(limit);
-    return data.items.map(mapLeaderboardItem);
-  } catch {
-    return [];
-  }
+    try {
+        const data = await fetchCoreLeaderboard(limit);
+        return data.items.map(mapLeaderboardItem);
+    } catch (error) {
+        if (error instanceof CoreApiError) {
+            logApiWarn('core.leaderboard.fetch_failed', {
+                code: error.code,
+                status: error.status,
+                message: error.message,
+                coreRequestId: error.coreRequestId,
+                details: error.details,
+            });
+        } else {
+            logApiWarn('core.leaderboard.fetch_failed', {
+                message: error instanceof Error ? error.message : String(error),
+            });
+        }
+        return [];
+    }
 }
