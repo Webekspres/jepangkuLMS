@@ -1,23 +1,34 @@
 import { NextResponse } from 'next/server';
 import { createRequestId, jsonApiError, logApiError } from '@/lib/errors/api-error';
+import { loggers } from '@/lib/logger';
+
+const webhookLog = loggers.webhook.child({ route: 'POST /api/webhooks/clerk' });
 
 export async function POST(req: Request) {
     const requestId = createRequestId();
 
     try {
         const payload = await req.json();
-        console.log(
-            JSON.stringify({
-                timestamp: new Date().toISOString(),
-                level: 'info',
-                service: 'jepangku-lms',
-                scope: 'webhooks/clerk',
+        const eventType =
+            typeof payload === 'object' && payload !== null && 'type' in payload
+                ? String((payload as { type?: string }).type)
+                : 'unknown';
+
+        webhookLog.info(
+            {
+                eventType,
                 requestId,
-                eventType: payload?.type,
-                clerkUserId: payload?.data?.id,
-            }),
+                userId:
+                    typeof payload === 'object' && payload !== null && 'data' in payload
+                        ? (payload as { data?: { id?: string } }).data?.id
+                        : undefined,
+            },
+            'Clerk webhook received (LMS stub — sync handled by Core)',
         );
-        return NextResponse.json({ received: true, requestId }, { headers: { 'x-request-id': requestId } });
+        return NextResponse.json(
+            { received: true, requestId },
+            { headers: { 'x-request-id': requestId } },
+        );
     } catch (error) {
         logApiError('webhooks/clerk.processing_failed', { requestId }, error);
         return jsonApiError(

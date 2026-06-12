@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { AppProviders } from "@/components/providers";
+import { PROVIDER_DESTROYED_GUARD_SCRIPT } from "@/lib/vidstack/provider-destroyed-guard-script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +31,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <Script id="vidstack-provider-destroyed-guard" strategy="beforeInteractive">
+          {PROVIDER_DESTROYED_GUARD_SCRIPT}
+        </Script>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

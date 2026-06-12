@@ -1,5 +1,7 @@
-import { logApiWarn } from '@/lib/errors/api-error';
 import { CoreTokenExchangeError, exchangeClerkSessionForCoreJwt } from './exchange-token';
+import { loggers, formatUpstreamSummary } from '@/lib/logger';
+
+const coreLog = loggers.core;
 
 const WEBHOOK_SYNC_DELAYS_MS = [0, 1200, 2400, 3600, 5000];
 
@@ -13,31 +15,74 @@ function isRetryableExchangeError(error: CoreTokenExchangeError): boolean {
 export async function exchangeClerkSessionForCoreJwtWithRetry(clerkSessionToken: string) {
     let lastError: CoreTokenExchangeError | undefined;
 
-    for (let attempt = 0; attempt < WEBHOOK_SYNC_DELAYS_MS.length; attempt += 1) {
-        const delayMs = WEBHOOK_SYNC_DELAYS_MS[attempt] ?? 0;
+    for (let i = 0; i < WEBHOOK_SYNC_DELAYS_MS.length; i++) {
+        const delayMs = WEBHOOK_SYNC_DELAYS_MS[i];
+        const attempt = i + 1;
+
         if (delayMs > 0) {
+            coreLog.debug(
+                { attempt, delayMs, code: lastError?.code },
+                'Retrying Core JWT exchange after delay',
+            );
             await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
 
         try {
-            return await exchangeClerkSessionForCoreJwt(clerkSessionToken);
+            const result = await exchangeClerkSessionForCoreJwt(clerkSessionToken);
+            if (attempt > 1) {
+                coreLog.info({ attempt }, 'Core JWT exchange succeeded after retry');
+            }
+            return result;
         } catch (error) {
             if (error instanceof CoreTokenExchangeError && isRetryableExchangeError(error)) {
                 lastError = error;
-                logApiWarn('core.exchange-token.retry', {
-                    attempt: attempt + 1,
-                    maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
-                    code: error.code,
-                    status: error.status,
-                    message: error.message,
-                    coreRequestId: error.coreRequestId,
-                    details: error.details,
-                });
+                coreLog.warn(
+                    {
+                        attempt,
+                        maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
+                        code: error.code,
+                        statusCode: error.status,
+                        coreRequestId: error.coreRequestId,
+                        upstream: 'core-backend',
+                        path: '/api/v1/auth/token',
+                        method: 'POST',
+                    },
+                    formatUpstreamSummary(
+                        {
+                            method: 'POST',
+                            path: '/api/v1/auth/token',
+                            statusCode: error.status,
+                            code: error.code,
+                        },
+                        `Core JWT exchange attempt ${attempt}/${WEBHOOK_SYNC_DELAYS_MS.length} failed — will retry if attempts remain`,
+                    ),
+                );
                 continue;
             }
             throw error;
         }
     }
+
+    coreLog.error(
+        {
+            maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
+            code: lastError?.code,
+            statusCode: lastError?.status,
+            coreRequestId: lastError?.coreRequestId,
+            upstream: 'core-backend',
+            path: '/api/v1/auth/token',
+            method: 'POST',
+        },
+        formatUpstreamSummary(
+            {
+                method: 'POST',
+                path: '/api/v1/auth/token',
+                statusCode: lastError?.status,
+                code: lastError?.code,
+            },
+            'Core JWT exchange exhausted all retries',
+        ),
+    );
 
     throw (
         lastError ??

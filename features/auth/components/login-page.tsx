@@ -1,15 +1,19 @@
 'use client';
 
 import { SignIn } from '@clerk/nextjs';
+import { useClerkAppearance } from '@/features/auth/hooks/use-clerk-appearance';
+import { useClerkRedirectUrls } from '@/features/auth/hooks/use-clerk-redirect-urls';
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { AuthPageShell } from './auth-page-shell';
-import { clerkAppearance } from './clerk-appearance';
 
 /**
  * Login shell (brand panel kiri) + Clerk prebuilt SignIn (kanan).
  * Setelah Clerk session → dashboard (Core JWT di-sync di background).
  */
 export function LoginPage() {
+  const { appearance, appearanceKey, mounted } = useClerkAppearance();
+  const clerkUrls = useClerkRedirectUrls();
+
   return (
     <AuthPageShell
       brandPanel={{
@@ -30,14 +34,19 @@ export function LoginPage() {
       heading="Selamat Datang!"
       subheading="Masuk ke akun Jepangku-mu dan lanjutkan belajar."
     >
-      <SignIn
-        routing="path"
-        path={AUTH_ROUTES.signIn}
-        signUpUrl={AUTH_ROUTES.signUp}
-        fallbackRedirectUrl={AUTH_ROUTES.dashboard}
-        forceRedirectUrl={AUTH_ROUTES.dashboard}
-        appearance={clerkAppearance}
-      />
+      {mounted ? (
+        <SignIn
+          key={appearanceKey}
+          routing="path"
+          path={AUTH_ROUTES.signIn}
+          signUpUrl={clerkUrls.signUp}
+          fallbackRedirectUrl={clerkUrls.postAuth}
+          forceRedirectUrl={clerkUrls.postAuth}
+          appearance={appearance}
+        />
+      ) : (
+        <div aria-hidden className="h-[320px] animate-pulse rounded-2xl bg-muted/30" />
+      )}
     </AuthPageShell>
   );
 }

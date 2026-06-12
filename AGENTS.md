@@ -22,16 +22,16 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 | **Portal Berita** (Habibi) | App + DB sendiri | Artikel, komentar |
 | **LMS** (Kris) | **Repo ini** | Kursus, lesson, kuis, progress belajar |
 
-**Detail lengkap:** [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) · **Schema Core (Sultan):** [docs/backend_core_services/](docs/backend_core_services/)
+**Detail lengkap:** [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) · **Schema Core:** [jepangku-core/docs/](../jepangku-core/docs/) · **Integrasi:** [docs/CORE_INTEGRATION_STATUS.md](docs/CORE_INTEGRATION_STATUS.md)
 
 ### Aturan keras untuk Agent
 
 1. **DB LMS** — PostgreSQL mandiri; **jangan** simpan profil lengkap user (email, nama, avatar, XP, level) di Prisma lokal.
 2. **`User` di `schema.prisma`** — hanya **jangkar FK**: field `id` (String) = user id dari Core / Clerk; relasi native ke `Enrollment`, `UserProgress`, `QuizAttempt`.
 3. **Profil & gamifikasi (user aktif)** — dari **JWT claims** yang dikeluarkan Core (`lib/core/jwt-claims.ts`, `getCoreSession()`). Bukan `prisma.user` untuk nama/XP/roles. **Leaderboard & award XP** → Core API (`lib/core/client.ts`).
-4. **Schema Core (Sultan)** — `docs/backend_core_services/backend-core-services.prisma` dan `core_dbdiagram.dbml` **wajib 1:1**; ubah keduanya bersamaan.
-4. **Clerk** — dipasang di **Core Service**, bukan sebagai sumber kebenaran duplikat di LMS.
-5. **`features/gamification/`** — UI + client Core; bukan tabel `UserStat` / `Badge` lokal.
+4. **Schema Core** — canonical di repo `jepangku-core/docs/`; jangan edit salinan di LMS.
+5. **Clerk** — shared app dengan News; webhook utama di Core.
+6. **`features/gamification/`** — UI + client Core; bukan tabel `UserStat` / `Badge` lokal.
 
 ---
 
@@ -118,7 +118,7 @@ Saat pindah local → managed/prod: update env → `bun run db:migrate:deploy` �
 ---
 
 ## 🔗 Panduan Routing & Sitemap
-* Rujuklah berkas [sitemap.md](file:///d:/ka_treasury/JepangKu/jepangkuLMS/sitemap.md) sebagai **Single Source of Truth** untuk URL paths.
+* Rujuklah [sitemap.md](sitemap.md) sebagai **Single Source of Truth** untuk URL paths.
 * **Clean URLs:** Gunakan slug unik (`[courseSlug]`, `[lessonSlug]`) alih-alih database ID dalam URL halaman belajar siswa untuk optimasi SEO dan estetika URL yang bersih.
 * **Focus Mode Routing:** Workspace kuis ditaruh di top-level route `/kuis/[lessonSlug]` agar terlepas dari layout sidebar utama `/belajar` dan memberikan fokus penuh bagi siswa.
 * **Proxy (Ganti Middleware):** Next.js 16+ mendepresiasi `middleware.ts` dan menggantinya dengan **`proxy.ts`** di root folder. Gunakan named export `export function proxy(request)` untuk memproses request terproteksi dan log redirects/rewrites secara aman.

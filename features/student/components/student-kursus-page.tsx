@@ -1,41 +1,57 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
   Clock,
+  Loader2,
   Play,
   Search,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
-  CATALOG_COURSES,
   COURSE_LEVELS,
   LEVEL_ACCENT,
+  type CatalogCourse,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
+import { enrollInCourse } from '@/features/learning/actions/learning-actions';
+import type { StudentEnrollmentView } from '@/features/learning/lib/queries';
 import { formatDisplayNumber, JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
-import {
-  getStudentEnrollment,
-  STUDENT_ENROLLED_COURSES,
-  STUDENT_KURSU_STATS,
-} from './student-kursus-data';
+import type { KursusEnrollmentCard } from '@/features/student/lib/load-student-learning-data';
 import { STUDENT_ROUTES } from './student-routes';
 
-export function StudentKursusPage() {
+export type StudentKursusPageProps = {
+  courses: (CatalogCourse & { dbId: string; lessonCount: number; isPublished: boolean })[];
+  enrollmentBySlug: Record<string, StudentEnrollmentView>;
+  enrolledCards: KursusEnrollmentCard[];
+  stats: { enrolled: number; active: number; completed: number };
+};
+
+export function StudentKursusPage({
+  courses,
+  enrollmentBySlug,
+  enrolledCards,
+  stats,
+}: StudentKursusPageProps) {
+  const router = useRouter();
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [search, setSearch] = useState('');
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return CATALOG_COURSES.filter((course) => {
+    return courses.filter((course) => {
       const levelMatch = activeLevel === 'Semua' || course.level === activeLevel;
       const searchMatch =
         !query ||
@@ -43,11 +59,32 @@ export function StudentKursusPage() {
         course.desc.toLowerCase().includes(query);
       return levelMatch && searchMatch;
     });
-  }, [activeLevel, search]);
+  }, [activeLevel, courses, search]);
+
+  function handleEnroll(courseSlug: string) {
+    setPendingSlug(courseSlug);
+    startTransition(async () => {
+      try {
+        await enrollInCourse(courseSlug);
+        router.refresh();
+      } finally {
+        setPendingSlug(null);
+      }
+    });
+  }
+
+  function getEnrollmentView(slug: string) {
+    const enrollment = enrollmentBySlug[slug];
+    if (!enrollment) return null;
+    return {
+      progress: enrollment.progress.percent,
+      continueLessonSlug: enrollment.progress.continueLessonSlug ?? 'pengenalan-aksara-jepang',
+      status: enrollment.progress.status,
+    };
+  }
 
   return (
     <div className="space-y-8 pb-8">
-      {/* Header */}
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -61,20 +98,20 @@ export function StudentKursusPage() {
           </div>
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari kursus..."
-              className="w-full rounded-xl border border-border bg-background py-2.5 pr-3 pl-9 text-sm outline-none transition-colors focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
+              className="pl-9"
             />
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           {[
-            { label: 'Terdaftar', value: STUDENT_KURSU_STATS.enrolled, icon: BookOpen },
-            { label: 'Sedang jalan', value: STUDENT_KURSU_STATS.active, icon: TrendingUp },
-            { label: 'Selesai', value: STUDENT_KURSU_STATS.completed, icon: CheckCircle2 },
+            { label: 'Terdaftar', value: stats.enrolled, icon: BookOpen },
+            { label: 'Sedang jalan', value: stats.active, icon: TrendingUp },
+            { label: 'Selesai', value: stats.completed, icon: CheckCircle2 },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -88,12 +125,11 @@ export function StudentKursusPage() {
         </div>
       </section>
 
-      {/* Lanjutkan belajar */}
-      {STUDENT_ENROLLED_COURSES.length > 0 && (
+      {enrolledCards.length > 0 && (
         <section>
           <h2 className="mb-4 text-lg font-bold text-foreground">Lanjutkan belajar</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {STUDENT_ENROLLED_COURSES.map(({ course, enrollment }, i) => {
+            {enrolledCards.map(({ course, enrollment }, i) => {
               const accent = JLPT_ACCENT[course.accent];
               return (
                 <motion.article
@@ -118,7 +154,7 @@ export function StudentKursusPage() {
                   <div className="p-4">
                     <h3 className="line-clamp-2 text-sm font-bold text-foreground">{course.title}</h3>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      Terakhir: {enrollment.lastAccessLabel}
+                      {enrollment.progress}% selesai
                     </p>
                     <div className="mt-3">
                       <div className="mb-1 flex justify-between text-[11px] font-medium">
@@ -133,14 +169,9 @@ export function StudentKursusPage() {
                       </div>
                     </div>
                     <Button asChild size="sm" className="mt-4 w-full gap-1.5">
-                      <Link
-                        href={STUDENT_ROUTES.belajar(
-                          course.slug,
-                          enrollment.continueLessonSlug,
-                        )}
-                      >
-                        <Play className="size-3.5" />
-                        {enrollment.status === 'completed' ? 'Review' : 'Lanjutkan'}
+                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
+                        <BookOpen className="size-3.5" />
+                        Buka kursus
                       </Link>
                     </Button>
                   </div>
@@ -151,7 +182,6 @@ export function StudentKursusPage() {
         </section>
       )}
 
-      {/* Filter + katalog */}
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-bold text-foreground">Jelajahi kursus</h2>
@@ -180,12 +210,15 @@ export function StudentKursusPage() {
           </div>
         </div>
 
-        <p className="mb-4 text-sm text-muted-foreground">{filtered.length} kursus ditemukan</p>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {formatDisplayNumber(filtered.length)} kursus ditemukan
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((course, i) => {
             const accent = JLPT_ACCENT[course.accent];
-            const enrollment = getStudentEnrollment(course.slug);
+            const enrollment = getEnrollmentView(course.slug);
+            const enrolling = isPending && pendingSlug === course.slug;
 
             return (
               <motion.article
@@ -220,7 +253,7 @@ export function StudentKursusPage() {
                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Play className="size-3" />
-                      {course.lessons} pelajaran
+                      {course.lessonCount} pelajaran
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="size-3" />
@@ -235,23 +268,36 @@ export function StudentKursusPage() {
                       />
                     </div>
                   )}
-                  <Button
-                    asChild
-                    variant={enrollment ? 'default' : 'outline'}
-                    size="sm"
-                    className="mt-4 w-full gap-1.5"
-                  >
-                    <Link
-                      href={
-                        enrollment
-                          ? STUDENT_ROUTES.belajar(course.slug, enrollment.continueLessonSlug)
-                          : `/kursus/${course.slug}`
-                      }
+                  {enrollment ? (
+                    <Button asChild variant="default" size="sm" className="mt-4 w-full gap-1.5">
+                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
+                        Lanjutkan
+                        <ChevronRight className="size-3.5" />
+                      </Link>
+                    </Button>
+                  ) : course.isPublished ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 w-full gap-1.5"
+                      disabled={enrolling}
+                      onClick={() => handleEnroll(course.slug)}
                     >
-                      {enrollment ? 'Lanjutkan' : 'Lihat detail'}
-                      <ChevronRight className="size-3.5" />
-                    </Link>
-                  </Button>
+                      {enrolling ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <BookOpen className="size-3.5" />
+                      )}
+                      Daftar kursus
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5">
+                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
+                        Lihat detail
+                        <ChevronRight className="size-3.5" />
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </motion.article>
             );
@@ -264,10 +310,6 @@ export function StudentKursusPage() {
           </div>
         )}
       </section>
-
-      <p className="text-center text-xs text-muted-foreground">
-        Data demo — enrollment akan sinkron dari Prisma setelah auth siap.
-      </p>
     </div>
   );
 }

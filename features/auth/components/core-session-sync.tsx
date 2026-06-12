@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { syncCoreSessionSilent } from '@/features/auth/lib/sync-core-session';
 
 /**
@@ -13,6 +14,7 @@ export function CoreSessionSync() {
   const attempted = useRef(false);
 
   useEffect(() => {
+    if (!isCoreIntegrationEnabled()) return;
     if (attempted.current) return;
     attempted.current = true;
 

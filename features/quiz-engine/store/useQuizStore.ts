@@ -60,7 +60,8 @@ export const useQuizStore = create<QuizStore>()(
       clearAnswer: (questionId) =>
         set(
           (state) => {
-            const { [questionId]: _, ...rest } = state.answers;
+            const rest = { ...state.answers };
+            delete rest[questionId];
             return { answers: rest };
           },
           false,

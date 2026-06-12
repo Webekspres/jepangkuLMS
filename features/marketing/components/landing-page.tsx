@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
@@ -18,7 +17,8 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { BRAND_LOGO } from '@/lib/brand-logo';
+import { BrandLogo } from '@/components/brand-logo';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { LANDING_NAV_MENU_TOP } from './marketing-nav-layout';
 import { MarketingNavLinkItem } from './marketing-nav-link';
@@ -64,7 +64,7 @@ export function LandingPage() {
         className={cn(
           'fixed top-0 right-0 left-0 transition-all duration-300',
           menuOpen ? 'z-102' : 'z-50',
-          scrolled ? 'border-b border-border bg-background/95 shadow-md backdrop-blur-md' : 'bg-transparent',
+          scrolled ? 'border-b border-border bg-header shadow-md backdrop-blur-md dark:backdrop-blur-none' : 'bg-transparent',
         )}
         initial={{ y: -80 }}
         animate={{ y: 0 }}
@@ -72,14 +72,7 @@ export function LandingPage() {
       >
         <div className="relative z-60 container mx-auto flex items-center justify-between px-4 py-4 md:px-8">
           <Link href="/" className="inline-block">
-            <Image
-              src="/brand/logo.png"
-              alt="JepangKu"
-              width={BRAND_LOGO.nav.width}
-              height={BRAND_LOGO.nav.height}
-              className={BRAND_LOGO.nav.className}
-              priority
-            />
+            <BrandLogo variant="nav" priority />
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
@@ -88,7 +81,8 @@ export function LandingPage() {
             ))}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2 md:flex">
+            <ThemeToggle />
             <Button asChild variant="outline" className="h-10 px-5">
               <Link href="/sign-in">Masuk</Link>
             </Button>
@@ -97,22 +91,25 @@ export function LandingPage() {
             </Button>
           </div>
 
-          <button
-            type="button"
-            className="relative rounded-lg p-1 text-foreground md:hidden"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
-          </button>
+          <div className="flex items-center gap-1 md:hidden">
+            <ThemeToggle size="icon-sm" />
+            <button
+              type="button"
+              className="relative rounded-lg p-1 text-foreground"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+            </button>
+          </div>
         </div>
 
         <MarketingMobileMenu
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
-          panelClassName="border border-border bg-background/95 backdrop-blur-xl"
+          panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
         >
           <nav className="flex flex-col p-2">
             {MARKETING_NAV_LINKS.map((link) => (
@@ -128,6 +125,10 @@ export function LandingPage() {
             ))}
           </nav>
           <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between px-1 pb-1">
+              <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
+              <ThemeToggle size="icon-sm" />
+            </div>
             <Button asChild variant="outline" className="h-11 w-full">
               <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
                 Masuk

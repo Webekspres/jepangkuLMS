@@ -1,6 +1,6 @@
 # 🗄️ JepangKu Core Backend — Konsep Arsitektur (Ringkas)
 
-> ⚠️ **Bukan schema implementasi.** Untuk tabel, kolom, Prisma, DBML, seed, dan aturan bisnis → gunakan **[backend_core_services/](./backend_core_services/)** (`SCHEMA_REFERENCE.md` per field, `README.md` aturan bisnis, `backend-core-services.prisma`).
+> ⚠️ **Bukan schema implementasi.** Untuk tabel, kolom, Prisma, DBML, seed, dan aturan bisnis → gunakan **[jepangku-core/docs/](../../jepangku-core/docs/)** (`SCHEMA_REFERENCE.md`, `README.md`, `backend-core-services.prisma`).
 
 Dokumen ini menjawab **mengapa** ada database Core terpisah dan **bagaimana** LMS/Berita memakainya. Detail teknis ada di folder canonical di atas.
 
@@ -66,7 +66,7 @@ flowchart TB
 | **Badge** | Master `badges` + junction `user_badges` |
 | **Ledger** | Setiap award XP tercatat; **idempotency_key** wajib dari LMS |
 
-Implementasi aktual (termasuk `current_points`, nama tabel pasti): **[backend_core_services/README.md](./backend_core_services/README.md)**.
+Implementasi aktual: **[jepangku-core/docs/README.md](../../jepangku-core/docs/README.md)**.
 
 ---
 
@@ -85,7 +85,7 @@ Kode LMS: `lib/core/jwt-claims.ts`, `lib/core/session.ts`. Contoh payload JWT: [
 
 ## 4. Migrasi dari desain draft awal
 
-Dokumen ini awalnya menggambarkan variasi **3NF “ideal”** (`user_stats` terpisah, `xp_transactions`). Schema **final** yang dipakai tim disederhanakan dan didokumentasikan di `backend_core_services/`.
+Dokumen ini awalnya menggambarkan variasi **3NF “ideal”** (`user_stats` terpisah, `xp_transactions`). Schema **final** didokumentasikan di repo `jepangku-core/docs/`.
 
 | Konsep draft (di sini dulu) | Implementasi final |
 | :--- | :--- |
@@ -99,7 +99,7 @@ Jangan implement dari diagram lama di repo; selalu buka Prisma canonical.
 
 ## 5. Checklist singkat untuk tim
 
-- [ ] Baca [backend_core_services/README.md](./backend_core_services/README.md) sebelum coding DB Core
+- [ ] Baca [jepangku-core/docs/README.md](../../jepangku-core/docs/README.md) sebelum coding DB Core
 - [ ] `users.id` = Clerk ID = LMS `User.id`
 - [ ] JWT claims + idempotency XP diselaraskan dengan Sultan
 - [ ] LMS tidak menyimpan email/XP/badge di Prisma lokal
