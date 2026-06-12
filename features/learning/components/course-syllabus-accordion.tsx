@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { ChevronDown, Lock, Play } from 'lucide-react';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
@@ -30,11 +31,19 @@ export function CourseSyllabusAccordion({
   onToggle,
   showGlobalIndex = true,
 }: CourseSyllabusAccordionProps) {
-  let globalIndex = 0;
+  const groupStartIndices = useMemo(() => {
+    const starts: number[] = [];
+    let total = 0;
+    for (const group of groups) {
+      starts.push(total);
+      total += group.lessons.length;
+    }
+    return starts;
+  }, [groups]);
 
   return (
     <div className="space-y-3">
-      {groups.map((group) => {
+      {groups.map((group, groupIndex) => {
         const groupId = group.module;
         const isOpen = expandedIds.includes(groupId);
         const lessonCount = group.lessons.length;
@@ -69,9 +78,8 @@ export function CourseSyllabusAccordion({
 
             <AnimatedCollapse open={isOpen}>
               <ul className="divide-y divide-border border-t border-border">
-                {group.lessons.map((lesson) => {
-                  globalIndex += 1;
-                  const index = globalIndex;
+                {group.lessons.map((lesson, lessonIndex) => {
+                  const index = groupStartIndices[groupIndex] + lessonIndex + 1;
                   const row = (
                     <>
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">

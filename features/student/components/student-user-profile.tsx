@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useClerk } from '@clerk/nextjs';
@@ -20,6 +20,7 @@ import {
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
+import { useIsClient } from '@/lib/hooks/use-is-client';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
@@ -35,9 +36,7 @@ const MENU_ITEMS = [
 
 function ProfileThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   const isDark = mounted && resolvedTheme === 'dark';
 

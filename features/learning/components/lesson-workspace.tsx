@@ -154,11 +154,19 @@ function LessonCurriculumList({
   currentLessonSlug,
   onLessonSelect,
 }: LessonCurriculumListProps) {
-  let globalIndex = 0;
+  const groupStartIndices = useMemo(() => {
+    const starts: number[] = [];
+    let total = 0;
+    for (const group of syllabusGroups) {
+      starts.push(total);
+      total += group.lessons.length;
+    }
+    return starts;
+  }, [syllabusGroups]);
 
   return (
     <>
-      {syllabusGroups.map((group) => {
+      {syllabusGroups.map((group, groupIndex) => {
         const isModuleOpen = expandedModuleIds.includes(group.module);
         const moduleCompleted = group.lessons.every((item) => item.isCompleted);
         const moduleHasCurrent = group.lessons.some((item) => item.slug === currentLessonSlug);
@@ -194,9 +202,8 @@ function LessonCurriculumList({
 
             <AnimatedCollapse open={isModuleOpen}>
               <div>
-                {group.lessons.map((item) => {
-                  globalIndex += 1;
-                  const index = globalIndex;
+                {group.lessons.map((item, lessonIndex) => {
+                  const index = groupStartIndices[groupIndex] + lessonIndex + 1;
                   const isCurrent = item.slug === currentLessonSlug;
                   return (
                     <Link
@@ -331,13 +338,17 @@ export function LessonWorkspace({
   const [isPending, startTransition] = useTransition();
   const [completed, setCompleted] = useState(lesson.isCompleted);
   const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
+  const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
   const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
   const [flashcardVisited, setFlashcardVisited] = useState(initialTab === 'flashcard');
   const [quizPassed, setQuizPassed] = useState(false);
 
-  useEffect(() => {
-    setMobileCurriculumOpen(false);
-  }, [lesson.slug]);
+  if (curriculumLessonSlug !== lesson.slug) {
+    setCurriculumLessonSlug(lesson.slug);
+    if (mobileCurriculumOpen) {
+      setMobileCurriculumOpen(false);
+    }
+  }
 
   useEffect(() => {
     if (!mobileCurriculumOpen) return;
@@ -391,7 +402,6 @@ export function LessonWorkspace({
     return [];
   }, [materials]);
 
-  const activeTrackStyle = activeTrack?.badgeClass ?? 'bg-primary/10 text-primary';
   const trackLabel =
     currentTrack === 'umum' ? 'Video Lesson' : (activeTrack?.label ?? lesson.title);
   const trackJp = activeTrack?.jp ?? '学習';

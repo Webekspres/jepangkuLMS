@@ -106,8 +106,9 @@ export function LessonVidstackPlayer({
   }, [isActive]);
 
   useEffect(() => {
+    const player = playerRef.current;
     return () => {
-      playerRef.current?.pause().catch(() => undefined);
+      player?.pause().catch(() => undefined);
     };
   }, []);
 

@@ -42,15 +42,20 @@ export function LessonYouTubeQualityProvider({ children }: { children: ReactNode
   const started = useMediaState('started');
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
+  const [trackedIframe, setTrackedIframe] = useState<HTMLIFrameElement | null>(null);
 
   const iframe = useMemo(() => getYouTubeIframe(provider), [provider]);
 
-  useEffect(() => {
+  if (iframe !== trackedIframe) {
+    setTrackedIframe(iframe);
     if (!iframe) {
       setAvailableLevels([]);
       setSelectedQuality('auto');
-      return;
     }
+  }
+
+  useEffect(() => {
+    if (!iframe) return;
 
     const onMessage = (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
@@ -95,12 +100,14 @@ export function LessonYouTubeQualityProvider({ children }: { children: ReactNode
 
 export function LessonYouTubeQualityMenu() {
   const context = useContext(YouTubeQualityContext);
-  if (!context?.iframe) return null;
+  const options = useMemo(
+    () => buildYouTubeQualityOptions(context?.availableLevels ?? []),
+    [context?.availableLevels],
+  );
 
-  const { iframe, availableLevels, selectedQuality, setSelectedQuality } = context;
-  const options = useMemo(() => buildYouTubeQualityOptions(availableLevels), [availableLevels]);
+  if (!context?.iframe || options.length <= 1) return null;
 
-  if (options.length <= 1) return null;
+  const { iframe, selectedQuality, setSelectedQuality } = context;
 
   return (
     <Menu.Root className="vds-quality-menu vds-menu">
