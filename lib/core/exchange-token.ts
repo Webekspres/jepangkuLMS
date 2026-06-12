@@ -1,5 +1,5 @@
 import { getCoreApiBaseUrl } from './client';
-import { loggers } from '@/lib/logger';
+import { loggers, logUpstreamFailure } from '@/lib/logger';
 
 const coreLog = loggers.core;
 
@@ -60,13 +60,23 @@ export async function exchangeClerkSessionForCoreJwt(
       // ignore parse errors
     }
 
-    coreLog.warn(
-      { status: response.status, code, message },
-      'Core JWT token exchange rejected',
+    const failure = logUpstreamFailure(
+      {
+        method: 'POST',
+        path: '/api/v1/auth/token',
+        statusCode: response.status,
+        code,
+      },
+      `Core JWT token exchange rejected: ${message}`,
     );
+    coreLog.warn(failure.context, failure.summary);
     throw new CoreTokenExchangeError(message, response.status, code);
   }
 
-  coreLog.info({ status: response.status }, 'Core JWT token exchange succeeded');
+  const { context, summary } = logUpstreamFailure(
+    { method: 'POST', path: '/api/v1/auth/token', statusCode: response.status },
+    'Core JWT token exchange succeeded',
+  );
+  coreLog.info(context, summary);
   return (await response.json()) as CoreTokenSuccess;
 }

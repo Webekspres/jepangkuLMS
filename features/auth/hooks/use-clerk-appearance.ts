@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTheme } from 'next-themes';
 import { getClerkAppearance } from '@/features/auth/components/clerk-appearance';
+import { useIsClient } from '@/lib/hooks/use-is-client';
 
 function resolveIsDark(resolvedTheme: string | undefined): boolean {
   if (resolvedTheme === 'dark') return true;
@@ -19,11 +20,7 @@ function resolveIsDark(resolvedTheme: string | undefined): boolean {
  */
 export function useClerkAppearance() {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const isDark = mounted ? resolveIsDark(resolvedTheme) : false;
 

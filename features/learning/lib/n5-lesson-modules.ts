@@ -87,17 +87,17 @@ export function groupLessonsByModule<T extends { slug: string; order: number }>(
   const buckets = new Map<N5Module, T[]>();
 
   for (const lesson of [...lessons].sort((a, b) => a.order - b.order)) {
-    const module = inferLessonModule(lesson.slug);
-    const list = buckets.get(module) ?? [];
+    const lessonModule = inferLessonModule(lesson.slug);
+    const list = buckets.get(lessonModule) ?? [];
     list.push(lesson);
-    buckets.set(module, list);
+    buckets.set(lessonModule, list);
   }
 
-  return N5_MODULE_ORDER.filter((module) => buckets.has(module)).map((module) => ({
-    module,
-    title: N5_MODULE_META[module].title,
-    subtitle: N5_MODULE_META[module].subtitle,
-    lessons: buckets.get(module)!,
+  return N5_MODULE_ORDER.filter((mod) => buckets.has(mod)).map((mod) => ({
+    module: mod,
+    title: N5_MODULE_META[mod].title,
+    subtitle: N5_MODULE_META[mod].subtitle,
+    lessons: buckets.get(mod)!,
   }));
 }
 
@@ -122,10 +122,10 @@ export function buildN5MarketingSyllabus(): CourseSyllabusModule[] {
 }
 
 function estimateLessonDuration(slug: string): string {
-  const module = inferLessonModule(slug);
-  if (module === 'tryout') return '60 menit';
-  if (module === 'kuis') return '30 menit';
-  if (module === 'aksara') return '15 menit';
+  const lessonModule = inferLessonModule(slug);
+  if (lessonModule === 'tryout') return '60 menit';
+  if (lessonModule === 'kuis') return '30 menit';
+  if (lessonModule === 'aksara') return '15 menit';
   return '20 menit';
 }
 

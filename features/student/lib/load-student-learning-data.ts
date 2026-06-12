@@ -128,5 +128,10 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
 
 export const loadPublishedCatalog = cache(async function loadPublishedCatalog() {
   const courses = await getCoursesWithDbIds();
-  return courses.map(({ dbId: _dbId, lessonCount: _lc, ...rest }) => rest);
+  return courses.map((course) => {
+    const { dbId, lessonCount, ...rest } = course;
+    void dbId;
+    void lessonCount;
+    return rest;
+  });
 });

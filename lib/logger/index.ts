@@ -1,10 +1,18 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pino, { type Logger, type TransportTargetOptions } from 'pino';
 
 export type { Logger };
 
 const isDev = process.env.NODE_ENV !== 'production';
 const logLevel = process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info');
+
+const loggerDir = path.dirname(fileURLToPath(import.meta.url));
+const prettyPrettifiersPath = path.join(loggerDir, 'pretty-prettifiers.cjs');
+
+/** Field terstruktur disembunyikan di terminal — sudah dirangkum di `msg`. File JSON tetap lengkap. */
+const PRETTY_IGNORE =
+  'pid,hostname,service,env,upstream,method,path,statusCode,code,durationMs,responseBody,timeoutMs,attempt,maxAttempts,userId,logFile,route';
 
 /** Folder output log di root repo — isi file di-gitignore, `.gitkeep` tetap di-track. */
 export const LOG_DIR = path.join(process.cwd(), 'logs');
@@ -26,7 +34,7 @@ export function resolveLogFilePath(): string | null {
  * - LOG_FILE — path file log (default: logs/jepangku-lms.log)
  * - LOG_TO_FILE — set `false` untuk nonaktifkan tulis ke file (hanya stdout)
  *
- * Dev: terminal (pino-pretty) + file JSON di `logs/`.
+ * Dev: terminal human-readable (pino-pretty) + file JSON di `logs/`.
  * Prod: stdout JSON + file JSON (sama isi, beda tujuan).
  */
 function createRootLogger(logFile: string | null): Logger {
@@ -43,9 +51,13 @@ function createRootLogger(logFile: string | null): Logger {
       level: logLevel,
       options: {
         colorize: true,
+        levelFirst: true,
         translateTime: 'HH:MM:ss.l',
-        ignore: 'pid,hostname,service,env',
+        singleLine: true,
+        ignore: PRETTY_IGNORE,
         messageFormat: '{module} | {msg}',
+        customPrettifiers: prettyPrettifiersPath,
+        customColors: 'trace:gray,debug:cyan,info:blue,warn:yellow,error:red,fatal:bgRed',
         destination: 1,
       },
     });
@@ -110,4 +122,13 @@ export const loggers = {
   webhook: createLogger('webhook'),
 } as const;
 
-export { serializeError } from './serialize-error';
+export {
+  formatErrorSummary,
+  logUpstreamFailure,
+  serializeError,
+} from './serialize-error';
+export {
+  formatUpstreamSummary,
+  upstreamLogContext,
+  type UpstreamLogFields,
+} from './upstream-log';

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { useIsClient } from '@/lib/hooks/use-is-client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,7 @@ type ThemeToggleProps = {
 
 export function ThemeToggle({ className, size = 'icon' }: ThemeToggleProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   const activeTheme = theme ?? 'system';
   const TriggerIcon = !mounted ? Sun : resolvedTheme === 'dark' ? Moon : Sun;

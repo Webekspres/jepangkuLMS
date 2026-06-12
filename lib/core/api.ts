@@ -1,5 +1,5 @@
 import { getCoreApiBaseUrl } from './client';
-import { loggers, serializeError } from '@/lib/logger';
+import { loggers, logUpstreamFailure, serializeError } from '@/lib/logger';
 
 const coreLog = loggers.core;
 const CORE_FETCH_TIMEOUT_MS = 4_000;
@@ -34,36 +34,82 @@ async function fetchCoreJson<T>(path: string, init?: RequestInit): Promise<T> {
     if (!response.ok) {
       let code: string | undefined;
       let message = `Core API error (${response.status})`;
+      let responseBody: string | undefined;
+
       try {
-        const body = (await response.json()) as CoreErrorBody;
+        const bodyText = await response.text();
+        responseBody = bodyText;
+        const body = JSON.parse(bodyText) as CoreErrorBody;
         code = body.error?.code;
         message = body.error?.message ?? message;
       } catch {
         // ignore
       }
 
-      coreLog.warn(
-        { path, method, status: response.status, code, durationMs },
+      const { context, summary } = logUpstreamFailure(
+        {
+          method,
+          path,
+          statusCode: response.status,
+          code,
+          durationMs,
+          responseBody,
+        },
         `Core API request failed: ${message}`,
       );
-      throw new Error(message);
+      coreLog.warn(context, summary);
+
+      const error = new Error(message) as Error & {
+        statusCode: number;
+        code?: string;
+        upstream: string;
+      };
+      error.statusCode = response.status;
+      error.code = code;
+      error.upstream = 'core-backend';
+      throw error;
     }
 
-    coreLog.debug({ path, method, status: response.status, durationMs }, 'Core API request OK');
+    const { context, summary } = logUpstreamFailure(
+      { method, path, statusCode: response.status, durationMs },
+      'Core API request OK',
+    );
+    coreLog.debug(context, summary);
     return (await response.json()) as T;
   } catch (error) {
     const durationMs = Date.now() - started;
+
     if (error instanceof Error && error.name === 'TimeoutError') {
-      coreLog.error(
-        { path, method, durationMs, timeoutMs: CORE_FETCH_TIMEOUT_MS },
-        'Core API request timed out',
+      const { context, summary } = logUpstreamFailure(
+        {
+          method,
+          path,
+          statusCode: 504,
+          code: 'TIMEOUT',
+          durationMs,
+        },
+        `Core API request timed out after ${CORE_FETCH_TIMEOUT_MS}ms`,
       );
-    } else if (!(error instanceof Error && error.message.startsWith('Core API error'))) {
+      coreLog.error(context, summary);
+    } else if (
+      !(
+        error instanceof Error &&
+        'statusCode' in error &&
+        typeof (error as { statusCode?: number }).statusCode === 'number'
+      )
+    ) {
       coreLog.error(
-        { path, method, durationMs, ...serializeError(error) },
-        'Core API request error',
+        {
+          method,
+          path,
+          durationMs,
+          upstream: 'core-backend',
+          ...serializeError(error),
+        },
+        `[core-backend] ${method} ${path} — Core API request error: ${serializeError(error).err.message}`,
       );
     }
+
     throw error;
   }
 }

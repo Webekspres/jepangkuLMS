@@ -1,5 +1,5 @@
 import { CoreTokenExchangeError, exchangeClerkSessionForCoreJwt } from './exchange-token';
-import { loggers } from '@/lib/logger';
+import { loggers, formatUpstreamSummary } from '@/lib/logger';
 
 const coreLog = loggers.core;
 
@@ -37,8 +37,24 @@ export async function exchangeClerkSessionForCoreJwtWithRetry(clerkSessionToken:
       if (error instanceof CoreTokenExchangeError && isRetryableExchangeError(error)) {
         lastError = error;
         coreLog.warn(
-          { attempt, maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length, code: error.code, status: error.status },
-          'Core JWT exchange attempt failed — will retry if attempts remain',
+          {
+            attempt,
+            maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
+            code: error.code,
+            statusCode: error.status,
+            upstream: 'core-backend',
+            path: '/api/v1/auth/token',
+            method: 'POST',
+          },
+          formatUpstreamSummary(
+            {
+              method: 'POST',
+              path: '/api/v1/auth/token',
+              statusCode: error.status,
+              code: error.code,
+            },
+            `Core JWT exchange attempt ${attempt}/${WEBHOOK_SYNC_DELAYS_MS.length} failed — will retry if attempts remain`,
+          ),
         );
         continue;
       }
@@ -50,9 +66,20 @@ export async function exchangeClerkSessionForCoreJwtWithRetry(clerkSessionToken:
     {
       maxAttempts: WEBHOOK_SYNC_DELAYS_MS.length,
       code: lastError?.code,
-      status: lastError?.status,
+      statusCode: lastError?.status,
+      upstream: 'core-backend',
+      path: '/api/v1/auth/token',
+      method: 'POST',
     },
-    'Core JWT exchange exhausted all retries',
+    formatUpstreamSummary(
+      {
+        method: 'POST',
+        path: '/api/v1/auth/token',
+        statusCode: lastError?.status,
+        code: lastError?.code,
+      },
+      'Core JWT exchange exhausted all retries',
+    ),
   );
 
   throw (

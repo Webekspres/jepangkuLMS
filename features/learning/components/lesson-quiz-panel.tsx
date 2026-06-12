@@ -6,7 +6,6 @@ import {
   ArrowRight,
   CheckCircle2,
   ChevronLeft,
-  ChevronRight,
   HelpCircle,
   Loader2,
   RotateCcw,
@@ -43,8 +42,6 @@ type QuizPhase = 'questions' | 'result';
 export function LessonQuizPanel({
   lessonId,
   lessonSlug,
-  lessonTitle,
-  trackJp = '語彙',
   questions,
   onSubmitted,
 }: LessonQuizPanelProps) {

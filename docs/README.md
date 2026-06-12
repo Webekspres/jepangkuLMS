@@ -4,6 +4,7 @@
 | :--- | :--- |
 | [CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md) | Status integrasi Core (dev/prod) |
 | [ECOSYSTEM.md](./ECOSYSTEM.md) | Batas LMS vs Core vs News |
+| [DRAFT_LMS_PLATFORM_POINTS.md](./DRAFT_LMS_PLATFORM_POINTS.md) | **Draft** poin LMS & leaderboard platform (belum implementasi) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur feature-based |
 | [DATABASE.md](./DATABASE.md) | Strategi DB LMS |
 | [CORE_ERD.md](./CORE_ERD.md) | Konsep DB Core (ringkas) |

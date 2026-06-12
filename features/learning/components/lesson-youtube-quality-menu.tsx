@@ -29,6 +29,13 @@ type YouTubeQualityContextValue = {
   setSelectedQuality: (quality: string) => void;
 };
 
+const EMPTY_QUALITY_CONTEXT: YouTubeQualityContextValue = {
+  iframe: null,
+  availableLevels: [],
+  selectedQuality: 'auto',
+  setSelectedQuality: () => undefined,
+};
+
 const YouTubeQualityContext = createContext<YouTubeQualityContextValue | null>(null);
 
 function getYouTubeIframe(provider: unknown): HTMLIFrameElement | null {
@@ -37,23 +44,23 @@ function getYouTubeIframe(provider: unknown): HTMLIFrameElement | null {
   return iframe ?? null;
 }
 
-export function LessonYouTubeQualityProvider({ children }: { children: ReactNode }) {
-  const provider = useMediaProvider();
-  const started = useMediaState('started');
+function YouTubeQualityTracker({
+  iframe,
+  started,
+  children,
+}: {
+  iframe: HTMLIFrameElement;
+  started: boolean;
+  children: ReactNode;
+}) {
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
   const [selectedQuality, setSelectedQuality] = useState('auto');
 
-  const iframe = useMemo(() => getYouTubeIframe(provider), [provider]);
-
   useEffect(() => {
-    if (!iframe) {
-      setAvailableLevels([]);
-      setSelectedQuality('auto');
-      return;
-    }
+    let active = true;
 
     const onMessage = (event: MessageEvent) => {
-      if (event.source !== iframe.contentWindow) return;
+      if (!active || event.source !== iframe.contentWindow) return;
 
       const info = parseYouTubeInfoDelivery(event.data);
       if (!info?.availableQualityLevels?.length) return;
@@ -63,19 +70,22 @@ export function LessonYouTubeQualityProvider({ children }: { children: ReactNode
 
     window.addEventListener('message', onMessage);
 
-    const syncQualities = () => requestYouTubeQualityInfo(iframe);
+    const syncQualities = () => {
+      if (active) requestYouTubeQualityInfo(iframe);
+    };
     syncQualities();
 
     const intervalId = window.setInterval(syncQualities, 3000);
 
     return () => {
+      active = false;
       window.removeEventListener('message', onMessage);
       window.clearInterval(intervalId);
     };
   }, [iframe]);
 
   useEffect(() => {
-    if (started && iframe) {
+    if (started) {
       requestYouTubeQualityInfo(iframe);
     }
   }, [started, iframe]);
@@ -90,17 +100,41 @@ export function LessonYouTubeQualityProvider({ children }: { children: ReactNode
     [iframe, availableLevels, selectedQuality],
   );
 
-  return <YouTubeQualityContext.Provider value={value}>{children}</YouTubeQualityContext.Provider>;
+  return (
+    <YouTubeQualityContext.Provider value={value}>{children}</YouTubeQualityContext.Provider>
+  );
+}
+
+export function LessonYouTubeQualityProvider({ children }: { children: ReactNode }) {
+  const provider = useMediaProvider();
+  const started = useMediaState('started');
+  const iframe = useMemo(() => getYouTubeIframe(provider), [provider]);
+
+  if (!iframe) {
+    return (
+      <YouTubeQualityContext.Provider value={EMPTY_QUALITY_CONTEXT}>
+        {children}
+      </YouTubeQualityContext.Provider>
+    );
+  }
+
+  return (
+    <YouTubeQualityTracker key={iframe.src} iframe={iframe} started={started}>
+      {children}
+    </YouTubeQualityTracker>
+  );
 }
 
 export function LessonYouTubeQualityMenu() {
   const context = useContext(YouTubeQualityContext);
-  if (!context?.iframe) return null;
+  const options = useMemo(
+    () => buildYouTubeQualityOptions(context?.availableLevels ?? []),
+    [context?.availableLevels],
+  );
 
-  const { iframe, availableLevels, selectedQuality, setSelectedQuality } = context;
-  const options = useMemo(() => buildYouTubeQualityOptions(availableLevels), [availableLevels]);
+  if (!context?.iframe || options.length <= 1) return null;
 
-  if (options.length <= 1) return null;
+  const { iframe, selectedQuality, setSelectedQuality } = context;
 
   return (
     <Menu.Root className="vds-quality-menu vds-menu">

@@ -162,13 +162,13 @@ function categoryLessons(
 ): N5LessonDef[] {
   return categories.map((category, index) => {
     const slug = categoryLessonSlug(track, category);
-    const module =
+    const lessonModule =
       track === 'kanji' ? 'kanji' : track === 'kosakata' ? 'kosakata' : 'tata-bahasa';
     return {
       slug,
       title: `${label}: ${category}`,
       order: startOrder + index,
-      module,
+      module: lessonModule,
       excelCategory: category,
       content: `Materi ${label.toLowerCase()} JLPT N5 — topik **${category}**. Gunakan tab Flashcard untuk hafalan dan tab Quiz setelah modul terkait selesai.`,
     };

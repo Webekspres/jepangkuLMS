@@ -10,6 +10,8 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      // React 19 warns on <script> in client components; theme still applies after hydration.
+      scriptProps={{ type: 'application/json' }}
       {...props}
     >
       {children}

@@ -4,7 +4,7 @@ import { useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { LANDING_NAV_MENU_TOP, PUBLIC_NAV_MENU_TOP } from './marketing-nav-layout';
+import { PUBLIC_NAV_MENU_TOP } from './marketing-nav-layout';
 
 type MarketingMobileMenuProps = {
   open: boolean;

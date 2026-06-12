@@ -1,5 +1,7 @@
 'use client';
 
+import '@/lib/vidstack/suppress-provider-destroyed-rejection';
+
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 import './lesson-vidstack-theme.css';
@@ -23,6 +25,10 @@ import {
   LessonYouTubeQualityProvider,
 } from '@/features/learning/components/lesson-youtube-quality-menu';
 import {
+  isIgnorableMediaError,
+  safeMediaPromise,
+} from '@/lib/vidstack/safe-media-operation';
+import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
   toVidstackYouTubeSrc,
@@ -32,13 +38,13 @@ export type LessonVidstackPlayerProps = {
   videoUrl: string;
   title: string;
   isDemo?: boolean;
-  /** Pause saat tab bukan video — hindari unmount yang memicu error Vidstack. */
+  /** Pause saat tab bukan video — player tetap mounted (hidden). */
   isActive?: boolean;
 };
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-const ID_LAYOUT_TRANSLATIONS: DefaultLayoutTranslations = {
+const ID_LAYOUT_TRANSLATIONS: Partial<DefaultLayoutTranslations> = {
   Play: 'Putar',
   Pause: 'Jeda',
   Mute: 'Bisukan',
@@ -63,30 +69,9 @@ function onProviderChange(provider: MediaProviderAdapter | null) {
   }
 }
 
-function isProviderDestroyedRejection(reason: unknown) {
-  return reason === 'provider destroyed';
-}
-
-let providerDestroyedGuardCount = 0;
-
-function onProviderDestroyedRejection(event: PromiseRejectionEvent) {
-  if (isProviderDestroyedRejection(event.reason)) {
-    event.preventDefault();
-  }
-}
-
-function retainProviderDestroyedGuard() {
-  if (typeof window === 'undefined') return () => undefined;
-  providerDestroyedGuardCount += 1;
-  if (providerDestroyedGuardCount === 1) {
-    window.addEventListener('unhandledrejection', onProviderDestroyedRejection);
-  }
-  return () => {
-    providerDestroyedGuardCount -= 1;
-    if (providerDestroyedGuardCount === 0) {
-      window.removeEventListener('unhandledrejection', onProviderDestroyedRejection);
-    }
-  };
+function onPlayFail(error: Error) {
+  if (isIgnorableMediaError(error)) return;
+  console.error('Video playback failed:', error);
 }
 
 export function LessonVidstackPlayer({
@@ -98,18 +83,18 @@ export function LessonVidstackPlayer({
   const playerRef = useRef<MediaPlayerInstance>(null);
   const videoId = extractYouTubeVideoId(videoUrl);
 
-  useEffect(() => retainProviderDestroyedGuard(), []);
+  useEffect(() => {
+    const player = playerRef.current;
+    return () => {
+      if (!player) return;
+      safeMediaPromise(player.pause());
+    };
+  }, []);
 
   useEffect(() => {
     if (isActive) return;
-    playerRef.current?.pause().catch(() => undefined);
+    safeMediaPromise(playerRef.current?.pause());
   }, [isActive]);
-
-  useEffect(() => {
-    return () => {
-      playerRef.current?.pause().catch(() => undefined);
-    };
-  }, []);
 
   if (!videoId) {
     return (
@@ -134,6 +119,7 @@ export function LessonVidstackPlayer({
           logLevel="error"
           fullscreenOrientation="none"
           onProviderChange={onProviderChange}
+          onPlayFail={onPlayFail}
         >
           <LessonYouTubeQualityProvider>
             <MediaProvider />
