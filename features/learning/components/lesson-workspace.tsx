@@ -32,6 +32,7 @@ import { markLessonComplete } from '@/features/learning/actions/learning-actions
 import {
   getDefaultExpandedModuleIds,
   groupLessonsByModule,
+  type GroupedLesson,
 } from '@/features/learning/lib/n5-lesson-modules';
 import {
   resolveLessonVideoUrl,
@@ -135,7 +136,7 @@ function findTrackLesson(syllabus: LessonNavItem[], match: string) {
   return syllabus.find((item) => item.slug.includes(match));
 }
 
-type SyllabusGroup = ReturnType<typeof groupLessonsByModule>[number];
+type SyllabusGroup = GroupedLesson<LessonNavItem>;
 
 type LessonCurriculumListProps = {
   syllabusGroups: SyllabusGroup[];

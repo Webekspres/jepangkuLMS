@@ -7,10 +7,7 @@ import {
 } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
 import { mergeCourseDisplay } from './course-display';
-import {
-  computeCourseProgressFromLessons,
-  type CourseProgress,
-} from './progress';
+import { type CourseProgress } from './progress';
 
 export type { CourseProgress };
 
@@ -30,18 +27,16 @@ export type LessonNavItem = {
   hasQuiz: boolean;
 };
 
-function computeProgress(
-  lessons: { slug: string; order: number }[],
-  completedSlugs: Set<string>,
-): CourseProgress {
-  return computeCourseProgressFromLessons(lessons, completedSlugs);
-}
-
 export const getCoursesWithDbIds = getCachedCoursesWithDbIds;
 
 export const getPublishedCourses = cache(async function getPublishedCourses() {
   const courses = await getCoursesWithDbIds();
-  return courses.map(({ dbId: _dbId, lessonCount: _lc, ...rest }) => rest);
+  return courses.map((course) => {
+    const { dbId, lessonCount, ...rest } = course;
+    void dbId;
+    void lessonCount;
+    return rest;
+  });
 });
 
 export const getCourseBySlug = cache(async function getCourseBySlug(slug: string) {

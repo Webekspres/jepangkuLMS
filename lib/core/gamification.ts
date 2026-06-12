@@ -2,7 +2,7 @@ import { getCoreApiBaseUrl } from './client';
 import { CORE_APPLICATION_LMS, getCoreServiceToken, isCoreAwardConfigured } from './config';
 import type { LmsActivityKind } from './activity-map';
 import { buildLmsIdempotencyKey, toCoreActivityType } from './activity-map';
-import { loggers } from '@/lib/logger';
+import { loggers, logUpstreamFailure } from '@/lib/logger';
 
 const coreLog = loggers.core;
 
@@ -73,25 +73,43 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
 
   if (!response.ok) {
     const body = await response.text();
+    const failure = logUpstreamFailure(
+      {
+        method: 'POST',
+        path: '/api/v1/gamification/award',
+        statusCode: response.status,
+        durationMs,
+        responseBody: body,
+      },
+      'Core gamification award request failed',
+    );
     coreLog.warn(
       {
+        ...failure.context,
         userId: input.userId,
         kind: input.kind,
         activityType,
         xpGained: input.xpGained,
         idempotencyKey,
-        status: response.status,
-        durationMs,
-        responseBody: body.slice(0, 500),
       },
-      'Core gamification award request failed',
+      failure.summary,
     );
     return null;
   }
 
   const result = (await response.json()) as CoreAwardXpResponse;
+  const success = logUpstreamFailure(
+    {
+      method: 'POST',
+      path: '/api/v1/gamification/award',
+      statusCode: response.status,
+      durationMs,
+    },
+    'Core gamification XP awarded',
+  );
   coreLog.info(
     {
+      ...success.context,
       userId: input.userId,
       kind: input.kind,
       activityType,
@@ -99,9 +117,8 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
       idempotencyKey,
       idempotent: result.idempotent,
       totalXp: result.user.totalXp,
-      durationMs,
     },
-    'Core gamification XP awarded',
+    success.summary,
   );
   return result;
 }

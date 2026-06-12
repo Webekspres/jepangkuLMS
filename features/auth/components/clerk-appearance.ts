@@ -119,18 +119,20 @@ type ClerkAppearanceOptions = {
  */
 export function getClerkAppearance({ isDark = false }: ClerkAppearanceOptions = {}): ClerkAppearance {
   return {
-    baseTheme: shadcn,
-    /** Hilangkan stripe oranye "Development mode" — hanya muncul di dev keys Clerk */
-    unsafe_disableDevelopmentModeWarnings: true,
+    theme: shadcn,
+    options: {
+      /** Hilangkan stripe oranye "Development mode" — hanya muncul di dev keys Clerk */
+      unsafe_disableDevelopmentModeWarnings: true,
+    },
     variables: {
       colorPrimary: 'var(--primary)',
       colorDanger: 'var(--destructive)',
       colorSuccess: 'var(--primary)',
       colorBackground: isDark ? 'var(--popover)' : 'var(--card)',
-      colorInputBackground: isDark ? 'var(--muted)' : 'var(--background)',
-      colorText: 'var(--foreground)',
-      colorTextSecondary: 'var(--muted-foreground)',
-      colorInputText: 'var(--foreground)',
+      colorInput: isDark ? 'var(--muted)' : 'var(--background)',
+      colorForeground: 'var(--foreground)',
+      colorMutedForeground: 'var(--muted-foreground)',
+      colorInputForeground: 'var(--foreground)',
       borderRadius: '0.75rem',
       fontFamily: 'var(--font-sans), system-ui, sans-serif',
     },

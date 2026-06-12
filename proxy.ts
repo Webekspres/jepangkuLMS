@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_ROUTES, CORE_JWT_COOKIE } from '@/lib/auth/constants';
 import { hasLmsAdminAccess } from '@/lib/auth/lms-roles';
 import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
@@ -18,14 +18,14 @@ function isAuthEntryPath(pathname: string): boolean {
   );
 }
 
-function redirectToAppSignIn(request: Request): NextResponse {
+function redirectToAppSignIn(request: NextRequest): NextResponse {
   const signInUrl = new URL(getClerkSignInUrl());
   const returnPath = new URL(request.url).pathname + new URL(request.url).search;
   signInUrl.searchParams.set('redirect_url', returnPath);
   return NextResponse.redirect(signInUrl);
 }
 
-async function hasCoreAdminRole(request: Request): Promise<boolean> {
+async function hasCoreAdminRole(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(CORE_JWT_COOKIE)?.value;
   if (!token) return false;
 

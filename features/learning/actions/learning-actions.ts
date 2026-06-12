@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
@@ -26,7 +26,7 @@ export async function requestEnrollment(courseId: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, courseId, status: enrollment.status }, 'Enrollment requested');
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
@@ -47,7 +47,7 @@ export async function enrollInCourse(courseSlug: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, courseSlug, courseId: course.id, status: enrollment.status }, 'Course enrollment activated');
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
 }
@@ -84,7 +84,7 @@ export async function markLessonComplete(lessonId: string, xpReward = 10) {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/belajar');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
   return { success: true as const };
 }
@@ -138,7 +138,7 @@ export async function submitQuizAnswers(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info(
     {
       userId,
@@ -192,6 +192,6 @@ export async function submitQuizAttempt(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   return { attemptId: attempt.id, score: attempt.score };
 }

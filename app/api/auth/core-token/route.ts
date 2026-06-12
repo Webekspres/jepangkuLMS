@@ -5,7 +5,7 @@ import { getCoreJwtCookieOptions } from '@/lib/auth/cookie-options';
 import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
 import { CoreTokenExchangeError } from '@/lib/core/exchange-token';
 import { exchangeClerkSessionForCoreJwtWithRetry } from '@/lib/core/exchange-token-with-retry';
-import { loggers, serializeError } from '@/lib/logger';
+import { loggers, formatErrorSummary, formatUpstreamSummary, serializeError } from '@/lib/logger';
 
 const apiLog = loggers.api.child({ route: 'POST /api/auth/core-token' });
 
@@ -66,7 +66,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const clerkToken = await getToken({ skipCache: true });
+  const clerkToken = await getToken();
   if (!clerkToken) {
     apiLog.warn({ userId }, 'Core token exchange rejected — Clerk session token missing');
     return NextResponse.json({ error: 'Clerk session token missing' }, { status: 401 });
@@ -95,13 +95,32 @@ export async function POST() {
     if (error instanceof CoreTokenExchangeError) {
       const mapped = mapExchangeError(error);
       apiLog.error(
-        { userId, code: error.code, status: error.status, httpStatus: mapped.status },
-        `Core token exchange failed: ${error.message}`,
+        {
+          userId,
+          code: error.code,
+          statusCode: error.status,
+          httpStatus: mapped.status,
+          upstream: 'core-backend',
+          method: 'POST',
+          path: '/api/v1/auth/token',
+        },
+        formatUpstreamSummary(
+          {
+            method: 'POST',
+            path: '/api/v1/auth/token',
+            statusCode: error.status,
+            code: error.code,
+          },
+          `Core token exchange failed: ${error.message}`,
+        ),
       );
       return NextResponse.json({ error: mapped.message, code: error.code }, { status: mapped.status });
     }
 
-    apiLog.error({ userId, ...serializeError(error) }, 'Core token exchange unexpected error');
+    apiLog.error(
+      { userId, ...serializeError(error) },
+      formatErrorSummary(error, 'jepangku-lms'),
+    );
     return NextResponse.json({ error: 'Gagal menghubungkan ke Core Backend.' }, { status: 503 });
   }
 }
