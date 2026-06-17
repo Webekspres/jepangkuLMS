@@ -1,10 +1,7 @@
-import React from 'react';
+import { AdminDashboardPage } from '@/features/admin-cms/components/admin-dashboard-page';
+import { loadAdminDashboardStats } from '@/features/admin-cms/lib/load-admin-dashboard-stats';
 
-export default function AdminDashboardPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="text-gray-600">Overview statistik JepangKu LMS (Total Siswa, Kursus, & Pembayaran Pending)</p>
-    </div>
-  );
+export default async function AdminDashboardRoute() {
+  const stats = await loadAdminDashboardStats();
+  return <AdminDashboardPage stats={stats} />;
 }

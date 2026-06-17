@@ -6,6 +6,7 @@ import { AppSplash } from '@/components/app-splash';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
@@ -16,7 +17,9 @@ export default function AppProviders({ children }: { children: React.ReactNode }
     <ThemeProvider>
       <ClerkProviderThemed>
         <QueryProvider>
-          <AppSplash>{children}</AppSplash>
+          <TooltipProvider delayDuration={0}>
+            <AppSplash>{children}</AppSplash>
+          </TooltipProvider>
         </QueryProvider>
       </ClerkProviderThemed>
     </ThemeProvider>

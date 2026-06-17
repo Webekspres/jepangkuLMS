@@ -1,10 +1,10 @@
-import React from 'react';
+import { AdminPlaceholderPage } from '@/features/admin-cms/components/admin-placeholder-page';
 
 export default function AdminQuizPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">CMS: Manajemen Bank Soal</h1>
-      <p className="text-gray-600">Kelola soal kuis & tryout untuk setiap lesson</p>
-    </div>
+    <AdminPlaceholderPage
+      title="CMS: Manajemen Bank Soal"
+      description="Kelola soal kuis dan tryout untuk setiap lesson."
+    />
   );
 }
