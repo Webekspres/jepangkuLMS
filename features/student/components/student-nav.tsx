@@ -83,7 +83,7 @@ export function StudentNav() {
               <span className="text-muted-foreground">·</span>
               <Coins className="size-3.5 text-amber-500" />
               <span className="tabular-nums text-foreground">
-                {formatDisplayNumber(core.currentPoints)}
+                {formatDisplayNumber(core.lmsPoints)}
               </span>
             </div>
           )}

@@ -326,11 +326,11 @@ export function StudentAchievementsPage() {
                 {[
                   { icon: '⚡', label: 'Total XP', value: formatDisplayNumber(core.totalXp) },
                   { icon: '🏆', label: 'Badge', value: `${summary.unlockedCount}/${summary.totalCount}` },
-                  { icon: '💰', label: 'Poin', value: formatDisplayNumber(core.currentPoints) },
+                  { icon: '💰', label: 'Poin', value: formatDisplayNumber(core.lmsPoints) },
                   {
                     icon: '🥇',
                     label: 'Rank',
-                    value: core.globalRank != null ? `#${core.globalRank}` : '—',
+                    value: core.lmsRank != null ? `#${core.lmsRank}` : '—',
                   },
                 ].map((stat) => (
                   <div
@@ -375,7 +375,7 @@ export function StudentAchievementsPage() {
                 </div>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatDisplayNumber(core.totalXp)} XP · {formatDisplayNumber(core.currentPoints)} poin
+                {formatDisplayNumber(core.totalXp)} XP · {formatDisplayNumber(core.lmsPoints)} poin
               </p>
             </div>
           </div>
@@ -557,8 +557,8 @@ export function StudentAchievementsPage() {
                 icon: Users,
                 label: 'Leaderboard Global',
                 sub:
-                  core.globalRank != null
-                    ? `Kamu #${core.globalRank} dari ${formatDisplayNumber(core.leaderboardTotal)}+`
+                  core.lmsRank != null
+                    ? `Kamu #${core.lmsRank} dari ${formatDisplayNumber(core.leaderboardTotal)}+`
                     : 'Lihat peringkat global',
                 accent: 'text-violet-700 bg-violet-500/10',
               },

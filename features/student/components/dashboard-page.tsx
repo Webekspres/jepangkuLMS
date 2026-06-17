@@ -75,10 +75,10 @@ export function DashboardPage({
   const leaderboardPreview =
     core.leaderboardPreview.length > 0
       ? core.leaderboardPreview
-      : core.leaderboardTop10.slice(0, 5).map(({ rank, name, xp, isYou }) => ({
+      : core.leaderboardTop10.slice(0, 5).map(({ rank, name, points, isYou }) => ({
           rank,
           name,
-          xp,
+          points,
           isYou,
         }));
 
@@ -113,12 +113,12 @@ export function DashboardPage({
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
                 <Coins className="size-3.5" />
-                {formatDisplayNumber(core.currentPoints)} poin
+                {formatDisplayNumber(core.lmsPoints)} poin
               </span>
-              {core.globalRank != null ? (
+              {core.lmsRank != null ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
                   <Star className="size-3.5 text-primary" />
-                  Rank #{core.globalRank}
+                  Rank #{core.lmsRank}
                 </span>
               ) : null}
               {core.badgeCount > 0 ? (
@@ -300,7 +300,7 @@ export function DashboardPage({
                       )}
                     </span>
                     <span className="tabular-nums text-muted-foreground">
-                      {formatDisplayNumber(row.xp)} XP
+                      {formatDisplayNumber(row.points)} poin
                     </span>
                   </li>
                 ))}
@@ -320,7 +320,7 @@ export function DashboardPage({
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {formatDisplayNumber(core.totalXp)} XP ·{' '}
-                {formatDisplayNumber(core.currentPoints)} poin
+                {formatDisplayNumber(core.lmsPoints)} poin
               </p>
               {core.recentBadges.length > 0 ? (
                 <div className="mt-4 flex justify-center gap-2">

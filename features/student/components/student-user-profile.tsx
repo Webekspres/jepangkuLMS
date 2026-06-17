@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import {
   BookOpen,
   ChevronDown,
+  LayoutDashboard,
   LogOut,
   Moon,
   Settings,
@@ -17,6 +18,7 @@ import {
   Trophy,
   User,
 } from 'lucide-react';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
@@ -231,6 +233,17 @@ export function StudentUserProfile() {
 
             {/* Nav links */}
             <div className="p-2">
+              {core.canAccessAdmin && (
+                <Link
+                  href={ADMIN_ROUTES.dashboard}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                >
+                  <LayoutDashboard className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  Dashboard Admin
+                </Link>
+              )}
               {MENU_ITEMS.map((item) => (
                 <Link
                   key={item.href}

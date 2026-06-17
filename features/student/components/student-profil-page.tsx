@@ -8,6 +8,7 @@ import { formatDisplayNumber } from '@/features/marketing/components/landing-dat
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
+import { DisplayNameEditor } from './display-name-editor';
 import { STUDENT_ROUTES } from './student-routes';
 
 function StatCard({
@@ -39,7 +40,7 @@ export function StudentProfilPage() {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
 
-  const displayName = identity?.displayName ?? core.displayName ?? 'Pengguna';
+  const displayName = core.displayName ?? identity?.displayName ?? 'Pengguna';
   const email = identity?.email ?? core.email;
   const avatarUrl = identity?.imageUrl ?? core.avatarUrl;
   const initial = displayName.charAt(0).toUpperCase();
@@ -72,8 +73,9 @@ export function StudentProfilPage() {
               ) : null}
               <p className="mt-2 text-sm text-muted-foreground">
                 {core.levelTitle ?? 'Pemula'} · Lv.{core.level}
-                {core.globalRank != null ? ` · Rank #${core.globalRank}` : ''}
+                {core.lmsRank != null ? ` · Rank LMS #${core.lmsRank}` : ''}
               </p>
+              <DisplayNameEditor currentName={displayName} />
               {core.userId ? (
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
                   ID: {core.userId}
@@ -94,9 +96,9 @@ export function StudentProfilPage() {
         />
         <StatCard
           icon={Coins}
-          label="Poin"
-          value={formatDisplayNumber(core.currentPoints)}
-          sub="Saldo spendable"
+          label="Poin LMS"
+          value={formatDisplayNumber(core.lmsPoints)}
+          sub="Leaderboard LMS"
           accentClass="text-amber-600 bg-amber-500/10"
         />
         <StatCard
@@ -108,8 +110,8 @@ export function StudentProfilPage() {
         />
         <StatCard
           icon={Trophy}
-          label="Rank Global"
-          value={core.globalRank != null ? `#${core.globalRank}` : '—'}
+          label="Rank LMS"
+          value={core.lmsRank != null ? `#${core.lmsRank}` : '—'}
           sub={
             core.leaderboardTotal > 0
               ? `dari ${formatDisplayNumber(core.leaderboardTotal)} pelajar`
@@ -165,7 +167,7 @@ export function StudentProfilPage() {
         {core.coreConnected ? (
           <>
             <User className="mr-1 inline size-3" />
-            Identitas dari Clerk · statistik gamifikasi dari Core
+            Identitas dari Clerk · XP/level dari Core · poin & badge dari LMS
           </>
         ) : (
           'Menghubungkan ke Core Backend untuk memuat XP dan badge…'

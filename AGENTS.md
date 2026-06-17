@@ -66,8 +66,9 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 1. **Routing Layer (`app/`):**
    * Murni bertindak sebagai "resepsionis/routing" (RSC tipis).
    * File `page.tsx` di dalam `app/` dilarang menulis logic database rumit secara langsung atau me-render elemen UI kompleks. Panggil wrapper component dari `features/` untuk menangani rendering.
-   * Rute terproteksi bagi siswa dibungkus di dalam Route Group `app/(dashboard)/*`.
-   * Rute terproteksi bagi admin dibungkus di dalam folder `app/admin/*`.
+   * Rute publik/marketing dibungkus di Route Group `app/(marketing)/*`.
+   * Rute terproteksi bagi siswa dibungkus di Route Group `app/(student)/*` (URL tetap `/dashboard/*`).
+   * Rute terproteksi bagi admin dibungkus di Route Group `app/(admin)/admin/*` (URL tetap `/admin/*`).
 
 2. **Isolasi Domain (`features/`):**
    * Seluruh logika bisnis, state, Server Actions, dan UI khusus ditaruh di sini.

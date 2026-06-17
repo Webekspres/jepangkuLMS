@@ -27,32 +27,40 @@ jepangkuLMS/
 │   │   ├── sign-in/[[...sign-in]] # Form Login Custom via Clerk
 │   │   └── sign-up/[[...sign-up]] # Form Register Custom via Clerk
 │   │
-│   ├── (dashboard)/               # Route Group Dashboard (Protected)
-│   │   ├── dashboard/             # Student Hub Utama
-│   │   ├── belajar/               # Course & Lesson Workspace
-│   │   │   └── [courseSlug]/[lessonSlug]
-│   │   ├── kuis/                  # Workspace Kuis (Focus Mode)
-│   │   │   └── [lessonSlug]/      # Kuis & Hasil Evaluasi
-│   │   ├── leaderboard/           # Papan Peringkat Global
-│   │   └── gamifikasi/            # Progress & Profil Pencapaian
-│   │       └── profil-saya/
+│   ├── (marketing)/               # Route Group Publik (/, /kursus, /tentang, …)
+│   │   ├── layout.tsx
+│   │   ├── page.tsx               # Landing Page
+│   │   ├── kursus/                # Katalog & detail kursus publik
+│   │   ├── tryout/                # Info tryout JLPT
+│   │   ├── tentang/               # Tentang JepangKu
+│   │   ├── cara-belajar/          # Panduan belajar
+│   │   ├── hubungi/               # Kontak admin
+│   │   ├── syarat-ketentuan/
+│   │   └── kebijakan-privasi/
 │   │
-│   ├── admin/                     # Area Khusus Admin (Protected)
-│   │   ├── dashboard/             # Statistik Ringkasan Admin
-│   │   ├── pembayaran/            # Verifikasi Akses & Pembayaran
-│   │   ├── kursus/                # CMS Kursus & Form
-│   │   ├── lesson/                # CMS Lesson & Form
-│   │   └── quiz/                  # CMS Soal Kuis & Bulk Import CSV
+│   ├── (student)/                 # Route Group Siswa — URL tetap /dashboard/*
+│   │   ├── layout.tsx             # Student shell + Core hydrate
+│   │   └── dashboard/
+│   │       ├── belajar/[courseSlug]/[lessonSlug]
+│   │       ├── kuis/[lessonSlug]/hasil
+│   │       ├── kursus/
+│   │       ├── leaderboard/
+│   │       ├── profil/
+│   │       ├── achievements/
+│   │       └── tryout/
 │   │
-│   ├── kursus/                    # Halaman Publik Katalog Kursus
-│   ├── tryout/                    # Halaman Publik Info Tryout
-│   ├── tentang/                   # Halaman Statis Tentang
-│   ├── cara-belajar/              # Halaman Statis Cara Belajar
-│   ├── hubungi/                   # Halaman Statis Hubungi Kami
+│   ├── (admin)/                   # Route Group Admin — URL tetap /admin/*
+│   │   ├── layout.tsx
+│   │   └── admin/
+│   │       ├── dashboard/         # Statistik ringkasan
+│   │       ├── pembayaran/        # Validasi enrollment manual
+│   │       ├── kursus/            # CMS kursus
+│   │       ├── lesson/            # CMS lesson
+│   │       └── quiz/              # CMS soal & import
 │   │
-│   ├── api/webhooks/clerk/        # (Legacy/temporary) — target sync user di Core Service
+│   ├── api/                       # Route handlers (auth, webhooks, …)
 │   ├── layout.tsx                 # Root Layout Utama
-│   └── page.tsx                   # Public Landing Page
+│   └── globals.css
 │
 ├── components/                    # 🏗️ SHARED GLOBAL COMPONENTS
 │   ├── layout/                    # Sidebar Navigasi Utama, Navbar Dashboard
@@ -133,7 +141,7 @@ graph TD
 ## 🔐 Keamanan & identitas
 
 - **SSO:** Clerk pada **Core Backend**; Core menerbitkan **JWT + claims** (profil, XP, roles). LMS memverifikasi token lalu `buildSessionFromVerifiedJwt()`.
-- **Proxy:** Proteksi `app/(dashboard)/*` dan `/admin/*` setelah mekanisme sesi jelas.
+- **Proxy:** Proteksi `app/(student)/dashboard/*` dan `app/(admin)/admin/*` setelah mekanisme sesi jelas.
 - **Admin LMS:** Role/permission dari Core — jangan simpan `Role` enum di DB LMS.
 - **Webhook Clerk di LMS:** Jangan menganggap sebagai arsitektur final; target sync & profil di Core. LMS hanya perlu **upsert `User` jangkar** bila diperlukan untuk FK.
 

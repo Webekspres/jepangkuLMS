@@ -11,28 +11,28 @@ export function getInitials(name: string): string {
 export function getLeaderboardUserContext(
   top10: StudentLeaderboardEntry[],
   options: {
-    globalRank: number | null;
-    totalXp: number;
+    lmsRank: number | null;
+    lmsPoints: number;
     leaderboardTotal: number;
   },
 ) {
   const you = top10.find((entry) => entry.isYou);
-  const rank = you?.rank ?? options.globalRank ?? 0;
-  const xp = you?.xp ?? options.totalXp;
+  const rank = you?.rank ?? options.lmsRank ?? 0;
+  const points = you?.points ?? options.lmsPoints;
 
-  let xpToNext = 0;
+  let pointsToNext = 0;
   let nextRankName: string | undefined;
 
   if (you && you.rank > 1) {
     const above = top10.find((entry) => entry.rank === you.rank - 1);
     if (above) {
-      xpToNext = Math.max(0, above.xp - xp + 1);
+      pointsToNext = Math.max(0, above.points - points + 1);
       nextRankName = above.name;
     }
-  } else if (options.globalRank != null && options.globalRank > 1) {
-    const above = top10.find((entry) => entry.rank === options.globalRank! - 1);
+  } else if (options.lmsRank != null && options.lmsRank > 1) {
+    const above = top10.find((entry) => entry.rank === options.lmsRank! - 1);
     if (above) {
-      xpToNext = Math.max(0, above.xp - xp + 1);
+      pointsToNext = Math.max(0, above.points - points + 1);
       nextRankName = above.name;
     }
   }
@@ -45,9 +45,9 @@ export function getLeaderboardUserContext(
 
   return {
     rank: rank || null,
-    xp,
+    points,
     percentile,
-    xpToNext,
+    pointsToNext,
     nextRankName,
     totalLearners,
     totalLearnersLabel: formatDisplayNumber(totalLearners),

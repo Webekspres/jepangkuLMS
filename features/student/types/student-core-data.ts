@@ -1,11 +1,9 @@
 import type { StudentAchievementBadge } from '@/features/student/lib/core-badge-mapper';
 
-export type { StudentAchievementBadge };
-
 export type StudentLeaderboardRow = {
   rank: number;
   name: string;
-  xp: number;
+  points: number;
   isYou: boolean;
 };
 
@@ -23,7 +21,7 @@ export type StudentCoreBadge = {
   unlockedAt: string;
 };
 
-/** Snapshot gamifikasi dari Core — dipakai seluruh tampilan student. */
+/** Snapshot gamifikasi: XP/level dari Core; poin/badge/leaderboard dari DB LMS. */
 export type StudentCoreData = {
   coreConnected: boolean;
   userId: string | null;
@@ -31,16 +29,18 @@ export type StudentCoreData = {
   email: string | null;
   avatarUrl: string | null;
   totalXp: number;
-  currentPoints: number;
+  lmsPoints: number;
   level: number;
   levelTitle: string | null;
-  globalRank: number | null;
+  lmsRank: number | null;
   badgeCount: number;
   recentBadges: StudentCoreBadge[];
   badges: StudentAchievementBadge[];
   leaderboardPreview: StudentLeaderboardRow[];
   leaderboardTop10: StudentLeaderboardEntry[];
   leaderboardTotal: number;
+  /** True jika user punya role admin Core atau LMS_DEV_ADMIN_BYPASS aktif. */
+  canAccessAdmin: boolean;
 };
 
 export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
@@ -50,14 +50,15 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   email: null,
   avatarUrl: null,
   totalXp: 0,
-  currentPoints: 0,
+  lmsPoints: 0,
   level: 1,
   levelTitle: null,
-  globalRank: null,
+  lmsRank: null,
   badgeCount: 0,
   recentBadges: [],
   badges: [],
   leaderboardPreview: [],
   leaderboardTop10: [],
   leaderboardTotal: 0,
+  canAccessAdmin: false,
 };

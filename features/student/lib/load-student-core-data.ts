@@ -1,16 +1,18 @@
 import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import {
-  fetchCoreBadgeCatalog,
-  fetchCoreLeaderboard,
-  fetchCoreUserBadges,
-  fetchCoreUserMe,
-} from '@/lib/core/api';
+import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
+import { fetchCoreUserMe } from '@/lib/core/api';
 import { isCoreApiConfigured } from '@/lib/core/client';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { getCoreJwtFromCookies, getCoreSession } from '@/lib/core/get-core-session';
-import { mergeCoreBadges, mapUnlockedCoreBadges } from '@/features/student/lib/core-badge-mapper';
-import { getInitials } from '@/features/student/lib/leaderboard-helpers';
+import { loadLmsBadgesForUser } from '@/lib/lms/badges';
+import {
+  fetchLmsLeaderboard,
+  getLmsRankForUser,
+  leaderboardDisplayInitials,
+} from '@/lib/lms/leaderboard';
+import { getUserLmsPoints } from '@/lib/lms/points';
+import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
   EMPTY_STUDENT_CORE_DATA,
   type StudentCoreData,
@@ -18,117 +20,116 @@ import {
   type StudentLeaderboardRow,
 } from '@/features/student/types/student-core-data';
 
+function clerkDisplayName(
+  clerkUser: Awaited<ReturnType<typeof currentUser>>,
+): string | null {
+  if (!clerkUser) return null;
+  return (
+    clerkUser.fullName?.trim() ||
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ').trim() ||
+    null
+  );
+}
+
 function mapLeaderboardEntries(
-  items: Awaited<ReturnType<typeof fetchCoreLeaderboard>>['items'],
+  items: Awaited<ReturnType<typeof fetchLmsLeaderboard>>['items'],
   userId: string | null,
 ): StudentLeaderboardEntry[] {
   return items.map((item) => {
-    const name = item.name?.trim() || 'Pengguna';
+    const name = item.displayName?.trim() || 'Pengguna';
     return {
       rank: item.rank,
-      userId: item.id,
+      userId: item.userId,
       name,
-      xp: item.totalXp,
-      isYou: Boolean(userId && item.id === userId),
-      avatar: getInitials(name),
-      imageUrl: item.imageUrl,
-      currentLevel: item.currentLevel,
-      levelLabel: item.levelTitle ? `Lv.${item.currentLevel}` : `Lv.${item.currentLevel}`,
+      points: item.points,
+      isYou: Boolean(userId && item.userId === userId),
+      avatar: leaderboardDisplayInitials(name),
+      imageUrl: null,
+      currentLevel: item.level ?? 1,
+      levelLabel: item.level != null ? `Lv.${item.level}` : '—',
     };
   });
 }
 
 function toPreviewRows(entries: StudentLeaderboardEntry[]): StudentLeaderboardRow[] {
-  return entries.slice(0, 5).map(({ rank, name, xp, isYou }) => ({ rank, name, xp, isYou }));
+  return entries.slice(0, 5).map(({ rank, name, points, isYou }) => ({
+    rank,
+    name,
+    points,
+    isYou,
+  }));
 }
 
-/** Muat XP, poin, level, rank, badge, leaderboard dari Core (server-only). */
+/** Muat profil LMS + XP/level Core + poin/badge/leaderboard lokal. */
 export const loadStudentCoreData = cache(async function loadStudentCoreData(): Promise<StudentCoreData> {
   const { userId } = await auth();
   const clerkUser = userId ? await currentUser() : null;
+  const clerkName = clerkDisplayName(clerkUser);
 
   const data: StudentCoreData = {
     ...EMPTY_STUDENT_CORE_DATA,
     userId: userId ?? null,
     email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
     avatarUrl: clerkUser?.imageUrl ?? null,
-    displayName:
-      clerkUser?.fullName?.trim() ||
-      [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ').trim() ||
-      null,
+    displayName: clerkName,
   };
 
+  if (userId) {
+    data.displayName = (await resolveLmsDisplayName(userId, clerkName)) ?? clerkName;
+    data.lmsPoints = await getUserLmsPoints(userId);
+    data.lmsRank = await getLmsRankForUser(userId);
+
+    const badges = await loadLmsBadgesForUser(userId);
+    data.badges = badges;
+    data.badgeCount = badges.filter((b) => b.unlocked).length;
+    data.recentBadges = badges
+      .filter((b) => b.unlocked && b.date)
+      .slice(0, 3)
+      .map((b) => ({
+        title: b.name,
+        imageUrl: b.imageUrl,
+        unlockedAt: b.date!,
+      }));
+  }
+
+  const leaderboard = await fetchLmsLeaderboard(10);
+  data.leaderboardTop10 = mapLeaderboardEntries(leaderboard.items, userId ?? null);
+  data.leaderboardPreview = toPreviewRows(data.leaderboardTop10);
+  data.leaderboardTotal = leaderboard.total;
+
+  const youInTop = data.leaderboardTop10.find((row) => row.isYou);
+  if (youInTop) {
+    data.lmsRank = youInTop.rank;
+  }
+
   if (!isCoreIntegrationEnabled() || !isCoreApiConfigured()) {
+    data.canAccessAdmin = canAccessLmsAdminPanel();
     return data;
   }
 
   const session = await getCoreSession();
   if (session) {
     data.coreConnected = true;
-    data.displayName = session.profile.displayName ?? data.displayName;
     data.avatarUrl = session.profile.avatarUrl ?? data.avatarUrl;
+    data.canAccessAdmin = canAccessLmsAdminPanel(session.roles);
     if (session.gamification) {
       data.totalXp = session.gamification.totalXp;
-      data.currentPoints = session.gamification.currentPoints ?? 0;
       data.level = session.gamification.level;
     }
+  } else {
+    data.canAccessAdmin = canAccessLmsAdminPanel();
   }
 
   const coreJwt = await getCoreJwtFromCookies();
-
-  const [leaderboardResult, profileResult, badgesResult, catalogResult] =
-    await Promise.allSettled([
-      fetchCoreLeaderboard(10),
-      coreJwt ? fetchCoreUserMe(coreJwt) : Promise.reject(new Error('no jwt')),
-      userId ? fetchCoreUserBadges(userId) : Promise.reject(new Error('no user')),
-      fetchCoreBadgeCatalog(),
-    ]);
-
-  if (profileResult.status === 'fulfilled') {
-    const profile = profileResult.value;
-    data.coreConnected = true;
-    data.displayName = profile.name?.trim() || data.displayName;
-    data.totalXp = profile.totalXp;
-    data.currentPoints = profile.currentPoints;
-    data.level = profile.currentLevel;
-    data.levelTitle = profile.levelTitle;
-  }
-
-  const unlockedBadges =
-    badgesResult.status === 'fulfilled' ? badgesResult.value.badges : [];
-
-  if (catalogResult.status === 'fulfilled' && catalogResult.value.badges.length > 0) {
-    data.badges = mergeCoreBadges(catalogResult.value.badges, unlockedBadges);
-  } else if (unlockedBadges.length > 0) {
-    data.badges = mapUnlockedCoreBadges(unlockedBadges);
-  }
-
-  data.badgeCount = data.badges.filter((b) => b.unlocked).length;
-  data.recentBadges = unlockedBadges.slice(0, 3).map((b) => ({
-    title: b.title,
-    imageUrl: b.imageUrl,
-    unlockedAt: b.unlockedAt,
-  }));
-
-  if (leaderboardResult.status === 'fulfilled') {
-    const leaderboard = leaderboardResult.value;
-    data.leaderboardTop10 = mapLeaderboardEntries(leaderboard.items, userId ?? null);
-    data.leaderboardPreview = toPreviewRows(data.leaderboardTop10);
-    data.leaderboardTotal = leaderboard.total;
-
-    const youInTop = data.leaderboardTop10.find((row) => row.isYou);
-    if (youInTop) {
-      data.globalRank = youInTop.rank;
-    } else if (userId) {
-      try {
-        const extended = await fetchCoreLeaderboard(100);
-        const you = extended.items.find((item) => item.id === userId);
-        if (you) {
-          data.globalRank = you.rank;
-        }
-      } catch {
-        // ignore — termasuk timeout Core
-      }
+  if (coreJwt) {
+    try {
+      const profile = await fetchCoreUserMe(coreJwt);
+      data.coreConnected = true;
+      data.totalXp = profile.totalXp;
+      data.level = profile.currentLevel;
+      data.levelTitle = profile.levelTitle;
+    } catch {
+      // Core down — tetap pakai data LMS lokal
     }
   }
 

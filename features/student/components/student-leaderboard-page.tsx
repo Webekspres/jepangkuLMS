@@ -106,7 +106,7 @@ function PodiumSlot({
       </p>
       <p className="mt-0.5 flex items-center gap-0.5 text-[11px] text-muted-foreground">
         <Zap className="size-3 text-brand-yellow" />
-        {formatDisplayNumber(entry.xp)} XP
+        {formatDisplayNumber(entry.points)} poin
       </p>
       <motion.div
         initial={{ height: 0 }}
@@ -156,7 +156,7 @@ function LeaderboardRow({ entry, index }: { entry: StudentLeaderboardEntry; inde
       </div>
       <div className="flex shrink-0 items-center gap-1 text-sm font-bold tabular-nums text-foreground">
         <Zap className="size-3.5 text-brand-yellow" />
-        {formatDisplayNumber(entry.xp)}
+        {formatDisplayNumber(entry.points)}
       </div>
     </motion.div>
   );
@@ -166,8 +166,8 @@ export function StudentLeaderboardPage() {
   const core = useStudentCoreData();
   const top10 = core.leaderboardTop10;
   const context = getLeaderboardUserContext(top10, {
-    globalRank: core.globalRank,
-    totalXp: core.totalXp,
+    lmsRank: core.lmsRank,
+    lmsPoints: core.lmsPoints,
     leaderboardTotal: core.leaderboardTotal,
   });
   const podium = getLeaderboardPodium(top10);
@@ -205,11 +205,11 @@ export function StudentLeaderboardPage() {
           </div>
         </div>
 
-        {context.xpToNext > 0 && context.nextRankName && (
+        {context.pointsToNext > 0 && context.nextRankName && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-brand-yellow/25 bg-brand-yellow/10 px-3 py-2 text-sm">
             <Target className="size-4 text-amber-700" />
             <span className="text-foreground">
-              <strong>{formatDisplayNumber(context.xpToNext)} XP</strong> lagi untuk salip{' '}
+              <strong>{formatDisplayNumber(context.pointsToNext)} poin</strong> lagi untuk salip{' '}
               <strong>{context.nextRankName}</strong>
             </span>
           </div>

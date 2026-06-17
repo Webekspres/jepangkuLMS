@@ -10,7 +10,6 @@ export type CoreAwardXpResponse = {
   idempotent: boolean;
   user: {
     totalXp: number;
-    currentPoints: number;
     currentLevel: number;
   };
 };
@@ -19,7 +18,6 @@ export type AwardLmsXpInput = {
   userId: string;
   kind: LmsActivityKind;
   xpGained: number;
-  pointsGained?: number;
   sourceRefId?: string;
   idempotencyKey?: string;
 };
@@ -62,7 +60,6 @@ export async function awardLmsXp(input: AwardLmsXpInput): Promise<CoreAwardXpRes
       application: CORE_APPLICATION_LMS,
       activityType,
       xpGained: input.xpGained,
-      pointsGained: input.pointsGained ?? input.xpGained,
       sourceRefId: input.sourceRefId,
       idempotencyKey,
     }),

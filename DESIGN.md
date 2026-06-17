@@ -172,7 +172,7 @@ Rujuk [sitemap.md](./sitemap.md) untuk daftar route lengkap.
 * Dekorasi latar: blob blur `bg-brand-red/5`, `bg-brand-orange/5` — **subtle**, `pointer-events-none`.
 * CTA utama → sign-up atau WhatsApp (hubungi).
 
-### 7.2 Student dashboard (`app/(dashboard)/*`)
+### 7.2 Student dashboard (`app/(student)/dashboard/*`)
 
 * **Sidebar kiri** (Navy / token sidebar) + area konten `bg-background`.
 * Kartu ringkasan XP: pola progress + badge dari landing hero card.

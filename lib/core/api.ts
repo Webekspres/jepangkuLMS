@@ -120,7 +120,6 @@ export type CoreLeaderboardItem = {
   name: string | null;
   imageUrl: string | null;
   totalXp: number;
-  currentPoints: number;
   currentLevel: number;
   levelTitle: string | null;
 };
@@ -138,7 +137,6 @@ export type CoreUserProfileResponse = {
   email: string;
   imageUrl: string | null;
   totalXp: number;
-  currentPoints: number;
   currentLevel: number;
   levelTitle: string | null;
   roles: string[];

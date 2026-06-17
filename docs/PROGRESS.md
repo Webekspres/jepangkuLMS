@@ -113,7 +113,7 @@ Status per **route**. "Sebagian" = `page.tsx` ada (biasanya judul + paragraf pla
 | `/leaderboard` | 🟡 | Top 10 + highlight posisi user |
 | `/gamifikasi/profil-saya` | 🟡 | Grafik XP, log XP, galeri badge locked/unlocked |
 
-**Catatan:** Route group `(dashboard)/` belum punya `layout.tsx` (sidebar/nav siswa).
+**Catatan:** Route group siswa ada di `app/(student)/` — URL publik tetap `/dashboard/*`.
 
 ### 2.4 Admin `***`
 

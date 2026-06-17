@@ -133,6 +133,39 @@ async function main() {
     update: { status: 'ACTIVE' },
   });
 
+  const LMS_BADGES = [
+    {
+      code: 'first-lesson',
+      title: 'Pelajaran Pertama',
+      description: 'Menyelesaikan lesson pertama di LMS.',
+      sortOrder: 1,
+    },
+    {
+      code: 'quiz-starter',
+      title: 'Pemula Kuis',
+      description: 'Menyelesaikan kuis pertama.',
+      sortOrder: 2,
+    },
+    {
+      code: 'n5-explorer',
+      title: 'Penjelajah N5',
+      description: 'Membuka modul materi N5.',
+      sortOrder: 3,
+    },
+  ] as const;
+
+  for (const badge of LMS_BADGES) {
+    await prisma.lmsBadge.upsert({
+      where: { code: badge.code },
+      create: badge,
+      update: {
+        title: badge.title,
+        description: badge.description,
+        sortOrder: badge.sortOrder,
+      },
+    });
+  }
+
   const counts = await prisma.$transaction([
     prisma.course.count(),
     prisma.lesson.count({ where: { courseId: n5.id } }),
@@ -141,12 +174,13 @@ async function main() {
     prisma.materialTataBahasa.count(),
     prisma.question.count(),
     prisma.category.count(),
+    prisma.lmsBadge.count(),
   ]);
 
   console.log(
     `Seed complete: ${counts[0]} courses, ${counts[1]} N5 lessons (expected ${N5_LESSON_COUNT}), ` +
       `${counts[2]} kanji, ${counts[3]} kosakata, ${counts[4]} tata bahasa, ` +
-      `${counts[5]} questions, ${counts[6]} categories`,
+      `${counts[5]} questions, ${counts[6]} categories, ${counts[7]} LMS badges`,
   );
   await prisma.$disconnect();
 }

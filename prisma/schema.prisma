@@ -39,15 +39,74 @@ enum CategoryType {
 
 // ====================================================================
 // 1. USER JANGKAR (FK ke Core Service / Clerk User ID)
-// Profil, XP, level, badge → JepangKu Core Backend (bukan DB LMS). Lihat docs/ECOSYSTEM.md
+// XP & level global → Core. Poin LMS, badge, display name → DB LMS. Lihat docs/ECOSYSTEM.md
 // ====================================================================
 model User {
-  id        String   @id // ID user dari Core Service (Clerk User ID) — tanpa @default(uuid())
-  createdAt DateTime @default(now())
+  id          String   @id // Clerk User ID — tanpa @default(uuid())
+  /// Nama tampilan di LMS (bukan nama Google SSO dari Clerk)
+  displayName String?  @db.VarChar(32)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  enrollments Enrollment[]
-  progress    UserProgress[]
-  attempts    QuizAttempt[]
+  enrollments  Enrollment[]
+  progress     UserProgress[]
+  attempts     QuizAttempt[]
+  lmsStats     UserLmsStats?
+  pointEvents  LmsPointEvent[]
+  badges       UserBadge[]
+}
+
+// ====================================================================
+// 1b. GAMIFIKASI LMS (poin leaderboard & badge — bukan di Core)
+// ====================================================================
+model UserLmsStats {
+  userId    String   @id
+  lmsPoints Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lmsPoints(sort: Desc), updatedAt(sort: Asc)])
+}
+
+model LmsPointEvent {
+  id           String   @id @default(uuid())
+  userId       String
+  pointsGained Int
+  /// Idempotency — mis. "lesson:{lessonId}" atau "quiz:{attemptId}"
+  sourceKey    String   @unique
+  sourceType   String
+  sourceId     String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model LmsBadge {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  title       String
+  description String?  @db.Text
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
 }
 
 // ====================================================================

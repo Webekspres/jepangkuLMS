@@ -14,3 +14,7 @@ export const AUTH_ROUTES = {
   authComplete: '/auth/complete',
   dashboard: '/dashboard',
 } as const;
+
+export const ADMIN_ROUTES = {
+  dashboard: '/admin/dashboard',
+} as const;
