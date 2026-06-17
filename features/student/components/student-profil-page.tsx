@@ -91,7 +91,7 @@ export function StudentProfilPage() {
           icon={Zap}
           label="Total XP"
           value={formatDisplayNumber(core.totalXp)}
-          sub={core.coreConnected ? 'Dari Core' : 'Menunggu Core'}
+          sub={core.coreConnected ? 'Akumulasi belajar' : 'Memuat…'}
           accentClass="text-primary bg-primary/10"
         />
         <StatCard
@@ -162,17 +162,6 @@ export function StudentProfilPage() {
           </Link>
         </Button>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        {core.coreConnected ? (
-          <>
-            <User className="mr-1 inline size-3" />
-            Identitas dari Clerk · XP/level dari Core · poin & badge dari LMS
-          </>
-        ) : (
-          'Menghubungkan ke Core Backend untuk memuat XP dan badge…'
-        )}
-      </p>
     </div>
   );
 }

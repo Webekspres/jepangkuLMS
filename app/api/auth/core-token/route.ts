@@ -14,43 +14,39 @@ function mapExchangeError(error: CoreTokenExchangeError) {
     return {
       status: 503,
       message:
-        'Akun baru belum tersinkron di Core. Clerk webhook perlu mengirim user.created ke Core — tunggu ~10 detik lalu klik Coba lagi.',
+        'Profil kamu belum siap. Tunggu beberapa detik lalu klik Coba lagi.',
     };
   }
 
   if (error.code === 'INVALID_SESSION' || error.status === 401) {
     return {
       status: 401,
-      message:
-        'Core menolak sesi Clerk (INVALID_SESSION). Pastikan LMS dan Core memakai app Clerk yang sama — sk_test dengan sk_test, atau sk_live dengan sk_live.',
+      message: 'Sesi login tidak valid. Keluar lalu masuk kembali.',
     };
   }
 
   if (error.code === 'AUTH_NOT_CONFIGURED' || error.code === 'CORE_NOT_CONFIGURED') {
-    return { status: 503, message: 'Layanan auth Core belum siap. Coba lagi nanti.' };
+    return { status: 503, message: 'Layanan profil belum siap. Coba lagi nanti.' };
   }
 
   if (error.code === 'INTERNAL_ERROR') {
     return {
       status: 503,
-      message:
-        'Core Backend error saat menerbitkan JWT (INTERNAL_ERROR). Minta tim Core cek log server & JWT_PRIVATE_KEY.',
+      message: 'Terjadi gangguan server. Coba lagi dalam beberapa menit.',
     };
   }
 
   if (error.code === 'JWT_SIGN_FAILED') {
     return {
       status: 503,
-      message:
-        'Core gagal menandatangani JWT (JWT_PRIVATE_KEY tidak valid). Minta tim Core perbaiki & redeploy.',
+      message: 'Terjadi gangguan server. Coba lagi dalam beberapa menit.',
     };
   }
 
   if (error.code === 'USER_SYNC_FAILED') {
     return {
       status: 503,
-      message:
-        'Core gagal sync user dari Clerk. Pastikan CLERK_SECRET_KEY Core sama dengan app Clerk LMS.',
+      message: 'Gagal memuat profil akun. Coba lagi atau hubungi tim support.',
     };
   }
 
@@ -121,6 +117,6 @@ export async function POST() {
       { userId, ...serializeError(error) },
       formatErrorSummary(error, 'jepangku-lms'),
     );
-    return NextResponse.json({ error: 'Gagal menghubungkan ke Core Backend.' }, { status: 503 });
+    return NextResponse.json({ error: 'Gagal menghubungkan layanan profil.' }, { status: 503 });
   }
 }

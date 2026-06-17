@@ -20,8 +20,12 @@ export const ADMIN_ROUTES = {
   pembayaran: '/admin/pembayaran',
   kursus: '/admin/kursus',
   kursusForm: '/admin/kursus/form',
-  lesson: '/admin/lesson',
-  lessonForm: '/admin/lesson/form',
+  kursusModules: (courseId: string) => `/admin/kursus/${courseId}/modul`,
+  kursusModuleForm: (courseId: string) => `/admin/kursus/${courseId}/modul/form`,
+  kursusLessons: (courseId: string, moduleId: string) =>
+    `/admin/kursus/${courseId}/modul/${moduleId}/lesson`,
+  kursusLessonForm: (courseId: string, moduleId: string) =>
+    `/admin/kursus/${courseId}/modul/${moduleId}/lesson/form`,
   quiz: '/admin/quiz',
   quizImport: '/admin/quiz/import',
 } as const;

@@ -59,6 +59,7 @@ export default async function BelajarPage({ params, searchParams }: BelajarPageP
       course={workspace.course}
       lesson={workspace.lesson}
       syllabus={workspace.syllabus}
+      modules={workspace.modules}
       materials={workspace.materials}
       questions={workspace.questions}
       initialTab={tab === 'flashcard' || tab === 'quiz' ? tab : 'video'}

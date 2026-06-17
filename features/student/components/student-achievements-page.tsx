@@ -486,8 +486,8 @@ export function StudentAchievementsPage() {
             {filteredBadges.length === 0 ? (
               <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
                 {core.coreConnected
-                  ? 'Belum ada badge di katalog Core.'
-                  : 'Menghubungkan ke Core…'}
+                  ? 'Belum ada badge tersedia.'
+                  : 'Memuat badge…'}
               </p>
             ) : (
               filteredBadges.map((badge, index) => (
@@ -581,12 +581,6 @@ export function StudentAchievementsPage() {
           </div>
         </aside>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        {core.coreConnected
-          ? 'Badge & XP dari JepangKu Core · perjalanan JLPT masih estimasi lokal.'
-          : 'Menghubungkan ke Core untuk memuat badge…'}
-      </p>
 
       <BadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
     </div>

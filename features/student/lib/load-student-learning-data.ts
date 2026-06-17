@@ -96,7 +96,7 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
     select: {
       title: true,
       slug: true,
-      course: { select: { slug: true, level: true } },
+      module: { select: { course: { select: { slug: true, level: true } } } },
     },
   });
 
@@ -113,11 +113,11 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
     return [
       {
         title: lesson.title,
-        level: lesson.course.level,
+        level: lesson.module.course.level,
         duration: '—',
         progress: enrollment.progress.percent,
         category: lessonCategoryFromSlug(lesson.slug),
-        href: STUDENT_ROUTES.belajar(lesson.course.slug, lesson.slug),
+        href: STUDENT_ROUTES.belajar(lesson.module.course.slug, lesson.slug),
         image:
           catalog?.thumb ??
           'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',

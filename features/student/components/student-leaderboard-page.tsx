@@ -186,7 +186,7 @@ export function StudentLeaderboardPage() {
               Leaderboard
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Top 10 siswa berdasarkan total XP dari JepangKu Core.
+              Top 10 siswa berdasarkan poin LMS.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:min-w-[16rem]">
@@ -266,16 +266,16 @@ export function StudentLeaderboardPage() {
           <p className="text-sm text-muted-foreground">
             {core.coreConnected
               ? 'Leaderboard masih kosong.'
-              : 'Menghubungkan ke Core untuk memuat leaderboard…'}
+              : 'Memuat leaderboard…'}
           </p>
         </section>
       )}
 
-      <p className="text-center text-xs text-muted-foreground">
-        {core.coreConnected
-          ? `Ranking dari Core · XP kamu: ${formatDisplayNumber(core.totalXp)}`
-          : 'Menunggu sinkron Core JWT…'}
-      </p>
+      {core.coreConnected && core.totalXp > 0 ? (
+        <p className="text-center text-xs text-muted-foreground">
+          Total XP kamu: {formatDisplayNumber(core.totalXp)}
+        </p>
+      ) : null}
     </div>
   );
 }

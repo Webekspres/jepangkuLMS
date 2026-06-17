@@ -3,8 +3,9 @@ import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
-import { N5_ALL_LESSONS, N5_LESSON_COUNT } from './lib/n5-curriculum';
+import { N5_LESSON_COUNT } from './lib/n5-curriculum';
 import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
+import { seedN5CourseStructure } from './lib/seed-n5-structure';
 
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
@@ -92,29 +93,7 @@ async function main() {
     where: { slug: 'jlpt-n5-kursus-lengkap' },
   });
 
-  const lessonIdsBySlug: Record<string, string> = {};
-
-  for (const lesson of N5_ALL_LESSONS) {
-    const row = await prisma.lesson.upsert({
-      where: { slug: lesson.slug },
-      create: {
-        slug: lesson.slug,
-        title: lesson.title,
-        order: lesson.order,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl ?? null,
-        courseId: n5.id,
-      },
-      update: {
-        title: lesson.title,
-        order: lesson.order,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl ?? null,
-        courseId: n5.id,
-      },
-    });
-    lessonIdsBySlug[lesson.slug] = row.id;
-  }
+  const { lessonIdsBySlug } = await seedN5CourseStructure(prisma, n5.id);
 
   const aksaraCount = await seedN5AksaraMateri(prisma, lessonIdsBySlug);
   console.log(`  Seeded ${aksaraCount} aksara flashcard rows`);
@@ -168,7 +147,7 @@ async function main() {
 
   const counts = await prisma.$transaction([
     prisma.course.count(),
-    prisma.lesson.count({ where: { courseId: n5.id } }),
+    prisma.lesson.count({ where: { module: { courseId: n5.id } } }),
     prisma.materialKanji.count(),
     prisma.materialKosakata.count(),
     prisma.materialTataBahasa.count(),

@@ -234,7 +234,7 @@ export function DashboardPage({
           {!core.coreConnected ? (
             <DashboardSection title="XP Mingguan" icon={TrendingUp}>
               <p className="text-sm text-muted-foreground">
-                Grafik XP mingguan belum tersedia — menunggu koneksi ke Core Backend.
+                Grafik XP mingguan sedang dimuat…
               </p>
             </DashboardSection>
           ) : (
@@ -253,7 +253,7 @@ export function DashboardPage({
                 ))}
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Breakdown harian belum tersedia di Core API — total XP di atas dari Core.
+                Ringkasan mingguan — detail harian segera hadir.
               </p>
             </DashboardSection>
           )}
@@ -271,7 +271,7 @@ export function DashboardPage({
               <p className="text-sm text-muted-foreground">
                 {core.coreConnected
                   ? 'Leaderboard kosong.'
-                  : 'Menghubungkan ke Core untuk memuat leaderboard…'}
+                  : 'Memuat leaderboard…'}
               </p>
             ) : (
               <ul className="space-y-2">
@@ -367,12 +367,6 @@ export function DashboardPage({
           </DashboardSection>
         </div>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        {core.coreConnected
-          ? 'XP, poin, rank, dan badge dari JepangKu Core.'
-          : 'Menghubungkan ke Core… Refresh otomatis setelah JWT siap.'}
-      </p>
     </div>
   );
 }

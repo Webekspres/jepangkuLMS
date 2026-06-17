@@ -21,7 +21,9 @@ import { CourseSyllabusAccordion } from '@/features/learning/components/course-s
 import {
   getDefaultExpandedModuleIds,
   groupLessonsByModule,
+  groupSyllabusWithDbModules,
 } from '@/features/learning/lib/n5-lesson-modules';
+import type { ModuleRow } from '@/features/learning/lib/course-tree';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from './student-routes';
@@ -44,6 +46,7 @@ type DbCourse = {
   accent: keyof typeof JLPT_ACCENT;
   lessonCount: number;
   isPublished: boolean;
+  modules?: ModuleRow[];
   lessons: DbLesson[];
 };
 
@@ -72,8 +75,12 @@ export function StudentCourseDetailPage({
       locked: !isEnrolled && index > 0,
       href: isEnrolled ? STUDENT_ROUTES.belajar(course.slug, lesson.slug) : undefined,
     }));
+
+    if (course.modules && course.modules.length > 0) {
+      return groupSyllabusWithDbModules(course.modules, mapped);
+    }
     return groupLessonsByModule(mapped);
-  }, [course.lessons, course.slug, isEnrolled]);
+  }, [course.lessons, course.modules, course.slug, isEnrolled]);
 
   const [expandedIds, setExpandedIds] = useState<string[]>(() =>
     getDefaultExpandedModuleIds(syllabusGroups, continueLessonSlug),

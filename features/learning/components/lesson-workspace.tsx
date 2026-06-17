@@ -32,8 +32,10 @@ import { markLessonComplete } from '@/features/learning/actions/learning-actions
 import {
   getDefaultExpandedModuleIds,
   groupLessonsByModule,
+  groupSyllabusWithDbModules,
   type GroupedLesson,
 } from '@/features/learning/lib/n5-lesson-modules';
+import type { ModuleRow } from '@/features/learning/lib/course-tree';
 import {
   resolveLessonVideoUrl,
 } from '@/features/learning/lib/lesson-video';
@@ -77,6 +79,7 @@ export type LessonWorkspaceProps = {
     quizCount: number;
   };
   syllabus: LessonNavItem[];
+  modules?: ModuleRow[];
   materials: {
     kanjis: MaterialKanji[];
     kosakatas: MaterialKosakata[];
@@ -331,6 +334,7 @@ export function LessonWorkspace({
   course,
   lesson,
   syllabus,
+  modules,
   materials,
   questions,
   initialTab = 'video',
@@ -360,7 +364,12 @@ export function LessonWorkspace({
     };
   }, [mobileCurriculumOpen]);
 
-  const syllabusGroups = useMemo(() => groupLessonsByModule(syllabus), [syllabus]);
+  const syllabusGroups = useMemo(() => {
+    if (modules && modules.length > 0) {
+      return groupSyllabusWithDbModules(modules, syllabus);
+    }
+    return groupLessonsByModule(syllabus);
+  }, [modules, syllabus]);
 
   const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
     getDefaultExpandedModuleIds(syllabusGroups, lesson.slug),

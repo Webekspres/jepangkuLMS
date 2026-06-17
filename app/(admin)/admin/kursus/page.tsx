@@ -1,10 +1,7 @@
-import { AdminPlaceholderPage } from '@/features/admin-cms/components/admin-placeholder-page';
+import { AdminCoursesPage } from '@/features/admin-cms/components/admin-courses-page';
+import { loadAdminCourses } from '@/features/admin-cms/lib/load-admin-cms-data';
 
-export default function AdminKursusPage() {
-  return (
-    <AdminPlaceholderPage
-      title="CMS: Manajemen Kursus"
-      description="Kelola daftar paket kursus bahasa Jepang — judul, level JLPT, dan publikasi."
-    />
-  );
+export default async function AdminKursusPage() {
+  const courses = await loadAdminCourses();
+  return <AdminCoursesPage courses={courses} />;
 }

@@ -6,10 +6,16 @@ import {
   getCachedUserEnrollments,
 } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
+import {
+  COURSE_TREE_INCLUDE,
+  flattenLessonsFromModules,
+  mapCourseModulesFromPrisma,
+  type ModuleRow,
+} from './course-tree';
 import { mergeCourseDisplay } from './course-display';
 import { type CourseProgress } from './progress';
 
-export type { CourseProgress };
+export type { CourseProgress, ModuleRow };
 
 export type StudentEnrollmentView = {
   courseId: string;
@@ -42,15 +48,13 @@ export const getPublishedCourses = cache(async function getPublishedCourses() {
 export const getCourseBySlug = cache(async function getCourseBySlug(slug: string) {
   const course = await prisma.course.findUnique({
     where: { slug },
-    include: {
-      lessons: {
-        orderBy: { order: 'asc' },
-        include: { _count: { select: { questions: true } } },
-      },
-    },
+    include: COURSE_TREE_INCLUDE,
   });
 
   if (!course) return null;
+
+  const modules = mapCourseModulesFromPrisma(course.modules);
+  const lessons = flattenLessonsFromModules(modules);
 
   return {
     ...mergeCourseDisplay({
@@ -59,17 +63,18 @@ export const getCourseBySlug = cache(async function getCourseBySlug(slug: string
       description: course.description,
       level: course.level,
       isPublished: course.isPublished,
-      lessonCount: course.lessons.length,
+      lessonCount: lessons.length,
     }),
     dbId: course.id,
-    lessons: course.lessons.map((lesson) => ({
+    modules,
+    lessons: lessons.map((lesson) => ({
       id: lesson.id,
       slug: lesson.slug,
       title: lesson.title,
       order: lesson.order,
-      content: lesson.content,
-      videoUrl: lesson.videoUrl,
-      hasQuiz: lesson._count.questions > 0,
+      content: lesson.content ?? null,
+      videoUrl: lesson.videoUrl ?? null,
+      hasQuiz: lesson.hasQuiz ?? false,
     })),
   };
 });
@@ -83,19 +88,14 @@ export async function getLessonWorkspace(
 ) {
   const course = await prisma.course.findUnique({
     where: { slug: courseSlug },
-    include: {
-      lessons: {
-        orderBy: { order: 'asc' },
-        include: {
-          _count: { select: { questions: true } },
-        },
-      },
-    },
+    include: COURSE_TREE_INCLUDE,
   });
 
   if (!course) return null;
 
-  const lesson = course.lessons.find((l) => l.slug === lessonSlug);
+  const modules = mapCourseModulesFromPrisma(course.modules);
+  const allLessons = flattenLessonsFromModules(modules);
+  const lesson = allLessons.find((l) => l.slug === lessonSlug);
   if (!lesson) return null;
 
   const enrollment = await prisma.enrollment.findUnique({
@@ -106,25 +106,31 @@ export async function getLessonWorkspace(
     return { accessDenied: true as const, courseSlug, lessonSlug };
   }
 
-  const [progress, materialsBundle] = await Promise.all([
+  const lessonIds = allLessons.map((l) => l.id);
+
+  const [progress, materialsBundle, lessonRow] = await Promise.all([
     prisma.userProgress.findMany({
-      where: { userId, lessonId: { in: course.lessons.map((l) => l.id) } },
+      where: { userId, lessonId: { in: lessonIds } },
       select: { lessonId: true, isCompleted: true },
     }),
     getCachedLessonMaterials(lesson.id),
+    prisma.lesson.findUnique({
+      where: { id: lesson.id },
+      select: { content: true, videoUrl: true },
+    }),
   ]);
 
   const completedIds = new Set(
     progress.filter((p) => p.isCompleted).map((p) => p.lessonId),
   );
 
-  const syllabus: LessonNavItem[] = course.lessons.map((l) => ({
+  const syllabus: LessonNavItem[] = allLessons.map((l) => ({
     id: l.id,
     slug: l.slug,
     title: l.title,
     order: l.order,
     isCompleted: completedIds.has(l.id),
-    hasQuiz: l._count.questions > 0,
+    hasQuiz: l.hasQuiz ?? false,
   }));
 
   const { kanjis, kosakatas, tataBahasas, quizCount } = materialsBundle;
@@ -146,13 +152,14 @@ export async function getLessonWorkspace(
       title: course.title,
       level: course.level as LevelJLPT,
     },
+    modules,
     lesson: {
       id: lesson.id,
       slug: lesson.slug,
       title: lesson.title,
       order: lesson.order,
-      content: lesson.content,
-      videoUrl: lesson.videoUrl,
+      content: lessonRow?.content ?? null,
+      videoUrl: lessonRow?.videoUrl ?? null,
       isCompleted: completedIds.has(lesson.id),
       quizCount,
     },
@@ -171,7 +178,7 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
   const lesson = await prisma.lesson.findUnique({
     where: { slug: lessonSlug },
     include: {
-      course: true,
+      module: { include: { course: true } },
       questions: {
         include: { options: { orderBy: { id: 'asc' } } },
         orderBy: { id: 'asc' },
@@ -181,8 +188,10 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
 
   if (!lesson) return null;
 
+  const course = lesson.module.course;
+
   const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: lesson.courseId } },
+    where: { userId_courseId: { userId, courseId: course.id } },
   });
 
   if (!enrollment || enrollment.status !== 'ACTIVE') {
@@ -199,8 +208,8 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
       id: lesson.id,
       slug: lesson.slug,
       title: lesson.title,
-      courseSlug: lesson.course.slug,
-      courseTitle: lesson.course.title,
+      courseSlug: course.slug,
+      courseTitle: course.title,
     },
     questions: lesson.questions.map((q) => ({
       id: q.id,

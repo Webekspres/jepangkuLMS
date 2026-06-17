@@ -1,10 +1,6 @@
-import { AdminPlaceholderPage } from '@/features/admin-cms/components/admin-placeholder-page';
+import { redirect } from 'next/navigation';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
 
-export default function AdminLessonFormPage() {
-  return (
-    <AdminPlaceholderPage
-      title="Form Lesson"
-      description="Buat atau edit lesson — konten teks, urutan, dan link embed video."
-    />
-  );
+export default function AdminLessonFormRedirectPage() {
+  redirect(ADMIN_ROUTES.kursus);
 }

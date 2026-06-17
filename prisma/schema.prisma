@@ -121,8 +121,26 @@ model Course {
   isPublished Boolean   @default(false)
   createdAt   DateTime  @default(now())
 
-  lessons     Lesson[]
+  modules     Module[]
   enrollments Enrollment[]
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  slug        String
+  order       Int
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, slug])
+  @@unique([courseId, order])
+  @@index([courseId])
 }
 
 model Enrollment {
@@ -140,14 +158,14 @@ model Enrollment {
 
 model Lesson {
   id       String  @id @default(uuid())
-  courseId String
+  moduleId String
   title    String
   slug     String  @unique
   order    Int
   content  String? @db.Text
   videoUrl String?
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   kanjis      MaterialKanji[]
   kosakatas   MaterialKosakata[]
@@ -155,7 +173,10 @@ model Lesson {
 
   questions Question[]
   progress  UserProgress[]
-  attempts  QuizAttempt[] // <--- INI AMUNISI TAMBAHAN biar error di image_00ea07.png LUNAS!
+  attempts  QuizAttempt[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId])
 }
 
 // ====================================================================

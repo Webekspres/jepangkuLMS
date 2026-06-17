@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { BookOpen, Clock, Users } from 'lucide-react';
-import { AdminPageHeader } from '@/features/admin-cms/components/admin-page-header';
+import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminStatCard } from '@/features/admin-cms/components/admin-stat-card';
 import type { AdminDashboardStats } from '@/features/admin-cms/lib/load-admin-dashboard-stats';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -10,12 +10,11 @@ import { formatDisplayNumber } from '@/features/marketing/components/landing-dat
 
 export function AdminDashboardPage({ stats }: { stats: AdminDashboardStats }) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <AdminPageHeader
-        title="Admin Dashboard"
-        description="Overview statistik JepangKu LMS — siswa, kursus, dan antrean pembayaran."
-      />
-
+    <AdminPageShell
+      label="Admin"
+      title="Dashboard"
+      subtitle="Overview statistik JepangKu LMS — siswa, kursus, dan antrean pembayaran."
+    >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <AdminStatCard
           title="Total Siswa"
@@ -39,7 +38,7 @@ export function AdminDashboardPage({ stats }: { stats: AdminDashboardStats }) {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card className="border-border bg-card shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-bold">Aksi Cepat</CardTitle>
@@ -47,29 +46,29 @@ export function AdminDashboardPage({ stats }: { stats: AdminDashboardStats }) {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button asChild variant="default">
-              <Link href={ADMIN_ROUTES.pembayaran}>Verifikasi Pembayaran</Link>
+              <Link href={ADMIN_ROUTES.kursusForm}>Buat Kursus</Link>
             </Button>
             <Button asChild variant="outline" className="border-border">
               <Link href={ADMIN_ROUTES.kursus}>Kelola Kursus</Link>
             </Button>
             <Button asChild variant="outline" className="border-border">
-              <Link href={ADMIN_ROUTES.quizImport}>Import Soal CSV</Link>
+              <Link href={ADMIN_ROUTES.pembayaran}>Verifikasi Pembayaran</Link>
             </Button>
           </CardContent>
         </Card>
 
         <Card className="border-border bg-card shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base font-bold">Status Slice CMS</CardTitle>
-            <CardDescription>Fase 1 — layout admin & dashboard statistik siap.</CardDescription>
+            <CardTitle className="text-base font-bold">Status CMS</CardTitle>
+            <CardDescription>Kurikulum Course → Modul → Pelajaran siap dikelola.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>✓ Sidebar admin (Navy + token sidebar)</p>
-            <p>✓ Dashboard statistik dari database LMS</p>
-            <p>→ Berikutnya: tabel pembayaran pending & approve enrollment</p>
+            <p>✓ CRUD kursus, modul, dan pelajaran</p>
+            <p>✓ Layout admin mengikuti pola Jepangku News + token LMS</p>
+            <p>→ Berikutnya: editor materi flashcard & bank soal per lesson</p>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

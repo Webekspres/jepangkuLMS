@@ -20,6 +20,7 @@ import {
   N5_OBSOLETE_LESSON_SLUGS,
   slugifyCategory,
 } from './n5-curriculum';
+import { seedN5CourseStructure } from './seed-n5-structure';
 
 const DEFAULT_XLSX = path.join(
   process.cwd(),
@@ -101,31 +102,8 @@ async function ensureN5Lessons(
   prisma: PrismaClient,
   courseId: string,
 ): Promise<Record<string, string>> {
-  const ids: Record<string, string> = {};
-
-  for (const lesson of N5_ALL_LESSONS) {
-    const row = await prisma.lesson.upsert({
-      where: { slug: lesson.slug },
-      create: {
-        slug: lesson.slug,
-        title: lesson.title,
-        order: lesson.order,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl ?? null,
-        courseId,
-      },
-      update: {
-        title: lesson.title,
-        order: lesson.order,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl ?? null,
-        courseId,
-      },
-    });
-    ids[lesson.slug] = row.id;
-  }
-
-  return ids;
+  const { lessonIdsBySlug } = await seedN5CourseStructure(prisma, courseId);
+  return lessonIdsBySlug;
 }
 
 async function removeObsoleteLessons(prisma: PrismaClient, courseId: string) {
@@ -139,7 +117,7 @@ async function removeObsoleteLessons(prisma: PrismaClient, courseId: string) {
 
   const validSlugs = new Set(N5_ALL_LESSONS.map((l) => l.slug));
   const orphans = await prisma.lesson.findMany({
-    where: { courseId },
+    where: { module: { courseId } },
     select: { id: true, slug: true },
   });
 

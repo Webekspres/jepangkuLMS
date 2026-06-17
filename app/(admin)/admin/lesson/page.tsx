@@ -1,10 +1,6 @@
-import { AdminPlaceholderPage } from '@/features/admin-cms/components/admin-placeholder-page';
+import { redirect } from 'next/navigation';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
 
-export default function AdminLessonPage() {
-  return (
-    <AdminPlaceholderPage
-      title="CMS: Manajemen Lesson"
-      description="Daftar materi video, teks, kosakata, dan tata bahasa per kursus."
-    />
-  );
+export default function AdminLessonRedirectPage() {
+  redirect(ADMIN_ROUTES.kursus);
 }

@@ -39,6 +39,7 @@ export default async function DashboardCourseDetailRoute({ params }: CourseDetai
         accent: data.course.accent,
         lessonCount: data.course.lessonCount,
         isPublished: data.course.isPublished,
+        modules: data.course.modules,
         lessons: data.course.lessons,
       }}
       marketing={data.marketing}

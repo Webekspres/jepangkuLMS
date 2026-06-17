@@ -22,13 +22,13 @@ export function buildDashboardStats(core: StudentCoreData): DashboardStat[] {
         ? 'Leaderboard LMS'
         : core.coreConnected
           ? 'Belum masuk ranking'
-          : 'Menghubungkan ke Core…';
+          : 'Memuat peringkat…';
 
   const xpSub = coreOff
-    ? 'Integrasi Core dinonaktifkan di dev'
+    ? 'Segera hadir'
     : core.coreConnected
-      ? 'Level global dari Core'
-      : 'Menunggu sinkron Core';
+      ? 'Level progres kamu'
+      : 'Memuat level…';
 
   return [
     {
