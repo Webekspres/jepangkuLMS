@@ -1,15 +1,16 @@
 import { notFound } from 'next/navigation';
 import { AdminLessonForm } from '@/features/admin-cms/components/admin-lesson-form';
+import { AdminLessonWorkspace } from '@/features/admin-cms/components/admin-lesson-workspace';
 import {
   getNextLessonOrder,
-  loadAdminLessonById,
   loadAdminModuleById,
 } from '@/features/admin-cms/lib/load-admin-cms-data';
+import { loadAdminLessonContent } from '@/features/admin-cms/lib/load-admin-lesson-content';
 import { uuidSchema } from '@/lib/validations/shared';
 
 type AdminLessonFormPageProps = {
   params: Promise<{ courseId: string; moduleId: string }>;
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; tab?: string }>;
 };
 
 export default async function AdminLessonFormPage({ params, searchParams }: AdminLessonFormPageProps) {
@@ -39,27 +40,23 @@ export default async function AdminLessonFormPage({ params, searchParams }: Admi
   const parsedLessonId = uuidSchema.safeParse(id);
   if (!parsedLessonId.success) notFound();
 
-  const lesson = await loadAdminLessonById(
+  const content = await loadAdminLessonContent(
     parsedCourseId.data,
     parsedModuleId.data,
     parsedLessonId.data,
   );
-  if (!lesson) notFound();
+  if (!content) notFound();
 
   return (
-    <AdminLessonForm
-      mode="edit"
-      courseId={moduleRow.course.id}
-      moduleId={moduleRow.id}
-      moduleTitle={moduleRow.title}
-      lessonId={lesson.id}
-      initial={{
-        title: lesson.title,
-        slug: lesson.slug,
-        order: lesson.order,
-        content: lesson.content ?? '',
-        videoUrl: lesson.videoUrl ?? '',
+    <AdminLessonWorkspace
+      scope={{
+        courseId: moduleRow.course.id,
+        moduleId: moduleRow.id,
+        lessonId: content.lesson.id,
       }}
+      courseSlug={moduleRow.course.slug}
+      moduleTitle={moduleRow.title}
+      content={content}
     />
   );
 }

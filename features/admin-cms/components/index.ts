@@ -10,6 +10,7 @@ export { AdminModulesPage } from './admin-modules-page';
 export { AdminModuleForm } from './admin-module-form';
 export { AdminLessonsPage } from './admin-lessons-page';
 export { AdminLessonForm } from './admin-lesson-form';
+export { AdminLessonWorkspace } from './admin-lesson-workspace';
 export { AdminConfirmDialog } from './admin-confirm-dialog';
 export { AdminPlaceholderPage } from './admin-placeholder-page';
 export { AdminStatCard } from './admin-stat-card';

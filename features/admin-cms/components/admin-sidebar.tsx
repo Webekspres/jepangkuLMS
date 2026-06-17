@@ -41,7 +41,7 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
         className,
       )}
     >
-      <div className="flex shrink-0 flex-col items-center justify-center border-b border-sidebar-border px-4 py-5">
+      <div className="flex shrink-0 flex-col justify-center border-b border-sidebar-border px-4 py-5">
         <Link href={ADMIN_ROUTES.dashboard} className="flex items-center gap-3" onClick={onNavigate}>
           <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary">
             <Image

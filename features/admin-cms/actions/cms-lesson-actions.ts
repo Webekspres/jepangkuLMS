@@ -44,7 +44,7 @@ export async function createLessonAction(formData: FormData): Promise<CmsActionR
 
   const data = parsed.data;
   try {
-    await prisma.lesson.create({
+    const lesson = await prisma.lesson.create({
       data: {
         moduleId: data.moduleId,
         title: data.title,
@@ -54,8 +54,10 @@ export async function createLessonAction(formData: FormData): Promise<CmsActionR
         videoUrl: data.videoUrl || null,
       },
     });
-    revalidateLessonPaths(data.courseId, data.moduleId);
-    redirect(ADMIN_ROUTES.kursusLessons(data.courseId, data.moduleId));
+    revalidateLessonPaths(data.courseId, data.moduleId, lesson.id);
+    redirect(
+      `${ADMIN_ROUTES.kursusLessonForm(data.courseId, data.moduleId)}?id=${lesson.id}`,
+    );
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { ok: false, message: 'Slug pelajaran sudah dipakai.' };
@@ -88,7 +90,10 @@ export async function updateLessonAction(
       },
     });
     revalidateLessonPaths(data.courseId, data.moduleId, lessonId);
-    redirect(ADMIN_ROUTES.kursusLessons(data.courseId, data.moduleId));
+    revalidatePath(
+      `${ADMIN_ROUTES.kursusLessonForm(data.courseId, data.moduleId)}?id=${lessonId}`,
+    );
+    return { ok: true as const };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { ok: false, message: 'Slug pelajaran sudah dipakai.' };

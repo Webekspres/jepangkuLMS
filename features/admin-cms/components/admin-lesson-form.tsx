@@ -84,7 +84,7 @@ export function AdminLessonForm({
     <AdminPageShell
       label={moduleTitle}
       title={mode === 'create' ? 'Pelajaran Baru' : 'Edit Pelajaran'}
-      subtitle="Set metadata lesson. Materi flashcard dan bank soal dapat ditambahkan pada iterasi berikutnya."
+      subtitle="Buat pelajaran baru. Setelah disimpan, kamu bisa menambah flashcard dan kuis di halaman edit."
       backHref={ADMIN_ROUTES.kursusLessons(courseId, moduleId)}
     >
       <Card className="max-w-3xl border-border">
