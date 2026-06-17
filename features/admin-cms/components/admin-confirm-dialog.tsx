@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type AdminConfirmDialogProps = {
   open: boolean;
@@ -19,6 +20,10 @@ type AdminConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
 };
+
+/** Tombol dialog — tanpa efek 3D game agar cocok di modal. */
+const dialogBtnClass =
+  'rounded-lg shadow-none hover:scale-100 hover:brightness-100 active:translate-y-0 active:scale-100';
 
 export function AdminConfirmDialog({
   open,
@@ -31,19 +36,30 @@ export function AdminConfirmDialog({
 }: AdminConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent className="gap-5 sm:max-w-md">
+        <DialogHeader className="gap-2 pr-10 text-left">
+          <DialogTitle className="text-lg font-semibold text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={loading} onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            className={cn(dialogBtnClass, 'min-w-22 border-border bg-background')}
+            onClick={() => onOpenChange(false)}
+          >
             Batal
           </Button>
           <Button
             type="button"
-            variant="destructive"
             disabled={loading}
+            className={cn(
+              dialogBtnClass,
+              'min-w-22 border border-destructive/20 bg-destructive font-semibold text-destructive-foreground hover:bg-destructive/90',
+            )}
             onClick={() => void onConfirm()}
           >
             {loading ? 'Memproses...' : confirmLabel}

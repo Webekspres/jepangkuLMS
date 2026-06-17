@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   BookOpen,
@@ -16,14 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { CourseDetail } from '@/features/learning/components/course-detail-data';
+import { enrollInCourse } from '@/features/learning/actions/learning-actions';
 import { CourseSyllabusAccordion } from '@/features/learning/components/course-syllabus-accordion';
 import {
   getDefaultExpandedModuleIds,
-  groupLessonsByModule,
   groupSyllabusWithDbModules,
 } from '@/features/learning/lib/n5-lesson-modules';
-import type { ModuleRow } from '@/features/learning/lib/course-tree';
+import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from './student-routes';
@@ -50,9 +50,32 @@ type DbCourse = {
   lessons: DbLesson[];
 };
 
+function EnrollCourseButton({ courseSlug }: { courseSlug: string }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      className="h-11 w-full gap-2"
+      disabled={isPending}
+      onClick={() => {
+        startTransition(async () => {
+          await enrollInCourse(courseSlug);
+          router.refresh();
+        });
+      }}
+    >
+      <BookOpen className="size-4" />
+      {isPending ? 'Mendaftar…' : 'Daftar kursus'}
+    </Button>
+  );
+}
+
 export type StudentCourseDetailPageProps = {
   course: DbCourse;
-  marketing: CourseDetail | undefined;
+  whatYouLearn: string[];
+  duration: string;
+  tags: string[];
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
@@ -60,14 +83,15 @@ export type StudentCourseDetailPageProps = {
 
 export function StudentCourseDetailPage({
   course,
-  marketing,
+  whatYouLearn,
+  duration,
+  tags,
   isEnrolled,
   progressPercent,
   continueLessonSlug,
 }: StudentCourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
-  const whatYouLearn = marketing?.whatYouLearn ?? [];
-  const fullDesc = marketing?.fullDesc ?? course.desc;
+  const fullDesc = course.desc;
 
   const syllabusGroups = useMemo(() => {
     const mapped = course.lessons.map((lesson, index) => ({
@@ -79,7 +103,7 @@ export function StudentCourseDetailPage({
     if (course.modules && course.modules.length > 0) {
       return groupSyllabusWithDbModules(course.modules, mapped);
     }
-    return groupLessonsByModule(mapped);
+    return groupLessonsFlat(mapped);
   }, [course.lessons, course.modules, course.slug, isEnrolled]);
 
   const [expandedIds, setExpandedIds] = useState<string[]>(() =>
@@ -113,7 +137,7 @@ export function StudentCourseDetailPage({
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                 <Badge className={cn('border-0 text-white', accent.badge)}>{course.level}</Badge>
-                {marketing?.tags.map((tag) => (
+                {tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="secondary"
@@ -136,7 +160,7 @@ export function StudentCourseDetailPage({
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-4 text-primary" />
-                {marketing?.duration ?? '—'}
+                {duration}
               </span>
             </div>
           </div>
@@ -208,13 +232,20 @@ export function StudentCourseDetailPage({
                     </Link>
                   </Button>
                 </>
-              ) : (
+              ) : course.isPublished ? (
                 <>
                   <p className="text-sm text-muted-foreground">
                     Daftar kursus ini untuk membuka semua modul, materi, dan kuis.
                   </p>
+                  <EnrollCourseButton courseSlug={course.slug} />
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Kursus ini belum dipublikasikan. Kembali ke katalog untuk melihat kursus lain.
+                  </p>
                   <Button asChild variant="outline" className="w-full">
-                    <Link href={STUDENT_ROUTES.kursus}>Kembali & daftar</Link>
+                    <Link href={STUDENT_ROUTES.kursus}>Ke katalog kursus</Link>
                   </Button>
                 </>
               )}

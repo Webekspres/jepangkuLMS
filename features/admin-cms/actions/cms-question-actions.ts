@@ -1,9 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateTag } from 'next/cache';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
+import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { prisma } from '@/lib/prisma';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 import { assertLessonScope } from '@/features/admin-cms/lib/assert-lesson-scope';
@@ -11,9 +10,9 @@ import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-actio
 import { lessonQuestionSchema } from '@/features/admin-cms/lib/validations';
 
 function revalidateLessonContent(courseId: string, moduleId: string, lessonId: string) {
+  revalidateStudentLearningSurfaces({ lessonId });
   revalidatePath(ADMIN_ROUTES.kursusLessonForm(courseId, moduleId));
   revalidatePath(ADMIN_ROUTES.kursusLessons(courseId, moduleId));
-  updateTag(LEARNING_CACHE_TAGS.lessonMaterials(lessonId));
 }
 
 export async function createLessonQuestionAction(

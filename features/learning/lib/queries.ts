@@ -37,12 +37,14 @@ export const getCoursesWithDbIds = getCachedCoursesWithDbIds;
 
 export const getPublishedCourses = cache(async function getPublishedCourses() {
   const courses = await getCoursesWithDbIds();
-  return courses.map((course) => {
-    const { dbId, lessonCount, ...rest } = course;
-    void dbId;
-    void lessonCount;
-    return rest;
-  });
+  return courses
+    .filter((course) => course.isPublished)
+    .map((course) => {
+      const { dbId, lessonCount, ...rest } = course;
+      void dbId;
+      void lessonCount;
+      return rest;
+    });
 });
 
 export const getCourseBySlug = cache(async function getCourseBySlug(slug: string) {

@@ -57,6 +57,22 @@ export function groupLessonsByDbModules<T extends { order: number }>(
     }));
 }
 
+/** Satu grup datar jika kursus belum punya modul DB. */
+export function groupLessonsFlat<T extends { order: number }>(
+  lessons: T[],
+  title = 'Semua pelajaran',
+): SyllabusModuleGroup<T>[] {
+  if (lessons.length === 0) return [];
+  return [
+    {
+      module: 'all-lessons',
+      title,
+      subtitle: `${lessons.length} pelajaran`,
+      lessons: [...lessons].sort((a, b) => a.order - b.order),
+    },
+  ];
+}
+
 export function getDefaultExpandedModuleSlugs(
   groups: SyllabusModuleGroup<{ slug: string }>[],
   continueLessonSlug?: string | null,

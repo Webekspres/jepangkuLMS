@@ -1,14 +1,31 @@
 import {
-  CATALOG_COURSES,
   LEVEL_ACCENT,
   type CatalogCourse,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
+import type { ModuleRow } from '@/features/learning/lib/course-tree';
 
-const catalogBySlug = Object.fromEntries(CATALOG_COURSES.map((c) => [c.slug, c]));
+const DEFAULT_THUMB =
+  'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
 
-/** Gabung metadata marketing (thumb, accent) dengan data DB course. */
+/** Estimasi durasi dari jumlah pelajaran (~20 menit per pelajaran). */
+export function estimateCourseDuration(lessonCount: number): string {
+  if (lessonCount <= 0) return '—';
+  const minutes = lessonCount * 20;
+  if (minutes < 60) return `~${minutes} menit`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder > 0 ? `~${hours} jam ${remainder} menit` : `~${hours} jam`;
+}
+
+export function buildWhatYouLearnFromModules(modules: ModuleRow[]): string[] {
+  return modules
+    .map((mod) => mod.description?.trim() || mod.title.trim())
+    .filter(Boolean);
+}
+
+/** Gabung data kursus dari DB — tanpa overlay katalog statis. */
 export function mergeCourseDisplay(
   db: {
     slug: string;
@@ -19,34 +36,27 @@ export function mergeCourseDisplay(
     lessonCount: number;
   },
 ): CatalogCourse & { isPublished: boolean; lessonCount: number } {
-  const catalog = catalogBySlug[db.slug];
   const level = db.level as Exclude<CourseLevel, 'Semua'>;
-  const accent: JlptAccent = catalog?.accent ?? LEVEL_ACCENT[level] ?? 'emerald';
+  const accent: JlptAccent = LEVEL_ACCENT[level] ?? 'emerald';
 
   return {
     slug: db.slug,
     title: db.title,
     level,
-    desc: db.description ?? catalog?.desc ?? '',
-    lessons: db.lessonCount || catalog?.lessons || 0,
-    duration: catalog?.duration ?? '—',
+    desc: db.description ?? '',
+    lessons: db.lessonCount,
+    duration: estimateCourseDuration(db.lessonCount),
     availability: db.isPublished ? 'tersedia' : 'segera',
-    availabilityLabel: db.isPublished
-      ? (catalog?.availabilityLabel ?? 'Tersedia')
-      : (catalog?.availabilityLabel ?? 'Segera hadir'),
-    price: catalog?.price ?? '—',
-    thumb:
-      catalog?.thumb ??
-      'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+    availabilityLabel: db.isPublished ? 'Tersedia' : 'Segera hadir',
+    price: db.isPublished ? 'Gratis' : '—',
+    thumb: DEFAULT_THUMB,
     accent,
-    badge: catalog?.badge ?? level,
-    tags: catalog?.tags ?? ['Kosa Kata'],
-    featured: catalog?.featured ?? false,
+    badge: level,
+    tags: ['Kosa Kata'],
+    featured: false,
     isPublished: db.isPublished,
     lessonCount: db.lessonCount,
   };
 }
 
-export function getCatalogCourse(slug: string): CatalogCourse | undefined {
-  return catalogBySlug[slug];
-}
+export { DEFAULT_THUMB };

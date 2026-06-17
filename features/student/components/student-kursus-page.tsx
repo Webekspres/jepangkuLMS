@@ -1,16 +1,14 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
   Clock,
-  Loader2,
   Play,
   Search,
   TrendingUp,
@@ -23,7 +21,6 @@ import {
   type CatalogCourse,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
-import { enrollInCourse } from '@/features/learning/actions/learning-actions';
 import type { StudentEnrollmentView } from '@/features/learning/lib/queries';
 import { formatDisplayNumber, JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
@@ -43,11 +40,8 @@ export function StudentKursusPage({
   enrolledCards,
   stats,
 }: StudentKursusPageProps) {
-  const router = useRouter();
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [search, setSearch] = useState('');
-  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -61,24 +55,12 @@ export function StudentKursusPage({
     });
   }, [activeLevel, courses, search]);
 
-  function handleEnroll(courseSlug: string) {
-    setPendingSlug(courseSlug);
-    startTransition(async () => {
-      try {
-        await enrollInCourse(courseSlug);
-        router.refresh();
-      } finally {
-        setPendingSlug(null);
-      }
-    });
-  }
-
   function getEnrollmentView(slug: string) {
     const enrollment = enrollmentBySlug[slug];
     if (!enrollment) return null;
     return {
       progress: enrollment.progress.percent,
-      continueLessonSlug: enrollment.progress.continueLessonSlug ?? 'pengenalan-aksara-jepang',
+      continueLessonSlug: enrollment.progress.continueLessonSlug,
       status: enrollment.progress.status,
     };
   }
@@ -218,7 +200,6 @@ export function StudentKursusPage({
           {filtered.map((course, i) => {
             const accent = JLPT_ACCENT[course.accent];
             const enrollment = getEnrollmentView(course.slug);
-            const enrolling = isPending && pendingSlug === course.slug;
 
             return (
               <motion.article
@@ -274,21 +255,6 @@ export function StudentKursusPage({
                         Lanjutkan
                         <ChevronRight className="size-3.5" />
                       </Link>
-                    </Button>
-                  ) : course.isPublished ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-4 w-full gap-1.5"
-                      disabled={enrolling}
-                      onClick={() => handleEnroll(course.slug)}
-                    >
-                      {enrolling ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <BookOpen className="size-3.5" />
-                      )}
-                      Daftar kursus
                     </Button>
                   ) : (
                     <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5">

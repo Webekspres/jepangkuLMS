@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { moduleFormSchema } from '@/features/admin-cms/lib/validations';
@@ -37,6 +38,7 @@ export async function createModuleAction(formData: FormData): Promise<CmsActionR
         order: data.order,
       },
     });
+    revalidateStudentLearningSurfaces();
     revalidatePath(ADMIN_ROUTES.kursusModules(data.courseId));
     redirect(ADMIN_ROUTES.kursusLessons(data.courseId, moduleRow.id));
   } catch (error) {
@@ -68,6 +70,7 @@ export async function updateModuleAction(
         order: data.order,
       },
     });
+    revalidateStudentLearningSurfaces();
     revalidatePath(ADMIN_ROUTES.kursusModules(data.courseId));
     revalidatePath(ADMIN_ROUTES.kursusLessons(data.courseId, moduleId));
     redirect(ADMIN_ROUTES.kursusLessons(data.courseId, moduleId));
@@ -85,6 +88,7 @@ export async function deleteModuleAction(
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await prisma.module.delete({ where: { id: moduleId } });
+  revalidateStudentLearningSurfaces();
   revalidatePath(ADMIN_ROUTES.kursusModules(courseId));
   return { ok: true };
 }

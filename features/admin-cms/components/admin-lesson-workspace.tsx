@@ -143,6 +143,10 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
         </TabsContent>
 
         <TabsContent value="flashcard">
+          <p className="mb-4 text-sm text-muted-foreground">
+            Kelola kartu per jenis materi. Di halaman belajar siswa, semua jenis digabung jadi satu
+            deck flashcard (diacak setiap sesi).
+          </p>
           <Tabs value={flashTab} onValueChange={(v) => setFlashTab(v as FlashTab)}>
             <TabsList variant="line" className="mb-4">
               <TabsTrigger value="kosakata">Kosakata ({content.kosakatas.length})</TabsTrigger>

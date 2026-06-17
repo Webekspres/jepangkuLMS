@@ -4,7 +4,10 @@ import {
   getCachedCourseWithLessons,
   getCachedUserEnrollments,
 } from '@/lib/cache/learning-cache';
-import { getCourseBySlug as getMarketingCourseDetail } from '@/features/learning/components/course-detail-data';
+import {
+  buildWhatYouLearnFromModules,
+  estimateCourseDuration,
+} from '@/features/learning/lib/course-display';
 
 export const loadStudentCourseDetail = cache(async function loadStudentCourseDetail(
   courseSlug: string,
@@ -18,12 +21,14 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
   if (!course) return null;
 
   const enrollment = enrollments.find((e) => e.courseSlug === courseSlug) ?? null;
-  const marketing = getMarketingCourseDetail(courseSlug);
+  const modules = course.modules ?? [];
 
   return {
     course,
     enrollment,
-    marketing,
     isEnrolled: Boolean(enrollment),
+    whatYouLearn: buildWhatYouLearnFromModules(modules),
+    duration: estimateCourseDuration(course.lessonCount),
+    tags: [course.level],
   };
 });

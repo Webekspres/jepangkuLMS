@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { QuizResultView } from '@/features/learning/components/quiz-result-view';
-import { getLessonQuizBySlug } from '@/features/learning/lib/queries';
+import { getLatestQuizAttempt, getLessonQuizBySlug } from '@/features/learning/lib/queries';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
@@ -30,9 +30,16 @@ export default async function KuisHasilPage({ params, searchParams }: KuisHasilP
     redirect(STUDENT_ROUTES.kursus);
   }
 
-  const score = Number.parseInt(query.score ?? '0', 10);
-  const correct = Number.parseInt(query.correct ?? '0', 10);
-  const total = Number.parseInt(query.total ?? String(quiz.questions.length), 10);
+  const total = quiz.questions.length;
+  const attempt = await getLatestQuizAttempt(userId, quiz.lesson.id);
+
+  const score = attempt?.score ?? Number.parseInt(query.score ?? '0', 10);
+  const correct =
+    attempt && total > 0
+      ? Math.round((attempt.score / 100) * total)
+      : Number.parseInt(query.correct ?? '0', 10);
+  const resolvedTotal =
+    total > 0 ? total : Number.parseInt(query.total ?? '0', 10);
 
   return (
     <QuizResultView
@@ -41,7 +48,7 @@ export default async function KuisHasilPage({ params, searchParams }: KuisHasilP
       courseSlug={quiz.lesson.courseSlug}
       score={score}
       correct={correct}
-      total={total}
+      total={resolvedTotal}
     />
   );
 }

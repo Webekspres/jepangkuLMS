@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { DashboardPage } from '@/features/student/components';
-import { loadDashboardContinueLessons } from '@/features/student/lib/load-student-learning-data';
+import {
+  loadDashboardContinueLessons,
+  loadDashboardJlptPath,
+} from '@/features/student/lib/load-student-learning-data';
 
 export const metadata: Metadata = {
   title: 'Beranda — JepangKu LMS',
@@ -8,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardRoutePage() {
-  const continueLessons = await loadDashboardContinueLessons();
+  const [continueLessons, jlptPath] = await Promise.all([
+    loadDashboardContinueLessons(),
+    loadDashboardJlptPath(),
+  ]);
 
-  return <DashboardPage continueLessons={continueLessons} />;
+  return <DashboardPage continueLessons={continueLessons} jlptPath={jlptPath} />;
 }

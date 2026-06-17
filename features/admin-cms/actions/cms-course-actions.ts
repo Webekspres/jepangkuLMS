@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { courseFormSchema } from '@/features/admin-cms/lib/validations';
@@ -42,6 +43,7 @@ export async function createCourseAction(formData: FormData): Promise<CmsActionR
         isPublished: data.isPublished,
       },
     });
+    revalidateStudentLearningSurfaces();
     revalidatePath(ADMIN_ROUTES.kursus);
     redirect(ADMIN_ROUTES.kursusModules(course.id));
   } catch (error) {
@@ -74,6 +76,7 @@ export async function updateCourseAction(
         isPublished: data.isPublished,
       },
     });
+    revalidateStudentLearningSurfaces();
     revalidatePath(ADMIN_ROUTES.kursus);
     revalidatePath(ADMIN_ROUTES.kursusModules(courseId));
     redirect(ADMIN_ROUTES.kursusModules(courseId));
@@ -88,6 +91,7 @@ export async function updateCourseAction(
 export async function deleteCourseAction(courseId: string): Promise<CmsActionResult> {
   await requireAdminAction();
   await prisma.course.delete({ where: { id: courseId } });
+  revalidateStudentLearningSurfaces();
   revalidatePath(ADMIN_ROUTES.kursus);
   return { ok: true };
 }
@@ -101,6 +105,7 @@ export async function toggleCoursePublishedAction(
     where: { id: courseId },
     data: { isPublished },
   });
+  revalidateStudentLearningSurfaces();
   revalidatePath(ADMIN_ROUTES.kursus);
   return { ok: true };
 }

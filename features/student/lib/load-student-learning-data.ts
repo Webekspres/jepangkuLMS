@@ -1,8 +1,9 @@
 import { cache } from 'react';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
-import type { ContinueLesson } from '@/features/student/components/dashboard-data';
+import type { ContinueLesson, JlptPathItem } from '@/features/student/components/dashboard-data';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
-import { getCatalogCourse } from '@/features/learning/lib/course-display';
+import { DEFAULT_THUMB } from '@/features/learning/lib/course-display';
+import type { CourseProgress } from '@/features/learning/lib/progress';
 import {
   getCoursesWithDbIds,
   getUserEnrollments,
@@ -29,19 +30,86 @@ export type StudentKursusData = {
   stats: { enrolled: number; active: number; completed: number };
 };
 
-function lessonCategoryFromSlug(slug: string): ContinueLesson['category'] {
-  if (slug.includes('kanji')) return 'Kanji';
-  if (slug.includes('kosakata')) return 'Kosa Kata';
+function lessonCategoryFromMaterials(counts: {
+  kanjis: number;
+  kosakatas: number;
+  tataBahasas: number;
+}): ContinueLesson['category'] {
+  if (counts.kanjis > 0) return 'Kanji';
+  if (counts.kosakatas > 0) return 'Kosa Kata';
+  if (counts.tataBahasas > 0) return 'Tata Bahasa';
   return 'Tata Bahasa';
+}
+
+const JLPT_LEVEL_ORDER: JlptPathItem['level'][] = ['N5', 'N4', 'N3', 'N2', 'N1'];
+
+function buildJlptPath(
+  enrollments: StudentEnrollmentView[],
+  courses: (CatalogCourse & { dbId: string; lessonCount: number; isPublished: boolean })[],
+): JlptPathItem[] {
+  const courseBySlug = Object.fromEntries(courses.map((c) => [c.slug, c]));
+  const levelStats = new Map<
+    JlptPathItem['level'],
+    { percent: number; status: CourseProgress['status'] }
+  >();
+
+  for (const enrollment of enrollments) {
+    const course = courseBySlug[enrollment.courseSlug];
+    if (!course) continue;
+    const level = course.level as JlptPathItem['level'];
+    if (!JLPT_LEVEL_ORDER.includes(level)) continue;
+
+    const current = levelStats.get(level);
+    if (!current || enrollment.progress.percent > current.percent) {
+      levelStats.set(level, {
+        percent: enrollment.progress.percent,
+        status: enrollment.progress.status,
+      });
+    }
+  }
+
+  const hasPublished = (level: JlptPathItem['level']) =>
+    courses.some((c) => c.level === level && c.isPublished);
+
+  const path: JlptPathItem[] = [];
+  let chainUnlocked = true;
+
+  for (const level of JLPT_LEVEL_ORDER) {
+    const stat = levelStats.get(level);
+
+    if (stat?.status === 'completed') {
+      path.push({ level, status: 'done' });
+      continue;
+    }
+
+    if (stat && stat.status !== 'not_started' && chainUnlocked) {
+      path.push({ level, status: 'active', progress: stat.percent });
+      chainUnlocked = false;
+      continue;
+    }
+
+    if (chainUnlocked && hasPublished(level)) {
+      path.push({ level, status: 'active', progress: stat?.percent ?? 0 });
+      chainUnlocked = false;
+      continue;
+    }
+
+    path.push({ level, status: 'locked' });
+    chainUnlocked = false;
+  }
+
+  return path;
 }
 
 export const loadStudentKursusData = cache(async function loadStudentKursusData(): Promise<StudentKursusData> {
   const userId = await requireAuthUserId();
 
-  const [courses, enrollments] = await Promise.all([
+  const [allCourses, enrollments] = await Promise.all([
     getCoursesWithDbIds(),
     getUserEnrollments(userId),
   ]);
+
+  const courses = allCourses.filter((c) => c.isPublished);
 
   const enrollmentBySlug = Object.fromEntries(
     enrollments.map((e) => [e.courseSlug, e]),
@@ -50,12 +118,12 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
   const enrolledCards: KursusEnrollmentCard[] = enrollments
     .map((enrollment) => {
       const course = courses.find((c) => c.slug === enrollment.courseSlug);
-      if (!course || !enrollment.progress.continueLessonSlug) return null;
+      if (!course) return null;
       return {
         course,
         enrollment: {
           courseSlug: enrollment.courseSlug,
-          continueLessonSlug: enrollment.progress.continueLessonSlug,
+          continueLessonSlug: enrollment.progress.continueLessonSlug ?? '',
           progress: enrollment.progress.percent,
           status: enrollment.progress.status,
           lastAccessLabel: enrollment.progress.percent > 0 ? 'Baru-baru ini' : 'Belum dimulai',
@@ -76,6 +144,18 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
   };
 });
 
+export const loadDashboardJlptPath = cache(async function loadDashboardJlptPath(): Promise<
+  JlptPathItem[]
+> {
+  const userId = await requireAuthUserId();
+  const [allCourses, enrollments] = await Promise.all([
+    getCoursesWithDbIds(),
+    getUserEnrollments(userId),
+  ]);
+  const courses = allCourses.filter((c) => c.isPublished);
+  return buildJlptPath(enrollments, courses);
+});
+
 export const loadDashboardContinueLessons = cache(async function loadDashboardContinueLessons(): Promise<
   ContinueLesson[]
 > {
@@ -91,12 +171,16 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
 
   if (lessonSlugs.length === 0) return [];
 
+  const courses = await getCoursesWithDbIds();
+  const courseBySlug = Object.fromEntries(courses.map((c) => [c.slug, c]));
+
   const lessons = await prisma.lesson.findMany({
     where: { slug: { in: lessonSlugs } },
     select: {
       title: true,
       slug: true,
       module: { select: { course: { select: { slug: true, level: true } } } },
+      _count: { select: { kanjis: true, kosakatas: true, tataBahasas: true } },
     },
   });
 
@@ -108,7 +192,7 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
     const lesson = lessonBySlug[slug];
     if (!lesson) return [];
 
-    const catalog = getCatalogCourse(enrollment.courseSlug);
+    const course = courseBySlug[enrollment.courseSlug];
 
     return [
       {
@@ -116,11 +200,9 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
         level: lesson.module.course.level,
         duration: '—',
         progress: enrollment.progress.percent,
-        category: lessonCategoryFromSlug(lesson.slug),
+        category: lessonCategoryFromMaterials(lesson._count),
         href: STUDENT_ROUTES.belajar(lesson.module.course.slug, lesson.slug),
-        image:
-          catalog?.thumb ??
-          'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
+        image: course?.thumb ?? DEFAULT_THUMB,
       },
     ];
   });
@@ -128,7 +210,9 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
 
 export const loadPublishedCatalog = cache(async function loadPublishedCatalog() {
   const courses = await getCoursesWithDbIds();
-  return courses.map((course) => {
+  return courses
+    .filter((course) => course.isPublished)
+    .map((course) => {
     const { dbId, lessonCount, ...rest } = course;
     void dbId;
     void lessonCount;

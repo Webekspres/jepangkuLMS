@@ -4,12 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
+import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { lessonFormSchema } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
-import { updateTag } from 'next/cache';
 
 function parseLessonForm(formData: FormData) {
   return lessonFormSchema.safeParse({
@@ -24,15 +23,10 @@ function parseLessonForm(formData: FormData) {
 }
 
 function revalidateLessonPaths(courseId: string, moduleId: string, lessonId?: string) {
+  revalidateStudentLearningSurfaces({ lessonId });
   revalidatePath(ADMIN_ROUTES.kursusLessons(courseId, moduleId));
   revalidatePath(ADMIN_ROUTES.kursusModules(courseId));
   revalidatePath(ADMIN_ROUTES.kursus);
-  revalidatePath('/kursus');
-  revalidatePath('/dashboard/kursus');
-  updateTag(LEARNING_CACHE_TAGS.coursesCatalog);
-  if (lessonId) {
-    updateTag(LEARNING_CACHE_TAGS.lessonMaterials(lessonId));
-  }
 }
 
 export async function createLessonAction(formData: FormData): Promise<CmsActionResult> {

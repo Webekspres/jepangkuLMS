@@ -22,7 +22,7 @@ export const LEARNING_CACHE_TAGS = {
 export const getCachedCoursesWithDbIds = unstable_cache(
   async () => {
     const courses = await prisma.course.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         slug: true,
@@ -55,7 +55,7 @@ export const getCachedCoursesWithDbIds = unstable_cache(
       };
     });
   },
-  ['learning-courses-catalog-v2'],
+  ['learning-courses-catalog-v3'],
   { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
 );
 
@@ -188,7 +188,7 @@ export function getCachedCourseWithLessons(slug: string) {
         })),
       };
     },
-    ['learning-course-with-lessons-v2', slug],
+    ['learning-course-with-lessons-v3', slug],
     { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
   )(slug);
 }

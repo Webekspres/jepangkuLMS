@@ -26,12 +26,12 @@ import { useStudentCoreData } from './student-core-data-context';
 import { DashboardJlptPath } from './dashboard-jlpt-path';
 import {
   buildDashboardStats,
-  DASHBOARD_CONTINUE_LESSONS,
   DASHBOARD_LIVE_SCHEDULE,
   DASHBOARD_WEEKLY_XP,
   DASHBOARD_WEEKLY_XP_MAX,
   LESSON_CATEGORY_STYLE,
   type ContinueLesson,
+  type JlptPathItem,
 } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
 
@@ -63,9 +63,11 @@ function DashboardSection({
 }
 
 export function DashboardPage({
-  continueLessons = DASHBOARD_CONTINUE_LESSONS,
+  continueLessons = [],
+  jlptPath,
 }: {
   continueLessons?: ContinueLesson[];
+  jlptPath: JlptPathItem[];
 }) {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
@@ -161,7 +163,7 @@ export function DashboardPage({
         ))}
       </div>
 
-      <DashboardJlptPath />
+      <DashboardJlptPath jlptPath={jlptPath} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
