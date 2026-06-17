@@ -1,4 +1,8 @@
 import { getCoreApiBaseUrl } from './client';
+import { loggers, logUpstreamFailure, serializeError } from '@/lib/logger';
+
+const coreLog = loggers.core;
+const CORE_FETCH_TIMEOUT_MS = 4_000;
 
 type CoreErrorBody = {
   error?: { code?: string; message?: string };
@@ -7,30 +11,107 @@ type CoreErrorBody = {
 async function fetchCoreJson<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = getCoreApiBaseUrl();
   if (!baseUrl) {
+    coreLog.error({ path }, 'Core API base URL not configured');
     throw new Error('JEPANGKU_CORE_API_URL belum dikonfigurasi');
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...init?.headers,
-    },
-    cache: 'no-store',
-  });
+  const started = Date.now();
+  const method = init?.method ?? 'GET';
 
-  if (!response.ok) {
-    let message = `Core API error (${response.status})`;
-    try {
-      const body = (await response.json()) as CoreErrorBody;
-      message = body.error?.message ?? message;
-    } catch {
-      // ignore
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(CORE_FETCH_TIMEOUT_MS),
+    });
+
+    const durationMs = Date.now() - started;
+
+    if (!response.ok) {
+      let code: string | undefined;
+      let message = `Core API error (${response.status})`;
+      let responseBody: string | undefined;
+
+      try {
+        const bodyText = await response.text();
+        responseBody = bodyText;
+        const body = JSON.parse(bodyText) as CoreErrorBody;
+        code = body.error?.code;
+        message = body.error?.message ?? message;
+      } catch {
+        // ignore
+      }
+
+      const { context, summary } = logUpstreamFailure(
+        {
+          method,
+          path,
+          statusCode: response.status,
+          code,
+          durationMs,
+          responseBody,
+        },
+        `Core API request failed: ${message}`,
+      );
+      coreLog.warn(context, summary);
+
+      const error = new Error(message) as Error & {
+        statusCode: number;
+        code?: string;
+        upstream: string;
+      };
+      error.statusCode = response.status;
+      error.code = code;
+      error.upstream = 'core-backend';
+      throw error;
     }
-    throw new Error(message);
-  }
 
-  return (await response.json()) as T;
+    const { context, summary } = logUpstreamFailure(
+      { method, path, statusCode: response.status, durationMs },
+      'Core API request OK',
+    );
+    coreLog.debug(context, summary);
+    return (await response.json()) as T;
+  } catch (error) {
+    const durationMs = Date.now() - started;
+
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      const { context, summary } = logUpstreamFailure(
+        {
+          method,
+          path,
+          statusCode: 504,
+          code: 'TIMEOUT',
+          durationMs,
+        },
+        `Core API request timed out after ${CORE_FETCH_TIMEOUT_MS}ms`,
+      );
+      coreLog.error(context, summary);
+    } else if (
+      !(
+        error instanceof Error &&
+        'statusCode' in error &&
+        typeof (error as { statusCode?: number }).statusCode === 'number'
+      )
+    ) {
+      coreLog.error(
+        {
+          method,
+          path,
+          durationMs,
+          upstream: 'core-backend',
+          ...serializeError(error),
+        },
+        `[core-backend] ${method} ${path} — Core API request error: ${serializeError(error).err.message}`,
+      );
+    }
+
+    throw error;
+  }
 }
 
 export type CoreLeaderboardItem = {

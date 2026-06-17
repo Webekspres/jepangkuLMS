@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/brand-logo';
 import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ADMIN_CONTACT, buildWhatsAppUrl } from '@/lib/admin-contact';
@@ -44,13 +44,7 @@ export function MarketingFooter() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-4">
             <Link href="/" className="inline-block">
-              <Image
-                src="/brand/logo.png"
-                alt="JepangKu"
-                width={150}
-                height={40}
-                className="h-9 w-auto object-contain"
-              />
+              <BrandLogo variant="footer" />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
               Platform belajar bahasa Jepang terstruktur JLPT — video lesson, kuis interaktif, try

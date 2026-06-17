@@ -1,6 +1,9 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
+import { loggers } from '@/lib/logger';
+
+const dbLog = loggers.db;
 
 function createPrismaClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
@@ -12,13 +15,12 @@ function createPrismaClient(): PrismaClient {
     connectionString,
     max: Number(process.env.PG_POOL_MAX ?? 10),
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS ?? 10_000),
     keepAlive: true,
   });
 
-  // Idle client errors are emitted on the pool — without a listener Node can crash.
   pool.on('error', (err) => {
-    console.error('Unexpected error on idle PostgreSQL client in pool', err);
+    dbLog.error({ err }, 'PostgreSQL idle client error on connection pool');
   });
 
   const adapter = new PrismaPg(pool);
@@ -38,3 +40,11 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
+
+dbLog.debug(
+  {
+    poolMax: Number(process.env.PG_POOL_MAX ?? 10),
+    connectionTimeoutMs: Number(process.env.PG_CONNECTION_TIMEOUT_MS ?? 10_000),
+  },
+  'Prisma client initialized',
+);

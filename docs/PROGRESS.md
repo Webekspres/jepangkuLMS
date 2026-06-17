@@ -228,6 +228,6 @@ Item di luar MVP Juni 2026 (jangan di-track sebagai blocker Fase 1):
 | 2026-06-03 | Arsitektur ekosistem: `docs/ECOSYSTEM.md`, `lib/core/`, schema `User` jangkar, gamifikasi ke Core |
 | 2026-06-03 | Draft ERD Core normalized: `docs/CORE_ERD.md` (handoff Sultan) |
 | 2026-06-03 | Keputusan JWT claims: docs + `lib/core/jwt-claims.ts`, `session.ts` |
-| 2026-06-03 | Core schema v2: `docs/backend_core_services/` (roles, idempotency, lookup 3NF, README) |
-| 2026-06-03 | `CORE_ERD.md` dipendekkan jadi konsep saja; schema detail hanya di `backend_core_services/` |
+| 2026-06-03 | Core schema v2 di repo `jepangku-core/docs/` |
+| 2026-06-09 | Hapus duplikat schema LMS; canonical → `jepangku-core/docs/` |
 | 2026-06-05 | `CORE_INTEGRATION_STATUS.md`: blocker Core 500, Clerk-only sementara, checklist dev LMS + handoff Core |

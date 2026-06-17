@@ -1,4 +1,5 @@
 import { ADMIN_WA_NUMBER } from '@/lib/admin-contact';
+import { buildN5MarketingSyllabus } from '@/features/learning/lib/n5-lesson-modules';
 import { CATALOG_COURSES, type CatalogCourse } from './courses-data';
 
 export type CourseSyllabusItem = {
@@ -49,33 +50,7 @@ const COURSE_DETAIL_EXTRAS: Record<string, CourseDetailExtras> = {
       'Progress tracking setelah login',
       'Update materi gratis',
     ],
-    syllabus: [
-      {
-        title: 'Modul 1 — Hiragana & Katakana',
-        items: [
-          { title: 'Pengenalan aksara Jepang', duration: '12 menit', locked: false },
-          { title: 'Hiragana baris あ–た', duration: '18 menit', locked: false },
-          { title: 'Hiragana baris な–ん', duration: '18 menit', locked: true },
-          { title: 'Katakana lengkap', duration: '25 menit', locked: true },
-        ],
-      },
-      {
-        title: 'Modul 2 — Kanji N5 Dasar',
-        items: [
-          { title: 'Kanji angka & waktu', duration: '20 menit', locked: true },
-          { title: 'Kanji sehari-hari (1)', duration: '22 menit', locked: true },
-          { title: 'Kanji sehari-hari (2)', duration: '22 menit', locked: true },
-        ],
-      },
-      {
-        title: 'Modul 3 — Tata Bahasa N5',
-        items: [
-          { title: 'Partikel は, が, を', duration: '15 menit', locked: true },
-          { title: 'Bentuk ます dan negatif', duration: '18 menit', locked: true },
-          { title: 'Latihan soal N5', duration: '30 menit', locked: true },
-        ],
-      },
-    ],
+    syllabus: buildN5MarketingSyllabus(),
   },
   'n4-tata-bahasa-intensif': {
     fullDesc:
