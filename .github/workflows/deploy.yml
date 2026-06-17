@@ -77,7 +77,6 @@ jobs:
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_CLERK_SIGN_IN_URL=https://dev.kursus.jepangku.com/sign-in
             NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://dev.kursus.jepangku.com/sign-up
-            NEXT_PUBLIC_CORE_INTEGRATION_UI=true
           tags: |
             ${{ steps.meta.outputs.image }}:staging
             ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
