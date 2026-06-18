@@ -13,7 +13,7 @@ import { prisma } from '@/lib/prisma';
 import type { CatalogCourse } from '@/features/learning/components/courses-data';
 
 export type KursusEnrollmentCard = {
-  course: CatalogCourse & { dbId: string; lessonCount: number; isPublished: boolean };
+  course: CatalogCourse & { dbId: string; lessonCount: number; isPublished: boolean; priceIdr: number };
   enrollment: {
     courseSlug: string;
     continueLessonSlug: string;

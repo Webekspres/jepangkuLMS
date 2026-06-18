@@ -31,6 +31,8 @@ import {
   DASHBOARD_WEEKLY_XP_MAX,
   LESSON_CATEGORY_STYLE,
   type ContinueLesson,
+  type DashboardLivePreviewItem,
+  type DashboardWeeklyXpDay,
   type JlptPathItem,
 } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
@@ -65,15 +67,27 @@ function DashboardSection({
 export function DashboardPage({
   continueLessons = [],
   jlptPath,
+  weeklyXp = [...DASHBOARD_WEEKLY_XP],
+  liveSchedule = DASHBOARD_LIVE_SCHEDULE.map((item) => ({
+    id: item.title,
+    title: item.title,
+    time: item.time,
+    sensei: item.sensei,
+    live: item.live,
+    href: '/dashboard/live-class',
+  })),
 }: {
   continueLessons?: ContinueLesson[];
   jlptPath: JlptPathItem[];
+  weeklyXp?: DashboardWeeklyXpDay[];
+  liveSchedule?: DashboardLivePreviewItem[];
 }) {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
   const displayName =
     identity?.displayName ?? core.displayName ?? '…';
   const stats = buildDashboardStats(core);
+  const weeklyXpMax = Math.max(1, ...weeklyXp.map((day) => day.xp));
   const leaderboardPreview =
     core.leaderboardPreview.length > 0
       ? core.leaderboardPreview
@@ -89,19 +103,20 @@ export function DashboardPage({
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm"
+        className="bg-brand-hero-navy relative overflow-hidden rounded-2xl shadow-lg"
       >
-        <div className="pointer-events-none absolute inset-0 opacity-50" style={LANDING_HERO_GRID_STYLE} />
+        <div className="pointer-events-none absolute inset-0 opacity-30" style={LANDING_HERO_GRID_STYLE} />
+        <div className="pointer-events-none absolute right-0 top-0 size-64 translate-x-1/3 -translate-y-1/3 rounded-full bg-primary/15 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <div>
-            <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <p className="mb-1 text-xs font-medium tracking-wide text-white/50 uppercase">
               おはよう
             </p>
-            <h1 className="text-[clamp(1.35rem,3vw,1.75rem)] font-extrabold tracking-tight text-foreground">
-              Halo, {displayName}!{' '}           
+            <h1 className="text-[clamp(1.35rem,3vw,1.75rem)] font-extrabold tracking-tight text-white">
+              Halo, {displayName}!{' '}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-white/60">
               {core.levelTitle
                 ? `${core.levelTitle} · Lv.${core.level}`
                 : `Level ${core.level}`}{' '}
@@ -109,22 +124,22 @@ export function DashboardPage({
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/25 bg-brand-yellow/10 px-3 py-1 text-xs font-semibold text-amber-700">
-                <Zap className="size-3.5 text-primary" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1 text-xs font-semibold text-brand-yellow">
+                <Zap className="size-3.5" />
                 {formatDisplayNumber(core.totalXp)} XP
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
                 <Coins className="size-3.5" />
                 {formatDisplayNumber(core.lmsPoints)} poin
               </span>
               {core.lmsRank != null ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-foreground">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
                   <Star className="size-3.5 text-primary" />
                   Rank #{core.lmsRank}
                 </span>
               ) : null}
               {core.badgeCount > 0 ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
                   <Award className="size-3.5" />
                   {core.badgeCount} badge
                 </span>
@@ -132,7 +147,7 @@ export function DashboardPage({
             </div>
           </div>
 
-          <Button asChild size="lg" className="h-11 shrink-0 gap-2 px-6">
+          <Button asChild variant="ghost" size="lg" className="h-11 shrink-0 gap-2 border border-white/20 bg-white/15 px-6 text-white hover:bg-white/25 hover:text-white">
             <Link href={continueLessons[0]?.href ?? STUDENT_ROUTES.kursus}>
               <Play className="size-4" />
               Lanjutkan Belajar
@@ -201,6 +216,12 @@ export function DashboardPage({
                         className="object-cover"
                         sizes="80px"
                       />
+                      {/* Play button overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="flex size-8 items-center justify-center rounded-full bg-white/90 shadow">
+                          <Play className="size-3.5 translate-x-0.5 fill-current text-primary" />
+                        </span>
+                      </div>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -233,7 +254,7 @@ export function DashboardPage({
             </div>
           </DashboardSection>
 
-          {!core.coreConnected ? (
+          {!core.coreConnected && core.status === 'ready' ? (
             <DashboardSection title="XP Mingguan" icon={TrendingUp}>
               <p className="text-sm text-muted-foreground">
                 Grafik XP mingguan sedang dimuat…
@@ -242,11 +263,11 @@ export function DashboardPage({
           ) : (
             <DashboardSection title="XP Mingguan" icon={TrendingUp}>
               <div className="flex h-36 items-end justify-between gap-1 sm:gap-2">
-                {DASHBOARD_WEEKLY_XP.map((day) => (
+                {weeklyXp.map((day) => (
                   <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${(day.xp / DASHBOARD_WEEKLY_XP_MAX) * 100}%` }}
+                      animate={{ height: `${(day.xp / weeklyXpMax) * 100}%` }}
                       transition={{ duration: 0.6, delay: 0.1 }}
                       className="w-full min-h-[8px] max-h-24 rounded-t-md bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow opacity-40"
                     />
@@ -255,7 +276,7 @@ export function DashboardPage({
                 ))}
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Ringkasan mingguan — detail harian segera hadir.
+                Poin LMS yang kamu kumpulkan 7 hari terakhir.
               </p>
             </DashboardSection>
           )}
@@ -345,11 +366,22 @@ export function DashboardPage({
             </div>
           </DashboardSection>
 
-          <DashboardSection title="Jadwal Live Class" icon={Calendar}>
+          <DashboardSection
+            title="Jadwal Live Class"
+            icon={Calendar}
+            action={
+              <Link href="/dashboard/live-class" className="text-xs font-semibold text-primary hover:underline">
+                Lihat semua →
+              </Link>
+            }
+          >
             <ul className="space-y-3">
-              {DASHBOARD_LIVE_SCHEDULE.map((item) => (
+              {liveSchedule.length === 0 ? (
+                <li className="text-sm text-muted-foreground">Belum ada jadwal live class.</li>
+              ) : (
+              liveSchedule.map((item) => (
                 <li
-                  key={item.title}
+                  key={item.id}
                   className="rounded-xl border border-border/80 bg-background/80 p-3"
                 >
                   <div className="mb-1 flex items-center gap-2">
@@ -364,7 +396,8 @@ export function DashboardPage({
                   <p className="mt-1 text-xs text-muted-foreground">{item.time}</p>
                   <p className="text-xs text-muted-foreground">{item.sensei}</p>
                 </li>
-              ))}
+              ))
+              )}
             </ul>
           </DashboardSection>
         </div>

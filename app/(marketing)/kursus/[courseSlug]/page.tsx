@@ -1,19 +1,23 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CourseDetailPage } from '@/features/learning/components/course-detail-page';
-import { getAllCourseSlugs, getCourseBySlug } from '@/features/learning/components/course-detail-data';
+import {
+  loadMarketingCourseDetail,
+  loadPublishedCourseSlugs,
+} from '@/features/learning/lib/load-marketing-courses';
 
 type PageProps = {
   params: Promise<{ courseSlug: string }>;
 };
 
 export async function generateStaticParams() {
-  return getAllCourseSlugs().map((courseSlug) => ({ courseSlug }));
+  const slugs = await loadPublishedCourseSlugs();
+  return slugs.map((courseSlug) => ({ courseSlug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { courseSlug } = await params;
-  const course = getCourseBySlug(courseSlug);
+  const course = await loadMarketingCourseDetail(courseSlug);
 
   if (!course) {
     return { title: 'Kursus tidak ditemukan — JepangKu LMS' };
@@ -27,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function KursusDetailRoute({ params }: PageProps) {
   const { courseSlug } = await params;
-  const course = getCourseBySlug(courseSlug);
+  const course = await loadMarketingCourseDetail(courseSlug);
 
   if (!course) {
     notFound();

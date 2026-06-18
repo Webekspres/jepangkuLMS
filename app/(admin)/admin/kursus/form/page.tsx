@@ -29,6 +29,7 @@ export default async function AdminKursusFormPage({ searchParams }: AdminKursusF
         slug: course.slug,
         description: course.description ?? '',
         level: course.level,
+        priceIdr: course.priceIdr,
         isPublished: course.isPublished,
       }}
     />

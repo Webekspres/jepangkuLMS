@@ -10,6 +10,7 @@ import {
   Clock,
   Play,
   Search,
+  Star,
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,32 +20,41 @@ import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
 import {
-  CATALOG_COURSES,
   COURSE_CATEGORIES,
+  COURSE_FEATURE_FILTERS,
   COURSE_LEVELS,
   LEVEL_ACCENT,
+  type CatalogCourse,
   type CourseCategory,
+  type CourseFeatureFilter,
   type CourseLevel,
 } from './courses-data';
 
-export function CoursesCatalogPage() {
+type CoursesCatalogPageProps = {
+  courses: CatalogCourse[];
+};
+
+export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [activeCategory, setActiveCategory] = useState<CourseCategory>('Semua');
+  const [activeFeature, setActiveFeature] = useState<CourseFeatureFilter>('Semua');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return CATALOG_COURSES.filter((course) => {
+    return courses.filter((course) => {
       const levelMatch = activeLevel === 'Semua' || course.level === activeLevel;
       const categoryMatch =
         activeCategory === 'Semua' || course.tags.includes(activeCategory);
+      const featureMatch =
+        activeFeature === 'Semua' || (activeFeature === 'Unggulan' && course.featured);
       const searchMatch =
         !query ||
         course.title.toLowerCase().includes(query) ||
         course.desc.toLowerCase().includes(query);
-      return levelMatch && categoryMatch && searchMatch;
+      return levelMatch && categoryMatch && featureMatch && searchMatch;
     });
-  }, [activeLevel, activeCategory, search]);
+  }, [courses, activeLevel, activeCategory, activeFeature, search]);
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
@@ -117,6 +127,25 @@ export function CoursesCatalogPage() {
                 </button>
               );
             })}
+          </div>
+          <div className="hidden w-px bg-border sm:block" />
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {COURSE_FEATURE_FILTERS.map((feature) => (
+              <button
+                key={feature}
+                type="button"
+                onClick={() => setActiveFeature(feature)}
+                className={cn(
+                  'flex shrink-0 items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all',
+                  activeFeature === feature
+                    ? 'bg-brand-yellow text-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                )}
+              >
+                {feature === 'Unggulan' ? <Star className="size-3" /> : null}
+                {feature}
+              </button>
+            ))}
           </div>
           <div className="hidden w-px bg-border sm:block" />
           <div className="flex gap-2 overflow-x-auto pb-1">

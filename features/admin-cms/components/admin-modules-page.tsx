@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import { deleteModuleAction } from '@/features/admin-cms/actions/cms-module-actions';
+import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +46,15 @@ export function AdminModulesPage({ course, modules }: AdminModulesPageProps) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const {
+    paginatedItems: paginatedModules,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(modules);
 
   const deleteTarget = modules.find((mod) => mod.id === deleteId);
 
@@ -103,7 +114,7 @@ export function AdminModulesPage({ course, modules }: AdminModulesPageProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              modules.map((mod) => (
+              paginatedModules.map((mod) => (
                 <TableRow key={mod.id}>
                   <TableCell className="font-mono text-sm">{mod.order}</TableCell>
                   <TableCell>
@@ -146,6 +157,14 @@ export function AdminModulesPage({ course, modules }: AdminModulesPageProps) {
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="modul"
+        />
       </Card>
 
       <AdminConfirmDialog

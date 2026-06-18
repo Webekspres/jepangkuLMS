@@ -51,9 +51,16 @@ Import CSS global (jangan ubah urutan tanpa alasan):
 | Nama | Hex | Token Tailwind | Peran |
 | :--- | :--- | :--- | :--- |
 | **Red Japanese** | `#EC1D24` | `brand-red`, `--primary` | CTA utama, aksi primér, sidebar active accent |
-| **Navy** | `#1E1B57` | `brand-navy`, `--secondary`, `--sidebar` | Header teks gelap, sidebar, struktur |
+| **Navy** | `#1E1B57` | `brand-navy`, `--secondary`, `--sidebar` | Header teks gelap, sidebar, struktur; `bg-brand-navy` untuk permukaan gelap |
 | **Orange** | `#FF4B2B` | `brand-orange`, `--accent`, `--ring` | Hover CTA, promo, focus ring |
-| **Yellow** | `#F8E71C` | `brand-yellow`, `--chart-4` | XP, badge emas, reward highlight |
+| **Yellow** | `#F8E71C` | `brand-yellow`, `--chart-4` | XP, badge emas, reward highlight; CTA button di atas bg gelap |
+
+**Brand surface classes** (didefinisikan di `globals.css @layer base`, bukan di komponen):
+
+| Class | Gradien | Dipakai di |
+| :--- | :--- | :--- |
+| `.bg-brand-hero-navy` | Navy `#1E1B57` → `#1a2d5a` → `#2a1b4e` | Footer, platform highlights band, permukaan gelap brand |
+| `.bg-brand-hero-red` | Red `#EC1D24` → Orange `#FF4B2B` → Navy `#1E1B57` | CTA final landing, section promosi |
 
 ### 3.2 Token semantic Shadcn (prioritas pemakaian)
 
@@ -85,6 +92,9 @@ Gunakan **urutan prioritas** ini saat memilih class:
 * Variabel tema di blok `.dark` dalam `globals.css` — **jangan** hardcode warna dark di komponen.
 * Pola umum: `text-brand-navy dark:text-white`, `dark:border-white/20`, logo `dark:hidden` / `hidden dark:block` (lihat landing).
 * Aktifkan dark via class `.dark` pada ancestor (sesuai setup Shadcn); jangan asumsikan `prefers-color-scheme` saja tanpa class.
+* **Dark mode adalah midnight navy** — `--background: #181548` (navy gelap, bukan hitam/void). Card `#211e55`, muted `#282563`. Jangan mendaratkan ke nilai lebih gelap dari ini tanpa kebutuhan.
+* **Permukaan selalu-gelap** (footer, welcome banner dashboard) — gunakan `.bg-brand-hero-navy` atau `bg-brand-navy`; logo gunakan `variant="footer-dark"` agar selalu putih.
+* **Teks di atas permukaan gelap** — `text-white`, `text-white/70`, `text-white/50`; badge XP `text-brand-yellow`; badge streak `text-amber-300`.
 
 ---
 
@@ -245,3 +255,4 @@ Centang mental ini sebelum mengakhiri tugas UI:
 | Versi dokumen | Tanggal | Catatan |
 | :--- | :--- | :--- |
 | 1.0 | 2026-06-03 | Baseline dari AGENTS.md, globals.css, landing page |
+| 1.1 | 2026-06-18 | Revisi warna: light bg lavender-tinted `#f5f4fc`; dark mode midnight navy `#181548`; tambah `.bg-brand-hero-navy`/`-red`; footer & dashboard welcome dark navy; platform highlights band landing |

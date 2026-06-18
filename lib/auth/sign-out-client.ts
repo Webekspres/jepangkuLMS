@@ -1,5 +1,6 @@
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { getAuthRedirectUrl } from '@/lib/auth/redirect-url';
+import { clearCachedStudentCoreData } from '@/features/student/lib/student-core-data-cache';
 
 type ClerkSignOut = (options?: { redirectUrl?: string }) => Promise<void> | void;
 
@@ -13,6 +14,8 @@ export async function signOutFromApp(
   redirectPath: string = AUTH_ROUTES.signIn,
 ): Promise<void> {
   const redirectUrl = getAuthRedirectUrl(redirectPath);
+
+  clearCachedStudentCoreData();
 
   try {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' });

@@ -140,6 +140,20 @@ export const DASHBOARD_WEEKLY_XP = [
 
 export const DASHBOARD_WEEKLY_XP_MAX = Math.max(...DASHBOARD_WEEKLY_XP.map((d) => d.xp));
 
+export type DashboardWeeklyXpDay = {
+  day: string;
+  xp: number;
+};
+
+export type DashboardLivePreviewItem = {
+  id: string;
+  title: string;
+  time: string;
+  sensei: string;
+  live: boolean;
+  href: string;
+};
+
 export type LeaderboardPreviewRow = {
   rank: number;
   name: string;

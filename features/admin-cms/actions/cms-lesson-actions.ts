@@ -5,13 +5,32 @@ import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
+import {
+  ensureUniqueLessonSlug,
+  resolveSlugInput,
+} from '@/lib/lms/slug';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { lessonFormSchema } from '@/features/admin-cms/lib/validations';
+import {
+  lessonCreateFormSchema,
+  lessonUpdateFormSchema,
+} from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 
-function parseLessonForm(formData: FormData) {
-  return lessonFormSchema.safeParse({
+function parseLessonCreateForm(formData: FormData) {
+  return lessonCreateFormSchema.safeParse({
+    moduleId: formData.get('moduleId'),
+    courseId: formData.get('courseId'),
+    title: formData.get('title'),
+    slug: formData.get('slug') ?? '',
+    order: formData.get('order'),
+    content: formData.get('content') ?? '',
+    videoUrl: formData.get('videoUrl') ?? '',
+  });
+}
+
+function parseLessonUpdateForm(formData: FormData) {
+  return lessonUpdateFormSchema.safeParse({
     moduleId: formData.get('moduleId'),
     courseId: formData.get('courseId'),
     title: formData.get('title'),
@@ -31,18 +50,21 @@ function revalidateLessonPaths(courseId: string, moduleId: string, lessonId?: st
 
 export async function createLessonAction(formData: FormData): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseLessonForm(formData);
+  const parsed = parseLessonCreateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
   const data = parsed.data;
+  const base = resolveSlugInput(data.slug, data.title, 'pelajaran', data.order);
+  const slug = await ensureUniqueLessonSlug(prisma, base);
+
   try {
     const lesson = await prisma.lesson.create({
       data: {
         moduleId: data.moduleId,
         title: data.title,
-        slug: data.slug,
+        slug,
         order: data.order,
         content: data.content || null,
         videoUrl: data.videoUrl || null,
@@ -65,7 +87,7 @@ export async function updateLessonAction(
   formData: FormData,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseLessonForm(formData);
+  const parsed = parseLessonUpdateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }

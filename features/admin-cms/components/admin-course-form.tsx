@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createCourseAction,
   updateCourseAction,
 } from '@/features/admin-cms/actions/cms-course-actions';
-import { slugifyTitle } from '@/features/admin-cms/lib/validations';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ type CourseFormValues = {
   slug: string;
   description: string;
   level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
+  priceIdr: number;
   isPublished: boolean;
 };
 
@@ -50,17 +51,10 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       slug: '',
       description: '',
       level: 'N5',
+      priceIdr: 0,
       isPublished: false,
     },
   );
-
-  const handleTitleChange = (title: string) => {
-    setValues((prev) => ({
-      ...prev,
-      title,
-      slug: mode === 'create' && !prev.slug ? slugifyTitle(title) : prev.slug,
-    }));
-  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,9 +63,12 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
 
     const formData = new FormData();
     formData.set('title', values.title);
-    formData.set('slug', values.slug);
+    if (mode === 'edit') {
+      formData.set('slug', values.slug);
+    }
     formData.set('description', values.description);
     formData.set('level', values.level);
+    formData.set('priceIdr', String(values.priceIdr));
     if (values.isPublished) formData.set('isPublished', 'on');
 
     startTransition(async () => {
@@ -113,35 +110,33 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
 
             <div className="space-y-2">
               <Label htmlFor="title">
-                Judul Kursus <span className="text-brand-red">*</span>
+                Nama Kursus <span className="text-brand-red">*</span>
               </Label>
               <Input
                 id="title"
                 value={values.title}
-                onChange={(event) => handleTitleChange(event.target.value)}
-                placeholder="JLPT N5 — Kursus Lengkap"
+                onChange={(event) => setValues((prev) => ({ ...prev, title: event.target.value }))}
+                placeholder="Masukkan nama kursus"
                 required
               />
-              {fieldErrors.title?.[0] ? (
+              {/* {fieldErrors.title?.[0] ? (
                 <p className="text-xs text-destructive">{fieldErrors.title[0]}</p>
               ) : null}
+              {mode === 'create' ? (
+                <p className="text-xs text-muted-foreground">
+                  URL kursus dibuat otomatis dari judul saat disimpan.
+                </p>
+              ) : null} */}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="slug">
-                Slug URL <span className="text-brand-red">*</span>
-              </Label>
-              <Input
+            {mode === 'edit' ? (
+              <AdminAdvancedSlugField
                 id="slug"
-                value={values.slug}
-                onChange={(event) => setValues((prev) => ({ ...prev, slug: event.target.value }))}
-                placeholder="jlpt-n5-kursus-lengkap"
-                required
+                slug={values.slug}
+                onSlugChange={(slug) => setValues((prev) => ({ ...prev, slug }))}
+                error={fieldErrors.slug?.[0]}
               />
-              {fieldErrors.slug?.[0] ? (
-                <p className="text-xs text-destructive">{fieldErrors.slug[0]}</p>
-              ) : null}
-            </div>
+            ) : null}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -163,6 +158,29 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priceIdr">Harga (Rp)</Label>
+                <Input
+                  id="priceIdr"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={values.priceIdr}
+                  onChange={(event) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      priceIdr: Number.parseInt(event.target.value, 10) || 0,
+                    }))
+                  }
+                  placeholder="0 = gratis"
+                />
+                {fieldErrors.priceIdr?.[0] ? (
+                  <p className="text-xs text-destructive">{fieldErrors.priceIdr[0]}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Isi 0 untuk kursus gratis.</p>
+                )}
               </div>
 
               <div className="flex items-end">

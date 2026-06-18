@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import { deleteLessonAction } from '@/features/admin-cms/actions/cms-lesson-actions';
+import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +42,15 @@ export function AdminLessonsPage({ course, module, lessons }: AdminLessonsPagePr
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const {
+    paginatedItems: paginatedLessons,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(lessons);
 
   const deleteTarget = lessons.find((lesson) => lesson.id === deleteId);
 
@@ -90,7 +101,7 @@ export function AdminLessonsPage({ course, module, lessons }: AdminLessonsPagePr
                 </TableCell>
               </TableRow>
             ) : (
-              lessons.map((lesson) => (
+              paginatedLessons.map((lesson) => (
                 <TableRow key={lesson.id}>
                   <TableCell className="font-mono text-sm">{lesson.order}</TableCell>
                   <TableCell>
@@ -153,6 +164,14 @@ export function AdminLessonsPage({ course, module, lessons }: AdminLessonsPagePr
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="pelajaran"
+        />
       </Card>
 
       <AdminConfirmDialog

@@ -118,7 +118,12 @@ model Course {
   slug        String    @unique
   description String?   @db.Text
   level       LevelJLPT @default(N5)
+  /// Kategori tampilan katalog (Kosa Kata, Tata Bahasa, Kanji, …)
+  category    String    @default("Kosa Kata")
+  /// Harga dalam Rupiah (0 = gratis)
+  priceIdr    Int       @default(0)
   isPublished Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
   createdAt   DateTime  @default(now())
 
   modules     Module[]
@@ -245,16 +250,60 @@ model MaterialTataBahasa {
 // ====================================================================
 // 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
 // ====================================================================
+model TryoutSession {
+  id               String    @id @default(uuid())
+  code             String    @unique
+  title            String
+  phaseLabel       String
+  description      String?   @db.Text
+  scheduledAt      DateTime?
+  isActive         Boolean   @default(true)
+  sortOrder        Int       @default(0)
+  timeLimitMinutes Int       @default(120)
+  createdAt        DateTime  @default(now())
+
+  questions Question[]
+}
+
+model LiveClass {
+  id          String    @id @default(uuid())
+  title       String
+  description String    @db.Text
+  senseiName  String
+  senseiLevel String?
+  category    String
+  level       LevelJLPT
+  scheduledAt DateTime
+  endsAt      DateTime?
+  maxSlots    Int       @default(30)
+  filledSlots Int       @default(0)
+  thumbUrl    String?
+  meetingUrl  String?
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([scheduledAt])
+  @@index([isPublished, scheduledAt])
+}
+
 model Question {
   id           String       @id @default(uuid())
   lessonId     String? // Optional: kosong jika ini soal Tryout
+  tryoutSessionId String?
+  tryoutLevel  LevelJLPT?
+  /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
+  tryoutSection String?
+  sortOrder    Int          @default(0)
   type         QuestionType @default(QUIZ)
   questionText String       @db.Text
   explanation  String?      @db.Text
   xpReward     Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
-  lesson  Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  options QuestionOption[]
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+  options       QuestionOption[]
+
+  @@index([tryoutSessionId, tryoutLevel, sortOrder])
 }
 
 model QuestionOption {

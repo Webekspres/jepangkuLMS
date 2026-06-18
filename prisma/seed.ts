@@ -4,8 +4,10 @@ import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
 import { N5_LESSON_COUNT } from './lib/n5-curriculum';
+import { seedLiveClasses } from './lib/seed-live-classes';
 import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
 import { seedN5CourseStructure } from './lib/seed-n5-structure';
+import { seedTryoutSessions } from './lib/seed-tryout';
 
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
@@ -17,6 +19,9 @@ const CATALOG = [
     description:
       'Dari nol sampai lulus N5! Hiragana, Katakana, 100 Kanji, 200+ kosakata, 64 pola tata bahasa, dan simulasi ujian.',
     isPublished: true,
+    priceIdr: 0,
+    isFeatured: true,
+    category: 'Kosa Kata',
   },
   {
     slug: 'n4-tata-bahasa-intensif',
@@ -24,6 +29,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Pola kalimat N4 lengkap: て-form, たい, から, まで, dan 40+ pola lainnya.',
     isPublished: false,
+    priceIdr: 299_000,
+    isFeatured: false,
+    category: 'Tata Bahasa',
   },
   {
     slug: 'kanji-n5-n4-master',
@@ -31,6 +39,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Hafalkan 380 kanji N5+N4 dengan metode visual mnemonik yang efektif.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Kanji',
   },
   {
     slug: 'kosakata-n4-1500-kata',
@@ -38,6 +49,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Pelajari 1500 kosakata N4 dengan flashcard interaktif dan konteks kalimat nyata.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Kosa Kata',
   },
   {
     slug: 'jlpt-n3-kursus-menengah',
@@ -45,6 +59,9 @@ const CATALOG = [
     level: 'N3' as LevelJLPT,
     description: 'Kuasai N3 dengan 650 kanji, tata bahasa kompleks, dan reading comprehension.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Tata Bahasa',
   },
   {
     slug: 'japanese-speaking-listening-n4',
@@ -52,6 +69,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Latih percakapan natural dan listening skill dengan dialog audio native speaker.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Speaking',
   },
 ] as const;
 
@@ -85,6 +105,9 @@ async function main() {
         description: course.description,
         level: course.level,
         isPublished: course.isPublished,
+        priceIdr: course.priceIdr,
+        isFeatured: course.isFeatured,
+        category: course.category,
       },
     });
   }
@@ -99,6 +122,9 @@ async function main() {
   console.log(`  Seeded ${aksaraCount} aksara flashcard rows`);
 
   await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
+
+  await seedLiveClasses(prisma);
+  await seedTryoutSessions(prisma);
 
   await prisma.enrollment.upsert({
     where: {

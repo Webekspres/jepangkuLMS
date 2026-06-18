@@ -2,6 +2,7 @@
 
 | Dokumen | Isi |
 | :--- | :--- |
+| [PARTNER_API.md](./PARTNER_API.md) | API katalog kursus untuk partner (API key, endpoint, cara pakai) |
 | [CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md) | Status integrasi Core (dev/prod) |
 | [ECOSYSTEM.md](./ECOSYSTEM.md) | Batas LMS vs Core vs News |
 | [DRAFT_LMS_PLATFORM_POINTS.md](./DRAFT_LMS_PLATFORM_POINTS.md) | **Draft** poin LMS & leaderboard platform (belum implementasi) |

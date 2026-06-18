@@ -5,13 +5,30 @@ import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
+import {
+  ensureUniqueModuleSlug,
+  resolveSlugInput,
+} from '@/lib/lms/slug';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { moduleFormSchema } from '@/features/admin-cms/lib/validations';
+import {
+  moduleCreateFormSchema,
+  moduleUpdateFormSchema,
+} from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 
-function parseModuleForm(formData: FormData) {
-  return moduleFormSchema.safeParse({
+function parseModuleCreateForm(formData: FormData) {
+  return moduleCreateFormSchema.safeParse({
+    courseId: formData.get('courseId'),
+    title: formData.get('title'),
+    slug: formData.get('slug') ?? '',
+    description: formData.get('description') ?? '',
+    order: formData.get('order'),
+  });
+}
+
+function parseModuleUpdateForm(formData: FormData) {
+  return moduleUpdateFormSchema.safeParse({
     courseId: formData.get('courseId'),
     title: formData.get('title'),
     slug: formData.get('slug'),
@@ -22,18 +39,21 @@ function parseModuleForm(formData: FormData) {
 
 export async function createModuleAction(formData: FormData): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseModuleForm(formData);
+  const parsed = parseModuleCreateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
   const data = parsed.data;
+  const base = resolveSlugInput(data.slug, data.title, 'modul', data.order);
+  const slug = await ensureUniqueModuleSlug(prisma, data.courseId, base);
+
   try {
     const moduleRow = await prisma.module.create({
       data: {
         courseId: data.courseId,
         title: data.title,
-        slug: data.slug,
+        slug,
         description: data.description || null,
         order: data.order,
       },
@@ -54,7 +74,7 @@ export async function updateModuleAction(
   formData: FormData,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseModuleForm(formData);
+  const parsed = parseModuleUpdateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }

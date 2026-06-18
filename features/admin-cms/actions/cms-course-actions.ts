@@ -5,9 +5,16 @@ import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
+import {
+  ensureUniqueCourseSlug,
+  resolveSlugInput,
+} from '@/lib/lms/slug';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { courseFormSchema } from '@/features/admin-cms/lib/validations';
+import {
+  courseCreateFormSchema,
+  courseUpdateFormSchema,
+} from '@/features/admin-cms/lib/validations';
 
 export type CmsActionResult = {
   ok: boolean;
@@ -15,31 +22,47 @@ export type CmsActionResult = {
   fieldErrors?: Record<string, string[]>;
 };
 
-function parseCourseForm(formData: FormData) {
-  return courseFormSchema.safeParse({
+function parseCourseCreateForm(formData: FormData) {
+  return courseCreateFormSchema.safeParse({
+    title: formData.get('title'),
+    slug: formData.get('slug') ?? '',
+    description: formData.get('description') ?? '',
+    level: formData.get('level'),
+    priceIdr: formData.get('priceIdr') ?? '0',
+    isPublished: formData.get('isPublished') === 'on',
+  });
+}
+
+function parseCourseUpdateForm(formData: FormData) {
+  return courseUpdateFormSchema.safeParse({
     title: formData.get('title'),
     slug: formData.get('slug'),
     description: formData.get('description') ?? '',
     level: formData.get('level'),
+    priceIdr: formData.get('priceIdr') ?? '0',
     isPublished: formData.get('isPublished') === 'on',
   });
 }
 
 export async function createCourseAction(formData: FormData): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseCourseForm(formData);
+  const parsed = parseCourseCreateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
   const data = parsed.data;
+  const base = resolveSlugInput(data.slug, data.title, 'kursus');
+  const slug = await ensureUniqueCourseSlug(prisma, base);
+
   try {
     const course = await prisma.course.create({
       data: {
         title: data.title,
-        slug: data.slug,
+        slug,
         description: data.description || null,
         level: data.level,
+        priceIdr: data.priceIdr,
         isPublished: data.isPublished,
       },
     });
@@ -59,7 +82,7 @@ export async function updateCourseAction(
   formData: FormData,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = parseCourseForm(formData);
+  const parsed = parseCourseUpdateForm(formData);
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
@@ -73,6 +96,7 @@ export async function updateCourseAction(
         slug: data.slug,
         description: data.description || null,
         level: data.level,
+        priceIdr: data.priceIdr,
         isPublished: data.isPublished,
       },
     });

@@ -4,6 +4,10 @@ import {
   loadDashboardContinueLessons,
   loadDashboardJlptPath,
 } from '@/features/student/lib/load-student-learning-data';
+import {
+  loadDashboardLivePreview,
+  loadDashboardWeeklyXp,
+} from '@/features/student/lib/load-dashboard-extras';
 
 export const metadata: Metadata = {
   title: 'Beranda — JepangKu LMS',
@@ -11,10 +15,19 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardRoutePage() {
-  const [continueLessons, jlptPath] = await Promise.all([
+  const [continueLessons, jlptPath, weeklyXp, liveSchedule] = await Promise.all([
     loadDashboardContinueLessons(),
     loadDashboardJlptPath(),
+    loadDashboardWeeklyXp(),
+    loadDashboardLivePreview(2),
   ]);
 
-  return <DashboardPage continueLessons={continueLessons} jlptPath={jlptPath} />;
+  return (
+    <DashboardPage
+      continueLessons={continueLessons}
+      jlptPath={jlptPath}
+      weeklyXp={weeklyXp}
+      liveSchedule={liveSchedule}
+    />
+  );
 }

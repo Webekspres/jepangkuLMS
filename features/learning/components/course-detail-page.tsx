@@ -16,6 +16,7 @@ import {
   Phone,
   Play,
   Shield,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
@@ -68,9 +69,6 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
 
   const waConsultText = encodeURIComponent(
     `Halo, saya ingin konsultasi mengenai kursus "${course.title}" (${course.price}).`,
-  );
-  const waPaymentText = encodeURIComponent(
-    `Halo, saya ingin konfirmasi pembayaran untuk kursus "${course.title}" (${course.price}).\n\nNama: [nama Anda]\nNo. Rekening tujuan: ${PAYMENT_BCA.bank} ${PAYMENT_BCA.accountNumber} a/n ${PAYMENT_BCA.accountName}\n\nMohon konfirmasi. Terima kasih!`,
   );
 
   const handleCopyAccount = () => {
@@ -313,19 +311,11 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      asChild
-                      variant="secondary"
-                      className="mb-3 h-11 w-full gap-2 font-bold"
-                    >
-                      <a
-                        href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waPaymentText}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="size-4" />
-                        Konfirmasi Pembayaran
-                      </a>
+                    <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
+                      <Link href="/sign-up">
+                        <UserPlus className="size-4" />
+                        Daftar Sekarang
+                      </Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
                       <a

@@ -1,10 +1,12 @@
 import {
   LEVEL_ACCENT,
   type CatalogCourse,
+  type CourseCategory,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
 import type { ModuleRow } from '@/features/learning/lib/course-tree';
+import { formatIdr } from '@/lib/lms/format-price';
 
 const DEFAULT_THUMB =
   'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
@@ -34,10 +36,15 @@ export function mergeCourseDisplay(
     level: string;
     isPublished: boolean;
     lessonCount: number;
+    priceIdr?: number;
+    category?: string | null;
+    isFeatured?: boolean;
   },
-): CatalogCourse & { isPublished: boolean; lessonCount: number } {
+): CatalogCourse & { isPublished: boolean; lessonCount: number; priceIdr: number } {
   const level = db.level as Exclude<CourseLevel, 'Semua'>;
   const accent: JlptAccent = LEVEL_ACCENT[level] ?? 'emerald';
+  const priceIdr = db.priceIdr ?? 0;
+  const category = (db.category?.trim() || 'Kosa Kata') as Exclude<CourseCategory, 'Semua'>;
 
   return {
     slug: db.slug,
@@ -48,14 +55,15 @@ export function mergeCourseDisplay(
     duration: estimateCourseDuration(db.lessonCount),
     availability: db.isPublished ? 'tersedia' : 'segera',
     availabilityLabel: db.isPublished ? 'Tersedia' : 'Segera hadir',
-    price: db.isPublished ? 'Gratis' : '—',
+    price: db.isPublished ? formatIdr(priceIdr) : '—',
     thumb: DEFAULT_THUMB,
     accent,
     badge: level,
-    tags: ['Kosa Kata'],
-    featured: false,
+    tags: [category],
+    featured: db.isFeatured ?? false,
     isPublished: db.isPublished,
     lessonCount: db.lessonCount,
+    priceIdr,
   };
 }
 

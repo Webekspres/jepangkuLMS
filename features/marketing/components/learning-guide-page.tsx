@@ -24,14 +24,14 @@ export function LearningGuidePage() {
       <PublicNavbar />
 
       <MarketingPageHero>
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
-          <Zap className="size-4 text-primary" />
-          <span className="text-sm font-medium text-muted-foreground">{LEARNING_GUIDE_HERO.badge}</span>
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+          <Zap className="size-4 text-brand-yellow" />
+          <span className="text-sm font-medium text-white/80">{LEARNING_GUIDE_HERO.badge}</span>
         </div>
-        <h1 className="mb-5 text-[clamp(2rem,5vw,3rem)] font-extrabold text-foreground">
+        <h1 className="mb-5 text-[clamp(2rem,5vw,3rem)] font-extrabold text-white">
           {LEARNING_GUIDE_HERO.title}
         </h1>
-        <p className="mx-auto text-base leading-relaxed text-muted-foreground sm:text-lg">
+        <p className="mx-auto text-base leading-relaxed text-white/70 sm:text-lg">
           {LEARNING_GUIDE_HERO.subtitle}
         </p>
       </MarketingPageHero>

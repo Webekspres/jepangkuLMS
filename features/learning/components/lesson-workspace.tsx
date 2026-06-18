@@ -39,6 +39,7 @@ import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course
 import {
   resolveLessonVideoUrl,
 } from '@/features/learning/lib/lesson-video';
+import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
@@ -485,6 +486,11 @@ export function LessonWorkspace({
                 />
               </div>
             </div>
+          )}
+
+          {/* Q&A / forum section — only visible in video tab */}
+          {activeTab === 'video' && (
+            <LessonQaSection lessonId={lesson.id} lessonTitle={lesson.title} />
           )}
 
           {activeTab === 'flashcard' && (

@@ -66,8 +66,7 @@ const COURSE_DETAIL_EXTRAS: Record<string, CourseDetailExtras> = {
     includes: [
       'Akses seumur hidup setelah rilis',
       '35 video pelajaran',
-      'Drill soal per pola',
-      'Materi dapat diunduh',
+      'Drill soal per pola',      
       'Dukungan instruktur via WA',
     ],
     syllabus: [
@@ -140,7 +139,6 @@ const COURSE_DETAIL_EXTRAS: Record<string, CourseDetailExtras> = {
       '30 video pelajaran',
       'Flashcard SRS',
       'Quiz per tema',
-      'Materi unduhan',
     ],
     syllabus: [
       {
@@ -168,7 +166,6 @@ const COURSE_DETAIL_EXTRAS: Record<string, CourseDetailExtras> = {
       'Akses seumur hidup setelah rilis',
       '60 video pelajaran',
       'Simulasi ujian',
-      'Materi unduhan',
       'Sertifikat penyelesaian',
     ],
     syllabus: [

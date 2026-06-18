@@ -1,10 +1,14 @@
-import { AdminPlaceholderPage } from '@/features/admin-cms/components/admin-placeholder-page';
+import { AdminEnrollmentsPage } from '@/features/admin-cms/components/admin-enrollments-page';
+import { loadAdminEnrollments } from '@/features/admin-cms/lib/load-admin-enrollments';
 
-export default function AdminPembayaranPage() {
+export default async function AdminPembayaranPage() {
+  const data = await loadAdminEnrollments();
+
   return (
-    <AdminPlaceholderPage
-      title="Manajemen Verifikasi Pembayaran"
-      description="Antrean request enroll kelas dan upload bukti transfer dari siswa."
+    <AdminEnrollmentsPage
+      enrollments={data.enrollments}
+      pendingCount={data.pendingCount}
+      courses={data.courses}
     />
   );
 }

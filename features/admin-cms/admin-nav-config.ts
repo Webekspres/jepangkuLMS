@@ -40,7 +40,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       {
         id: 'pembayaran',
         href: ADMIN_ROUTES.pembayaran,
-        label: 'Pembayaran',
+        label: 'Enrollment',
         icon: Receipt,
         matchPrefix: true,
       },
@@ -66,7 +66,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       },
       {
         id: 'import',
-        href: ADMIN_ROUTES.quizImport,
+        href: ADMIN_ROUTES.kursusImport,
         label: 'Import CSV',
         icon: FileUp,
       },
@@ -77,13 +77,14 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
   admin: 'Admin',
   dashboard: 'Dashboard',
-  pembayaran: 'Pembayaran',
+  pembayaran: 'Enrollment',
   kursus: 'Kursus',
   form: 'Form',
   modul: 'Modul',
   lesson: 'Pelajaran',
   quiz: 'Bank Soal',
   import: 'Import CSV',
+  'kursus/import': 'Import Kursus',
 };
 
 /** Longest-prefix match — hindari /admin/kursus menang atas sub-rute lain. */

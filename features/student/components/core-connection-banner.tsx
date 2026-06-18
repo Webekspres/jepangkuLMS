@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { AlertCircle, LogOut, RefreshCw } from 'lucide-react';
 import { syncCoreSessionSilent } from '@/features/auth/lib/sync-core-session';
+import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { Button } from '@/components/ui/button';
 import { useStudentCoreData } from './student-core-data-context';
@@ -17,7 +18,7 @@ export function CoreConnectionBanner() {
   const [retrying, setRetrying] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  if (core.coreConnected) {
+  if (core.status === 'loading' || core.coreConnected) {
     return null;
   }
 
@@ -25,7 +26,10 @@ export function CoreConnectionBanner() {
     setRetrying(true);
     try {
       const ok = await syncCoreSessionSilent();
-      if (ok) router.refresh();
+      if (ok) {
+        requestStudentCoreDataRefresh();
+        router.refresh();
+      }
     } finally {
       setRetrying(false);
     }

@@ -19,6 +19,7 @@ import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
 import { STUDENT_ROUTES } from './student-routes';
 import { StudentUserProfile } from './student-user-profile';
+import { StudentNotificationBell } from './student-notification-bell';
 
 export function StudentNav() {
   const pathname = usePathname();
@@ -30,9 +31,8 @@ export function StudentNav() {
   const [signingOut, setSigningOut] = useState(false);
   const statsPending =
     isCoreIntegrationEnabled() &&
-    !core.coreConnected &&
-    core.leaderboardTotal === 0 &&
-    core.leaderboardTop10.length === 0;
+    core.status === 'loading' &&
+    !core.coreConnected;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -88,10 +88,12 @@ export function StudentNav() {
             </div>
           )}
 
+          <StudentNotificationBell />
           <StudentUserProfile />
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
+          <StudentNotificationBell />
           <StudentUserProfile />
           <button
             type="button"

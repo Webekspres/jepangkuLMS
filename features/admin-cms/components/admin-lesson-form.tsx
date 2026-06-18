@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createLessonAction,
   updateLessonAction,
 } from '@/features/admin-cms/actions/cms-lesson-actions';
-import { slugifyTitle } from '@/features/admin-cms/lib/validations';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,7 +57,9 @@ export function AdminLessonForm({
     formData.set('courseId', courseId);
     formData.set('moduleId', moduleId);
     formData.set('title', values.title);
-    formData.set('slug', values.slug);
+    if (mode === 'edit') {
+      formData.set('slug', values.slug);
+    }
     formData.set('order', String(values.order));
     formData.set('content', values.content);
     formData.set('videoUrl', values.videoUrl);
@@ -106,45 +108,44 @@ export function AdminLessonForm({
               <Input
                 id="title"
                 value={values.title}
-                onChange={(event) => {
-                  const title = event.target.value;
-                  setValues((prev) => ({
-                    ...prev,
-                    title,
-                    slug: mode === 'create' && !prev.slug ? slugifyTitle(title) : prev.slug,
-                  }));
-                }}
+                onChange={(event) => setValues((prev) => ({ ...prev, title: event.target.value }))}
                 required
               />
+              {fieldErrors.title?.[0] ? (
+                <p className="text-xs text-destructive">{fieldErrors.title[0]}</p>
+              ) : null}
+              {mode === 'create' ? (
+                <p className="text-xs text-muted-foreground">
+                  Slug pelajaran dibuat otomatis dari judul saat disimpan.
+                </p>
+              ) : null}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
-                <Input
-                  id="slug"
-                  value={values.slug}
-                  onChange={(event) => setValues((prev) => ({ ...prev, slug: event.target.value }))}
-                  required
-                />
-                {fieldErrors.slug?.[0] ? (
-                  <p className="text-xs text-destructive">{fieldErrors.slug[0]}</p>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="order">Urutan</Label>
-                <Input
-                  id="order"
-                  type="number"
-                  min={1}
-                  value={values.order}
-                  onChange={(event) =>
-                    setValues((prev) => ({ ...prev, order: Number(event.target.value) }))
-                  }
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="order">Urutan</Label>
+              <Input
+                id="order"
+                type="number"
+                min={1}
+                value={values.order}
+                onChange={(event) =>
+                  setValues((prev) => ({ ...prev, order: Number(event.target.value) }))
+                }
+                required
+              />
+              {fieldErrors.order?.[0] ? (
+                <p className="text-xs text-destructive">{fieldErrors.order[0]}</p>
+              ) : null}
             </div>
+
+            {mode === 'edit' ? (
+              <AdminAdvancedSlugField
+                id="slug"
+                slug={values.slug}
+                onSlugChange={(slug) => setValues((prev) => ({ ...prev, slug }))}
+                error={fieldErrors.slug?.[0]}
+              />
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="videoUrl">URL Video (opsional)</Label>

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import { updateLessonAction } from '@/features/admin-cms/actions/cms-lesson-actions';
 import {
   createKanjiMaterialAction,
@@ -24,7 +25,8 @@ import {
   updateLessonQuestionAction,
 } from '@/features/admin-cms/actions/cms-question-actions';
 import type { AdminLessonContent } from '@/features/admin-cms/lib/load-admin-lesson-content';
-import { slugifyTitle } from '@/features/admin-cms/lib/validations';
+import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
+import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -261,28 +263,22 @@ function LessonInfoPanel({
               required
             />
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="slug">Slug</Label>
-              <Input
-                id="slug"
-                value={values.slug}
-                onChange={(e) => setValues((p) => ({ ...p, slug: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="order">Urutan</Label>
-              <Input
-                id="order"
-                type="number"
-                min={1}
-                value={values.order}
-                onChange={(e) => setValues((p) => ({ ...p, order: Number(e.target.value) }))}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="order">Urutan</Label>
+            <Input
+              id="order"
+              type="number"
+              min={1}
+              value={values.order}
+              onChange={(e) => setValues((p) => ({ ...p, order: Number(e.target.value) }))}
+              required
+            />
           </div>
+          <AdminAdvancedSlugField
+            id="slug"
+            slug={values.slug}
+            onSlugChange={(slug) => setValues((p) => ({ ...p, slug }))}
+          />
           <div className="space-y-2">
             <Label htmlFor="videoUrl">URL Video</Label>
             <Input
@@ -337,6 +333,15 @@ function KosakataPanel({
 
   const payload = () => ({ ...scope, ...form });
 
+  const {
+    paginatedItems: paginatedKosakata,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(items);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     startTransition(async () => {
@@ -365,14 +370,14 @@ function KosakataPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 ? (
+            {totalItems === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   Belum ada flashcard kosakata untuk pelajaran ini.
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
+              paginatedKosakata.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.kosakata}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -412,6 +417,14 @@ function KosakataPanel({
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="kosakata"
+        />
       </Card>
 
       <Card className="border-border">
@@ -530,6 +543,15 @@ function KanjiPanel({
 
   const payload = () => ({ ...scope, ...form });
 
+  const {
+    paginatedItems: paginatedKanji,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(items);
+
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden border-border">
@@ -543,14 +565,14 @@ function KanjiPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 ? (
+            {totalItems === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   Belum ada flashcard kanji untuk pelajaran ini.
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
+              paginatedKanji.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="text-lg font-medium">{item.huruf}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -591,6 +613,14 @@ function KanjiPanel({
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="kanji"
+        />
       </Card>
 
       <Card className="border-border">
@@ -723,6 +753,15 @@ function TataBahasaPanel({
 
   const payload = () => ({ ...scope, ...form });
 
+  const {
+    paginatedItems: paginatedTataBahasa,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(items);
+
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden border-border">
@@ -735,14 +774,14 @@ function TataBahasaPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 ? (
+            {totalItems === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
                   Belum ada materi tata bahasa untuk pelajaran ini.
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
+              paginatedTataBahasa.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.tataBahasa}</TableCell>
                   <TableCell className="text-sm">{item.arti}</TableCell>
@@ -777,6 +816,14 @@ function TataBahasaPanel({
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="tata bahasa"
+        />
       </Card>
 
       <Card className="border-border">

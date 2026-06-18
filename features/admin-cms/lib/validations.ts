@@ -1,38 +1,80 @@
 import { z } from 'zod';
 import { levelJlptSchema, slugSchema, uuidSchema } from '@/lib/validations/shared';
 
-export const courseFormSchema = z.object({
+export { slugifyTitle } from '@/lib/lms/slug';
+
+/** Empty or omitted — server auto-generates on create. */
+export const optionalSlugField = z.string().trim().optional().or(z.literal(''));
+
+const courseFields = {
   title: z.string().trim().min(1, 'Judul wajib diisi').max(200),
-  slug: slugSchema,
   description: z.string().trim().max(5000).optional().or(z.literal('')),
   level: levelJlptSchema,
+  priceIdr: z.coerce.number().int().min(0, 'Harga tidak boleh negatif').max(99_999_999),
   isPublished: z.coerce.boolean(),
+};
+
+export const courseCreateFormSchema = z.object({
+  ...courseFields,
+  slug: optionalSlugField,
 });
 
-export const moduleFormSchema = z.object({
+export const courseUpdateFormSchema = z.object({
+  ...courseFields,
+  slug: slugSchema,
+});
+
+/** @deprecated Use courseCreateFormSchema / courseUpdateFormSchema */
+export const courseFormSchema = courseUpdateFormSchema;
+
+const moduleFields = {
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul modul wajib diisi').max(200),
-  slug: slugSchema,
   description: z.string().trim().max(2000).optional().or(z.literal('')),
   order: z.coerce.number().int().min(1).max(999),
+};
+
+export const moduleCreateFormSchema = z.object({
+  ...moduleFields,
+  slug: optionalSlugField,
 });
 
-export const lessonFormSchema = z.object({
+export const moduleUpdateFormSchema = z.object({
+  ...moduleFields,
+  slug: slugSchema,
+});
+
+/** @deprecated Use moduleCreateFormSchema / moduleUpdateFormSchema */
+export const moduleFormSchema = moduleUpdateFormSchema;
+
+const lessonFields = {
   moduleId: uuidSchema,
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul pelajaran wajib diisi').max(200),
-  slug: slugSchema,
   order: z.coerce.number().int().min(1).max(9999),
   content: z.string().trim().max(20000).optional().or(z.literal('')),
   videoUrl: z
     .string()
     .trim()
     .refine((val) => val === '' || z.string().url().safeParse(val).success, 'URL video tidak valid'),
+};
+
+export const lessonCreateFormSchema = z.object({
+  ...lessonFields,
+  slug: optionalSlugField,
 });
 
-export type CourseFormInput = z.infer<typeof courseFormSchema>;
-export type ModuleFormInput = z.infer<typeof moduleFormSchema>;
-export type LessonFormInput = z.infer<typeof lessonFormSchema>;
+export const lessonUpdateFormSchema = z.object({
+  ...lessonFields,
+  slug: slugSchema,
+});
+
+/** @deprecated Use lessonCreateFormSchema / lessonUpdateFormSchema */
+export const lessonFormSchema = lessonUpdateFormSchema;
+
+export type CourseFormInput = z.infer<typeof courseUpdateFormSchema>;
+export type ModuleFormInput = z.infer<typeof moduleUpdateFormSchema>;
+export type LessonFormInput = z.infer<typeof lessonUpdateFormSchema>;
 
 export const kosakataMaterialSchema = z.object({
   lessonId: uuidSchema,
@@ -85,13 +127,3 @@ export type KosakataMaterialInput = z.infer<typeof kosakataMaterialSchema>;
 export type KanjiMaterialInput = z.infer<typeof kanjiMaterialSchema>;
 export type TataBahasaMaterialInput = z.infer<typeof tataBahasaMaterialSchema>;
 export type LessonQuestionInput = z.infer<typeof lessonQuestionSchema>;
-
-export function slugifyTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 120);
-}

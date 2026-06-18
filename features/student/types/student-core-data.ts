@@ -43,6 +43,13 @@ export type StudentCoreData = {
   canAccessAdmin: boolean;
 };
 
+export type StudentCoreDataStatus = 'loading' | 'ready';
+
+export type StudentCoreDataContextValue = StudentCoreData & {
+  /** `loading` = fetch pertama / revalidasi; jangan tampilkan banner gagal koneksi. */
+  status: StudentCoreDataStatus;
+};
+
 export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   coreConnected: false,
   userId: null,
@@ -62,3 +69,10 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   leaderboardTotal: 0,
   canAccessAdmin: false,
 };
+
+export function toStudentCoreDataContextValue(
+  data: StudentCoreData,
+  status: StudentCoreDataStatus,
+): StudentCoreDataContextValue {
+  return { ...data, status };
+}

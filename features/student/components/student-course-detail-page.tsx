@@ -2,8 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   BookOpen,
@@ -16,8 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { enrollInCourse } from '@/features/learning/actions/learning-actions';
 import { CourseSyllabusAccordion } from '@/features/learning/components/course-syllabus-accordion';
 import {
   getDefaultExpandedModuleIds,
@@ -26,7 +23,9 @@ import {
 import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
+import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
+import type { EnrollmentStatus } from '@prisma/client';
 
 type DbLesson = {
   id: string;
@@ -50,32 +49,14 @@ type DbCourse = {
   lessons: DbLesson[];
 };
 
-function EnrollCourseButton({ courseSlug }: { courseSlug: string }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  return (
-    <Button
-      className="h-11 w-full gap-2"
-      disabled={isPending}
-      onClick={() => {
-        startTransition(async () => {
-          await enrollInCourse(courseSlug);
-          router.refresh();
-        });
-      }}
-    >
-      <BookOpen className="size-4" />
-      {isPending ? 'Mendaftar…' : 'Daftar kursus'}
-    </Button>
-  );
-}
-
 export type StudentCourseDetailPageProps = {
   course: DbCourse;
   whatYouLearn: string[];
   duration: string;
   tags: string[];
+  priceIdr: number;
+  studentDisplayName: string | null;
+  enrollmentStatus: EnrollmentStatus | null;
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
@@ -86,12 +67,22 @@ export function StudentCourseDetailPage({
   whatYouLearn,
   duration,
   tags,
+  priceIdr,
+  studentDisplayName,
+  enrollmentStatus,
   isEnrolled,
   progressPercent,
   continueLessonSlug,
 }: StudentCourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
   const fullDesc = course.desc;
+
+  const sidebarStatus =
+    enrollmentStatus === 'ACTIVE'
+      ? 'ACTIVE'
+      : enrollmentStatus === 'PENDING'
+        ? 'PENDING'
+        : 'none';
 
   const syllabusGroups = useMemo(() => {
     const mapped = course.lessons.map((lesson, index) => ({
@@ -119,7 +110,7 @@ export function StudentCourseDetailPage({
   const moduleCount = syllabusGroups.length;
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="mx-auto max-w-5xl space-y-8 pb-10">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href={STUDENT_ROUTES.kursus} className="inline-flex items-center gap-1 hover:text-primary">
           <ArrowLeft className="size-4" />
@@ -206,57 +197,38 @@ export function StudentCourseDetailPage({
           </Card>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Card>
-            <CardContent className="space-y-5 p-6">
-              {isEnrolled ? (
-                <>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Progress kamu
-                    </p>
-                    <p className="mt-1 text-3xl font-extrabold tabular-nums text-primary">
-                      {progressPercent}%
-                    </p>
-                    <Progress value={progressPercent} className="mt-3" />
-                  </div>
-                  <Button asChild className="h-11 w-full gap-2">
-                    <Link
-                      href={STUDENT_ROUTES.belajar(
-                        course.slug,
-                        continueLessonSlug ?? course.lessons[0]?.slug ?? '',
-                      )}
-                    >
-                      <Play className="size-4" />
-                      Lanjutkan belajar
-                    </Link>
-                  </Button>
-                </>
-              ) : course.isPublished ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Daftar kursus ini untuk membuka semua modul, materi, dan kuis.
-                  </p>
-                  <EnrollCourseButton courseSlug={course.slug} />
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Kursus ini belum dipublikasikan. Kembali ke katalog untuk melihat kursus lain.
-                  </p>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link href={STUDENT_ROUTES.kursus}>Ke katalog kursus</Link>
-                  </Button>
-                </>
-              )}
-              <Button asChild variant="outline" className="h-11 w-full gap-2">
-                <Link href={`/kursus/${course.slug}`}>
-                  <ExternalLink className="size-4" />
-                  Lihat halaman publik
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+        <aside className="lg:col-span-1">
+          {course.isPublished ? (
+            <CoursePaymentSidebar
+              courseSlug={course.slug}
+              courseTitle={course.title}
+              lessonCount={course.lessonCount}
+              priceIdr={priceIdr}
+              studentDisplayName={studentDisplayName}
+              enrollmentStatus={sidebarStatus}
+              progressPercent={progressPercent}
+              continueLessonSlug={continueLessonSlug}
+              firstLessonSlug={course.lessons[0]?.slug}
+            />
+          ) : (
+            <Card>
+              <CardContent className="space-y-5 p-6">
+                <p className="text-sm text-muted-foreground">
+                  Kursus ini belum dipublikasikan. Kembali ke katalog untuk melihat kursus lain.
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={STUDENT_ROUTES.kursus}>Ke katalog kursus</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <Button asChild variant="outline" className="mt-4 h-11 w-full gap-2">
+            <Link href={`/kursus/${course.slug}`}>
+              <ExternalLink className="size-4" />
+              Lihat halaman publik
+            </Link>
+          </Button>
         </aside>
       </div>
     </div>

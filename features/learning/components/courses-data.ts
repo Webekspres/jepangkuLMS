@@ -3,6 +3,9 @@ import type { JlptAccent } from '@/features/marketing/components/landing-data';
 export const COURSE_LEVELS = ['Semua', 'N5', 'N4', 'N3', 'N2', 'N1'] as const;
 export type CourseLevel = (typeof COURSE_LEVELS)[number];
 
+export const COURSE_FEATURE_FILTERS = ['Semua', 'Unggulan'] as const;
+export type CourseFeatureFilter = (typeof COURSE_FEATURE_FILTERS)[number];
+
 export const COURSE_CATEGORIES = [
   'Semua',
   'Kosa Kata',

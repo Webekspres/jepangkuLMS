@@ -28,4 +28,5 @@ export const ADMIN_ROUTES = {
     `/admin/kursus/${courseId}/modul/${moduleId}/lesson/form`,
   quiz: '/admin/quiz',
   quizImport: '/admin/quiz/import',
+  kursusImport: '/admin/kursus/import',
 } as const;

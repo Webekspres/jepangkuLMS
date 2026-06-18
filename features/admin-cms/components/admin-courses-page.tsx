@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Layers, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import {
   deleteCourseAction,
   toggleCoursePublishedAction,
 } from '@/features/admin-cms/actions/cms-course-actions';
+import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminCourseRow } from '@/features/admin-cms/lib/load-admin-cms-data';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
@@ -43,20 +45,34 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
     );
   }, [courses, query]);
 
+  const {
+    paginatedItems: paginatedCourses,
+    page,
+    pageSize,
+    totalItems,
+    setPage,
+    setPageSize,
+  } = useAdminTablePagination(filtered, { resetKey: query });
+
   const deleteTarget = courses.find((course) => course.id === deleteId);
 
   return (
     <AdminPageShell
       label="Konten"
       title="Kelola Kursus"
-      subtitle="Buat, edit, dan publikasikan paket kursus JLPT."
+      subtitle="Buat, edit, dan publikasikan paket kursus JepangKu."
       action={
-        <Button asChild>
-          <Link href={ADMIN_ROUTES.kursusForm}>
-            <Plus className="size-4" />
-            Kursus Baru
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={ADMIN_ROUTES.kursusImport}>Import CSV</Link>
+          </Button>
+          <Button asChild>
+            <Link href={ADMIN_ROUTES.kursusForm}>
+              <Plus className="size-4" />
+              Kursus Baru
+            </Link>
+          </Button>
+        </div>
       }
     >
       {message ? (
@@ -96,7 +112,7 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((course) => (
+              paginatedCourses.map((course) => (
                 <TableRow key={course.id}>
                   <TableCell>
                     <div>
@@ -166,6 +182,14 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
             )}
           </TableBody>
         </Table>
+        <AdminTablePagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="kursus"
+        />
       </Card>
 
       <AdminConfirmDialog
