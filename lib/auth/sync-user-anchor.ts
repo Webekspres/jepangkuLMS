@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
+import { resolveInitialLmsRole } from '@/lib/auth/lms-roles';
+import { checkDailyLoginLms } from '@/lib/lms/points';
 import { loggers, serializeError } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
 
 const authLog = loggers.auth;
 
@@ -18,6 +21,18 @@ function isTransientDbError(error: unknown): boolean {
   );
 }
 
+/** Payload create User jangkar — selalu punya role eksplisit (default siswa). */
+export function userAnchorCreateData(
+  userId: string,
+  extra?: Pick<Prisma.UserCreateInput, 'displayName' | 'avatarUrl' | 'bio'>,
+): Prisma.UserCreateInput {
+  return {
+    id: userId,
+    role: resolveInitialLmsRole(userId),
+    ...extra,
+  };
+}
+
 /** Upsert baris User jangkar LMS (FK) setelah login — profil tetap dari Core JWT */
 export async function syncUserAnchor(userId: string): Promise<void> {
   let lastError: unknown;
@@ -26,10 +41,13 @@ export async function syncUserAnchor(userId: string): Promise<void> {
     try {
       await prisma.user.upsert({
         where: { id: userId },
-        create: { id: userId },
+        create: userAnchorCreateData(userId),
         update: {},
       });
       authLog.info({ userId, attempt }, 'User anchor synced to LMS database');
+      await checkDailyLoginLms(userId).catch((error) => {
+        authLog.warn({ userId, ...serializeError(error) }, 'Daily login LMS points skipped');
+      });
       return;
     } catch (error) {
       lastError = error;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CheckCircle2,
@@ -35,25 +35,22 @@ type FlashcardDeckProps = {
 
 const NAVY_GRADIENT = 'linear-gradient(135deg, #0d1b3e 0%, #1a2d5a 100%)';
 
-export function FlashcardDeck({
+function FlashcardDeckInner({
   items,
   shuffle = true,
   trackLabel = 'Flashcard',
   accentColor = '#ec1d24',
-}: FlashcardDeckProps) {
-  const [deck, setDeck] = useState<FlashcardItem[]>(items);
+  deckKey,
+  onReshuffle,
+}: FlashcardDeckProps & { deckKey: string; onReshuffle: () => void }) {
+  const [deck] = useState<FlashcardItem[]>(() =>
+    shuffle ? shuffleArray(items) : [...items],
+  );
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [unknown, setUnknown] = useState<Set<number>>(new Set());
-
-  useEffect(() => {
-    setDeck(shuffle ? shuffleArray(items) : [...items]);
-    setIndex(0);
-    setFlipped(false);
-    setKnown(new Set());
-    setUnknown(new Set());
-  }, [items, shuffle]);
+  void deckKey;
 
   if (deck.length === 0) {
     return (
@@ -86,11 +83,7 @@ export function FlashcardDeck({
   }
 
   function resetDeck() {
-    setDeck(shuffle ? shuffleArray(items) : [...items]);
-    setKnown(new Set());
-    setUnknown(new Set());
-    setIndex(0);
-    setFlipped(false);
+    onReshuffle();
   }
 
   return (
@@ -318,5 +311,18 @@ export function FlashcardDeck({
         </p>
       )}
     </div>
+  );
+}
+
+export function FlashcardDeck(props: FlashcardDeckProps) {
+  const itemsKey = props.items.map((item) => `${item.front}:${item.back}`).join('|');
+  const [seed, setSeed] = useState(0);
+  return (
+    <FlashcardDeckInner
+      key={`${itemsKey}:${seed}`}
+      {...props}
+      deckKey={`${itemsKey}:${seed}`}
+      onReshuffle={() => setSeed((value) => value + 1)}
+    />
   );
 }

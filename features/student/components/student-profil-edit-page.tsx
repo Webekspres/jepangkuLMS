@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { useStudentCoreData } from './student-core-data-context';
-import { updateStudentDisplayName } from '@/features/student/actions/profile-actions';
+import { updateStudentAvatar, updateStudentBio, updateStudentDisplayName } from '@/features/student/actions/profile-actions';
+import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 import { STUDENT_ROUTES } from './student-routes';
 
 export function StudentProfilEditPage() {
@@ -19,24 +21,68 @@ export function StudentProfilEditPage() {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
 
-  const avatarUrl = identity?.imageUrl ?? core.avatarUrl;
+  const avatarUrl = core.avatarUrl ?? identity?.imageUrl;
   const initialDisplayName = core.displayName ?? identity?.displayName ?? '';
+  const initialBio = core.bio ?? '';
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
+  const [bio, setBio] = useState(initialBio);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isAvatarPending, startAvatarTransition] = useTransition();
+
+  function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+    startAvatarTransition(async () => {
+      try {
+        const { optimizeImageFileForUpload } = await import('@/lib/media/optimize-image-client');
+        const optimized = await optimizeImageFileForUpload(file, {
+          maxWidth: 512,
+          maxHeight: 512,
+        });
+        const formData = new FormData();
+        formData.set('avatar', optimized.file);
+        const result = await updateStudentAvatar(formData);
+        if (!result.ok) {
+          setAvatarError(result.error);
+          toast.error(result.error);
+          return;
+        }
+        toast.success('Foto profil diperbarui.');
+        window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+        router.refresh();
+      } catch {
+        setAvatarError('Gagal memproses foto.');
+        toast.error('Gagal memproses foto.');
+      }
+    });
+  }
 
   function handleSave() {
     setDisplayNameError(null);
     setDisplayNameSaved(false);
     startTransition(async () => {
-      const result = await updateStudentDisplayName(displayName);
-      if (!result.ok) {
-        setDisplayNameError(result.error);
+      const nameResult = await updateStudentDisplayName(displayName);
+      if (!nameResult.ok) {
+        setDisplayNameError(nameResult.error);
+        toast.error(nameResult.error);
         return;
       }
+
+      const bioResult = await updateStudentBio(bio);
+      if (!bioResult.ok) {
+        setDisplayNameError(bioResult.error);
+        toast.error(bioResult.error);
+        return;
+      }
+
       setDisplayNameSaved(true);
+      toast.success('Profil berhasil disimpan.');
+      window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
       router.refresh();
     });
   }
@@ -81,24 +127,27 @@ export function StudentProfilEditPage() {
                 {displayName.charAt(0).toUpperCase() || <User className="size-8" />}
               </div>
             )}
-            <div className="absolute -right-1 -bottom-1 flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-muted-foreground shadow-sm">
+            <label className="absolute -right-1 -bottom-1 flex size-7 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-muted text-muted-foreground shadow-sm hover:bg-primary hover:text-primary-foreground">
               <Camera className="size-3.5" />
-            </div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                disabled={isAvatarPending}
+                onChange={handleAvatarChange}
+              />
+            </label>
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">
-              Unggah foto JPG, PNG, atau WebP. Akan di-crop persegi 400×400px sebelum diunggah.
+              Unggah foto JPG, PNG, atau WebP (maks. 2 MB). Disimpan di LMS/R2.
             </p>
+            {avatarError ? <p className="mt-2 text-xs text-destructive">{avatarError}</p> : null}
+            {isAvatarPending ? (
+              <p className="mt-2 text-xs text-muted-foreground">Mengunggah foto…</p>
+            ) : null}
             <p className="mt-2 text-xs text-muted-foreground">
-              Foto profil dikelola melalui akun Clerk kamu.{' '}
-              <a
-                href="https://accounts.clerk.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary underline-offset-4 hover:underline"
-              >
-                Buka pengaturan akun →
-              </a>
+              Foto Clerk tetap dipakai jika belum upload foto LMS.
             </p>
           </div>
         </div>
@@ -160,20 +209,27 @@ export function StudentProfilEditPage() {
         </div>
       </section>
 
-      {/* ── Bio (placeholder) ──────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6 opacity-60">
+      {/* ── Bio ──────────────────────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bio</p>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-            Segera hadir
-          </span>
+          <span className="text-[10px] text-muted-foreground">{bio.length}/280</span>
         </div>
         <textarea
-          disabled
+          value={bio}
           rows={4}
-          placeholder="Ceritakan sedikit tentang dirimu dan tujuan belajar Jepangmu... (fitur akan hadir segera)"
-          className="w-full max-w-md resize-none rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          maxLength={280}
+          disabled={isPending}
+          onChange={(event) => {
+            setBio(event.target.value);
+            setDisplayNameSaved(false);
+          }}
+          placeholder="Ceritakan sedikit tentang dirimu dan tujuan belajar Jepangmu..."
+          className="w-full max-w-md resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Bio tampil di halaman profil publik belajarmu.
+        </p>
       </section>
 
       {/* ── Save button ────────────────────────────────────────────────── */}

@@ -13,6 +13,8 @@ export type StudentAchievementBadge = {
   date: string | null;
   rarity: BadgeRarity;
   badgeType: string;
+  requirementText?: string;
+  isEquipped?: boolean;
 };
 
 function mapBadgeTypeToRarity(badgeType: string): BadgeRarity {

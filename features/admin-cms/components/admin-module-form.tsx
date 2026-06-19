@@ -19,7 +19,6 @@ type ModuleFormValues = {
   title: string;
   slug: string;
   description: string;
-  order: number;
 };
 
 type AdminModuleFormProps = {
@@ -42,7 +41,7 @@ export function AdminModuleForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [values, setValues] = useState<ModuleFormValues>(
-    initial ?? { title: '', slug: '', description: '', order: 1 },
+    initial ?? { title: '', slug: '', description: '' },
   );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -57,7 +56,6 @@ export function AdminModuleForm({
       formData.set('slug', values.slug);
     }
     formData.set('description', values.description);
-    formData.set('order', String(values.order));
 
     startTransition(async () => {
       const result =
@@ -81,7 +79,7 @@ export function AdminModuleForm({
     <AdminPageShell
       label={courseTitle}
       title={mode === 'create' ? 'Modul Baru' : 'Edit Modul'}
-      subtitle="Modul adalah bab/kontainer utama di dalam kursus."
+      subtitle="Modul adalah bab/kontainer utama di dalam kursus. Urutan diatur via drag & drop di halaman modul."
       backHref={ADMIN_ROUTES.kursusModules(courseId)}
     >
       <Card className="max-w-3xl border-border">
@@ -104,7 +102,7 @@ export function AdminModuleForm({
                 id="title"
                 value={values.title}
                 onChange={(event) => setValues((prev) => ({ ...prev, title: event.target.value }))}
-                placeholder="Modul 1 — Hiragana & Katakana"
+                placeholder="Hiragana & Katakana"
                 required
               />
               {/* {fieldErrors.title?.[0] ? (
@@ -115,23 +113,6 @@ export function AdminModuleForm({
                   Slug modul dibuat otomatis dari judul saat disimpan.
                 </p>
               ) : null} */}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="order">Urutan</Label>
-              <Input
-                id="order"
-                type="number"
-                min={1}
-                value={values.order}
-                onChange={(event) =>
-                  setValues((prev) => ({ ...prev, order: Number(event.target.value) }))
-                }
-                required
-              />
-              {fieldErrors.order?.[0] ? (
-                <p className="text-xs text-destructive">{fieldErrors.order[0]}</p>
-              ) : null}
             </div>
 
             {mode === 'edit' ? (

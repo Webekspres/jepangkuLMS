@@ -31,7 +31,7 @@ const moduleFields = {
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul modul wajib diisi').max(200),
   description: z.string().trim().max(2000).optional().or(z.literal('')),
-  order: z.coerce.number().int().min(1).max(999),
+  order: z.coerce.number().int().min(1).max(999).optional(),
 };
 
 export const moduleCreateFormSchema = z.object({
@@ -40,8 +40,10 @@ export const moduleCreateFormSchema = z.object({
 });
 
 export const moduleUpdateFormSchema = z.object({
-  ...moduleFields,
+  courseId: uuidSchema,
+  title: z.string().trim().min(1, 'Judul modul wajib diisi').max(200),
   slug: slugSchema,
+  description: z.string().trim().max(2000).optional().or(z.literal('')),
 });
 
 /** @deprecated Use moduleCreateFormSchema / moduleUpdateFormSchema */
@@ -51,7 +53,7 @@ const lessonFields = {
   moduleId: uuidSchema,
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul pelajaran wajib diisi').max(200),
-  order: z.coerce.number().int().min(1).max(9999),
+  order: z.coerce.number().int().min(1).max(9999).optional(),
   content: z.string().trim().max(20000).optional().or(z.literal('')),
   videoUrl: z
     .string()
@@ -65,8 +67,15 @@ export const lessonCreateFormSchema = z.object({
 });
 
 export const lessonUpdateFormSchema = z.object({
-  ...lessonFields,
+  moduleId: uuidSchema,
+  courseId: uuidSchema,
+  title: z.string().trim().min(1, 'Judul pelajaran wajib diisi').max(200),
   slug: slugSchema,
+  content: z.string().trim().max(20000).optional().or(z.literal('')),
+  videoUrl: z
+    .string()
+    .trim()
+    .refine((val) => val === '' || z.string().url().safeParse(val).success, 'URL video tidak valid'),
 });
 
 /** @deprecated Use lessonCreateFormSchema / lessonUpdateFormSchema */
@@ -127,3 +136,14 @@ export type KosakataMaterialInput = z.infer<typeof kosakataMaterialSchema>;
 export type KanjiMaterialInput = z.infer<typeof kanjiMaterialSchema>;
 export type TataBahasaMaterialInput = z.infer<typeof tataBahasaMaterialSchema>;
 export type LessonQuestionInput = z.infer<typeof lessonQuestionSchema>;
+
+export const tryoutQuestionSchema = z.object({
+  tryoutSessionId: uuidSchema,
+  tryoutLevel: levelJlptSchema,
+  tryoutSection: z.enum(['MOJI_GOI', 'BUNPOU_DOKKAI', 'CHOKAI']),
+  questionText: z.string().trim().min(1, 'Pertanyaan wajib diisi'),
+  explanation: z.string().trim().max(5000).optional().or(z.literal('')),
+  options: z.array(questionOptionSchema).min(2, 'Minimal 2 opsi jawaban'),
+});
+
+export type TryoutQuestionInput = z.infer<typeof tryoutQuestionSchema>;

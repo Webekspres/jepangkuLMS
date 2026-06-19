@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { AdminModuleForm } from '@/features/admin-cms/components/admin-module-form';
+import { sanitizeCurriculumTitle } from '@/features/admin-cms/lib/curriculum-display';
 import {
-  getNextModuleOrder,
   loadAdminCourseById,
   loadAdminModuleById,
 } from '@/features/admin-cms/lib/load-admin-cms-data';
@@ -23,13 +23,11 @@ export default async function AdminModulFormPage({ params, searchParams }: Admin
   if (!course) notFound();
 
   if (!id) {
-    const nextOrder = await getNextModuleOrder(course.id);
     return (
       <AdminModuleForm
         mode="create"
         courseId={course.id}
         courseTitle={course.title}
-        initial={{ title: '', slug: '', description: '', order: nextOrder }}
       />
     );
   }
@@ -47,10 +45,9 @@ export default async function AdminModulFormPage({ params, searchParams }: Admin
       courseTitle={course.title}
       moduleId={moduleRow.id}
       initial={{
-        title: moduleRow.title,
+        title: sanitizeCurriculumTitle(moduleRow.title),
         slug: moduleRow.slug,
         description: moduleRow.description ?? '',
-        order: moduleRow.order,
       }}
     />
   );

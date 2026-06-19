@@ -24,15 +24,16 @@ function defaultContextValue(): StudentCoreDataContextValue {
 
 /** Core gamification dimuat client-side agar halaman LMS tidak menunggu HTTP Core di SSR. */
 export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorProps) {
-  const [value, setValue] = useState<StudentCoreDataContextValue>(defaultContextValue);
+  const [value, setValue] = useState<StudentCoreDataContextValue>(() => {
+    const cached = readCachedStudentCoreData();
+    if (cached?.coreConnected) {
+      return toStudentCoreDataContextValue(cached, 'ready');
+    }
+    return defaultContextValue();
+  });
 
   useEffect(() => {
     let cancelled = false;
-
-    const cached = readCachedStudentCoreData();
-    if (cached?.coreConnected) {
-      setValue(toStudentCoreDataContextValue(cached, 'ready'));
-    }
 
     const load = () => {
       fetch('/api/student/core-data', { credentials: 'same-origin' })

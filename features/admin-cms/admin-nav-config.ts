@@ -1,9 +1,12 @@
 import {
+  Award,
   BookOpen,
-  ClipboardList,
   FileUp,
   LayoutDashboard,
   Receipt,
+  Target,
+  Users,
+  Video,
   type LucideIcon,
 } from 'lucide-react';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -27,8 +30,8 @@ export type AdminNavGroup = {
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
-    id: 'main',
-    label: 'Utama',
+    id: 'overview',
+    label: 'Overview',
     items: [
       {
         id: 'dashboard',
@@ -37,6 +40,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: LayoutDashboard,
         exact: true,
       },
+    ],
+  },
+  {
+    id: 'students',
+    label: 'Siswa & Akses',
+    items: [
       {
         id: 'pembayaran',
         href: ADMIN_ROUTES.pembayaran,
@@ -44,24 +53,24 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Receipt,
         matchPrefix: true,
       },
+      {
+        id: 'users',
+        href: ADMIN_ROUTES.users,
+        label: 'Pengguna',
+        icon: Users,
+        matchPrefix: true,
+      },
     ],
   },
   {
-    id: 'content',
-    label: 'Konten',
+    id: 'curriculum',
+    label: 'Kurikulum',
     items: [
       {
         id: 'kursus',
         href: ADMIN_ROUTES.kursus,
         label: 'Kursus',
         icon: BookOpen,
-        matchPrefix: true,
-      },
-      {
-        id: 'quiz',
-        href: ADMIN_ROUTES.quiz,
-        label: 'Bank Soal',
-        icon: ClipboardList,
         matchPrefix: true,
       },
       {
@@ -72,18 +81,56 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       },
     ],
   },
+  {
+    id: 'programs',
+    label: 'Program',
+    items: [
+      {
+        id: 'live-class',
+        href: ADMIN_ROUTES.liveClass,
+        label: 'Live Class',
+        icon: Video,
+        matchPrefix: true,
+      },
+      {
+        id: 'tryout',
+        href: ADMIN_ROUTES.tryoutSessions,
+        label: 'JLPT Tryout',
+        icon: Target,
+        matchPrefix: true,
+      },
+    ],
+  },
+  {
+    id: 'gamification',
+    label: 'Gamifikasi',
+    items: [
+      {
+        id: 'badges',
+        href: ADMIN_ROUTES.badges,
+        label: 'Badge',
+        icon: Award,
+        matchPrefix: true,
+      },
+    ],
+  },
 ];
 
 export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
   admin: 'Admin',
   dashboard: 'Dashboard',
   pembayaran: 'Enrollment',
+  users: 'Pengguna',
   kursus: 'Kursus',
   form: 'Form',
   modul: 'Modul',
   lesson: 'Pelajaran',
   quiz: 'Bank Soal',
   import: 'Import CSV',
+  badges: 'Badge',
+  'live-class': 'Live Class',
+  tryout: 'JLPT Tryout',
+  soal: 'Bank Soal Tryout',
   'kursus/import': 'Import Kursus',
 };
 

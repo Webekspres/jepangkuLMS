@@ -37,23 +37,55 @@ enum CategoryType {
   TATA_BAHASA
 }
 
+enum LmsRole {
+  LMS_STUDENT
+  LMS_ADMIN
+}
+
+enum LmsBadgeUnlockRule {
+  MANUAL
+  FIRST_LESSON
+  FIRST_QUIZ
+  TRYOUT_PASS
+}
+
+enum LmsNotificationType {
+  ENROLLMENT_PENDING
+  ENROLLMENT_APPROVED
+  ENROLLMENT_REJECTED
+  BADGE_UNLOCKED
+  XP_EARNED
+  COURSE_GRANTED
+}
+
 // ====================================================================
 // 1. USER JANGKAR (FK ke Core Service / Clerk User ID)
 // XP & level global → Core. Poin LMS, badge, display name → DB LMS. Lihat docs/ECOSYSTEM.md
 // ====================================================================
 model User {
-  id          String   @id // Clerk User ID — tanpa @default(uuid())
+  id              String   @id // Clerk User ID — tanpa @default(uuid())
   /// Nama tampilan di LMS (bukan nama Google SSO dari Clerk)
-  displayName String?  @db.VarChar(32)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  displayName     String?  @db.VarChar(32)
+  /// Bio singkat profil belajar
+  bio             String?  @db.VarChar(280)
+  /// Foto profil LMS — override Clerk jika di-set
+  avatarUrl       String?
+  role            LmsRole  @default(LMS_STUDENT)
+  equippedBadgeId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  enrollments  Enrollment[]
+  equippedBadge   LmsBadge? @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
+  enrollments     Enrollment[]
   progress     UserProgress[]
   attempts     QuizAttempt[]
-  lmsStats     UserLmsStats?
-  pointEvents  LmsPointEvent[]
-  badges       UserBadge[]
+  lmsStats        UserLmsStats?
+  pointEvents     LmsPointEvent[]
+  xpEvents        LmsXpEvent[]
+  badges          UserBadge[]
+  notifications   LmsNotification[]
+  lessonComments  LessonComment[]
+  commentReplies  LessonCommentReply[]
 }
 
 // ====================================================================
@@ -84,23 +116,62 @@ model LmsPointEvent {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model LmsBadge {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  title       String
-  description String?  @db.Text
-  imageUrl    String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+/// Log XP lokal untuk grafik mingguan — mirror award Core (atau dev fallback).
+model LmsXpEvent {
+  id         String   @id @default(uuid())
+  userId     String
+  xpGained   Int
+  sourceKey  String   @unique
+  sourceType String
+  sourceId   String?
+  createdAt  DateTime @default(now())
 
-  userBadges UserBadge[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model LmsNotification {
+  id        String               @id @default(uuid())
+  userId    String
+  type      LmsNotificationType
+  title     String
+  body      String?
+  href      String?
+  dedupeKey String?
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt(sort: Desc)])
+}
+
+model LmsBadge {
+  id              String             @id @default(uuid())
+  code            String             @unique
+  title           String
+  description     String?            @db.Text
+  imageUrl        String?
+  sortOrder       Int                @default(0)
+  unlockRule      LmsBadgeUnlockRule @default(MANUAL)
+  /// Nilai tambahan — mis. skor minimum untuk TRYOUT_PASS
+  unlockValue     Int?
+  xpBonus         Int                @default(25)
+  requirementText String?
+  createdAt       DateTime           @default(now())
+
+  userBadges      UserBadge[]
+  equippedByUsers User[]             @relation("EquippedBadge")
 }
 
 model UserBadge {
-  id         String   @id @default(uuid())
-  userId     String
-  badgeId    String
-  unlockedAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  badgeId        String
+  unlockedAt     DateTime @default(now())
+  xpBonusAwarded Boolean  @default(false)
 
   user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
@@ -179,9 +250,41 @@ model Lesson {
   questions Question[]
   progress  UserProgress[]
   attempts  QuizAttempt[]
+  comments  LessonComment[]
 
   @@unique([moduleId, slug])
   @@index([moduleId])
+}
+
+model LessonComment {
+  id        String   @id @default(uuid())
+  lessonId  String
+  userId    String
+  content   String   @db.Text
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lesson  Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies LessonCommentReply[]
+
+  @@index([lessonId, createdAt(sort: Desc)])
+}
+
+model LessonCommentReply {
+  id           String   @id @default(uuid())
+  commentId    String
+  userId       String
+  content      String   @db.Text
+  likes        Int      @default(0)
+  isInstructor Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  comment LessonComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([commentId, createdAt(sort: Asc)])
 }
 
 // ====================================================================

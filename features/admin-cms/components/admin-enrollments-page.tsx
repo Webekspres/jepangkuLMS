@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Plus, Search, Trash2, UserPlus } from 'lucide-react';
+import { Check, Eye, Search, Trash2, UserPlus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
@@ -13,9 +14,11 @@ import {
 } from '@/features/admin-cms/actions/cms-enrollment-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminEnrollmentRow } from '@/features/admin-cms/lib/load-admin-enrollments';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { formatIdr } from '@/lib/lms/format-price';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -82,13 +85,15 @@ export function AdminEnrollmentsPage({
 
   const rejectTarget = enrollments.find((row) => row.id === rejectId);
 
-  const runAction = (action: () => Promise<{ ok: boolean; message?: string }>) => {
+  const runAction = (action: () => Promise<{ ok: boolean; message?: string }>, successMessage?: string) => {
     startTransition(async () => {
       const result = await action();
       if (!result.ok && result.message) {
+        toast.error(result.message);
         setMessage(result.message);
         return;
       }
+      if (successMessage) toast.success(successMessage);
       setMessage(null);
       router.refresh();
     });
@@ -99,7 +104,7 @@ export function AdminEnrollmentsPage({
     const formData = new FormData();
     formData.set('userId', grantUserId);
     formData.set('courseId', grantCourseId);
-    runAction(() => grantEnrollmentAction(formData));
+    runAction(() => grantEnrollmentAction(formData), 'Enrollment berhasil diberikan.');
   };
 
   return (
@@ -204,6 +209,13 @@ export function AdminEnrollmentsPage({
                   <TableCell>
                     <p className="font-medium">{row.userDisplayName ?? '—'}</p>
                     <p className="font-mono text-xs text-muted-foreground">{row.userId}</p>
+                    <Link
+                      href={ADMIN_ROUTES.userDetail(row.userId)}
+                      className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Eye className="size-3" />
+                      Detail pengguna
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <p className="font-medium">{row.courseTitle}</p>
@@ -225,7 +237,12 @@ export function AdminEnrollmentsPage({
                           size="sm"
                           className="gap-1"
                           disabled={isPending}
-                          onClick={() => runAction(() => approveEnrollmentAction(row.id))}
+                          onClick={() =>
+                            runAction(
+                              () => approveEnrollmentAction(row.id),
+                              'Enrollment disetujui.',
+                            )
+                          }
                         >
                           <Check className="size-3.5" />
                           Setujui

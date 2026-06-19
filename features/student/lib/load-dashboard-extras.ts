@@ -83,9 +83,9 @@ export const loadDashboardWeeklyXp = cache(async function loadDashboardWeeklyXp(
   since.setDate(since.getDate() - 6);
   since.setHours(0, 0, 0, 0);
 
-  const events = await prisma.lmsPointEvent.findMany({
+  const events = await prisma.lmsXpEvent.findMany({
     where: { userId, createdAt: { gte: since } },
-    select: { pointsGained: true, createdAt: true },
+    select: { xpGained: true, createdAt: true },
   });
 
   const days: DashboardWeeklyXpDay[] = [];
@@ -98,7 +98,7 @@ export const loadDashboardWeeklyXp = cache(async function loadDashboardWeeklyXp(
 
     const xp = events
       .filter((event) => event.createdAt >= start && event.createdAt <= end)
-      .reduce((sum, event) => sum + event.pointsGained, 0);
+      .reduce((sum, event) => sum + event.xpGained, 0);
 
     days.push({ day: DAY_LABELS[start.getDay()], xp });
   }

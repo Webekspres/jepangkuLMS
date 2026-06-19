@@ -11,6 +11,7 @@ export type StudentLeaderboardEntry = StudentLeaderboardRow & {
   userId: string;
   avatar: string;
   imageUrl: string | null;
+  badgeTitle: string | null;
   levelLabel: string;
   currentLevel: number;
 };
@@ -39,8 +40,13 @@ export type StudentCoreData = {
   leaderboardPreview: StudentLeaderboardRow[];
   leaderboardTop10: StudentLeaderboardEntry[];
   leaderboardTotal: number;
-  /** True jika user punya role admin Core atau LMS_DEV_ADMIN_BYPASS aktif. */
+  /** True jika user punya role admin Core, LMS lokal, atau LMS_DEV_ADMIN_BYPASS aktif. */
   canAccessAdmin: boolean;
+  lmsRole: 'LMS_STUDENT' | 'LMS_ADMIN';
+  bio: string | null;
+  /** Badge title yang dipakai user (equipped). */
+  equippedBadgeTitle: string | null;
+  equippedBadgeImageUrl: string | null;
 };
 
 export type StudentCoreDataStatus = 'loading' | 'ready';
@@ -68,6 +74,10 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   leaderboardTop10: [],
   leaderboardTotal: 0,
   canAccessAdmin: false,
+  lmsRole: 'LMS_STUDENT',
+  bio: null,
+  equippedBadgeTitle: null,
+  equippedBadgeImageUrl: null,
 };
 
 export function toStudentCoreDataContextValue(

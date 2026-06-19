@@ -13,7 +13,10 @@ import {
 import { ADMIN_BREADCRUMB_LABELS } from '@/features/admin-cms/admin-nav-config';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 
-function segmentLabel(segment: string): string {
+function segmentLabel(segment: string, segments: string[], index: number): string {
+  if (segments[index - 1] === 'users' && index === segments.length - 1) {
+    return 'Detail';
+  }
   return ADMIN_BREADCRUMB_LABELS[segment] ?? segment.replace(/-/g, ' ');
 }
 
@@ -28,7 +31,7 @@ export function AdminBreadcrumb() {
   const crumbs = segments.map((segment, index) => {
     const href = `/${segments.slice(0, index + 1).join('/')}`;
     const isLast = index === segments.length - 1;
-    return { href, label: segmentLabel(segment), isLast };
+    return { href, label: segmentLabel(segment, segments, index), isLast };
   });
 
   return (

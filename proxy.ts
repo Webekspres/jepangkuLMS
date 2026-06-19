@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_ROUTES, CORE_JWT_COOKIE } from '@/lib/auth/constants';
 import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
+import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
 import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
 import { getRolesFromClaims, parseJwtPayload } from '@/lib/core/jwt-claims';
 import { verifyCoreJwtToken } from '@/lib/core/verify-jwt';
@@ -25,18 +26,22 @@ function redirectToAppSignIn(request: NextRequest): NextResponse {
   return NextResponse.redirect(signInUrl);
 }
 
-async function hasCoreAdminRole(request: NextRequest): Promise<boolean> {
-  const token = request.cookies.get(CORE_JWT_COOKIE)?.value;
-  if (!token) return canAccessLmsAdminPanel();
+async function hasCoreAdminRole(request: NextRequest, userId: string | null): Promise<boolean> {
+  if (canAccessLmsAdminPanel()) return true;
 
-  try {
-    const payload = await verifyCoreJwtToken(token);
-    const claims = parseJwtPayload(payload);
-    if (!claims) return canAccessLmsAdminPanel();
-    return canAccessLmsAdminPanel(getRolesFromClaims(claims));
-  } catch {
-    return canAccessLmsAdminPanel();
+  const token = request.cookies.get(CORE_JWT_COOKIE)?.value;
+  let coreRoles: string[] = [];
+  if (token) {
+    try {
+      const payload = await verifyCoreJwtToken(token);
+      const claims = parseJwtPayload(payload);
+      if (claims) coreRoles = getRolesFromClaims(claims);
+    } catch {
+      // ignore — fall through to LMS DB role
+    }
   }
+
+  return userHasLmsAdminAccess(userId, coreRoles);
 }
 
 export default clerkMiddleware(
@@ -61,7 +66,7 @@ export default clerkMiddleware(
     }
 
     if (isAdminRoute(request) && userId) {
-      const isAdmin = await hasCoreAdminRole(request);
+      const isAdmin = await hasCoreAdminRole(request, userId);
       if (!isAdmin) {
         return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
       }

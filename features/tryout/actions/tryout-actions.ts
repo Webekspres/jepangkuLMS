@@ -3,7 +3,14 @@
 import { revalidatePath } from 'next/cache';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
-import { awardLmsPoints } from '@/lib/lms/points';
+import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
+import { awardLmsSplitActivity } from '@/lib/lms/award-activity';
+import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
+import {
+  calculateTryoutPoints,
+  lmsTryoutCompletedSourceKey,
+  lmsTryoutCorrectSourceKey,
+} from '@/lib/lms/point-rules';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -46,7 +53,7 @@ export async function submitTryoutAttempt(input: {
   }
 
   const score = Math.round((correct / questions.length) * 100);
-  const pointsReward = Math.max(10, correct * 5);
+  const scored = calculateTryoutPoints(correct);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
@@ -57,17 +64,43 @@ export async function submitTryoutAttempt(input: {
     },
   });
 
-  await awardLmsPoints({
+  await awardLmsSplitActivity({
     userId,
-    pointsGained: pointsReward,
-    sourceKey: `tryout:${session.code}:${input.level}:${attempt.id}`,
-    sourceType: 'TRYOUT',
+    coreKind: 'tryout_complete',
+    xpAmount: scored.total,
     sourceId: attempt.id,
+    idempotencyKey: buildLmsIdempotencyKey(
+      'tryout_complete',
+      userId,
+      `${session.code}:${input.level}`,
+    ),
+    xpSourceType: 'TRYOUT',
+    pointEvents: [
+      {
+        amount: scored.base,
+        pointsSourceKey: lmsTryoutCompletedSourceKey(session.code, input.level, userId),
+        pointsSourceType: 'TRYOUT',
+        sourceId: attempt.id,
+      },
+      ...(scored.bonus > 0
+        ? [
+            {
+              amount: scored.bonus,
+              pointsSourceKey: lmsTryoutCorrectSourceKey(session.code, input.level, userId),
+              pointsSourceType: 'TRYOUT_CORRECT' as const,
+              sourceId: attempt.id,
+            },
+          ]
+        : []),
+    ],
   });
+
+  await evaluateBadgeUnlocks(userId, { type: 'TRYOUT_PASS', score });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/tryout');
   revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/pencapaian');
 
   tryoutLog.info(
     { userId, sessionCode: session.code, level: input.level, score, correct },
@@ -80,7 +113,7 @@ export async function submitTryoutAttempt(input: {
     score,
     correct,
     total: questions.length,
-    pointsReward,
+    pointsReward: scored.total,
     pass: score >= 60,
   };
 }

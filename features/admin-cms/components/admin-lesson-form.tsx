@@ -18,7 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 type LessonFormValues = {
   title: string;
   slug: string;
-  order: number;
   content: string;
   videoUrl: string;
 };
@@ -45,7 +44,7 @@ export function AdminLessonForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [values, setValues] = useState<LessonFormValues>(
-    initial ?? { title: '', slug: '', order: 1, content: '', videoUrl: '' },
+    initial ?? { title: '', slug: '', content: '', videoUrl: '' },
   );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -60,7 +59,6 @@ export function AdminLessonForm({
     if (mode === 'edit') {
       formData.set('slug', values.slug);
     }
-    formData.set('order', String(values.order));
     formData.set('content', values.content);
     formData.set('videoUrl', values.videoUrl);
 
@@ -86,7 +84,7 @@ export function AdminLessonForm({
     <AdminPageShell
       label={moduleTitle}
       title={mode === 'create' ? 'Pelajaran Baru' : 'Edit Pelajaran'}
-      subtitle="Buat pelajaran baru. Setelah disimpan, kamu bisa menambah flashcard dan kuis di halaman edit."
+      subtitle="Buat pelajaran baru. Urutan diatur via drag & drop di halaman pelajaran."
       backHref={ADMIN_ROUTES.kursusLessons(courseId, moduleId)}
     >
       <Card className="max-w-3xl border-border">
@@ -109,6 +107,7 @@ export function AdminLessonForm({
                 id="title"
                 value={values.title}
                 onChange={(event) => setValues((prev) => ({ ...prev, title: event.target.value }))}
+                placeholder="Pengenalan aksara Jepang"
                 required
               />
               {fieldErrors.title?.[0] ? (
@@ -118,23 +117,6 @@ export function AdminLessonForm({
                 <p className="text-xs text-muted-foreground">
                   Slug pelajaran dibuat otomatis dari judul saat disimpan.
                 </p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="order">Urutan</Label>
-              <Input
-                id="order"
-                type="number"
-                min={1}
-                value={values.order}
-                onChange={(event) =>
-                  setValues((prev) => ({ ...prev, order: Number(event.target.value) }))
-                }
-                required
-              />
-              {fieldErrors.order?.[0] ? (
-                <p className="text-xs text-destructive">{fieldErrors.order[0]}</p>
               ) : null}
             </div>
 
