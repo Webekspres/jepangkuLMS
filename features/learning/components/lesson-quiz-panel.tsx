@@ -19,6 +19,7 @@ import {
   selectCurrentQuestionId,
   useQuizStore,
 } from '@/features/quiz-engine/store/useQuizStore';
+import { shuffleArray } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
 
 export type LessonQuizQuestion = {
@@ -32,7 +33,6 @@ type LessonQuizPanelProps = {
   lessonId: string;
   lessonSlug: string;
   lessonTitle: string;
-  trackJp?: string;
   questions: LessonQuizQuestion[];
   onSubmitted?: (score: number) => void;
 };
@@ -64,24 +64,35 @@ export function LessonQuizPanel({
     reset,
   } = useQuizStore();
 
+  const shuffledQuestions = useMemo(
+    () =>
+      questions.map((q) => ({
+        ...q,
+        options: shuffleArray(q.options),
+      })),
+    [lessonSlug, questions],
+  );
+
   useEffect(() => {
-    startSession(lessonSlug, questions.map((q) => q.id));
+    startSession(lessonSlug, shuffleArray(questions.map((q) => q.id)));
   }, [lessonSlug, questions, startSession]);
 
   const questionMap = useMemo(
-    () => Object.fromEntries(questions.map((q) => [q.id, q])),
-    [questions],
+    () => Object.fromEntries(shuffledQuestions.map((q) => [q.id, q])),
+    [shuffledQuestions],
   );
 
   const currentQuestionId = useQuizStore(selectCurrentQuestionId);
-  const currentQuestion = currentQuestionId ? questionMap[currentQuestionId] : questions[currentIndex];
+  const currentQuestion = currentQuestionId
+    ? questionMap[currentQuestionId]
+    : shuffledQuestions[currentIndex];
 
   const progressPercent =
-    questions.length === 0 ? 0 : Math.round(((currentIndex + 1) / questions.length) * 100);
+    questionIds.length === 0 ? 0 : Math.round(((currentIndex + 1) / questionIds.length) * 100);
 
   const selectedOptionId = currentQuestion ? answers[currentQuestion.id] : undefined;
-  const allAnswered = questions.every((q) => Boolean(answers[q.id]));
-  const isLast = currentIndex === questions.length - 1;
+  const allAnswered = questionIds.every((id) => Boolean(answers[id]));
+  const isLast = currentIndex === questionIds.length - 1;
 
   function handleSubmit() {
     if (!allAnswered) return;
@@ -95,7 +106,7 @@ export function LessonQuizPanel({
 
   function handleRetry() {
     reset();
-    startSession(lessonSlug, questions.map((q) => q.id));
+    startSession(lessonSlug, shuffleArray(questions.map((q) => q.id)));
     setPhase('questions');
     setResult(null);
   }
@@ -140,9 +151,9 @@ export function LessonQuizPanel({
           </span>
         </p>
         <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {questions.map((q, i) => (
+          {questionIds.map((qId, i) => (
             <div
-              key={q.id}
+              key={qId}
               className="rounded-xl border border-border bg-muted/30 p-2 text-center text-xs"
             >
               Soal {i + 1}
@@ -163,7 +174,7 @@ export function LessonQuizPanel({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">
-          Soal {currentIndex + 1} dari {questions.length}
+          Soal {currentIndex + 1} dari {questionIds.length}
         </span>
         <Badge variant="secondary" className="gap-1">
           +50 XP per benar
@@ -235,16 +246,16 @@ export function LessonQuizPanel({
         </Button>
 
         <div className="flex flex-wrap justify-center gap-1.5">
-          {questions.map((q, index) => (
+          {questionIds.map((qId, index) => (
             <button
-              key={q.id}
+              key={qId}
               type="button"
               onClick={() => setCurrentIndex(index)}
               className={cn(
                 'size-8 rounded-lg text-xs font-semibold transition-colors',
                 index === currentIndex
                   ? 'bg-primary text-primary-foreground'
-                  : answers[q.id]
+                  : answers[qId]
                     ? 'bg-emerald-500/15 text-emerald-700'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
               )}

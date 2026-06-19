@@ -39,15 +39,74 @@ enum CategoryType {
 
 // ====================================================================
 // 1. USER JANGKAR (FK ke Core Service / Clerk User ID)
-// Profil, XP, level, badge → JepangKu Core Backend (bukan DB LMS). Lihat docs/ECOSYSTEM.md
+// XP & level global → Core. Poin LMS, badge, display name → DB LMS. Lihat docs/ECOSYSTEM.md
 // ====================================================================
 model User {
-  id        String   @id // ID user dari Core Service (Clerk User ID) — tanpa @default(uuid())
-  createdAt DateTime @default(now())
+  id          String   @id // Clerk User ID — tanpa @default(uuid())
+  /// Nama tampilan di LMS (bukan nama Google SSO dari Clerk)
+  displayName String?  @db.VarChar(32)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  enrollments Enrollment[]
-  progress    UserProgress[]
-  attempts    QuizAttempt[]
+  enrollments  Enrollment[]
+  progress     UserProgress[]
+  attempts     QuizAttempt[]
+  lmsStats     UserLmsStats?
+  pointEvents  LmsPointEvent[]
+  badges       UserBadge[]
+}
+
+// ====================================================================
+// 1b. GAMIFIKASI LMS (poin leaderboard & badge — bukan di Core)
+// ====================================================================
+model UserLmsStats {
+  userId    String   @id
+  lmsPoints Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lmsPoints(sort: Desc), updatedAt(sort: Asc)])
+}
+
+model LmsPointEvent {
+  id           String   @id @default(uuid())
+  userId       String
+  pointsGained Int
+  /// Idempotency — mis. "lesson:{lessonId}" atau "quiz:{attemptId}"
+  sourceKey    String   @unique
+  sourceType   String
+  sourceId     String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model LmsBadge {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  title       String
+  description String?  @db.Text
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
 }
 
 // ====================================================================
@@ -59,11 +118,34 @@ model Course {
   slug        String    @unique
   description String?   @db.Text
   level       LevelJLPT @default(N5)
+  /// Kategori tampilan katalog (Kosa Kata, Tata Bahasa, Kanji, …)
+  category    String    @default("Kosa Kata")
+  /// Harga dalam Rupiah (0 = gratis)
+  priceIdr    Int       @default(0)
   isPublished Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
   createdAt   DateTime  @default(now())
 
-  lessons     Lesson[]
+  modules     Module[]
   enrollments Enrollment[]
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  slug        String
+  order       Int
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, slug])
+  @@unique([courseId, order])
+  @@index([courseId])
 }
 
 model Enrollment {
@@ -81,14 +163,14 @@ model Enrollment {
 
 model Lesson {
   id       String  @id @default(uuid())
-  courseId String
+  moduleId String
   title    String
   slug     String  @unique
   order    Int
   content  String? @db.Text
   videoUrl String?
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   kanjis      MaterialKanji[]
   kosakatas   MaterialKosakata[]
@@ -96,7 +178,10 @@ model Lesson {
 
   questions Question[]
   progress  UserProgress[]
-  attempts  QuizAttempt[] // <--- INI AMUNISI TAMBAHAN biar error di image_00ea07.png LUNAS!
+  attempts  QuizAttempt[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId])
 }
 
 // ====================================================================
@@ -165,16 +250,60 @@ model MaterialTataBahasa {
 // ====================================================================
 // 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
 // ====================================================================
+model TryoutSession {
+  id               String    @id @default(uuid())
+  code             String    @unique
+  title            String
+  phaseLabel       String
+  description      String?   @db.Text
+  scheduledAt      DateTime?
+  isActive         Boolean   @default(true)
+  sortOrder        Int       @default(0)
+  timeLimitMinutes Int       @default(120)
+  createdAt        DateTime  @default(now())
+
+  questions Question[]
+}
+
+model LiveClass {
+  id          String    @id @default(uuid())
+  title       String
+  description String    @db.Text
+  senseiName  String
+  senseiLevel String?
+  category    String
+  level       LevelJLPT
+  scheduledAt DateTime
+  endsAt      DateTime?
+  maxSlots    Int       @default(30)
+  filledSlots Int       @default(0)
+  thumbUrl    String?
+  meetingUrl  String?
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([scheduledAt])
+  @@index([isPublished, scheduledAt])
+}
+
 model Question {
   id           String       @id @default(uuid())
   lessonId     String? // Optional: kosong jika ini soal Tryout
+  tryoutSessionId String?
+  tryoutLevel  LevelJLPT?
+  /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
+  tryoutSection String?
+  sortOrder    Int          @default(0)
   type         QuestionType @default(QUIZ)
   questionText String       @db.Text
   explanation  String?      @db.Text
   xpReward     Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
-  lesson  Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  options QuestionOption[]
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+  options       QuestionOption[]
+
+  @@index([tryoutSessionId, tryoutLevel, sortOrder])
 }
 
 model QuestionOption {

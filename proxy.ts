@@ -1,9 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_ROUTES, CORE_JWT_COOKIE } from '@/lib/auth/constants';
-import { hasLmsAdminAccess } from '@/lib/auth/lms-roles';
+import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
 import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
-import { parseJwtPayload } from '@/lib/core/jwt-claims';
+import { getRolesFromClaims, parseJwtPayload } from '@/lib/core/jwt-claims';
 import { verifyCoreJwtToken } from '@/lib/core/verify-jwt';
 
 const isProtectedRoute = createRouteMatcher(['/dashboard(.*)', '/admin(.*)']);
@@ -27,16 +27,15 @@ function redirectToAppSignIn(request: NextRequest): NextResponse {
 
 async function hasCoreAdminRole(request: NextRequest): Promise<boolean> {
   const token = request.cookies.get(CORE_JWT_COOKIE)?.value;
-  if (!token) return false;
+  if (!token) return canAccessLmsAdminPanel();
 
   try {
     const payload = await verifyCoreJwtToken(token);
     const claims = parseJwtPayload(payload);
-    if (!claims) return false;
-    const roles = claims.jepangku?.roles ?? [];
-    return hasLmsAdminAccess(roles);
+    if (!claims) return canAccessLmsAdminPanel();
+    return canAccessLmsAdminPanel(getRolesFromClaims(claims));
   } catch {
-    return false;
+    return canAccessLmsAdminPanel();
   }
 }
 

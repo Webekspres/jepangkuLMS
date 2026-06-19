@@ -5,6 +5,9 @@ export const STUDENT_ROUTES = {
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
   leaderboard: '/dashboard/leaderboard',
   tryout: '/dashboard/tryout',
+  tryoutExam: (session: string, level: string) =>
+    `/dashboard/tryout?session=${encodeURIComponent(session)}&level=${encodeURIComponent(level)}`,
+  liveClass: '/dashboard/live-class',
   profil: '/dashboard/profil',
   achievements: '/dashboard/achievements',
   belajar: (courseSlug: string, lessonSlug: string) =>

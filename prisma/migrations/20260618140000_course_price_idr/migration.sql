@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Course" ADD COLUMN "priceIdr" INTEGER NOT NULL DEFAULT 0;

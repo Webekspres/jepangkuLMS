@@ -3,23 +3,26 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import {
   EMPTY_STUDENT_CORE_DATA,
-  type StudentCoreData,
+  toStudentCoreDataContextValue,
+  type StudentCoreDataContextValue,
 } from '@/features/student/types/student-core-data';
 
-const StudentCoreDataContext = createContext<StudentCoreData>(EMPTY_STUDENT_CORE_DATA);
+const StudentCoreDataContext = createContext<StudentCoreDataContextValue>(
+  toStudentCoreDataContextValue(EMPTY_STUDENT_CORE_DATA, 'loading'),
+);
 
 export function StudentCoreDataProvider({
-  data,
+  value,
   children,
 }: {
-  data: StudentCoreData;
+  value: StudentCoreDataContextValue;
   children: ReactNode;
 }) {
   return (
-    <StudentCoreDataContext.Provider value={data}>{children}</StudentCoreDataContext.Provider>
+    <StudentCoreDataContext.Provider value={value}>{children}</StudentCoreDataContext.Provider>
   );
 }
 
-export function useStudentCoreData(): StudentCoreData {
+export function useStudentCoreData(): StudentCoreDataContextValue {
   return useContext(StudentCoreDataContext);
 }

@@ -5,6 +5,7 @@ import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsXp, isCoreAwardConfigured } from '@/lib/core/gamification';
+import { awardLmsPoints } from '@/lib/lms/points';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -26,12 +27,50 @@ export async function requestEnrollment(courseId: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
   updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, courseId, status: enrollment.status }, 'Enrollment requested');
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
 
-/** Enroll langsung (ACTIVE) untuk kursus published — MVP tanpa payment gateway. */
+/** Request enrollment — kursus berbayar → PENDING; gratis → ACTIVE langsung. */
+export async function requestCourseEnrollment(courseSlug: string) {
+  const userId = await requireUserId();
+
+  const course = await prisma.course.findUnique({ where: { slug: courseSlug } });
+  if (!course) throw new Error('Kursus tidak ditemukan');
+  if (!course.isPublished) throw new Error('Kursus belum tersedia');
+
+  const existing = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId: course.id } },
+  });
+
+  if (existing?.status === 'ACTIVE') {
+    return { enrollmentId: existing.id, courseSlug, status: existing.status };
+  }
+
+  const status = course.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: { userId_courseId: { userId, courseId: course.id } },
+    create: { userId, courseId: course.id, status },
+    update: { status },
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  learningLog.info(
+    { userId, courseSlug, courseId: course.id, status: enrollment.status },
+    'Course enrollment requested',
+  );
+  return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
+}
+
+/** @deprecated Gunakan requestCourseEnrollment — hanya untuk grant admin / seed. */
 export async function enrollInCourse(courseSlug: string) {
   const userId = await requireUserId();
 
@@ -47,6 +86,8 @@ export async function enrollInCourse(courseSlug: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
   updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, courseSlug, courseId: course.id, status: enrollment.status }, 'Course enrollment activated');
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
@@ -81,9 +122,19 @@ export async function markLessonComplete(lessonId: string, xpReward = 10) {
     });
   }
 
+  await awardLmsPoints({
+    userId,
+    pointsGained: xpReward,
+    sourceKey: `lesson:${lessonId}`,
+    sourceType: 'LESSON_COMPLETE',
+    sourceId: lessonId,
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/belajar');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
   updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
   return { success: true as const };
@@ -136,8 +187,18 @@ export async function submitQuizAnswers(input: {
     });
   }
 
+  await awardLmsPoints({
+    userId,
+    pointsGained: xpReward,
+    sourceKey: `quiz:${attempt.id}`,
+    sourceType: 'QUIZ_PASS',
+    sourceId: attempt.id,
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
   updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   learningLog.info(
     {
@@ -190,8 +251,18 @@ export async function submitQuizAttempt(input: {
     });
   }
 
+  await awardLmsPoints({
+    userId,
+    pointsGained: xpReward,
+    sourceKey: `quiz:${attempt.id}`,
+    sourceType: input.type === 'TRYOUT' ? 'TRYOUT' : 'QUIZ_PASS',
+    sourceId: attempt.id,
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/leaderboard');
+  revalidatePath('/dashboard/profil');
   updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
   return { attemptId: attempt.id, score: attempt.score };
 }

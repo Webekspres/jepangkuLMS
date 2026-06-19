@@ -1,19 +1,16 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
   BookOpen,
-  CheckCircle2,
   ChevronRight,
   Clock,
-  Loader2,
   Play,
   Search,
-  TrendingUp,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,9 +20,8 @@ import {
   type CatalogCourse,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
-import { enrollInCourse } from '@/features/learning/actions/learning-actions';
 import type { StudentEnrollmentView } from '@/features/learning/lib/queries';
-import { formatDisplayNumber, JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
 import type { KursusEnrollmentCard } from '@/features/student/lib/load-student-learning-data';
 import { STUDENT_ROUTES } from './student-routes';
@@ -41,17 +37,18 @@ export function StudentKursusPage({
   courses,
   enrollmentBySlug,
   enrolledCards,
-  stats,
 }: StudentKursusPageProps) {
-  const router = useRouter();
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [search, setSearch] = useState('');
-  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+
+  const unenrolledCourses = useMemo(() => {
+    const enrolledSlugs = new Set(enrolledCards.map((e) => e.course.slug));
+    return courses.filter((c) => !enrolledSlugs.has(c.slug));
+  }, [courses, enrolledCards]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return courses.filter((course) => {
+    return unenrolledCourses.filter((course) => {
       const levelMatch = activeLevel === 'Semua' || course.level === activeLevel;
       const searchMatch =
         !query ||
@@ -59,89 +56,75 @@ export function StudentKursusPage({
         course.desc.toLowerCase().includes(query);
       return levelMatch && searchMatch;
     });
-  }, [activeLevel, courses, search]);
-
-  function handleEnroll(courseSlug: string) {
-    setPendingSlug(courseSlug);
-    startTransition(async () => {
-      try {
-        await enrollInCourse(courseSlug);
-        router.refresh();
-      } finally {
-        setPendingSlug(null);
-      }
-    });
-  }
+  }, [activeLevel, unenrolledCourses, search]);
 
   function getEnrollmentView(slug: string) {
     const enrollment = enrollmentBySlug[slug];
     if (!enrollment) return null;
     return {
       progress: enrollment.progress.percent,
-      continueLessonSlug: enrollment.progress.continueLessonSlug ?? 'pengenalan-aksara-jepang',
+      continueLessonSlug: enrollment.progress.continueLessonSlug,
       status: enrollment.progress.status,
     };
   }
 
   return (
     <div className="space-y-8 pb-8">
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-1 text-xs font-semibold tracking-wide text-primary uppercase">
-              Perpustakaan belajar
-            </p>
-            <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">Kursus Saya</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Kursus terdaftar dan katalog JLPT — lanjutkan dari titik terakhir belajar-mu.
-            </p>
-          </div>
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari kursus..."
-              className="pl-9"
-            />
-          </div>
+      {/* ── Section 1: Kursus Saya (enrolled only) ──────────────────────── */}
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-foreground">
+            <BookOpen className="size-5 text-primary" />
+            Kursus Saya
+          </h2>
+          {enrolledCards.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {enrolledCards.length} kursus terdaftar
+            </span>
+          )}
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          {[
-            { label: 'Terdaftar', value: stats.enrolled, icon: BookOpen },
-            { label: 'Sedang jalan', value: stats.active, icon: TrendingUp },
-            { label: 'Selesai', value: stats.completed, icon: CheckCircle2 },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-muted/30 px-3 py-3 text-center sm:text-left"
-            >
-              <stat.icon className="mx-auto mb-1 size-4 text-primary sm:mx-0" />
-              <p className="text-lg font-bold tabular-nums text-foreground">{stat.value}</p>
-              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+        {enrolledCards.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 py-14 text-center">
+            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+              <BookOpen className="size-8 text-primary/60" />
             </div>
-          ))}
-        </div>
-      </section>
-
-      {enrolledCards.length > 0 && (
-        <section>
-          <h2 className="mb-4 text-lg font-bold text-foreground">Lanjutkan belajar</h2>
+            <p className="mb-1 text-base font-semibold text-foreground">
+              Anda belum mengikuti kursus apapun
+            </p>
+            <p className="mb-5 max-w-xs text-sm text-muted-foreground">
+              Mulai perjalanan belajar bahasa Jepangmu sekarang. Kursus N5 tersedia gratis!
+            </p>
+            <Button asChild size="sm" className="gap-2">
+              <a href="#jelajahi">
+                <Sparkles className="size-4" />
+                Jelajahi Kursus
+              </a>
+            </Button>
+          </div>
+        ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {enrolledCards.map(({ course, enrollment }, i) => {
               const accent = JLPT_ACCENT[course.accent];
+              const continueHref = enrollment.continueLessonSlug
+                ? STUDENT_ROUTES.belajar(course.slug, enrollment.continueLessonSlug)
+                : STUDENT_ROUTES.kursusDetail(course.slug);
+
               return (
                 <motion.article
                   key={course.slug}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+                  className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
                 >
-                  <div className="relative h-32">
+                  <div className="relative h-36">
                     <Image src={course.thumb} alt="" fill className="object-cover" sizes="400px" />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
+                    {/* Progress badge top-left */}
+                    <span className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+                      {enrollment.progress}% selesai
+                    </span>
                     <span
                       className={cn(
                         'absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-xs font-bold text-white',
@@ -150,14 +133,18 @@ export function StudentKursusPage({
                     >
                       {course.level}
                     </span>
+                    {/* Play overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
+                      <span className="flex size-11 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                        <Play className="size-5 translate-x-0.5 fill-current text-primary" />
+                      </span>
+                    </div>
                   </div>
+
                   <div className="p-4">
                     <h3 className="line-clamp-2 text-sm font-bold text-foreground">{course.title}</h3>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      {enrollment.progress}% selesai
-                    </p>
                     <div className="mt-3">
-                      <div className="mb-1 flex justify-between text-[11px] font-medium">
+                      <div className="mb-1.5 flex justify-between text-[11px] font-medium">
                         <span className="text-muted-foreground">Progress</span>
                         <span className="text-primary">{enrollment.progress}%</span>
                       </div>
@@ -169,9 +156,9 @@ export function StudentKursusPage({
                       </div>
                     </div>
                     <Button asChild size="sm" className="mt-4 w-full gap-1.5">
-                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
-                        <BookOpen className="size-3.5" />
-                        Buka kursus
+                      <Link href={continueHref}>
+                        <Play className="size-3.5 fill-current" />
+                        {enrollment.progress > 0 ? 'Lanjutkan Belajar' : 'Mulai Belajar'}
                       </Link>
                     </Button>
                   </div>
@@ -179,12 +166,33 @@ export function StudentKursusPage({
               );
             })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
-      <section>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-bold text-foreground">Jelajahi kursus</h2>
+      {/* ── Section 2: Jelajahi Kursus (catalog, unenrolled) ────────────── */}
+      <section id="jelajahi">
+        {/* Section header */}
+        <div className="mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold text-foreground">
+            <Sparkles className="size-5 text-primary" />
+            Jelajahi Kursus
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Temukan kursus JLPT yang sesuai dengan level dan tujuan belajarmu.
+          </p>
+        </div>
+
+        {/* Search + filter bar (inline) */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari kursus..."
+              className="pl-9"
+            />
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {COURSE_LEVELS.map((level) => {
               const accent = level === 'Semua' ? null : JLPT_ACCENT[LEVEL_ACCENT[level]];
@@ -210,15 +218,16 @@ export function StudentKursusPage({
           </div>
         </div>
 
-        <p className="mb-4 text-sm text-muted-foreground">
-          {formatDisplayNumber(filtered.length)} kursus ditemukan
-        </p>
+        {filtered.length > 0 && (
+          <p className="mb-4 text-xs text-muted-foreground">
+            {filtered.length} kursus ditemukan
+          </p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((course, i) => {
             const accent = JLPT_ACCENT[course.accent];
             const enrollment = getEnrollmentView(course.slug);
-            const enrolling = isPending && pendingSlug === course.slug;
 
             return (
               <motion.article
@@ -226,7 +235,7 @@ export function StudentKursusPage({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+                className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="relative h-36">
                   <Image src={course.thumb} alt="" fill className="object-cover" sizes="400px" />
@@ -245,6 +254,7 @@ export function StudentKursusPage({
                     </span>
                   )}
                 </div>
+
                 <div className="p-4">
                   <h3 className="mb-1 line-clamp-2 text-sm font-bold text-foreground">
                     {course.title}
@@ -260,44 +270,12 @@ export function StudentKursusPage({
                       {course.duration}
                     </span>
                   </div>
-                  {enrollment && (
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
-                        style={{ width: `${enrollment.progress}%` }}
-                      />
-                    </div>
-                  )}
-                  {enrollment ? (
-                    <Button asChild variant="default" size="sm" className="mt-4 w-full gap-1.5">
-                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
-                        Lanjutkan
-                        <ChevronRight className="size-3.5" />
-                      </Link>
-                    </Button>
-                  ) : course.isPublished ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-4 w-full gap-1.5"
-                      disabled={enrolling}
-                      onClick={() => handleEnroll(course.slug)}
-                    >
-                      {enrolling ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <BookOpen className="size-3.5" />
-                      )}
-                      Daftar kursus
-                    </Button>
-                  ) : (
-                    <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5">
-                      <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
-                        Lihat detail
-                        <ChevronRight className="size-3.5" />
-                      </Link>
-                    </Button>
-                  )}
+                  <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5">
+                    <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
+                      Lihat detail
+                      <ChevronRight className="size-3.5" />
+                    </Link>
+                  </Button>
                 </div>
               </motion.article>
             );
@@ -306,7 +284,18 @@ export function StudentKursusPage({
 
         {filtered.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border py-12 text-center">
-            <p className="text-sm text-muted-foreground">Kursus tidak ditemukan.</p>
+            <p className="text-sm text-muted-foreground">
+              {search ? `Tidak ada kursus untuk "${search}".` : 'Tidak ada kursus ditemukan.'}
+            </p>
+            {search && (
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-primary hover:underline"
+                onClick={() => setSearch('')}
+              >
+                Hapus pencarian
+              </button>
+            )}
           </div>
         )}
       </section>

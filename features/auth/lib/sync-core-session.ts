@@ -25,7 +25,7 @@ export async function syncCoreSessionAndRedirect(
     });
 
     if (!response.ok) {
-        let message = 'Gagal menyinkronkan sesi dengan Core Backend.';
+        let message = 'Gagal memuat profil game. Coba lagi.';
         let code: string | undefined;
         try {
             const body = (await response.json()) as {

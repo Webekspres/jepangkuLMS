@@ -20,13 +20,13 @@ function FooterLinkGroup({
 }) {
   return (
     <div>
-      <h3 className="mb-4 text-sm font-bold tracking-wide text-foreground">{title}</h3>
+      <h3 className="mb-4 text-sm font-bold tracking-wide text-white/90">{title}</h3>
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-primary"
+              className="text-sm text-white/55 transition-colors hover:text-white"
             >
               {link.label}
             </Link>
@@ -39,24 +39,28 @@ function FooterLinkGroup({
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-background">
+    <footer className="bg-brand-hero-navy">
       <div className="container mx-auto px-4 py-14 md:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-4">
             <Link href="/" className="inline-block">
               <BrandLogo variant="footer" />
             </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
               Platform belajar bahasa Jepang terstruktur JLPT — video lesson, kuis interaktif, try
               out, dan gamifikasi XP.
             </p>
-            <Button asChild className="mt-5 h-10 gap-2 px-5 text-sm font-semibold">
+            <Button
+              asChild
+              variant="ghost"
+              className="mt-5 h-10 gap-2 border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white hover:bg-white/20 hover:text-white"
+            >
               <a href={FOOTER_WA_URL} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" />
                 Chat Admin
               </a>
             </Button>
-            <p className="mt-3 text-xs text-muted-foreground">{ADMIN_CONTACT.hours}</p>
+            <p className="mt-3 text-xs text-white/40">{ADMIN_CONTACT.hours}</p>
           </div>
 
           <div className="lg:col-span-8">
@@ -68,7 +72,7 @@ export function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/40 sm:flex-row">
           <p>© 2026 JepangKu. Semua hak dilindungi.</p>
           <p>Bagian dari ekosistem JepangKu · kursus.jepangku.com</p>
         </div>

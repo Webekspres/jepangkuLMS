@@ -1,0 +1,16 @@
+export { AdminShell } from './admin-shell';
+export { AdminSidebar } from './admin-sidebar';
+export { AdminTopbar } from './admin-topbar';
+export { AdminPageShell } from './admin-page-shell';
+export { AdminPageHeader } from './admin-page-header';
+export { AdminDashboardPage } from './admin-dashboard-page';
+export { AdminCoursesPage } from './admin-courses-page';
+export { AdminCourseForm } from './admin-course-form';
+export { AdminModulesPage } from './admin-modules-page';
+export { AdminModuleForm } from './admin-module-form';
+export { AdminLessonsPage } from './admin-lessons-page';
+export { AdminLessonForm } from './admin-lesson-form';
+export { AdminLessonWorkspace } from './admin-lesson-workspace';
+export { AdminConfirmDialog } from './admin-confirm-dialog';
+export { AdminPlaceholderPage } from './admin-placeholder-page';
+export { AdminStatCard } from './admin-stat-card';

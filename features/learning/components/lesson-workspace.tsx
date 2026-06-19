@@ -28,15 +28,18 @@ import {
   LessonQuizPanel,
   type LessonQuizQuestion,
 } from '@/features/learning/components/lesson-quiz-panel';
+import { buildLessonFlashcards } from '@/features/learning/lib/build-lesson-flashcards';
 import { markLessonComplete } from '@/features/learning/actions/learning-actions';
 import {
   getDefaultExpandedModuleIds,
-  groupLessonsByModule,
+  groupSyllabusWithDbModules,
   type GroupedLesson,
 } from '@/features/learning/lib/n5-lesson-modules';
+import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
 import {
   resolveLessonVideoUrl,
 } from '@/features/learning/lib/lesson-video';
+import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
@@ -77,6 +80,7 @@ export type LessonWorkspaceProps = {
     quizCount: number;
   };
   syllabus: LessonNavItem[];
+  modules?: ModuleRow[];
   materials: {
     kanjis: MaterialKanji[];
     kosakatas: MaterialKosakata[];
@@ -86,55 +90,7 @@ export type LessonWorkspaceProps = {
   initialTab?: ContentTab;
 };
 
-type MaterialTrack = 'kosakata' | 'tata-bahasa' | 'kanji' | 'umum';
 type ContentTab = 'video' | 'flashcard' | 'quiz';
-
-const TRACKS = [
-  {
-    id: 'kosakata' as const,
-    label: 'Kosa Kata',
-    jp: '語彙',
-    match: 'kosakata',
-    activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-600/25',
-    idleClass: 'border border-border bg-card text-muted-foreground hover:bg-muted/50',
-    badgeClass: 'bg-blue-500/15 text-blue-700',
-    trackColorClass: 'bg-blue-600',
-    accentColor: '#2563eb',
-  },
-  {
-    id: 'tata-bahasa' as const,
-    label: 'Tata Bahasa',
-    jp: '文法',
-    match: 'tata-bahasa',
-    activeClass: 'bg-violet-600 text-white shadow-md shadow-violet-600/25',
-    idleClass: 'border border-border bg-card text-muted-foreground hover:bg-muted/50',
-    badgeClass: 'bg-violet-500/15 text-violet-700',
-    trackColorClass: 'bg-violet-600',
-    accentColor: '#7c3aed',
-  },
-  {
-    id: 'kanji' as const,
-    label: 'Kanji',
-    jp: '漢字',
-    match: 'kanji',
-    activeClass: 'bg-amber-600 text-white shadow-md shadow-amber-600/25',
-    idleClass: 'border border-border bg-card text-muted-foreground hover:bg-muted/50',
-    badgeClass: 'bg-amber-500/15 text-amber-700',
-    trackColorClass: 'bg-amber-600',
-    accentColor: '#d97706',
-  },
-];
-
-function detectTrack(slug: string): MaterialTrack {
-  if (slug.includes('kanji')) return 'kanji';
-  if (slug.includes('kosakata')) return 'kosakata';
-  if (slug.includes('tata-bahasa')) return 'tata-bahasa';
-  return 'umum';
-}
-
-function findTrackLesson(syllabus: LessonNavItem[], match: string) {
-  return syllabus.find((item) => item.slug.includes(match));
-}
 
 type SyllabusGroup = GroupedLesson<LessonNavItem>;
 
@@ -331,6 +287,7 @@ export function LessonWorkspace({
   course,
   lesson,
   syllabus,
+  modules,
   materials,
   questions,
   initialTab = 'video',
@@ -360,7 +317,12 @@ export function LessonWorkspace({
     };
   }, [mobileCurriculumOpen]);
 
-  const syllabusGroups = useMemo(() => groupLessonsByModule(syllabus), [syllabus]);
+  const syllabusGroups = useMemo(() => {
+    if (modules && modules.length > 0) {
+      return groupSyllabusWithDbModules(modules, syllabus);
+    }
+    return groupLessonsFlat(syllabus);
+  }, [modules, syllabus]);
 
   const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
     getDefaultExpandedModuleIds(syllabusGroups, lesson.slug),
@@ -372,42 +334,7 @@ export function LessonWorkspace({
     );
   };
 
-  const currentTrack = detectTrack(lesson.slug);
-  const activeTrack = TRACKS.find((t) => t.id === currentTrack);
-
-  const flashcards = useMemo(() => {
-    if (materials.kosakatas.length > 0) {
-      return materials.kosakatas.map((item) => ({
-        front: item.kosakata,
-        sub: [item.furigana, item.romaji].filter(Boolean).join(' · ') || null,
-        back: item.arti,
-        example: item.contohKalimat,
-      }));
-    }
-    if (materials.kanjis.length > 0) {
-      return materials.kanjis.map((item) => ({
-        front: item.huruf,
-        sub: [item.furigana, item.romaji].filter(Boolean).join(' · ') || null,
-        back: item.arti,
-        example: null,
-      }));
-    }
-    if (materials.tataBahasas.length > 0) {
-      return materials.tataBahasas.map((item) => ({
-        front: item.tataBahasa,
-        sub: null,
-        back: item.arti,
-        example: item.contohKalimat,
-      }));
-    }
-    return [];
-  }, [materials]);
-
-  const trackLabel =
-    currentTrack === 'umum' ? 'Video Lesson' : (activeTrack?.label ?? lesson.title);
-  const trackJp = activeTrack?.jp ?? '学習';
-  const trackColorClass = activeTrack?.trackColorClass ?? 'bg-primary';
-  const accentColor = activeTrack?.accentColor ?? '#ec1d24';
+  const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
 
   function handleComplete() {
     startTransition(async () => {
@@ -431,7 +358,7 @@ export function LessonWorkspace({
   ];
 
   const hasQuiz = questions.length > 0;
-  const { url: videoUrl, isDemo: isDemoVideo } = resolveLessonVideoUrl(lesson.videoUrl);
+  const { url: videoUrl } = resolveLessonVideoUrl(lesson.videoUrl);
 
   const contentTabs = (
     <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5">
@@ -493,36 +420,6 @@ export function LessonWorkspace({
         </span>
       </nav>
 
-      {currentTrack !== 'umum' && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:px-0">
-          {TRACKS.map((track) => {
-            const target = findTrackLesson(syllabus, track.match);
-            const isActive = currentTrack === track.id;
-            if (!target) return null;
-            return (
-              <Link
-                key={track.id}
-                href={STUDENT_ROUTES.belajar(course.slug, target.slug)}
-                className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm',
-                  isActive ? track.activeClass : track.idleClass,
-                )}
-              >
-                <span>{track.label}</span>
-                <span
-                  className={cn(
-                    'rounded-md px-1.5 py-0.5 text-[10px] font-bold',
-                    isActive ? 'bg-white/20 text-white' : track.badgeClass,
-                  )}
-                >
-                  {track.jp}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
       <div className="grid gap-4 sm:gap-5 md:gap-6 lg:grid-cols-[minmax(0,1fr)_min(100%,20rem)] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-3 sm:space-y-4 md:space-y-5">
           <div className="space-y-3 sm:space-y-4">
@@ -536,12 +433,19 @@ export function LessonWorkspace({
           </div>
 
           <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
-            <LessonVideoPlayer
-              videoUrl={videoUrl}
-              title={lesson.title}
-              isDemo={isDemoVideo}
-              isActive={activeTab === 'video'}
-            />
+            {videoUrl ? (
+              <LessonVideoPlayer
+                videoUrl={videoUrl}
+                title={lesson.title}
+                isActive={activeTab === 'video'}
+              />
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Belum ada video untuk pelajaran ini. Tambahkan URL YouTube di Admin CMS.
+                </p>
+              </div>
+            )}
           </div>
 
           {activeTab === 'video' && (
@@ -584,6 +488,11 @@ export function LessonWorkspace({
             </div>
           )}
 
+          {/* Q&A / forum section — only visible in video tab */}
+          {activeTab === 'video' && (
+            <LessonQaSection lessonId={lesson.id} lessonTitle={lesson.title} />
+          )}
+
           {activeTab === 'flashcard' && (
             <Card className="border-border/80 shadow-sm">
               <CardContent className="p-4 sm:p-6 md:p-8">
@@ -595,12 +504,7 @@ export function LessonWorkspace({
                     {flashcards.length} kartu
                   </span>
                 </div>
-                <FlashcardDeck
-                  items={flashcards}
-                  trackLabel={trackLabel}
-                  trackColorClass={trackColorClass}
-                  accentColor={accentColor}
-                />
+                <FlashcardDeck items={flashcards} />
               </CardContent>
             </Card>
           )}
@@ -612,8 +516,8 @@ export function LessonWorkspace({
                   <h2 className="text-sm font-bold leading-snug text-foreground sm:text-base md:text-lg">
                     Quiz — {lesson.title}
                   </h2>
-                  <Badge className={cn('shrink-0 text-[10px] text-white sm:text-xs', trackColorClass)}>
-                    {trackJp}
+                  <Badge variant="secondary" className="shrink-0 text-[10px] sm:text-xs">
+                    {questions.length} soal
                   </Badge>
                 </div>
                 {hasQuiz ? (
@@ -621,7 +525,6 @@ export function LessonWorkspace({
                     lessonId={lesson.id}
                     lessonSlug={lesson.slug}
                     lessonTitle={lesson.title}
-                    trackJp={trackJp}
                     questions={questions}
                     onSubmitted={(score) => {
                       if (score >= 70) setQuizPassed(true);

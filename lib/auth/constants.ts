@@ -14,3 +14,19 @@ export const AUTH_ROUTES = {
   authComplete: '/auth/complete',
   dashboard: '/dashboard',
 } as const;
+
+export const ADMIN_ROUTES = {
+  dashboard: '/admin/dashboard',
+  pembayaran: '/admin/pembayaran',
+  kursus: '/admin/kursus',
+  kursusForm: '/admin/kursus/form',
+  kursusModules: (courseId: string) => `/admin/kursus/${courseId}/modul`,
+  kursusModuleForm: (courseId: string) => `/admin/kursus/${courseId}/modul/form`,
+  kursusLessons: (courseId: string, moduleId: string) =>
+    `/admin/kursus/${courseId}/modul/${moduleId}/lesson`,
+  kursusLessonForm: (courseId: string, moduleId: string) =>
+    `/admin/kursus/${courseId}/modul/${moduleId}/lesson/form`,
+  quiz: '/admin/quiz',
+  quizImport: '/admin/quiz/import',
+  kursusImport: '/admin/kursus/import',
+} as const;

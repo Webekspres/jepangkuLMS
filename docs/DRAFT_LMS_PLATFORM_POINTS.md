@@ -1,7 +1,7 @@
-# Draft — Poin LMS & Leaderboard Platform (belum diimplementasi)
+# LMS — Poin, Badge & Display Name (implementasi)
 
-> **Status:** Draft arsitektur · **2026-06-05**  
-> **Keputusan sementara:** **Tunda implementasi** — push progress LMS saat ini dulu; eksekusi setelah Core menghapus `current_points` global dan tim Portal Berita selaras.
+> **Status:** Implementasi awal · **2026-06-15**  
+> Selaras Core API v2.1.0 — XP/level global di Core; poin, badge, leaderboard, display name di DB LMS.
 
 ---
 
