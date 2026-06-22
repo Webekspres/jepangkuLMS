@@ -143,7 +143,33 @@ export const tryoutQuestionSchema = z.object({
   tryoutSection: z.enum(['MOJI_GOI', 'BUNPOU_DOKKAI', 'CHOKAI']),
   questionText: z.string().trim().min(1, 'Pertanyaan wajib diisi'),
   explanation: z.string().trim().max(5000).optional().or(z.literal('')),
+  audioMode: z.enum(['single', 'group']).optional().default('single'),
+  audioUrl: z
+    .string()
+    .trim()
+    .refine((val) => val === '' || z.string().url().safeParse(val).success, 'URL audio tidak valid')
+    .optional()
+    .or(z.literal('')),
+  audioGroupId: z
+    .string()
+    .trim()
+    .max(64)
+    .refine(
+      (val) => val === '' || /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(val),
+      'Kode grup audio hanya huruf, angka, _ dan -',
+    )
+    .optional()
+    .or(z.literal('')),
   options: z.array(questionOptionSchema).min(2, 'Minimal 2 opsi jawaban'),
+}).superRefine((data, ctx) => {
+  if (data.tryoutSection !== 'CHOKAI') return;
+  if (data.audioMode === 'group' && !data.audioGroupId?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Kode grup audio wajib diisi untuk mode grup.',
+      path: ['audioGroupId'],
+    });
+  }
 });
 
 export type TryoutQuestionInput = z.infer<typeof tryoutQuestionSchema>;

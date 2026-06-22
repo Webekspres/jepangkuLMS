@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { clearEquippedBadge, equipLmsBadge } from '@/lib/lms/badges';
 import { updateLmsAvatarFromUpload, updateLmsBio, updateLmsDisplayName } from '@/lib/lms/user-profile';
-import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 
 const displayNameSchema = z
   .string()
@@ -112,6 +111,3 @@ export async function unequipStudentBadge(): Promise<{ ok: true } | { ok: false;
     return { ok: false, error: message };
   }
 }
-
-/** Client can dispatch refresh after profile update if needed. */
-export { STUDENT_CORE_DATA_REFRESH_EVENT };

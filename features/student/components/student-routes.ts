@@ -6,7 +6,8 @@ export const STUDENT_ROUTES = {
   leaderboard: '/dashboard/leaderboard',
   tryout: '/dashboard/tryout',
   tryoutExam: (session: string, level: string) =>
-    `/dashboard/tryout?session=${encodeURIComponent(session)}&level=${encodeURIComponent(level)}`,
+    `/dashboard/tryout/${encodeURIComponent(session)}/${encodeURIComponent(level)}`,
+  tryoutResult: (attemptId: string) => `/dashboard/tryout/hasil/${encodeURIComponent(attemptId)}`,
   liveClass: '/dashboard/live-class',
   profil: '/dashboard/profil',
   achievements: '/dashboard/achievements',

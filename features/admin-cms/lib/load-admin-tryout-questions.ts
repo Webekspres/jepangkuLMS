@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { LevelJLPT } from '@prisma/client';
+import { compareTryoutSections } from '@/features/admin-cms/lib/tryout-sections';
 import { prisma } from '@/lib/prisma';
 
 export type AdminTryoutQuestionRow = {
@@ -9,6 +10,8 @@ export type AdminTryoutQuestionRow = {
   tryoutSection: string;
   questionText: string;
   explanation: string | null;
+  audioUrl: string | null;
+  audioGroupId: string | null;
   options: { id: string; text: string; isCorrect: boolean }[];
 };
 
@@ -44,17 +47,28 @@ export async function loadAdminTryoutQuestions(
 ): Promise<AdminTryoutQuestionRow[]> {
   const rows = await prisma.question.findMany({
     where: { tryoutSessionId: sessionId, tryoutLevel: level, type: 'TRYOUT' },
-    orderBy: [{ tryoutSection: 'asc' }, { sortOrder: 'asc' }],
+    orderBy: [{ sortOrder: 'asc' }],
     include: { options: { orderBy: { id: 'asc' } } },
   });
 
-  return rows.map((row) => ({
+  return rows
+    .sort((a, b) => {
+      const sectionCmp = compareTryoutSections(
+        a.tryoutSection ?? 'MOJI_GOI',
+        b.tryoutSection ?? 'MOJI_GOI',
+      );
+      if (sectionCmp !== 0) return sectionCmp;
+      return a.sortOrder - b.sortOrder;
+    })
+    .map((row) => ({
     id: row.id,
     sortOrder: row.sortOrder,
     tryoutLevel: row.tryoutLevel!,
     tryoutSection: row.tryoutSection ?? 'MOJI_GOI',
     questionText: row.questionText,
     explanation: row.explanation,
+    audioUrl: row.audioUrl,
+    audioGroupId: row.audioGroupId,
     options: row.options.map((opt) => ({
       id: opt.id,
       text: opt.text,

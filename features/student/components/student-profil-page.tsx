@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   Award,
@@ -17,6 +16,7 @@ import type { XpActivityRow } from '@/lib/lms/xp-activity-types';
 import { formatXpActivityTime } from '@/lib/lms/xp-activity-types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
@@ -29,32 +29,17 @@ function AvatarBlock({
   initial: string;
   size?: 'lg' | 'xl';
 }) {
-  const dim = size === 'xl' ? 'size-24 sm:size-28' : 'size-20 sm:size-24';
-  const textSize = size === 'xl' ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl';
-  if (avatarUrl) {
-    return (
-      <Image
-        src={avatarUrl}
-        alt=""
-        width={112}
-        height={112}
-        className={cn(
-          dim,
-          'rounded-2xl border-3 border-white/30 object-cover shadow-lg ring-2 ring-white/20',
-        )}
-      />
-    );
-  }
   return (
-    <div
-      className={cn(
-        dim,
-        'flex items-center justify-center rounded-2xl bg-primary/20 font-black text-white shadow-lg ring-2 ring-white/30',
-        textSize,
-      )}
-    >
-      {initial}
-    </div>
+    <ProfileAvatar
+      imageUrl={avatarUrl}
+      initial={initial}
+      size={size === 'xl' ? 'xl' : 'lg'}
+      className={
+        size === 'xl'
+          ? 'border-3 border-white/30 shadow-lg ring-2 ring-white/20 sm:size-28'
+          : 'border-3 border-white/30 shadow-lg ring-2 ring-white/20 sm:size-24'
+      }
+    />
   );
 }
 

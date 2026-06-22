@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useClerk } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'motion/react';
@@ -19,6 +18,7 @@ import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
@@ -31,46 +31,6 @@ const MENU_ITEMS = [
   { href: STUDENT_ROUTES.tryout, label: 'JLPT Try Out', icon: Target },
   { href: STUDENT_ROUTES.achievements, label: 'Achievements', icon: Trophy },
 ] as const;
-
-function ProfileAvatar({
-  className,
-  imageUrl,
-  initial,
-  size = 'md',
-}: {
-  className?: string;
-  imageUrl: string | null;
-  initial: string;
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const sizeClass =
-    size === 'lg' ? 'size-12 rounded-xl text-lg' : size === 'sm' ? 'size-7 rounded-lg text-xs' : 'size-10 rounded-xl text-sm';
-
-  if (imageUrl) {
-    return (
-      <Image
-        src={imageUrl}
-        alt=""
-        width={size === 'lg' ? 48 : size === 'sm' ? 28 : 40}
-        height={size === 'lg' ? 48 : size === 'sm' ? 28 : 40}
-        className={cn('shrink-0 object-cover shadow-md', sizeClass, className)}
-      />
-    );
-  }
-
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center justify-center bg-linear-to-br from-primary to-brand-orange font-bold text-primary-foreground shadow-md',
-        sizeClass,
-        className,
-      )}
-      aria-hidden
-    >
-      {initial}
-    </span>
-  );
-}
 
 function xpProgressPercent(totalXp: number, level: number): number {
   if (totalXp <= 0) return 0;

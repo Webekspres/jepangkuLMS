@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { LevelJLPT } from '@prisma/client';
 import { AdminTryoutQuestionsPage } from '@/features/admin-cms/components/admin-tryout-questions-page';
+import { renumberTryoutQuestionsForLevel } from '@/features/admin-cms/lib/renumber-tryout-questions';
 import {
   loadAdminTryoutQuestionCounts,
   loadAdminTryoutQuestions,
@@ -26,6 +27,9 @@ export default async function AdminTryoutQuestionsRoutePage({ params, searchPara
   if (!session) notFound();
 
   const level = LEVELS.includes(levelParam as LevelJLPT) ? (levelParam as LevelJLPT) : 'N5';
+
+  await renumberTryoutQuestionsForLevel(session.id, level);
+
   const [questions, levelCounts] = await Promise.all([
     loadAdminTryoutQuestions(session.id, level),
     loadAdminTryoutQuestionCounts(session.id),

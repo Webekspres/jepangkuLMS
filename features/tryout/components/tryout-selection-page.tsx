@@ -45,8 +45,8 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
             Simulasi Ujian JLPT
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/70">
-            Silakan pilih sesi dan level ujian yang sesuai. Setelah selesai, kamu akan masuk ke ruang
-            ujian dengan timer dan navigator soal.
+            Pilih sesi dan level ujian. Setiap bagian (MOJI GOI, BUNPOU DOKKAI, CHOKAI) dikerjakan
+            terpisah dengan petunjuk — seperti simulasi JLPT untuk belajar.
           </p>
         </div>
       </section>
@@ -133,9 +133,11 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
           Petunjuk Tes
         </h2>
         <ul className="space-y-2 text-sm text-muted-foreground">
-          <li>· Kerjakan semua bagian: Moji·Goi, Bunpou·Dokkai, dan Chokai.</li>
-          <li>· Kamu bisa menandai soal dan berpindah lewat navigator.</li>
-          <li>· Timer berjalan otomatis — klik &quot;Selesai Tes&quot; untuk mengakhiri lebih awal.</li>
+          <li>· Tiga bagian terpisah: MOJI GOI → BUNPOU DOKKAI → CHOKAI.</li>
+          <li>· Bagian tanpa soal (mis. CHOKAI belum diisi) dilewati otomatis.</li>
+          <li>· Setiap bagian diawali halaman petunjuk, lalu soal fokus per bagian.</li>
+          <li>· Timer global — waktu habis otomatis tersimpan & terkirim.</li>
+          <li>· Setelah selesai, lihat analisa jawaban benar/salah + penjelasan.</li>
           <li>· Skor minimal kelulusan simulasi: 60%.</li>
         </ul>
       </section>

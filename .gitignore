@@ -66,3 +66,7 @@ docs/urgent_quest/
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Badge image assets — local dev / R2 upload source; keep folder via .gitkeep
+/public/badges/*
+!/public/badges/.gitkeep

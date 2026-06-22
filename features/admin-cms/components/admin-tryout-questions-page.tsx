@@ -3,42 +3,32 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
-import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminTryoutImportPanel } from '@/features/admin-cms/components/admin-tryout-import-panel';
+import { AdminTryoutQuestionList } from '@/features/admin-cms/components/admin-tryout-question-list';
 import {
-  createTryoutQuestionAction,
-  deleteTryoutQuestionAction,
-  updateTryoutQuestionAction,
-} from '@/features/admin-cms/actions/cms-tryout-question-actions';
+  buildTryoutQuestionPayload,
+  emptyTryoutQuestionForm,
+  TryoutQuestionFormFields,
+} from '@/features/admin-cms/components/admin-tryout-question-form-fields';
+import { createTryoutQuestionAction } from '@/features/admin-cms/actions/cms-tryout-question-actions';
 import type {
   AdminTryoutQuestionRow,
   AdminTryoutSessionDetail,
 } from '@/features/admin-cms/lib/load-admin-tryout-questions';
+import {
+  TRYOUT_SECTIONS,
+  type TryoutSectionValue,
+} from '@/features/admin-cms/lib/tryout-sections';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
-const SECTIONS = [
-  { value: 'MOJI_GOI', label: 'Moji·Goi' },
-  { value: 'BUNPOU_DOKKAI', label: 'Bunpou·Dokkai' },
-  { value: 'CHOKAI', label: 'Chokai' },
-] as const;
-
 type Level = (typeof LEVELS)[number];
 
 type AdminTryoutQuestionsPageProps = {
@@ -48,15 +38,6 @@ type AdminTryoutQuestionsPageProps = {
   levelCounts: Record<Level, number>;
 };
 
-function emptyOptions() {
-  return [
-    { text: '', isCorrect: true },
-    { text: '', isCorrect: false },
-    { text: '', isCorrect: false },
-    { text: '', isCorrect: false },
-  ];
-}
-
 export function AdminTryoutQuestionsPage({
   session,
   initialLevel,
@@ -65,52 +46,37 @@ export function AdminTryoutQuestionsPage({
 }: AdminTryoutQuestionsPageProps) {
   const router = useRouter();
   const [level, setLevel] = useState<Level>(initialLevel);
+  const [activeSection, setActiveSection] = useState<TryoutSectionValue>('MOJI_GOI');
   const [isPending, startTransition] = useTransition();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    tryoutSection: 'MOJI_GOI' as (typeof SECTIONS)[number]['value'],
-    questionText: '',
-    explanation: '',
-    options: emptyOptions(),
-    correctIndex: '0',
-  });
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyTryoutQuestionForm);
 
-  const sectionLabel = useMemo(
-    () => Object.fromEntries(SECTIONS.map((s) => [s.value, s.label])),
-    [],
+  const sectionQuestions = useMemo(
+    () => questions.filter((q) => (q.tryoutSection ?? 'MOJI_GOI') === activeSection),
+    [questions, activeSection],
   );
 
-  function resetForm() {
-    setEditingId(null);
-    setShowForm(false);
-    setForm({
-      tryoutSection: 'MOJI_GOI',
-      questionText: '',
-      explanation: '',
-      options: emptyOptions(),
-      correctIndex: '0',
-    });
-  }
-
-  function buildPayload() {
-    return {
-      tryoutSessionId: session.id,
-      tryoutLevel: level,
-      tryoutSection: form.tryoutSection,
-      questionText: form.questionText,
-      explanation: form.explanation,
-      options: form.options.map((opt, index) => ({
-        text: opt.text,
-        isCorrect: String(index) === form.correctIndex,
-      })),
+  const sectionCounts = useMemo(() => {
+    const counts: Record<TryoutSectionValue, number> = {
+      MOJI_GOI: 0,
+      BUNPOU_DOKKAI: 0,
+      CHOKAI: 0,
     };
+    for (const q of questions) {
+      const key = (q.tryoutSection ?? 'MOJI_GOI') as TryoutSectionValue;
+      if (key in counts) counts[key] += 1;
+    }
+    return counts;
+  }, [questions]);
+
+  function resetCreateForm() {
+    setShowCreateForm(false);
+    setCreateForm(emptyTryoutQuestionForm());
   }
 
   function handleLevelChange(next: Level) {
     setLevel(next);
-    resetForm();
+    resetCreateForm();
     router.push(`${ADMIN_ROUTES.tryoutSessionQuestions(session.id)}?level=${next}`);
   }
 
@@ -118,7 +84,7 @@ export function AdminTryoutQuestionsPage({
     <AdminPageShell
       label="Program"
       title={`Soal Tryout — ${session.title}`}
-      subtitle={`${session.phaseLabel} · kode ${session.code} · ${session.timeLimitMinutes} menit`}
+      subtitle={`${session.phaseLabel} · ${session.code} · ${session.timeLimitMinutes} menit · 3 bagian JLPT`}
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.tryoutSessions}>
@@ -147,218 +113,112 @@ export function AdminTryoutQuestionsPage({
         ))}
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {questions.length} soal untuk level {level}
-        </p>
-        {!showForm ? (
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            <Plus className="size-4" />
-            Tambah Soal
-          </Button>
-        ) : null}
-      </div>
-
-      {showForm ? (
-        <Card className="mb-6 border-border">
-          <CardHeader>
-            <CardTitle className="text-base">
-              {editingId ? 'Edit Soal' : 'Soal Baru'} — {level}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Bagian ujian</Label>
-              <Select
-                value={form.tryoutSection}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    tryoutSection: value as (typeof SECTIONS)[number]['value'],
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SECTIONS.map((section) => (
-                    <SelectItem key={section.value} value={section.value}>
-                      {section.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Pertanyaan</Label>
-              <Textarea
-                value={form.questionText}
-                onChange={(e) => setForm((prev) => ({ ...prev, questionText: e.target.value }))}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Penjelasan (opsional)</Label>
-              <Textarea
-                value={form.explanation}
-                onChange={(e) => setForm((prev) => ({ ...prev, explanation: e.target.value }))}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Opsi jawaban</Label>
-              {form.options.map((opt, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={form.correctIndex === String(index)}
-                    onChange={() => setForm((prev) => ({ ...prev, correctIndex: String(index) }))}
-                  />
-                  <Input
-                    value={opt.text}
-                    placeholder={`Opsi ${index + 1}`}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        options: prev.options.map((row, i) =>
-                          i === index ? { ...row, text: e.target.value } : row,
-                        ),
-                      }))
-                    }
-                  />
-                </div>
+      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+        <div className="min-w-0">
+          <Tabs
+            value={activeSection}
+            onValueChange={(v) => {
+              setActiveSection(v as TryoutSectionValue);
+              resetCreateForm();
+            }}
+          >
+            <TabsList className="mb-4 h-auto w-full flex-wrap justify-start gap-1 bg-muted/40 p-1">
+              {TRYOUT_SECTIONS.map((section) => (
+                <TabsTrigger
+                  key={section.value}
+                  value={section.value}
+                  className="gap-2 data-[state=active]:bg-card"
+                >
+                  <span className={cn('size-2 rounded-full', section.color)} />
+                  {section.labelRomaji}
+                  <span className="text-xs opacity-60">({sectionCounts[section.value]})</span>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
 
-            <div className="flex gap-2">
-              <Button
-                disabled={isPending}
-                onClick={() => {
-                  startTransition(async () => {
-                    const payload = buildPayload();
-                    const result = editingId
-                      ? await updateTryoutQuestionAction(editingId, payload)
-                      : await createTryoutQuestionAction(payload);
-                    if (!result.ok) {
-                      toast.error(result.message ?? 'Gagal menyimpan soal.');
-                      return;
-                    }
-                    toast.success(editingId ? 'Soal diperbarui' : 'Soal ditambahkan');
-                    resetForm();
-                    router.refresh();
-                  });
-                }}
-              >
-                {editingId ? 'Simpan Perubahan' : 'Simpan Soal'}
-              </Button>
-              <Button variant="outline" onClick={resetForm}>
-                Batal
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+            {TRYOUT_SECTIONS.map((section) => (
+              <TabsContent key={section.value} value={section.value} className="space-y-4">
+                <p className="text-sm text-muted-foreground">{section.description}</p>
 
-      <div className="space-y-4">
-        {questions.length === 0 ? (
-          <Card className="border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            Belum ada soal untuk level {level}. Tambahkan soal pertama di atas.
-          </Card>
-        ) : (
-          questions.map((question, index) => (
-            <Card key={question.id} className="border-border">
-              <CardHeader className="flex flex-row items-start justify-between gap-4 border-b border-border bg-muted/20 py-4">
-                <div>
-                  <div className="mb-1 flex flex-wrap gap-2">
-                    <Badge variant="secondary">Soal {index + 1}</Badge>
-                    <Badge variant="outline">
-                      {sectionLabel[question.tryoutSection] ?? question.tryoutSection}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base font-semibold leading-snug">
-                    {question.questionText}
-                  </CardTitle>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const correctIndex = question.options.findIndex((o) => o.isCorrect);
-                      setEditingId(question.id);
-                      setShowForm(true);
-                      setForm({
-                        tryoutSection: question.tryoutSection as (typeof SECTIONS)[number]['value'],
-                        questionText: question.questionText,
-                        explanation: question.explanation ?? '',
-                        options: question.options.map((o) => ({
-                          text: o.text,
-                          isCorrect: o.isCorrect,
-                        })),
-                        correctIndex: String(Math.max(0, correctIndex)),
-                      });
-                    }}
-                  >
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive"
-                    onClick={() => setDeleteId(question.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 pt-4">
-                {question.options.map((opt) => (
-                  <p
-                    key={opt.id}
-                    className={cn(
-                      'rounded-lg border px-3 py-2 text-sm',
-                      opt.isCorrect
-                        ? 'border-emerald-500/40 bg-emerald-500/5 font-medium'
-                        : 'border-border',
-                    )}
-                  >
-                    {opt.text}
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">
+                    {sectionQuestions.length} soal · {section.label}
                   </p>
-                ))}
-                {question.explanation ? (
-                  <p className="text-xs text-muted-foreground">Penjelasan: {question.explanation}</p>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                  {!showCreateForm ? (
+                    <Button size="sm" onClick={() => setShowCreateForm(true)}>
+                      <Plus className="size-4" />
+                      Tambah Soal
+                    </Button>
+                  ) : null}
+                </div>
 
-      <AdminConfirmDialog
-        open={Boolean(deleteId)}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-        title="Hapus soal tryout?"
-        description="Soal akan dihapus permanen dari sesi ini."
-        loading={isPending}
-        onConfirm={() => {
-          if (!deleteId) return;
-          startTransition(async () => {
-            const result = await deleteTryoutQuestionAction(session.id, deleteId);
-            if (!result.ok) {
-              toast.error(result.message ?? 'Gagal menghapus soal.');
-              return;
-            }
-            toast.success('Soal dihapus');
-            setDeleteId(null);
-            router.refresh();
-          });
-        }}
-      />
+                {showCreateForm ? (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        Soal Baru — {section.labelRomaji} · {level}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <TryoutQuestionFormFields
+                        form={createForm}
+                        section={section.value}
+                        level={level}
+                        disabled={isPending}
+                        onChange={setCreateForm}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          disabled={isPending}
+                          onClick={() => {
+                            startTransition(async () => {
+                              const payload = buildTryoutQuestionPayload(
+                                session.id,
+                                level,
+                                section.value,
+                                createForm,
+                              );
+                              const result = await createTryoutQuestionAction(payload);
+                              if (!result.ok) {
+                                toast.error(result.message ?? 'Gagal menyimpan soal.');
+                                return;
+                              }
+                              toast.success('Soal ditambahkan');
+                              resetCreateForm();
+                              router.refresh();
+                            });
+                          }}
+                        >
+                          Simpan Soal
+                        </Button>
+                        <Button variant="outline" onClick={resetCreateForm}>
+                          Batal
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                <AdminTryoutQuestionList
+                  key={`${level}-${section.value}-${sectionQuestions.map((q) => `${q.id}:${q.sortOrder}`).join('|')}`}
+                  sessionId={session.id}
+                  level={level}
+                  section={section.value}
+                  questions={sectionQuestions}
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
+        </div>
+
+        <aside className="xl:sticky xl:top-24 xl:self-start">
+          <AdminTryoutImportPanel
+            sessionId={session.id}
+            level={level}
+            onImported={() => router.refresh()}
+          />
+        </aside>
+      </div>
     </AdminPageShell>
   );
 }

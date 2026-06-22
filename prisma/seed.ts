@@ -3,16 +3,17 @@ import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
-import { DEFAULT_LMS_ROLE } from '../lib/auth/lms-roles';
-import { N5_LESSON_COUNT } from './lib/n5-curriculum';
+import { seedLmsBadges } from './lib/seed-badges';
 import { seedLiveClasses } from './lib/seed-live-classes';
 import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
 import { seedN5CourseStructure } from './lib/seed-n5-structure';
 import { seedTryoutSessions } from './lib/seed-tryout';
+import { DEFAULT_LMS_ROLE } from '../lib/auth/lms-roles';
+import { N5_LESSON_COUNT } from './lib/n5-curriculum';
 
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
-const CATALOG = [
+const COURSE_CATALOG = [
   {
     slug: 'jlpt-n5-kursus-lengkap',
     title: 'JLPT N5 — Kursus Lengkap',
@@ -86,18 +87,8 @@ function createPrisma(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
-async function main() {
-  const prisma = createPrisma();
-
-  console.log('Seeding LMS database...');
-
-  await prisma.user.upsert({
-    where: { id: DEMO_USER_ID },
-    create: { id: DEMO_USER_ID, role: DEFAULT_LMS_ROLE },
-    update: {},
-  });
-
-  for (const course of CATALOG) {
+async function seedCourses(prisma: PrismaClient) {
+  for (const course of COURSE_CATALOG) {
     await prisma.course.upsert({
       where: { slug: course.slug },
       create: course,
@@ -112,96 +103,84 @@ async function main() {
       },
     });
   }
+}
 
+async function seedN5Content(prisma: PrismaClient) {
   const n5 = await prisma.course.findUniqueOrThrow({
     where: { slug: 'jlpt-n5-kursus-lengkap' },
   });
 
   const { lessonIdsBySlug } = await seedN5CourseStructure(prisma, n5.id);
-
   const aksaraCount = await seedN5AksaraMateri(prisma, lessonIdsBySlug);
-  console.log(`  Seeded ${aksaraCount} aksara flashcard rows`);
+  console.log(`  ✓ N5 struktur + ${aksaraCount} baris flashcard aksara`);
 
   await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
+  console.log('  ✓ Materi XLSX (kanji, kosakata, tata bahasa)');
 
-  await seedLiveClasses(prisma);
-  await seedTryoutSessions(prisma);
+  return n5.id;
+}
 
+async function seedDemoEnrollment(prisma: PrismaClient, courseId: string) {
   await prisma.enrollment.upsert({
     where: {
-      userId_courseId: { userId: DEMO_USER_ID, courseId: n5.id },
+      userId_courseId: { userId: DEMO_USER_ID, courseId },
     },
     create: {
       userId: DEMO_USER_ID,
-      courseId: n5.id,
+      courseId,
       status: 'ACTIVE',
     },
     update: { status: 'ACTIVE' },
   });
+}
 
-  const LMS_BADGES = [
-    {
-      code: 'first-lesson',
-      title: 'Pelajaran Pertama',
-      description: 'Menyelesaikan lesson pertama di LMS.',
-      sortOrder: 1,
-      unlockRule: 'FIRST_LESSON' as const,
-      xpBonus: 25,
-      requirementText: 'Selesaikan pelajaran pertamamu',
-    },
-    {
-      code: 'quiz-starter',
-      title: 'Pemula Kuis',
-      description: 'Menyelesaikan kuis pertama.',
-      sortOrder: 2,
-      unlockRule: 'FIRST_QUIZ' as const,
-      xpBonus: 30,
-      requirementText: 'Selesaikan kuis pertama',
-    },
-    {
-      code: 'n5-explorer',
-      title: 'Penjelajah N5',
-      description: 'Lulus tryout JLPT N5.',
-      sortOrder: 3,
-      unlockRule: 'TRYOUT_PASS' as const,
-      unlockValue: 60,
-      xpBonus: 50,
-      requirementText: 'Lulus tryout JLPT dengan skor ≥ 60%',
-    },
-  ] as const;
+async function main() {
+  const prisma = createPrisma();
 
-  for (const badge of LMS_BADGES) {
-    await prisma.lmsBadge.upsert({
-      where: { code: badge.code },
-      create: badge,
-      update: {
-        title: badge.title,
-        description: badge.description,
-        sortOrder: badge.sortOrder,
-        unlockRule: badge.unlockRule,
-        unlockValue: 'unlockValue' in badge ? badge.unlockValue : null,
-        xpBonus: badge.xpBonus,
-        requirementText: badge.requirementText,
-      },
-    });
-  }
+  console.log('🌱 Seeding JepangKu LMS...\n');
 
-  const counts = await prisma.$transaction([
-    prisma.course.count(),
-    prisma.lesson.count({ where: { module: { courseId: n5.id } } }),
-    prisma.materialKanji.count(),
-    prisma.materialKosakata.count(),
-    prisma.materialTataBahasa.count(),
-    prisma.question.count(),
-    prisma.category.count(),
-    prisma.lmsBadge.count(),
-  ]);
+  await prisma.user.upsert({
+    where: { id: DEMO_USER_ID },
+    create: { id: DEMO_USER_ID, role: DEFAULT_LMS_ROLE },
+    update: {},
+  });
+  console.log('  ✓ Demo user');
+
+  await seedCourses(prisma);
+  console.log(`  ✓ ${COURSE_CATALOG.length} kursus katalog`);
+
+  const n5CourseId = await seedN5Content(prisma);
+
+  await seedLiveClasses(prisma);
+  console.log('  ✓ Live class jadwal');
+
+  await seedTryoutSessions(prisma);
+  console.log('  ✓ JLPT tryout sesi + soal N5 Fase 1');
+
+  const badgeCount = await seedLmsBadges(prisma);
+  console.log(`  ✓ ${badgeCount} badge LMS (gambar dari public/badges jika ada)`);
+
+  await seedDemoEnrollment(prisma, n5CourseId);
+  console.log('  ✓ Enrollment demo N5');
+
+  const [courses, lessons, kanji, kosakata, tataBahasa, questions, categories, badges] =
+    await prisma.$transaction([
+      prisma.course.count(),
+      prisma.lesson.count({ where: { module: { courseId: n5CourseId } } }),
+      prisma.materialKanji.count(),
+      prisma.materialKosakata.count(),
+      prisma.materialTataBahasa.count(),
+      prisma.question.count(),
+      prisma.category.count(),
+      prisma.lmsBadge.count(),
+    ]);
 
   console.log(
-    `Seed complete: ${counts[0]} courses, ${counts[1]} N5 lessons (expected ${N5_LESSON_COUNT}), ` +
-      `${counts[2]} kanji, ${counts[3]} kosakata, ${counts[4]} tata bahasa, ` +
-      `${counts[5]} questions, ${counts[6]} categories, ${counts[7]} LMS badges`,
+    `\n✅ Seed selesai: ${courses} kursus, ${lessons} pelajaran N5 (target ${N5_LESSON_COUNT}), ` +
+      `${kanji} kanji, ${kosakata} kosakata, ${tataBahasa} tata bahasa, ` +
+      `${questions} soal, ${categories} kategori, ${badges} badge`,
   );
+
   await prisma.$disconnect();
 }
 
