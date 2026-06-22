@@ -402,11 +402,17 @@ model Question {
   explanation  String?      @db.Text
   xpReward     Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
+  /// CHOKAI — URL absolut audio di R2 (.mp3)
+  audioUrl      String?
+  /// CHOKAI — kode grup: beberapa soal pakai satu pemutar audio global
+  audioGroupId  String?
+
   lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
   options       QuestionOption[]
 
   @@index([tryoutSessionId, tryoutLevel, sortOrder])
+  @@index([audioGroupId])
 }
 
 model QuestionOption {

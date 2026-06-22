@@ -49,6 +49,31 @@ function formatTime(seconds: number) {
   return `${m}:${s}`;
 }
 
+function resolveExamAudio(
+  questions: TryoutExamQuestion[],
+  current: TryoutExamQuestion,
+): { url: string | null; playerKey: string; isGroup: boolean } {
+  if (current.section !== 'CHOKAI') {
+    return { url: null, playerKey: current.id, isGroup: false };
+  }
+
+  if (current.audioGroupId) {
+    const carrier =
+      questions.find((q) => q.audioGroupId === current.audioGroupId && q.audioUrl) ?? current;
+    return {
+      url: carrier.audioUrl,
+      playerKey: `group-${current.audioGroupId}`,
+      isGroup: true,
+    };
+  }
+
+  return {
+    url: current.audioUrl,
+    playerKey: current.id,
+    isGroup: false,
+  };
+}
+
 function NavigatorGrid({
   questions,
   answers,
@@ -136,6 +161,7 @@ export function TryoutExamWorkspace({
   const [isPending, startTransition] = useTransition();
 
   const current = questions[currentIndex];
+  const examAudio = resolveExamAudio(questions, current);
   const answeredCount = Object.keys(answers).length;
   const isUrgent = timeLeft < 600;
 
@@ -274,6 +300,25 @@ export function TryoutExamWorkspace({
                   Soal {currentIndex + 1}/{questions.length}
                 </span>
               </div>
+
+              {examAudio.url ? (
+                <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                  <p className="mb-2 text-xs font-medium text-emerald-800 dark:text-emerald-200">
+                    {examAudio.isGroup
+                      ? `Audio grup · ${current.audioGroupId}`
+                      : 'Audio listening'}
+                  </p>
+                  <audio
+                    key={examAudio.playerKey}
+                    controls
+                    preload="none"
+                    className="w-full"
+                    src={examAudio.url}
+                  >
+                    <track kind="captions" />
+                  </audio>
+                </div>
+              ) : null}
 
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
                 <p className="mb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">

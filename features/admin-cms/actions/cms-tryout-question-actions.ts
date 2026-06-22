@@ -5,7 +5,8 @@ import type { LevelJLPT } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { tryoutQuestionSchema } from '@/features/admin-cms/lib/validations';
+import { type TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
+import { tryoutQuestionSchema, type TryoutQuestionInput } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 
 function revalidateTryout(sessionId: string) {
@@ -20,12 +21,33 @@ async function assertTryoutSession(sessionId: string) {
   return session;
 }
 
-async function nextSortOrder(sessionId: string, level: LevelJLPT): Promise<number> {
+async function nextSortOrder(
+  sessionId: string,
+  level: LevelJLPT,
+  section: TryoutSectionValue,
+): Promise<number> {
   const agg = await prisma.question.aggregate({
-    where: { tryoutSessionId: sessionId, tryoutLevel: level, type: 'TRYOUT' },
+    where: {
+      tryoutSessionId: sessionId,
+      tryoutLevel: level,
+      tryoutSection: section,
+      type: 'TRYOUT',
+    },
     _max: { sortOrder: true },
   });
   return (agg._max.sortOrder ?? 0) + 1;
+}
+
+function resolveChokaiAudioFields(data: TryoutQuestionInput) {
+  if (data.tryoutSection !== 'CHOKAI') {
+    return { audioUrl: null, audioGroupId: null };
+  }
+
+  const audioUrl = data.audioUrl?.trim() || null;
+  const audioGroupId =
+    data.audioMode === 'group' ? data.audioGroupId?.trim() || null : null;
+
+  return { audioUrl, audioGroupId };
 }
 
 export async function createTryoutQuestionAction(
@@ -45,7 +67,12 @@ export async function createTryoutQuestionAction(
     return { ok: false, message: 'Pilih tepat satu jawaban benar.' };
   }
 
-  const sortOrder = await nextSortOrder(data.tryoutSessionId, data.tryoutLevel);
+  const sortOrder = await nextSortOrder(
+    data.tryoutSessionId,
+    data.tryoutLevel,
+    data.tryoutSection,
+  );
+  const audio = resolveChokaiAudioFields(data);
 
   const row = await prisma.question.create({
     data: {
@@ -56,6 +83,8 @@ export async function createTryoutQuestionAction(
       sortOrder,
       questionText: data.questionText,
       explanation: data.explanation || null,
+      audioUrl: audio.audioUrl,
+      audioGroupId: audio.audioGroupId,
       xpReward: 0,
       options: {
         create: data.options.map((opt) => ({
@@ -93,6 +122,8 @@ export async function updateTryoutQuestionAction(
     return { ok: false, message: 'Pilih tepat satu jawaban benar.' };
   }
 
+  const audio = resolveChokaiAudioFields(data);
+
   await prisma.$transaction([
     prisma.questionOption.deleteMany({ where: { questionId } }),
     prisma.question.update({
@@ -102,6 +133,8 @@ export async function updateTryoutQuestionAction(
         tryoutSection: data.tryoutSection,
         questionText: data.questionText,
         explanation: data.explanation || null,
+        audioUrl: audio.audioUrl,
+        audioGroupId: audio.audioGroupId,
         options: {
           create: data.options.map((opt) => ({
             text: opt.text,

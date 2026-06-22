@@ -4,6 +4,7 @@ import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 import type { JlptPathItem } from '@/features/student/components/dashboard-data';
 import type { AchievementMilestone } from '@/features/student/components/student-achievements-data';
+import { resolveTryoutQuestionDisplay } from '@/features/admin-cms/lib/tryout-sections';
 import { loadDashboardJlptPath } from '@/features/student/lib/load-student-learning-data';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
@@ -174,13 +175,15 @@ export type TryoutExamQuestion = {
   sectionLabel: string;
   questionText: string;
   explanation: string | null;
+  audioUrl: string | null;
+  audioGroupId: string | null;
   options: { id: string; text: string }[];
 };
 
 const SECTION_LABELS: Record<string, string> = {
-  MOJI_GOI: 'Moji·Goi',
-  BUNPOU_DOKKAI: 'Bunpou·Dokkai',
-  CHOKAI: 'Chokai',
+  MOJI_GOI: 'MOJI GOI',
+  BUNPOU_DOKKAI: 'BUNPOU DOKKAI',
+  CHOKAI: 'CHOKAI',
 };
 
 export async function loadTryoutExam(sessionCode: string, level: LevelJLPT) {
@@ -205,15 +208,25 @@ export async function loadTryoutExam(sessionCode: string, level: LevelJLPT) {
   return {
     session,
     empty: false as const,
-    questions: questions.map((q) => ({
-      id: q.id,
-      sortOrder: q.sortOrder,
-      section: q.tryoutSection ?? 'MOJI_GOI',
-      sectionLabel: SECTION_LABELS[q.tryoutSection ?? 'MOJI_GOI'] ?? q.tryoutSection ?? 'Soal',
-      questionText: q.questionText,
-      explanation: q.explanation,
-      options: q.options.map((o) => ({ id: o.id, text: o.text })),
-    })),
+    questions: questions.map((q) => {
+      const display = resolveTryoutQuestionDisplay({
+        questionText: q.questionText,
+        audioUrl: q.audioUrl,
+        audioGroupId: q.audioGroupId,
+      });
+
+      return {
+        id: q.id,
+        sortOrder: q.sortOrder,
+        section: q.tryoutSection ?? 'MOJI_GOI',
+        sectionLabel: SECTION_LABELS[q.tryoutSection ?? 'MOJI_GOI'] ?? q.tryoutSection ?? 'Soal',
+        questionText: display.body,
+        explanation: q.explanation,
+        audioUrl: display.audioUrl,
+        audioGroupId: display.audioGroupId,
+        options: q.options.map((o) => ({ id: o.id, text: o.text })),
+      };
+    }),
   };
 }
 

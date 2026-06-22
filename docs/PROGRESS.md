@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase** | 1 (MVP) |
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
-| **Terakhir diperbarui** | 2026-06-19 |
+| **Terakhir diperbarui** | 2026-06-22 |
 | **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **75%** (62 item terlacak) |
 
@@ -116,7 +116,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :--- | :---: | :--- |
 | `/admin/dashboard` | ✅ | Analytics enrollment, live class, tryout |
 | `/admin/live-class` | ✅ | CRUD jadwal live class |
-| `/admin/tryout` | ✅ | CRUD sesi + **CMS soal per level** (`/admin/tryout/[id]/soal`) |
+| `/admin/tryout` | ✅ | CRUD sesi + CMS soal 3 bagian (MOJI GOI / BUNPOU DOKKAI / CHOKAI) + impor CSV/XLSX + upload audio R2 + grup audio |
 | `/admin/pembayaran` | ✅ | Enrollment PENDING/ACTIVE |
 | `/admin/kursus` + modul + lesson workspace | ✅ | CRUD + bank soal **per pelajaran** |
 | `/admin/kursus/import` | ✅ | CSV kursus |
@@ -132,7 +132,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **learning** | ✅ | Enroll, progress, kuis, marketing queries |
 | **admin-cms** | ✅ | CRUD kursus/modul/lesson/enrollment/import |
 | **student** | ✅ | Dashboard, profil, achievements, loaders |
-| **tryout** | ✅ | Selection + exam workspace + submit |
+| **tryout** | ✅ | Selection + exam workspace + submit + **CHOKAI audio single/grup** |
 | **live-class** | ✅ | Jadwal dari `LiveClass` model |
 | **public-api** | ✅ | Partner katalog |
 | **gamification** | ✅ | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
@@ -179,6 +179,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-22 | CHOKAI: kolom `audioUrl`/`audioGroupId` di Question, upload .mp3 ke R2, form admin single/grup audio, impor AudioGroupId, tab Romaji, pemutar audio di ujian siswa |
 | 2026-06-18 | Wire `/kursus` marketing ke Prisma + filter unggulan; dashboard XP mingguan & live class real; achievements milestone real; halaman Live Class & JLPT Tryout; dokumentasi ADMIN_QUIZ; update tracker 72% |
 | 2026-06-19 | R2 badge+avatar; CMS soal tryout; DnD urut modul/pelajaran; penamaan kurikulum UI-only; hapus Bank Soal sidebar |
 | 2026-06-19 | Badge unlock (FIRST_LESSON/QUIZ/TRYOUT) + bonus XP Core, equip badge sebagai title, LmsRole LMS_ADMIN/STUDENT + `/admin/users`, profil LMS (displayName/avatar), lint CI bersih |
