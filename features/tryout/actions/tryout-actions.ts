@@ -11,16 +11,29 @@ import {
   lmsTryoutCompletedSourceKey,
   lmsTryoutCorrectSourceKey,
 } from '@/lib/lms/point-rules';
+import { sortTryoutExamQuestions } from '@/features/admin-cms/lib/tryout-sections';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
 const tryoutLog = loggers.learning.child({ module: 'tryout' });
 
+export type TryoutSubmitResult =
+  | {
+      ok: true;
+      attemptId: string;
+      score: number;
+      correct: number;
+      total: number;
+      pointsReward: number;
+      pass: boolean;
+    }
+  | { ok: false; message: string };
+
 export async function submitTryoutAttempt(input: {
   sessionCode: string;
   level: LevelJLPT;
   answers: Record<string, string>;
-}) {
+}): Promise<TryoutSubmitResult> {
   const userId = await requireAuthUserWithAnchor();
 
   const session = await prisma.tryoutSession.findUnique({
@@ -28,21 +41,27 @@ export async function submitTryoutAttempt(input: {
   });
 
   if (!session) {
-    return { ok: false as const, message: 'Sesi tryout tidak ditemukan.' };
+    return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
   }
 
-  const questions = await prisma.question.findMany({
+  const rows = await prisma.question.findMany({
     where: {
       type: 'TRYOUT',
       tryoutSessionId: session.id,
       tryoutLevel: input.level,
     },
     include: { options: true },
-    orderBy: { sortOrder: 'asc' },
   });
 
+  const questions = sortTryoutExamQuestions(
+    rows.map((q) => ({
+      ...q,
+      section: q.tryoutSection ?? 'MOJI_GOI',
+    })),
+  );
+
   if (questions.length === 0) {
-    return { ok: false as const, message: 'Soal untuk sesi ini belum tersedia.' };
+    return { ok: false, message: 'Soal untuk sesi ini belum tersedia.' };
   }
 
   let correct = 0;
@@ -61,6 +80,11 @@ export async function submitTryoutAttempt(input: {
       lessonId: null,
       score,
       type: 'TRYOUT',
+      tryoutSessionId: session.id,
+      tryoutLevel: input.level,
+      correctCount: correct,
+      totalQuestions: questions.length,
+      answersJson: JSON.stringify(input.answers),
     },
   });
 
@@ -108,7 +132,7 @@ export async function submitTryoutAttempt(input: {
   );
 
   return {
-    ok: true as const,
+    ok: true,
     attemptId: attempt.id,
     score,
     correct,

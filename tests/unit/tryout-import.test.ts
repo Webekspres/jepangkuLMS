@@ -3,6 +3,9 @@ import {
   normalizeTryoutSection,
   composeTryoutQuestionText,
   extractAudioUrlFromQuestionText,
+  sortTryoutExamQuestions,
+  assignTryoutExamNumbers,
+  isTryoutSectionAccessible,
 } from '@/features/admin-cms/lib/tryout-sections';
 import { parseTryoutImportText } from '@/features/admin-cms/lib/import-tryout-questions';
 
@@ -19,6 +22,31 @@ describe('tryout sections', () => {
     const parsed = extractAudioUrlFromQuestionText(text);
     expect(parsed.audioUrl).toBe('https://x.com/a.mp3');
     expect(parsed.body).toBe('Pertanyaan?');
+  });
+
+  test('sortTryoutExamQuestions orders by JLPT section then sortOrder', () => {
+    const input = [
+      { id: 'c', section: 'CHOKAI', sortOrder: 1 },
+      { id: 'm2', section: 'MOJI_GOI', sortOrder: 2 },
+      { id: 'b', section: 'BUNPOU_DOKKAI', sortOrder: 1 },
+      { id: 'm1', section: 'MOJI_GOI', sortOrder: 1 },
+    ];
+    const sorted = assignTryoutExamNumbers(sortTryoutExamQuestions(input));
+    expect(sorted.map((q) => q.id)).toEqual(['m1', 'm2', 'b', 'c']);
+    expect(sorted.map((q) => q.examNumber)).toEqual([1, 2, 3, 4]);
+  });
+
+  test('isTryoutSectionAccessible gates later sections', () => {
+    const questions = [
+      { id: 'm1', section: 'MOJI_GOI' },
+      { id: 'm2', section: 'MOJI_GOI' },
+      { id: 'b1', section: 'BUNPOU_DOKKAI' },
+    ];
+    expect(isTryoutSectionAccessible('MOJI_GOI', questions, {})).toBe(true);
+    expect(isTryoutSectionAccessible('BUNPOU_DOKKAI', questions, {})).toBe(false);
+    expect(isTryoutSectionAccessible('BUNPOU_DOKKAI', questions, { m1: 'a', m2: 'b' })).toBe(
+      true,
+    );
   });
 });
 

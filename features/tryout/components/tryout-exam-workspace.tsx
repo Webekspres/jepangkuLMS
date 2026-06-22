@@ -1,15 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  AlertTriangle,
-  ArrowLeft,
   BarChart2,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Flag,
   Grid3x3,
 } from 'lucide-react';
@@ -23,7 +20,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { submitTryoutAttempt } from '@/features/tryout/actions/tryout-actions';
+import { TryoutFocusShell } from '@/features/tryout/components/tryout-focus-shell';
+import { TryoutSectionIntro } from '@/features/tryout/components/tryout-section-intro';
 import type { TryoutExamQuestion } from '@/features/student/lib/load-dashboard-extras';
+import {
+  getTryoutSectionProgress,
+  TRYOUT_SECTIONS,
+  type TryoutSectionValue,
+} from '@/features/admin-cms/lib/tryout-sections';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +45,8 @@ type TryoutExamWorkspaceProps = {
   questions: TryoutExamQuestion[];
 };
 
+type ExamPhase = 'section-intro' | 'section-exam';
+
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60)
     .toString()
@@ -50,7 +56,7 @@ function formatTime(seconds: number) {
 }
 
 function resolveExamAudio(
-  questions: TryoutExamQuestion[],
+  sectionQuestions: TryoutExamQuestion[],
   current: TryoutExamQuestion,
 ): { url: string | null; playerKey: string; isGroup: boolean } {
   if (current.section !== 'CHOKAI') {
@@ -59,7 +65,8 @@ function resolveExamAudio(
 
   if (current.audioGroupId) {
     const carrier =
-      questions.find((q) => q.audioGroupId === current.audioGroupId && q.audioUrl) ?? current;
+      sectionQuestions.find((q) => q.audioGroupId === current.audioGroupId && q.audioUrl) ??
+      current;
     return {
       url: carrier.audioUrl,
       playerKey: `group-${current.audioGroupId}`,
@@ -74,21 +81,19 @@ function resolveExamAudio(
   };
 }
 
-function NavigatorGrid({
-  questions,
+function SectionNavigator({
+  sectionQuestions,
   answers,
   flagged,
-  currentIndex,
+  currentQuestionId,
   onGoTo,
 }: {
-  questions: TryoutExamQuestion[];
+  sectionQuestions: TryoutExamQuestion[];
   answers: Record<string, string>;
   flagged: Set<string>;
-  currentIndex: number;
+  currentQuestionId: string;
   onGoTo: (index: number) => void;
 }) {
-  const sections = [...new Set(questions.map((q) => q.section))];
-
   return (
     <>
       <div className="mb-4 flex flex-wrap gap-3 text-xs">
@@ -104,37 +109,36 @@ function NavigatorGrid({
           </div>
         ))}
       </div>
-      {sections.map((section) => (
-        <div key={section} className="mb-4">
-          <p className="mb-2 text-xs font-semibold text-foreground">
-            {questions.find((q) => q.section === section)?.sectionLabel ?? section}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {questions.map((question, index) => {
-              if (question.section !== section) return null;
-              const isCurrent = index === currentIndex;
-              const isAnswered = Boolean(answers[question.id]);
-              const isFlagged = flagged.has(question.id);
-              return (
-                <button
-                  key={question.id}
-                  type="button"
-                  onClick={() => onGoTo(index)}
-                  className={cn(
-                    'flex size-10 items-center justify-center rounded-xl border-2 text-xs font-bold',
-                    isCurrent && 'border-primary bg-primary text-primary-foreground',
-                    !isCurrent && isFlagged && 'border-amber-400 bg-amber-50 text-amber-700',
-                    !isCurrent && !isFlagged && isAnswered && 'border-emerald-400 bg-emerald-50 text-emerald-700',
-                    !isCurrent && !isFlagged && !isAnswered && 'border-border bg-muted text-muted-foreground',
-                  )}
-                >
-                  {question.sortOrder}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      <div className="flex flex-wrap gap-2">
+        {sectionQuestions.map((question, index) => {
+          const isCurrent = question.id === currentQuestionId;
+          const isAnswered = Boolean(answers[question.id]);
+          const isFlagged = flagged.has(question.id);
+
+          return (
+            <button
+              key={question.id}
+              type="button"
+              onClick={() => onGoTo(index)}
+              className={cn(
+                'flex size-10 items-center justify-center rounded-xl border-2 text-xs font-bold',
+                isCurrent && 'border-primary bg-primary text-primary-foreground',
+                !isCurrent && isFlagged && 'border-amber-400 bg-amber-50 text-amber-700',
+                !isCurrent &&
+                  !isFlagged &&
+                  isAnswered &&
+                  'border-emerald-400 bg-emerald-50 text-emerald-700',
+                !isCurrent &&
+                  !isFlagged &&
+                  !isAnswered &&
+                  'border-border bg-muted text-muted-foreground',
+              )}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -146,331 +150,375 @@ export function TryoutExamWorkspace({
   timeLimitMinutes,
   questions,
 }: TryoutExamWorkspaceProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const router = useRouter();
+  const sectionsInExam = useMemo(
+    () => TRYOUT_SECTIONS.filter((s) => questions.some((q) => q.section === s.value)),
+    [questions],
+  );
+
+  const [sectionIndex, setSectionIndex] = useState(0);
+  const [phase, setPhase] = useState<ExamPhase>('section-intro');
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [timeLeft, setTimeLeft] = useState(timeLimitMinutes * 60);
-  const [showFinishDialog, setShowFinishDialog] = useState(false);
+  const [showSectionDialog, setShowSectionDialog] = useState(false);
   const [showNavigator, setShowNavigator] = useState(false);
-  const [result, setResult] = useState<{
-    score: number;
-    correct: number;
-    total: number;
-    pass: boolean;
-  } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
 
-  const current = questions[currentIndex];
-  const examAudio = resolveExamAudio(questions, current);
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  const submittedRef = useRef(false);
+
+  const activeSectionMeta = sectionsInExam[sectionIndex];
+  const activeSection = activeSectionMeta?.value as TryoutSectionValue | undefined;
+
+  const sectionQuestions = useMemo(
+    () => (activeSection ? questions.filter((q) => q.section === activeSection) : []),
+    [questions, activeSection],
+  );
+
+  const current = sectionQuestions[questionIndex];
+  const examAudio = current ? resolveExamAudio(sectionQuestions, current) : null;
   const answeredCount = Object.keys(answers).length;
   const isUrgent = timeLeft < 600;
+  const isLastSection = sectionIndex >= sectionsInExam.length - 1;
+  const sectionProgress = activeSection
+    ? getTryoutSectionProgress(activeSection, questions, answers)
+    : { answered: 0, total: 0 };
 
-  const handleFinish = async () => {
+  const handleFinalSubmit = useCallback(async () => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    setSubmitting(true);
+
     startTransition(async () => {
       const response = await submitTryoutAttempt({
         sessionCode,
         level: level as 'N5' | 'N4' | 'N3' | 'N2' | 'N1',
-        answers,
+        answers: answersRef.current,
       });
-      if (!response.ok) return;
-      setResult({
-        score: response.score,
-        correct: response.correct,
-        total: response.total,
-        pass: response.pass,
-      });
-      setShowFinishDialog(false);
+      setSubmitting(false);
+      if (!response.ok) {
+        submittedRef.current = false;
+        return;
+      }
+      router.push(STUDENT_ROUTES.tryoutResult(response.attemptId));
     });
-  };
+  }, [sessionCode, level, router]);
 
   useEffect(() => {
-    if (result) return;
     const timer = window.setInterval(() => {
       setTimeLeft((value) => {
         if (value <= 1) {
           window.clearInterval(timer);
-          void handleFinish();
+          void handleFinalSubmit();
           return 0;
         }
         return value - 1;
       });
     }, 1000);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result]);
+  }, [handleFinalSubmit]);
 
-  if (result) {
+  function startSection() {
+    setQuestionIndex(0);
+    setPhase('section-exam');
+  }
+
+  function confirmSectionComplete() {
+    setShowSectionDialog(false);
+    if (isLastSection) {
+      void handleFinalSubmit();
+      return;
+    }
+    setSectionIndex((i) => i + 1);
+    setQuestionIndex(0);
+    setPhase('section-intro');
+  }
+
+  if (!activeSectionMeta || !activeSection) {
+    return null;
+  }
+
+  const shellProps = {
+    sessionTitle,
+    level,
+    timeLeft,
+    isUrgent,
+    formatTime,
+  };
+
+  if (phase === 'section-intro') {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center p-4">
-        <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-border bg-card shadow-lg">
-          <div className="bg-linear-to-br from-secondary to-secondary/80 px-6 py-8 text-center text-white sm:px-8">
-            <p className="text-4xl">{result.pass ? '🎉' : '💪'}</p>
-            <h2 className="mt-3 text-2xl font-extrabold">
-              {result.pass ? 'Bagus!' : 'Terus Berlatih!'}
-            </h2>
-            <p className="mt-1 text-sm text-white/70">
-              JLPT {level} — {sessionTitle}
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-3 p-6 sm:p-8">
-            {[
-              { label: 'Skor', value: `${result.correct}/${result.total}` },
-              { label: 'Persentase', value: `${result.score}%` },
-              { label: 'Status', value: result.pass ? 'LULUS' : 'BELUM' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-border bg-muted/30 p-3 text-center">
-                <p className="text-lg font-extrabold text-primary">{item.value}</p>
-                <p className="text-xs text-muted-foreground">{item.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-3 px-6 pb-8 sm:px-8">
-            <Button asChild variant="outline" className="flex-1">
-              <Link href={STUDENT_ROUTES.tryout}>← Pilih Sesi</Link>
-            </Button>
-            <Button asChild className="flex-1">
-              <Link href={STUDENT_ROUTES.home}>Dashboard</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <TryoutFocusShell {...shellProps}>
+        <TryoutSectionIntro
+          section={activeSection}
+          questionCount={sectionQuestions.length}
+          sectionIndex={sectionIndex}
+          totalSections={sectionsInExam.length}
+          onStart={startSection}
+        />
+      </TryoutFocusShell>
     );
   }
 
+  if (!current || submitting || isPending) {
+    return (
+      <TryoutFocusShell {...shellProps}>
+        <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
+          {submitting || isPending ? 'Menyimpan hasil ujian…' : 'Memuat soal…'}
+        </div>
+      </TryoutFocusShell>
+    );
+  }
+
+  const unansweredInSection = sectionProgress.total - sectionProgress.answered;
+
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col rounded-2xl border border-border bg-muted/20">
-      <header className="sticky top-0 z-20 border-b border-border bg-card shadow-sm">
-        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href={STUDENT_ROUTES.tryout} className="text-sm text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="size-4" />
-            </Link>
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold">
-                JLPT {level} — {sessionTitle}
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                {answeredCount}/{questions.length} terjawab
+    <TryoutFocusShell {...shellProps}>
+      <div className="flex min-h-[calc(100vh-8rem)] flex-col rounded-2xl border border-border bg-muted/20">
+        <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span
+                className={cn(
+                  'inline-block rounded-lg px-2.5 py-1 text-xs font-bold text-white',
+                  SECTION_COLORS[current.section] ?? 'bg-muted-foreground',
+                )}
+              >
+                {current.sectionLabel}
+              </span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
+                {sectionsInExam.length} · Total {answeredCount}/{questions.length} terjawab
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold tabular-nums',
-                isUrgent ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground',
-              )}
-            >
-              <Clock className="size-3.5" />
-              {formatTime(timeLeft)}
-              {isUrgent ? <AlertTriangle className="size-3.5" /> : null}
-            </div>
-            <Button size="sm" onClick={() => setShowFinishDialog(true)} disabled={isPending}>
-              Selesai Tes
+            <Button size="sm" onClick={() => setShowSectionDialog(true)} disabled={isPending}>
+              {isLastSection ? 'Selesai Tes' : 'Selesai Bagian'}
             </Button>
           </div>
+          <div className="mt-2 h-1 bg-muted">
+            <div
+              className="h-1 bg-linear-to-r from-brand-red to-brand-yellow transition-all"
+              style={{
+                width: `${(sectionProgress.answered / Math.max(sectionProgress.total, 1)) * 100}%`,
+              }}
+            />
+          </div>
         </div>
-        <div className="h-1 bg-muted">
-          <div
-            className="h-1 bg-linear-to-r from-brand-red to-brand-yellow transition-all"
-            style={{ width: `${(answeredCount / questions.length) * 100}%` }}
-          />
-        </div>
-      </header>
 
-      <div className="flex flex-1">
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current.id}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-            >
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span
-                  className={cn(
-                    'rounded-lg px-2.5 py-1 text-xs font-bold text-white',
-                    SECTION_COLORS[current.section] ?? 'bg-muted-foreground',
-                  )}
-                >
-                  {current.sectionLabel}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Soal {currentIndex + 1}/{questions.length}
-                </span>
-              </div>
+        <div className="flex flex-1">
+          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current.id}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+              >
+                {examAudio?.url ? (
+                  <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                    <p className="mb-2 text-xs font-medium text-emerald-800 dark:text-emerald-200">
+                      {examAudio.isGroup
+                        ? `Audio grup · ${current.audioGroupId}`
+                        : 'Audio listening'}
+                    </p>
+                    <audio
+                      key={examAudio.playerKey}
+                      controls
+                      preload="none"
+                      className="w-full"
+                      src={examAudio.url}
+                    >
+                      <track kind="captions" />
+                    </audio>
+                  </div>
+                ) : null}
 
-              {examAudio.url ? (
-                <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                  <p className="mb-2 text-xs font-medium text-emerald-800 dark:text-emerald-200">
-                    {examAudio.isGroup
-                      ? `Audio grup · ${current.audioGroupId}`
-                      : 'Audio listening'}
-                  </p>
-                  <audio
-                    key={examAudio.playerKey}
-                    controls
-                    preload="none"
-                    className="w-full"
-                    src={examAudio.url}
+                <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+                  <p
+                    className="mb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line"
+                    style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
                   >
-                    <track kind="captions" />
-                  </audio>
-                </div>
-              ) : null}
-
-              <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
-                <p className="mb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-                  {current.questionText}
-                </p>
-                <div className="grid gap-2.5">
-                  {current.options.map((option, index) => {
-                    const selected = answers[current.id] === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() =>
-                          setAnswers((prev) => ({ ...prev, [current.id]: option.id }))
-                        }
-                        className={cn(
-                          'flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all',
-                          selected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/30',
-                        )}
-                      >
-                        <span
+                    {current.questionText}
+                  </p>
+                  <div className="grid gap-2.5">
+                    {current.options.map((option, index) => {
+                      const selected = answers[current.id] === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() =>
+                            setAnswers((prev) => ({ ...prev, [current.id]: option.id }))
+                          }
                           className={cn(
-                            'flex size-8 items-center justify-center rounded-full text-sm font-bold',
-                            selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                            'flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all',
+                            selected
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/30',
                           )}
                         >
-                          {String.fromCharCode(65 + index)}
-                        </span>
-                        <span className="text-sm" style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}>
-                          {option.text}
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <span
+                            className={cn(
+                              'flex size-8 items-center justify-center rounded-full text-sm font-bold',
+                              selected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-muted-foreground',
+                            )}
+                          >
+                            {String.fromCharCode(65 + index)}
+                          </span>
+                          <span
+                            className="text-sm"
+                            style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
+                          >
+                            {option.text}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4 hidden items-center justify-between sm:flex">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() =>
-                    setFlagged((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(current.id)) next.delete(current.id);
-                      else next.add(current.id);
-                      return next;
-                    })
-                  }
-                >
-                  <Flag className="size-4" />
-                  {flagged.has(current.id) ? 'Ditandai' : 'Tandai'}
-                </Button>
-                <div className="flex gap-2">
+                <div className="mt-4 hidden items-center justify-between sm:flex">
                   <Button
+                    type="button"
                     variant="outline"
-                    disabled={currentIndex === 0}
-                    onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+                    className="gap-2"
+                    onClick={() =>
+                      setFlagged((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(current.id)) next.delete(current.id);
+                        else next.add(current.id);
+                        return next;
+                      })
+                    }
                   >
-                    <ChevronLeft className="size-4" />
-                    Sebelumnya
+                    <Flag className="size-4" />
+                    {flagged.has(current.id) ? 'Ditandai' : 'Tandai'}
                   </Button>
-                  <Button
-                    disabled={currentIndex >= questions.length - 1}
-                    onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
-                  >
-                    Berikutnya
-                    <ChevronRight className="size-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={questionIndex === 0}
+                      onClick={() => setQuestionIndex((i) => Math.max(0, i - 1))}
+                    >
+                      <ChevronLeft className="size-4" />
+                      Sebelumnya
+                    </Button>
+                    <Button
+                      disabled={questionIndex >= sectionQuestions.length - 1}
+                      onClick={() =>
+                        setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
+                      }
+                    >
+                      Berikutnya
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </main>
+              </motion.div>
+            </AnimatePresence>
+          </main>
 
-        <aside className="hidden w-72 shrink-0 border-l border-border bg-card p-5 lg:block">
-          <h3 className="mb-4 flex items-center gap-2 text-sm font-bold">
-            <BarChart2 className="size-4 text-primary" />
-            Navigator Soal
-          </h3>
-          <NavigatorGrid
-            questions={questions}
-            answers={answers}
-            flagged={flagged}
-            currentIndex={currentIndex}
-            onGoTo={setCurrentIndex}
-          />
-        </aside>
+          <aside className="hidden w-72 shrink-0 border-l border-border bg-card p-5 lg:block">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-bold">
+              <BarChart2 className="size-4 text-primary" />
+              Navigator — {current.sectionLabel}
+            </h3>
+            <SectionNavigator
+              sectionQuestions={sectionQuestions}
+              answers={answers}
+              flagged={flagged}
+              currentQuestionId={current.id}
+              onGoTo={setQuestionIndex}
+            />
+          </aside>
+        </div>
+
+        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-card p-3 lg:hidden">
+          <Button variant="outline" size="sm" onClick={() => setShowNavigator(true)}>
+            <Grid3x3 className="size-4" />
+            Soal {questionIndex + 1}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={questionIndex === 0}
+            onClick={() => setQuestionIndex((i) => Math.max(0, i - 1))}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            size="icon"
+            disabled={questionIndex >= sectionQuestions.length - 1}
+            onClick={() =>
+              setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
+            }
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+
+        <Dialog open={showNavigator} onOpenChange={setShowNavigator}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Navigator — {current.sectionLabel}</DialogTitle>
+            </DialogHeader>
+            <SectionNavigator
+              sectionQuestions={sectionQuestions}
+              answers={answers}
+              flagged={flagged}
+              currentQuestionId={current.id}
+              onGoTo={(index) => {
+                setQuestionIndex(index);
+                setShowNavigator(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showSectionDialog} onOpenChange={setShowSectionDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {isLastSection ? 'Akhiri Tes Sekarang?' : `Selesai Bagian ${current.sectionLabel}?`}
+              </DialogTitle>
+              <DialogDescription>
+                {isLastSection ? (
+                  <>
+                    Kamu menjawab {answeredCount} dari {questions.length} soal total. Sisa waktu:{' '}
+                    {formatTime(timeLeft)}. Soal kosong dianggap salah.
+                  </>
+                ) : (
+                  <>
+                    Bagian ini: {sectionProgress.answered}/{sectionProgress.total} terjawab.
+                    {unansweredInSection > 0
+                      ? ` ${unansweredInSection} soal belum diisi — akan dianggap kosong.`
+                      : ''}{' '}
+                    Kamu tidak bisa kembali ke bagian ini setelah lanjut.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSectionDialog(false)}>
+                Lanjutkan
+              </Button>
+              <Button onClick={confirmSectionComplete} disabled={isPending}>
+                {isPending
+                  ? 'Menyimpan…'
+                  : isLastSection
+                    ? 'Ya, Akhiri Tes'
+                    : 'Lanjut ke Bagian Berikutnya'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      <div className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-card p-3 lg:hidden">
-        <Button variant="outline" size="sm" onClick={() => setShowNavigator(true)}>
-          <Grid3x3 className="size-4" />
-          Soal {currentIndex + 1}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          disabled={currentIndex === 0}
-          onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <Button
-          size="icon"
-          disabled={currentIndex >= questions.length - 1}
-          onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
-
-      <Dialog open={showNavigator} onOpenChange={setShowNavigator}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Navigator Soal</DialogTitle>
-          </DialogHeader>
-          <NavigatorGrid
-            questions={questions}
-            answers={answers}
-            flagged={flagged}
-            currentIndex={currentIndex}
-            onGoTo={(index) => {
-              setCurrentIndex(index);
-              setShowNavigator(false);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Akhiri Tes Sekarang?</DialogTitle>
-            <DialogDescription>
-              Kamu baru menjawab {answeredCount} dari {questions.length} soal. Sisa waktu:{' '}
-              {formatTime(timeLeft)}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFinishDialog(false)}>
-              Lanjutkan Tes
-            </Button>
-            <Button onClick={() => void handleFinish()} disabled={isPending}>
-              {isPending ? 'Menghitung…' : 'Ya, Akhiri Tes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </TryoutFocusShell>
   );
 }

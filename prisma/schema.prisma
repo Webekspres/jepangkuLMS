@@ -366,6 +366,7 @@ model TryoutSession {
   createdAt        DateTime  @default(now())
 
   questions Question[]
+  attempts  QuizAttempt[]
 }
 
 model LiveClass {
@@ -446,8 +447,18 @@ model QuizAttempt {
   lessonId  String? // Optional: Kosong jika ini percobaan Tryout
   type      QuestionType @default(QUIZ)
   score     Int
+  /// Tryout — sesi & level (null untuk kuis pelajaran)
+  tryoutSessionId String?
+  tryoutLevel     LevelJLPT?
+  correctCount    Int?
+  totalQuestions  Int?
+  /// JSON: { [questionId]: selectedOptionId }
+  answersJson     String?      @db.Text
   createdAt DateTime     @default(now())
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, tryoutSessionId, createdAt(sort: Desc)])
 }

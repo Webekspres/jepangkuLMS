@@ -71,6 +71,56 @@ export function getTryoutSectionMeta(value: string) {
   return TRYOUT_SECTIONS.find((s) => s.value === value) ?? TRYOUT_SECTIONS[0];
 }
 
+/** JLPT exam section order — MOJI GOI → BUNPOU DOKKAI → CHOKAI. */
+export const TRYOUT_SECTION_ORDER = TRYOUT_SECTIONS.map((s) => s.value);
+
+export function sortTryoutExamQuestions<T extends { section: string; sortOrder: number }>(
+  questions: T[],
+): T[] {
+  return [...questions].sort((a, b) => {
+    const sectionCmp = compareTryoutSections(a.section, b.section);
+    if (sectionCmp !== 0) return sectionCmp;
+    return a.sortOrder - b.sortOrder;
+  });
+}
+
+export function assignTryoutExamNumbers<T>(questions: T[]): (T & { examNumber: number })[] {
+  return questions.map((question, index) => ({
+    ...question,
+    examNumber: index + 1,
+  }));
+}
+
+export function isTryoutSectionAccessible(
+  section: string,
+  questions: { id: string; section: string }[],
+  answers: Record<string, string>,
+): boolean {
+  const sectionIndex = TRYOUT_SECTION_ORDER.indexOf(section as TryoutSectionValue);
+  if (sectionIndex <= 0) return true;
+
+  for (let i = 0; i < sectionIndex; i++) {
+    const priorSection = TRYOUT_SECTION_ORDER[i]!;
+    const priorQuestions = questions.filter((q) => q.section === priorSection);
+    const allAnswered = priorQuestions.every((q) => Boolean(answers[q.id]));
+    if (!allAnswered) return false;
+  }
+
+  return true;
+}
+
+export function getTryoutSectionProgress(
+  section: string,
+  questions: { id: string; section: string }[],
+  answers: Record<string, string>,
+): { answered: number; total: number } {
+  const sectionQuestions = questions.filter((q) => q.section === section);
+  return {
+    total: sectionQuestions.length,
+    answered: sectionQuestions.filter((q) => answers[q.id]).length,
+  };
+}
+
 /** @deprecated Legacy marker in questionText — prefer Question.audioUrl column. */
 export function composeTryoutQuestionText(questionText: string, audioUrl?: string | null): string {
   const text = questionText.trim();

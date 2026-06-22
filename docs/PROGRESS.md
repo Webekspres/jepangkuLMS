@@ -108,7 +108,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/profil` | ✅ | Hero + stats + edit (display name, avatar R2, badge title) |
 | `/dashboard/achievements` | ✅ | Badge LMS + **milestone JLPT dari enrollment** |
 | `/dashboard/live-class` | ✅ | Jadwal live class dari DB |
-| `/dashboard/tryout` | ✅ | Pilih sesi/level + **ruang ujian JLPT** (Fase 1 N5) |
+| `/dashboard/tryout` | ✅ | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil |
+| `/dashboard/tryout/[session]/[level]` | ✅ | Mode fokus: intro bagian → soal terisolasi → submit |
+| `/dashboard/tryout/hasil/[attemptId]` | ✅ | Skor + analisa benar/salah + penjelasan |
 
 ### 2.4 Admin
 
@@ -132,7 +134,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **learning** | ✅ | Enroll, progress, kuis, marketing queries |
 | **admin-cms** | ✅ | CRUD kursus/modul/lesson/enrollment/import |
 | **student** | ✅ | Dashboard, profil, achievements, loaders |
-| **tryout** | ✅ | Selection + exam workspace + submit + **CHOKAI audio single/grup** |
+| **tryout** | ✅ | Bagian terpisah + focus navbar + simpan jawaban + halaman analisa |
 | **live-class** | ✅ | Jadwal dari `LiveClass` model |
 | **public-api** | ✅ | Partner katalog |
 | **gamification** | ✅ | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
@@ -179,7 +181,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
-| 2026-06-22 | CHOKAI: kolom `audioUrl`/`audioGroupId` di Question, upload .mp3 ke R2, form admin single/grup audio, impor AudioGroupId, tab Romaji, pemutar audio di ujian siswa |
+| 2026-06-22 | Tryout TOEFL-flow: intro per bagian, navigator isolasi, focus navbar, auto-submit timer, QuizAttempt+answersJson, halaman analisa `/hasil/[id]` |
 | 2026-06-18 | Wire `/kursus` marketing ke Prisma + filter unggulan; dashboard XP mingguan & live class real; achievements milestone real; halaman Live Class & JLPT Tryout; dokumentasi ADMIN_QUIZ; update tracker 72% |
 | 2026-06-19 | R2 badge+avatar; CMS soal tryout; DnD urut modul/pelajaran; penamaan kurikulum UI-only; hapus Bank Soal sidebar |
 | 2026-06-19 | Badge unlock (FIRST_LESSON/QUIZ/TRYOUT) + bonus XP Core, equip badge sebagai title, LmsRole LMS_ADMIN/STUDENT + `/admin/users`, profil LMS (displayName/avatar), lint CI bersih |
