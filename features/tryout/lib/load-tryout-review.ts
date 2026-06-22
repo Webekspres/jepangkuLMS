@@ -35,6 +35,7 @@ export type TryoutAttemptReview = {
   total: number;
   pass: boolean;
   submittedAt: string;
+  displayName: string;
   sectionBreakdown: {
     section: TryoutSectionValue;
     sectionLabel: string;
@@ -62,6 +63,11 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
   });
 
   if (!attempt?.tryoutSession || !attempt.tryoutLevel) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { displayName: true },
+  });
 
   let answers: Record<string, string> = {};
   if (attempt.answersJson) {
@@ -144,6 +150,7 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     total: attempt.totalQuestions ?? questions.length,
     pass: attempt.score >= 60,
     submittedAt: attempt.createdAt.toISOString(),
+    displayName: user?.displayName?.trim() || 'Siswa JepangKu',
     sectionBreakdown,
     questions,
   };

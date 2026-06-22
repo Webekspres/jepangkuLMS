@@ -110,7 +110,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/live-class` | ✅ | Jadwal live class dari DB |
 | `/dashboard/tryout` | ✅ | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil |
 | `/dashboard/tryout/[session]/[level]` | ✅ | Mode fokus: intro bagian → soal terisolasi → submit |
-| `/dashboard/tryout/hasil/[attemptId]` | ✅ | Skor + analisa benar/salah + penjelasan |
+| `/dashboard/tryout/hasil/[attemptId]` | ✅ | Popup animasi hasil + tier SOS/Latihan/Aman + tabel skor & analisa bagian + detail soal |
 
 ### 2.4 Admin
 
@@ -181,6 +181,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-22 | Hasil tryout: popup reveal animasi (Riki-style), tabel ringkasan skor & analisa per bagian JLPT |
 | 2026-06-22 | Tryout TOEFL-flow: intro per bagian, navigator isolasi, focus navbar, auto-submit timer, QuizAttempt+answersJson, halaman analisa `/hasil/[id]` |
 | 2026-06-18 | Wire `/kursus` marketing ke Prisma + filter unggulan; dashboard XP mingguan & live class real; achievements milestone real; halaman Live Class & JLPT Tryout; dokumentasi ADMIN_QUIZ; update tracker 72% |
 | 2026-06-19 | R2 badge+avatar; CMS soal tryout; DnD urut modul/pelajaran; penamaan kurikulum UI-only; hapus Bank Soal sidebar |

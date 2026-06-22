@@ -22,6 +22,7 @@ import {
 import { submitTryoutAttempt } from '@/features/tryout/actions/tryout-actions';
 import { TryoutFocusShell } from '@/features/tryout/components/tryout-focus-shell';
 import { TryoutSectionIntro } from '@/features/tryout/components/tryout-section-intro';
+import { TryoutSubmitLoading } from '@/features/tryout/components/tryout-submit-loading';
 import type { TryoutExamQuestion } from '@/features/student/lib/load-dashboard-extras';
 import {
   getTryoutSectionProgress,
@@ -168,8 +169,11 @@ export function TryoutExamWorkspace({
   const [submitting, setSubmitting] = useState(false);
 
   const answersRef = useRef(answers);
-  answersRef.current = answers;
   const submittedRef = useRef(false);
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   const activeSectionMeta = sectionsInExam[sectionIndex];
   const activeSection = activeSectionMeta?.value as TryoutSectionValue | undefined;
@@ -264,39 +268,60 @@ export function TryoutExamWorkspace({
     );
   }
 
-  if (!current || submitting || isPending) {
+  if (submitting || isPending) {
+    return (
+      <TryoutFocusShell {...shellProps}>
+        <TryoutSubmitLoading />
+      </TryoutFocusShell>
+    );
+  }
+
+  if (!current) {
     return (
       <TryoutFocusShell {...shellProps}>
         <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
-          {submitting || isPending ? 'Menyimpan hasil ujian…' : 'Memuat soal…'}
+          Memuat soal…
         </div>
       </TryoutFocusShell>
     );
   }
 
   const unansweredInSection = sectionProgress.total - sectionProgress.answered;
+  const isLastQuestionInSection = questionIndex >= sectionQuestions.length - 1;
+  const sectionSubmitLabel = isLastSection ? 'Selesai Tes' : 'Selesai Bagian';
 
   return (
     <TryoutFocusShell {...shellProps}>
-      <div className="flex min-h-[calc(100vh-8rem)] flex-col rounded-2xl border border-border bg-muted/20">
-        <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+      <div className="flex min-h-[calc(100vh-7rem)] flex-col rounded-xl border border-border bg-muted/20 sm:min-h-[calc(100vh-8rem)] sm:rounded-2xl">
+        <div className="border-b border-border bg-card px-3 py-2.5 sm:px-6 sm:py-3">
+          <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <div className="min-w-0 flex-1">
               <span
                 className={cn(
-                  'inline-block rounded-lg px-2.5 py-1 text-xs font-bold text-white',
+                  'inline-block rounded-md px-2 py-0.5 text-[10px] font-bold text-white sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs',
                   SECTION_COLORS[current.section] ?? 'bg-muted-foreground',
                 )}
               >
                 {current.sectionLabel}
               </span>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
-                {sectionsInExam.length} · Total {answeredCount}/{questions.length} terjawab
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
+                <span className="sm:hidden">
+                  Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
+                  {sectionsInExam.length}
+                </span>
+                <span className="hidden sm:inline">
+                  Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
+                  {sectionsInExam.length} · Total {answeredCount}/{questions.length} terjawab
+                </span>
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowSectionDialog(true)} disabled={isPending}>
-              {isLastSection ? 'Selesai Tes' : 'Selesai Bagian'}
+            <Button
+              size="sm"
+              className="h-8 shrink-0 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+              onClick={() => setShowSectionDialog(true)}
+              disabled={isPending}
+            >
+              {sectionSubmitLabel}
             </Button>
           </div>
           <div className="mt-2 h-1 bg-muted">
@@ -310,7 +335,7 @@ export function TryoutExamWorkspace({
         </div>
 
         <div className="flex flex-1">
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <main className="flex-1 p-3 pb-20 sm:p-6 sm:pb-6 lg:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current.id}
@@ -337,14 +362,14 @@ export function TryoutExamWorkspace({
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+                <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-8">
                   <p
-                    className="mb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line"
+                    className="mb-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-line sm:mb-4"
                     style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
                   >
                     {current.questionText}
                   </p>
-                  <div className="grid gap-2.5">
+                  <div className="grid gap-2 sm:gap-2.5">
                     {current.options.map((option, index) => {
                       const selected = answers[current.id] === option.id;
                       return (
@@ -355,7 +380,7 @@ export function TryoutExamWorkspace({
                             setAnswers((prev) => ({ ...prev, [current.id]: option.id }))
                           }
                           className={cn(
-                            'flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all',
+                            'flex items-center gap-2.5 rounded-lg border-2 px-3 py-2.5 text-left transition-all sm:gap-3 sm:rounded-xl sm:px-4 sm:py-3',
                             selected
                               ? 'border-primary bg-primary/5'
                               : 'border-border hover:border-primary/30',
@@ -363,7 +388,7 @@ export function TryoutExamWorkspace({
                         >
                           <span
                             className={cn(
-                              'flex size-8 items-center justify-center rounded-full text-sm font-bold',
+                              'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold sm:size-8 sm:text-sm',
                               selected
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted text-muted-foreground',
@@ -372,7 +397,7 @@ export function TryoutExamWorkspace({
                             {String.fromCharCode(65 + index)}
                           </span>
                           <span
-                            className="text-sm"
+                            className="text-sm leading-snug"
                             style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
                           >
                             {option.text}
@@ -409,15 +434,20 @@ export function TryoutExamWorkspace({
                       <ChevronLeft className="size-4" />
                       Sebelumnya
                     </Button>
-                    <Button
-                      disabled={questionIndex >= sectionQuestions.length - 1}
-                      onClick={() =>
-                        setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
-                      }
-                    >
-                      Berikutnya
-                      <ChevronRight className="size-4" />
-                    </Button>
+                    {isLastQuestionInSection ? (
+                      <Button onClick={() => setShowSectionDialog(true)} disabled={isPending}>
+                        {sectionSubmitLabel}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
+                        }
+                      >
+                        Berikutnya
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -439,28 +469,49 @@ export function TryoutExamWorkspace({
           </aside>
         </div>
 
-        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border bg-card p-3 lg:hidden">
-          <Button variant="outline" size="sm" onClick={() => setShowNavigator(true)}>
-            <Grid3x3 className="size-4" />
-            Soal {questionIndex + 1}
-          </Button>
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-2 border-t border-border bg-card/95 px-3 py-2.5 backdrop-blur-sm sm:static sm:backdrop-blur-none lg:hidden">
           <Button
             variant="outline"
-            size="icon"
-            disabled={questionIndex === 0}
-            onClick={() => setQuestionIndex((i) => Math.max(0, i - 1))}
+            size="sm"
+            className="h-9 gap-1.5 px-2.5 text-xs"
+            onClick={() => setShowNavigator(true)}
           >
-            <ChevronLeft className="size-4" />
+            <Grid3x3 className="size-3.5" />
+            Soal {questionIndex + 1}
           </Button>
-          <Button
-            size="icon"
-            disabled={questionIndex >= sectionQuestions.length - 1}
-            onClick={() =>
-              setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
-            }
-          >
-            <ChevronRight className="size-4" />
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-9"
+              disabled={questionIndex === 0}
+              onClick={() => setQuestionIndex((i) => Math.max(0, i - 1))}
+              aria-label="Soal sebelumnya"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            {isLastQuestionInSection ? (
+              <Button
+                size="sm"
+                className="h-9 gap-1 px-3 text-xs font-semibold"
+                onClick={() => setShowSectionDialog(true)}
+                disabled={isPending}
+              >
+                {sectionSubmitLabel}
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                className="size-9"
+                onClick={() =>
+                  setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
+                }
+                aria-label="Soal berikutnya"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         <Dialog open={showNavigator} onOpenChange={setShowNavigator}>
@@ -485,35 +536,62 @@ export function TryoutExamWorkspace({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {isLastSection ? 'Akhiri Tes Sekarang?' : `Selesai Bagian ${current.sectionLabel}?`}
+                {isLastSection
+                  ? 'Kirim semua jawaban?'
+                  : `Kunci bagian ${current.sectionLabel}?`}
               </DialogTitle>
-              <DialogDescription>
-                {isLastSection ? (
-                  <>
-                    Kamu menjawab {answeredCount} dari {questions.length} soal total. Sisa waktu:{' '}
-                    {formatTime(timeLeft)}. Soal kosong dianggap salah.
-                  </>
-                ) : (
-                  <>
-                    Bagian ini: {sectionProgress.answered}/{sectionProgress.total} terjawab.
-                    {unansweredInSection > 0
-                      ? ` ${unansweredInSection} soal belum diisi — akan dianggap kosong.`
-                      : ''}{' '}
-                    Kamu tidak bisa kembali ke bagian ini setelah lanjut.
-                  </>
-                )}
+              <DialogDescription asChild>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {isLastSection ? (
+                    <>
+                      <p>
+                        Kamu sudah menjawab <strong>{answeredCount}</strong> dari{' '}
+                        <strong>{questions.length}</strong> soal. Sisa waktu:{' '}
+                        <strong>{formatTime(timeLeft)}</strong>.
+                      </p>
+                      <p>Soal yang kosong akan dianggap salah. Setelah dikirim, kamu akan melihat
+                        halaman analisa jawaban.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        Progress bagian ini: <strong>{sectionProgress.answered}</strong>/
+                        <strong>{sectionProgress.total}</strong> terjawab.
+                        {unansweredInSection > 0 ? (
+                          <>
+                            {' '}
+                            Masih ada <strong>{unansweredInSection}</strong> soal kosong — akan
+                            dihitung salah.
+                          </>
+                        ) : null}
+                      </p>
+                      <p>
+                        Bagian <strong>{current.sectionLabel}</strong> akan dikunci. Kamu tidak bisa
+                        kembali mengubah jawaban setelah ini.
+                      </p>
+                    </>
+                  )}
+                </div>
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSectionDialog(false)}>
-                Lanjutkan
+            <DialogFooter className="flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-2">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => setShowSectionDialog(false)}
+              >
+                {isLastSection ? 'Periksa Lagi' : 'Kembali ke Soal'}
               </Button>
-              <Button onClick={confirmSectionComplete} disabled={isPending}>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={confirmSectionComplete}
+                disabled={isPending}
+              >
                 {isPending
-                  ? 'Menyimpan…'
+                  ? 'Memproses…'
                   : isLastSection
-                    ? 'Ya, Akhiri Tes'
-                    : 'Lanjut ke Bagian Berikutnya'}
+                    ? 'Ya, Kirim Jawaban'
+                    : 'Ya, Kunci & Lanjut'}
               </Button>
             </DialogFooter>
           </DialogContent>
