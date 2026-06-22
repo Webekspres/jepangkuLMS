@@ -70,7 +70,7 @@ export function LessonQuizPanel({
         ...q,
         options: shuffleArray(q.options),
       })),
-    [lessonSlug, questions],
+    [questions],
   );
 
   useEffect(() => {

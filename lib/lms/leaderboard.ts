@@ -5,6 +5,8 @@ export type LmsLeaderboardItem = {
   rank: number;
   userId: string;
   displayName: string;
+  avatarUrl: string | null;
+  badgeTitle: string | null;
   points: number;
   level: number | null;
 };
@@ -28,7 +30,13 @@ export async function fetchLmsLeaderboard(
       select: {
         userId: true,
         lmsPoints: true,
-        user: { select: { displayName: true } },
+        user: {
+          select: {
+            displayName: true,
+            avatarUrl: true,
+            equippedBadge: { select: { title: true } },
+          },
+        },
       },
     }),
     prisma.userLmsStats.count({ where: { lmsPoints: { gt: 0 } } }),
@@ -40,6 +48,8 @@ export async function fetchLmsLeaderboard(
       rank: offset + index + 1,
       userId: row.userId,
       displayName: name,
+      avatarUrl: row.user.avatarUrl,
+      badgeTitle: row.user.equippedBadge?.title ?? null,
       points: row.lmsPoints,
       level: null,
     };

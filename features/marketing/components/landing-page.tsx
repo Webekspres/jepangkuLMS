@@ -26,7 +26,6 @@ import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { LANDING_NAV_MENU_TOP } from './marketing-nav-layout';
 import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
-import { MarketingCtaBand } from './marketing-cta-band';
 import { MarketingFooter } from './marketing-footer';
 import { MarketingLightSurface } from './marketing-light-surface';
 import { Button } from '@/components/ui/button';

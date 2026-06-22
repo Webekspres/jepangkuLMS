@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
@@ -26,13 +26,19 @@ export function StudentNav() {
   const { signOut } = useClerk();
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
-  const displayName = identity?.displayName ?? core.displayName ?? '…';
+  const displayName = core.displayName ?? identity?.displayName ?? '…';
+  const badgeTitle = core.equippedBadgeTitle;
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   const statsPending =
-    isCoreIntegrationEnabled() &&
-    core.status === 'loading' &&
-    !core.coreConnected;
+    !hydrated ||
+    (isCoreIntegrationEnabled() && core.status === 'loading' && !core.coreConnected);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -114,6 +120,9 @@ export function StudentNav() {
       >
         <div className="border-b border-border px-4 py-3">
           <p className="text-sm font-semibold text-foreground">{displayName}</p>
+          {badgeTitle ? (
+            <p className="text-xs font-medium text-primary">{badgeTitle}</p>
+          ) : null}
           {identity?.email ? (
             <p className="truncate text-xs text-muted-foreground">{identity.email}</p>
           ) : (

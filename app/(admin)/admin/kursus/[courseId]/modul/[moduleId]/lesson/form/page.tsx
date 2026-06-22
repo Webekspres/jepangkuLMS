@@ -1,10 +1,8 @@
 import { notFound } from 'next/navigation';
 import { AdminLessonForm } from '@/features/admin-cms/components/admin-lesson-form';
 import { AdminLessonWorkspace } from '@/features/admin-cms/components/admin-lesson-workspace';
-import {
-  getNextLessonOrder,
-  loadAdminModuleById,
-} from '@/features/admin-cms/lib/load-admin-cms-data';
+import { formatModuleDisplayTitle } from '@/features/admin-cms/lib/curriculum-display';
+import { loadAdminModuleById } from '@/features/admin-cms/lib/load-admin-cms-data';
 import { loadAdminLessonContent } from '@/features/admin-cms/lib/load-admin-lesson-content';
 import { uuidSchema } from '@/lib/validations/shared';
 
@@ -25,14 +23,12 @@ export default async function AdminLessonFormPage({ params, searchParams }: Admi
   if (!moduleRow) notFound();
 
   if (!id) {
-    const nextOrder = await getNextLessonOrder(moduleRow.id);
     return (
       <AdminLessonForm
         mode="create"
         courseId={moduleRow.course.id}
         moduleId={moduleRow.id}
-        moduleTitle={moduleRow.title}
-        initial={{ title: '', slug: '', order: nextOrder, content: '', videoUrl: '' }}
+        moduleTitle={formatModuleDisplayTitle(moduleRow.order, moduleRow.title)}
       />
     );
   }
@@ -55,7 +51,7 @@ export default async function AdminLessonFormPage({ params, searchParams }: Admi
         lessonId: content.lesson.id,
       }}
       courseSlug={moduleRow.course.slug}
-      moduleTitle={moduleRow.title}
+      moduleTitle={formatModuleDisplayTitle(moduleRow.order, moduleRow.title)}
       content={content}
     />
   );

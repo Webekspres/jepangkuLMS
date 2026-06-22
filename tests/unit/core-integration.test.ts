@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import {
   canAccessLmsAdminPanel,
+  DEFAULT_LMS_ROLE,
   hasLmsAdminAccess,
   isDevAdminBypassEnabled,
   LMS_ADMIN_ROLES,
+  resolveInitialLmsRole,
 } from '@/lib/auth/lms-roles';
 import { buildLmsIdempotencyKey, toCoreActivityType } from '@/lib/core/activity-map';
 
@@ -32,6 +34,19 @@ describe('lms-roles', () => {
     expect(canAccessLmsAdminPanel(['LMS_ADMIN'])).toBe(true);
     expect(canAccessLmsAdminPanel(['SISWA'])).toBe(false);
     process.env.LMS_DEV_ADMIN_BYPASS = prevBypass;
+  });
+
+  it('defaults new users to LMS_STUDENT role', () => {
+    expect(DEFAULT_LMS_ROLE).toBe('LMS_STUDENT');
+    expect(resolveInitialLmsRole('user_any')).toBe('LMS_STUDENT');
+  });
+
+  it('bootstrap admin env promotes only designated Clerk user id', () => {
+    const prev = process.env.LMS_BOOTSTRAP_ADMIN_USER_ID;
+    process.env.LMS_BOOTSTRAP_ADMIN_USER_ID = 'user_bootstrap_admin';
+    expect(resolveInitialLmsRole('user_bootstrap_admin')).toBe('LMS_ADMIN');
+    expect(resolveInitialLmsRole('user_regular')).toBe('LMS_STUDENT');
+    process.env.LMS_BOOTSTRAP_ADMIN_USER_ID = prev;
   });
 });
 

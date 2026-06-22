@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';

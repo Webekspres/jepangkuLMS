@@ -3,6 +3,7 @@ import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
+import { DEFAULT_LMS_ROLE } from '../lib/auth/lms-roles';
 import { N5_LESSON_COUNT } from './lib/n5-curriculum';
 import { seedLiveClasses } from './lib/seed-live-classes';
 import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
@@ -92,7 +93,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { id: DEMO_USER_ID },
-    create: { id: DEMO_USER_ID },
+    create: { id: DEMO_USER_ID, role: DEFAULT_LMS_ROLE },
     update: {},
   });
 
@@ -144,18 +145,28 @@ async function main() {
       title: 'Pelajaran Pertama',
       description: 'Menyelesaikan lesson pertama di LMS.',
       sortOrder: 1,
+      unlockRule: 'FIRST_LESSON' as const,
+      xpBonus: 25,
+      requirementText: 'Selesaikan pelajaran pertamamu',
     },
     {
       code: 'quiz-starter',
       title: 'Pemula Kuis',
       description: 'Menyelesaikan kuis pertama.',
       sortOrder: 2,
+      unlockRule: 'FIRST_QUIZ' as const,
+      xpBonus: 30,
+      requirementText: 'Selesaikan kuis pertama',
     },
     {
       code: 'n5-explorer',
       title: 'Penjelajah N5',
-      description: 'Membuka modul materi N5.',
+      description: 'Lulus tryout JLPT N5.',
       sortOrder: 3,
+      unlockRule: 'TRYOUT_PASS' as const,
+      unlockValue: 60,
+      xpBonus: 50,
+      requirementText: 'Lulus tryout JLPT dengan skor ≥ 60%',
     },
   ] as const;
 
@@ -167,6 +178,10 @@ async function main() {
         title: badge.title,
         description: badge.description,
         sortOrder: badge.sortOrder,
+        unlockRule: badge.unlockRule,
+        unlockValue: 'unlockValue' in badge ? badge.unlockValue : null,
+        xpBonus: badge.xpBonus,
+        requirementText: badge.requirementText,
       },
     });
   }

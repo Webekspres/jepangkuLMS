@@ -28,7 +28,6 @@ import {
   buildDashboardStats,
   DASHBOARD_LIVE_SCHEDULE,
   DASHBOARD_WEEKLY_XP,
-  DASHBOARD_WEEKLY_XP_MAX,
   LESSON_CATEGORY_STYLE,
   type ContinueLesson,
   type DashboardLivePreviewItem,
@@ -85,7 +84,8 @@ export function DashboardPage({
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
   const displayName =
-    identity?.displayName ?? core.displayName ?? '…';
+    core.displayName ?? identity?.displayName ?? '…';
+  const badgeTitle = core.equippedBadgeTitle;
   const stats = buildDashboardStats(core);
   const weeklyXpMax = Math.max(1, ...weeklyXp.map((day) => day.xp));
   const leaderboardPreview =
@@ -117,6 +117,12 @@ export function DashboardPage({
               Halo, {displayName}!{' '}
             </h1>
             <p className="mt-1 text-sm text-white/60">
+              {badgeTitle ? (
+                <>
+                  <span className="font-semibold text-brand-yellow">{badgeTitle}</span>
+                  <span className="text-white/40"> · </span>
+                </>
+              ) : null}
               {core.levelTitle
                 ? `${core.levelTitle} · Lv.${core.level}`
                 : `Level ${core.level}`}{' '}
@@ -254,32 +260,32 @@ export function DashboardPage({
             </div>
           </DashboardSection>
 
-          {!core.coreConnected && core.status === 'ready' ? (
-            <DashboardSection title="XP Mingguan" icon={TrendingUp}>
-              <p className="text-sm text-muted-foreground">
-                Grafik XP mingguan sedang dimuat…
-              </p>
-            </DashboardSection>
-          ) : (
-            <DashboardSection title="XP Mingguan" icon={TrendingUp}>
-              <div className="flex h-36 items-end justify-between gap-1 sm:gap-2">
-                {weeklyXp.map((day) => (
+          <DashboardSection title="XP Mingguan" icon={TrendingUp}>
+            <div className="flex h-40 items-end justify-between gap-1 sm:gap-2">
+              {weeklyXp.map((day) => {
+                const heightPct =
+                  day.xp > 0 ? Math.max(12, (day.xp / weeklyXpMax) * 100) : 4;
+                return (
                   <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
+                    <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
+                      {day.xp > 0 ? formatDisplayNumber(day.xp) : ''}
+                    </span>
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${(day.xp / weeklyXpMax) * 100}%` }}
+                      animate={{ height: `${heightPct}%` }}
                       transition={{ duration: 0.6, delay: 0.1 }}
-                      className="w-full min-h-[8px] max-h-24 rounded-t-md bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow opacity-40"
+                      className="w-full min-h-[4px] max-h-28 rounded-t-lg bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow"
+                      title={`${day.xp} XP`}
                     />
                     <span className="text-[10px] font-medium text-muted-foreground">{day.day}</span>
                   </div>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Poin LMS yang kamu kumpulkan 7 hari terakhir.
-              </p>
-            </DashboardSection>
-          )}
+                );
+              })}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              XP yang kamu kumpulkan 7 hari terakhir (level global dari Core).
+            </p>
+          </DashboardSection>
 
           <DashboardSection
             title="Leaderboard"

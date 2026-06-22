@@ -5,6 +5,12 @@ import { z } from 'zod';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { prisma } from '@/lib/prisma';
+import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
+import {
+  notifyCourseGranted,
+  notifyEnrollmentApproved,
+  notifyEnrollmentRejected,
+} from '@/lib/lms/notifications';
 import { uuidSchema } from '@/lib/validations/shared';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
@@ -25,11 +31,24 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
   const enrollment = await prisma.enrollment.update({
     where: { id: parsedId.data },
     data: { status: 'ACTIVE' },
-    select: { userId: true },
+    select: {
+      id: true,
+      userId: true,
+      course: { select: { title: true, slug: true } },
+    },
+  });
+
+  await notifyEnrollmentApproved({
+    enrollmentId: enrollment.id,
+    studentUserId: enrollment.userId,
+    courseTitle: enrollment.course.title,
+    courseSlug: enrollment.course.slug,
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
   revalidatePath(ADMIN_ROUTES.pembayaran);
+  revalidatePath(ADMIN_ROUTES.users);
+  revalidatePath(ADMIN_ROUTES.userDetail(enrollment.userId));
   return { ok: true };
 }
 
@@ -43,11 +62,23 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
 
   const enrollment = await prisma.enrollment.delete({
     where: { id: parsedId.data },
-    select: { userId: true },
+    select: {
+      id: true,
+      userId: true,
+      course: { select: { title: true } },
+    },
+  });
+
+  await notifyEnrollmentRejected({
+    enrollmentId: enrollment.id,
+    studentUserId: enrollment.userId,
+    courseTitle: enrollment.course.title,
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
   revalidatePath(ADMIN_ROUTES.pembayaran);
+  revalidatePath(ADMIN_ROUTES.users);
+  revalidatePath(ADMIN_ROUTES.userDetail(enrollment.userId));
   return { ok: true };
 }
 
@@ -65,9 +96,15 @@ export async function grantEnrollmentAction(formData: FormData): Promise<CmsActi
 
   const { userId, courseId } = parsed.data;
 
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { title: true, slug: true },
+  });
+  if (!course) return { ok: false, message: 'Kursus tidak ditemukan.' };
+
   await prisma.user.upsert({
     where: { id: userId },
-    create: { id: userId },
+    create: userAnchorCreateData(userId),
     update: {},
   });
 
@@ -77,7 +114,16 @@ export async function grantEnrollmentAction(formData: FormData): Promise<CmsActi
     update: { status: 'ACTIVE' },
   });
 
+  await notifyCourseGranted({
+    studentUserId: userId,
+    courseTitle: course.title,
+    courseSlug: course.slug,
+    courseId,
+  });
+
   revalidateStudentLearningSurfaces({ userId });
   revalidatePath(ADMIN_ROUTES.pembayaran);
+  revalidatePath(ADMIN_ROUTES.users);
+  revalidatePath(ADMIN_ROUTES.userDetail(userId));
   return { ok: true };
 }

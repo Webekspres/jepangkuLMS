@@ -1,6 +1,5 @@
 import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
 import { fetchCoreUserMe } from '@/lib/core/api';
 import { isCoreApiConfigured } from '@/lib/core/client';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
@@ -12,7 +11,9 @@ import {
   leaderboardDisplayInitials,
 } from '@/lib/lms/leaderboard';
 import { getUserLmsPoints } from '@/lib/lms/points';
-import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import { loadLmsUserProfile, resolveLmsAvatarUrl, resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import { DEFAULT_LMS_ROLE } from '@/lib/auth/lms-roles';
+import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
 import {
   EMPTY_STUDENT_CORE_DATA,
   type StudentCoreData,
@@ -44,7 +45,8 @@ function mapLeaderboardEntries(
       points: item.points,
       isYou: Boolean(userId && item.userId === userId),
       avatar: leaderboardDisplayInitials(name),
-      imageUrl: null,
+      imageUrl: item.avatarUrl,
+      badgeTitle: item.badgeTitle,
       currentLevel: item.level ?? 1,
       levelLabel: item.level != null ? `Lv.${item.level}` : '—',
     };
@@ -65,6 +67,7 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
   const { userId } = await auth();
   const clerkUser = userId ? await currentUser() : null;
   const clerkName = clerkDisplayName(clerkUser);
+  let lmsProfile: Awaited<ReturnType<typeof loadLmsUserProfile>> = null;
 
   const data: StudentCoreData = {
     ...EMPTY_STUDENT_CORE_DATA,
@@ -75,13 +78,20 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
   };
 
   if (userId) {
+    lmsProfile = await loadLmsUserProfile(userId);
+    data.lmsRole = lmsProfile?.role ?? DEFAULT_LMS_ROLE;
+    data.bio = lmsProfile?.bio ?? null;
     data.displayName = (await resolveLmsDisplayName(userId, clerkName)) ?? clerkName;
+    data.avatarUrl = (await resolveLmsAvatarUrl(userId, clerkUser?.imageUrl ?? null)) ?? data.avatarUrl;
     data.lmsPoints = await getUserLmsPoints(userId);
     data.lmsRank = await getLmsRankForUser(userId);
 
-    const badges = await loadLmsBadgesForUser(userId);
+    const badges = await loadLmsBadgesForUser(userId, lmsProfile?.equippedBadgeId);
     data.badges = badges;
     data.badgeCount = badges.filter((b) => b.unlocked).length;
+    const equipped = badges.find((b) => b.isEquipped && b.unlocked);
+    data.equippedBadgeTitle = equipped?.name ?? null;
+    data.equippedBadgeImageUrl = equipped?.imageUrl ?? null;
     data.recentBadges = badges
       .filter((b) => b.unlocked && b.date)
       .slice(0, 3)
@@ -103,31 +113,33 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
   }
 
   if (!isCoreIntegrationEnabled() || !isCoreApiConfigured()) {
-    data.canAccessAdmin = canAccessLmsAdminPanel();
+    data.canAccessAdmin = await userHasLmsAdminAccess(userId, []);
     return data;
   }
 
   const session = await getCoreSession();
   if (session) {
     data.coreConnected = true;
-    data.avatarUrl = session.profile.avatarUrl ?? data.avatarUrl;
-    data.canAccessAdmin = canAccessLmsAdminPanel(session.roles);
+    if (!lmsProfile?.avatarUrl) {
+      data.avatarUrl = session.profile.avatarUrl ?? data.avatarUrl;
+    }
+    data.canAccessAdmin = await userHasLmsAdminAccess(userId, session.roles);
     if (session.gamification) {
       data.totalXp = session.gamification.totalXp;
       data.level = session.gamification.level;
     }
   } else {
-    data.canAccessAdmin = canAccessLmsAdminPanel();
+    data.canAccessAdmin = await userHasLmsAdminAccess(userId, []);
   }
 
   const coreJwt = await getCoreJwtFromCookies();
   if (coreJwt) {
     try {
-      const profile = await fetchCoreUserMe(coreJwt);
+      const coreProfile = await fetchCoreUserMe(coreJwt);
       data.coreConnected = true;
-      data.totalXp = profile.totalXp;
-      data.level = profile.currentLevel;
-      data.levelTitle = profile.levelTitle;
+      data.totalXp = coreProfile.totalXp;
+      data.level = coreProfile.currentLevel;
+      data.levelTitle = coreProfile.levelTitle;
     } catch {
       // Core down — tetap pakai data LMS lokal
     }

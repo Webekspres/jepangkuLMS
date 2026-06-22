@@ -1,22 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AdminSidebar } from '@/features/admin-cms/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin-cms/components/admin-topbar';
 import { cn } from '@/lib/utils';
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  pendingEnrollmentCount = 0,
+}: {
+  children: React.ReactNode;
+  pendingEnrollmentCount?: number;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [trackedPath, setTrackedPath] = useState(pathname);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  if (pathname !== trackedPath) {
+    setTrackedPath(pathname);
+    if (mobileOpen) setMobileOpen(false);
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
-      <AdminSidebar className="hidden lg:flex" />
+      <AdminSidebar className="hidden lg:flex" pendingEnrollmentCount={pendingEnrollmentCount} />
 
       {mobileOpen ? (
         <>
@@ -29,6 +37,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <AdminSidebar
             className="fixed inset-y-0 left-0 z-50 lg:hidden"
             onNavigate={() => setMobileOpen(false)}
+            pendingEnrollmentCount={pendingEnrollmentCount}
           />
         </>
       ) : null}

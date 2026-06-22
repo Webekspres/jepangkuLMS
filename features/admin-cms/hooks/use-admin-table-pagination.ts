@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ADMIN_TABLE_DEFAULT_PAGE_SIZE,
   clampAdminTablePage,
@@ -23,20 +23,20 @@ export function useAdminTablePagination<T>(
   const [pageSize, setPageSize] = useState<AdminTablePageSize>(
     options.defaultPageSize ?? ADMIN_TABLE_DEFAULT_PAGE_SIZE,
   );
+  const [lastResetKey, setLastResetKey] = useState(options.resetKey);
+
+  if (options.resetKey !== lastResetKey) {
+    setLastResetKey(options.resetKey);
+    setPage(1);
+  }
 
   const totalItems = items.length;
   const totalPages = getAdminTablePageCount(totalItems, pageSize);
   const safePage = clampAdminTablePage(page, totalItems, pageSize);
 
-  useEffect(() => {
-    setPage(1);
-  }, [options.resetKey]);
-
-  useEffect(() => {
-    if (page !== safePage) {
-      setPage(safePage);
-    }
-  }, [page, safePage]);
+  if (page !== safePage) {
+    setPage(safePage);
+  }
 
   const paginatedItems = useMemo(
     () => sliceAdminTablePage(items, safePage, pageSize),

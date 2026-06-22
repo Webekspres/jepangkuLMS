@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
   Calendar,
@@ -43,6 +42,11 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
     });
   }, [classes, activeCategory, search]);
 
+  const instructorCount = useMemo(
+    () => new Set(classes.map((item) => item.senseiName)).size,
+    [classes],
+  );
+
   return (
     <div className="space-y-8 pb-10">
       <section
@@ -81,7 +85,7 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
         </span>
         <span>·</span>
         <span>
-          <strong className="text-foreground">3</strong> instruktur aktif
+          <strong className="text-foreground">{instructorCount}</strong> instruktur aktif
         </span>
       </div>
 

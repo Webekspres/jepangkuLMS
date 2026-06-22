@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LessonWorkspace } from '@/features/learning/components/lesson-workspace';
 import { getLessonWorkspace } from '@/features/learning/lib/queries';
+import { loadLessonComments } from '@/features/learning/actions/lesson-qa-actions';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
@@ -54,6 +55,8 @@ export default async function BelajarPage({ params, searchParams }: BelajarPageP
     );
   }
 
+  const lessonComments = await loadLessonComments(workspace.lesson.id, userId);
+
   return (
     <LessonWorkspace
       course={workspace.course}
@@ -63,6 +66,7 @@ export default async function BelajarPage({ params, searchParams }: BelajarPageP
       materials={workspace.materials}
       questions={workspace.questions}
       initialTab={tab === 'flashcard' || tab === 'quiz' ? tab : 'video'}
+      lessonComments={lessonComments}
     />
   );
 }

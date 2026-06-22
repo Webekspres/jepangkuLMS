@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 type AdminSidebarProps = {
   onNavigate?: () => void;
   className?: string;
+  pendingEnrollmentCount?: number;
 };
 
 function filterNavGroups(query: string) {
@@ -27,7 +28,11 @@ function filterNavGroups(query: string) {
   })).filter((group) => group.items.length > 0);
 }
 
-export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
+export function AdminSidebar({
+  onNavigate,
+  className,
+  pendingEnrollmentCount = 0,
+}: AdminSidebarProps) {
   const pathname = usePathname();
   const { signOut } = useClerk();
   const [search, setSearch] = useState('');
@@ -67,7 +72,7 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
             placeholder="Cari menu..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="h-9 border-sidebar-border bg-sidebar-accent/30 pl-9 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50"
+            className="h-9 border-sidebar-border bg-sidebar-foreground/10 pl-9 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/50"
           />
         </div>
       </div>
@@ -111,6 +116,11 @@ export function AdminSidebar({ onNavigate, className }: AdminSidebarProps) {
                       >
                         <Icon className="size-[18px] shrink-0" strokeWidth={1.5} />
                         <span className="truncate">{item.label}</span>
+                        {item.id === 'pembayaran' && pendingEnrollmentCount > 0 ? (
+                          <span className="ml-auto flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                            {pendingEnrollmentCount > 99 ? '99+' : pendingEnrollmentCount}
+                          </span>
+                        ) : null}
                       </Link>
                     </li>
                   );

@@ -29,7 +29,7 @@ import {
   type LessonQuizQuestion,
 } from '@/features/learning/components/lesson-quiz-panel';
 import { buildLessonFlashcards } from '@/features/learning/lib/build-lesson-flashcards';
-import { markLessonComplete } from '@/features/learning/actions/learning-actions';
+import { markLessonComplete, recordFlashcardVisit } from '@/features/learning/actions/learning-actions';
 import {
   getDefaultExpandedModuleIds,
   groupSyllabusWithDbModules,
@@ -40,6 +40,7 @@ import {
   resolveLessonVideoUrl,
 } from '@/features/learning/lib/lesson-video';
 import { LessonQaSection } from './lesson-qa-section';
+import type { LessonCommentView } from '@/features/learning/actions/lesson-qa-actions';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
@@ -88,6 +89,7 @@ export type LessonWorkspaceProps = {
   };
   questions: LessonQuizQuestion[];
   initialTab?: ContentTab;
+  lessonComments?: LessonCommentView[];
 };
 
 type ContentTab = 'video' | 'flashcard' | 'quiz';
@@ -291,6 +293,7 @@ export function LessonWorkspace({
   materials,
   questions,
   initialTab = 'video',
+  lessonComments = [],
 }: LessonWorkspaceProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -307,6 +310,14 @@ export function LessonWorkspace({
       setMobileCurriculumOpen(false);
     }
   }
+
+  useEffect(() => {
+    if (initialTab === 'flashcard') {
+      startTransition(async () => {
+        await recordFlashcardVisit(lesson.id);
+      });
+    }
+  }, [lesson.id, initialTab, startTransition]);
 
   useEffect(() => {
     if (!mobileCurriculumOpen) return;
@@ -348,7 +359,13 @@ export function LessonWorkspace({
 
   function handleTabChange(tab: ContentTab) {
     setActiveTab(tab);
-    if (tab === 'flashcard') setFlashcardVisited(true);
+    if (tab === 'flashcard') {
+      setFlashcardVisited(true);
+      startTransition(async () => {
+        await recordFlashcardVisit(lesson.id);
+        router.refresh();
+      });
+    }
   }
 
   const xpTasks = [
@@ -490,7 +507,11 @@ export function LessonWorkspace({
 
           {/* Q&A / forum section — only visible in video tab */}
           {activeTab === 'video' && (
-            <LessonQaSection lessonId={lesson.id} lessonTitle={lesson.title} />
+            <LessonQaSection
+              lessonId={lesson.id}
+              lessonTitle={lesson.title}
+              initialComments={lessonComments}
+            />
           )}
 
           {activeTab === 'flashcard' && (

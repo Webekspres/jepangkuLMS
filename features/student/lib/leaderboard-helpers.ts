@@ -54,7 +54,33 @@ export function getLeaderboardUserContext(
   };
 }
 
+export type LeaderboardPodiumSlot = {
+  entry: StudentLeaderboardEntry;
+  /** 0 = perak (#2), 1 = emas (#1), 2 = perunggu (#3) */
+  metaIndex: 0 | 1 | 2;
+  center: boolean;
+};
+
+/** Podium layout — works with 1, 2, or 3+ peserta (urutan visual: kiri #2, tengah #1, kanan #3). */
+export function getLeaderboardPodiumSlots(top10: StudentLeaderboardEntry[]): LeaderboardPodiumSlot[] {
+  if (top10.length === 0) return [];
+  if (top10.length === 1) {
+    return [{ entry: top10[0]!, metaIndex: 1, center: true }];
+  }
+  if (top10.length === 2) {
+    return [
+      { entry: top10[1]!, metaIndex: 0, center: false },
+      { entry: top10[0]!, metaIndex: 1, center: true },
+    ];
+  }
+  return [
+    { entry: top10[1]!, metaIndex: 0, center: false },
+    { entry: top10[0]!, metaIndex: 1, center: true },
+    { entry: top10[2]!, metaIndex: 2, center: false },
+  ];
+}
+
+/** @deprecated Prefer getLeaderboardPodiumSlots */
 export function getLeaderboardPodium(top10: StudentLeaderboardEntry[]): StudentLeaderboardEntry[] {
-  if (top10.length < 3) return top10.slice(0, 3);
-  return [top10[1]!, top10[0]!, top10[2]!];
+  return getLeaderboardPodiumSlots(top10).map((slot) => slot.entry);
 }

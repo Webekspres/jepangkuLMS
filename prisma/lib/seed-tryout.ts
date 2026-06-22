@@ -1,4 +1,4 @@
-import type { LevelJLPT, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 type TryoutQuestionSeed = {
   sortOrder: number;

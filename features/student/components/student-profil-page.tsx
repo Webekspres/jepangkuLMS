@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
+import type { XpActivityRow } from '@/lib/lms/xp-activity-types';
+import { formatXpActivityTime } from '@/lib/lms/xp-activity-types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
@@ -111,14 +112,15 @@ function QuickAction({
   );
 }
 
-export function StudentProfilPage() {
+export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] }) {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
 
   const displayName = core.displayName ?? identity?.displayName ?? 'Pengguna';
   const email = identity?.email ?? core.email;
-  const avatarUrl = identity?.imageUrl ?? core.avatarUrl;
+  const avatarUrl = core.avatarUrl ?? identity?.imageUrl;
   const initial = displayName.charAt(0).toUpperCase();
+  const badgeTitle = core.equippedBadgeTitle;
 
   const levelLabel = core.levelTitle ? `${core.levelTitle} · Lv.${core.level}` : `Level ${core.level}`;
 
@@ -147,10 +149,16 @@ export function StudentProfilPage() {
                 <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                   {displayName}
                 </h1>
+                {badgeTitle ? (
+                  <p className="mt-1 text-sm font-semibold text-brand-yellow">{badgeTitle}</p>
+                ) : null}
                 <p className="mt-0.5 text-sm text-white/60">{levelLabel}</p>
                 {email && (
                   <p className="mt-1 text-xs font-mono text-white/40 truncate">{email}</p>
                 )}
+                {core.bio ? (
+                  <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/70">{core.bio}</p>
+                ) : null}
                 {/* XP / points badge row */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-yellow/20 px-2.5 py-1 text-xs font-bold text-brand-yellow">
@@ -283,35 +291,35 @@ export function StudentProfilPage() {
         </section>
       )}
 
-      {/* ── XP Activity (mock) ─────────────────────────────────────────────── */}
+      {/* ── XP Activity ─────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5 sm:px-6">
           <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
             <BarChart3 className="size-4 text-primary" />
             Aktivitas XP Terbaru
           </h2>
-          <Badge variant="secondary" className="text-[10px]">Segera tersedia</Badge>
         </div>
-        <div className="divide-y divide-border">
-          {[
-            { label: 'Menyelesaikan lesson Hiragana Vokal', xp: '+10 XP', time: 'Hari ini' },
-            { label: 'Lulus quiz dengan skor 85%', xp: '+50 XP', time: 'Kemarin' },
-            { label: 'Menjelajahi flashcard Katakana', xp: '+10 XP', time: '3 hari lalu' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between px-5 py-3 sm:px-6">
-              <div>
-                <p className="text-sm font-medium text-foreground">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.time}</p>
+        {xpActivity.length === 0 ? (
+          <div className="px-5 py-8 text-center sm:px-6">
+            <p className="text-sm text-muted-foreground">
+              Belum ada aktivitas XP. Selesaikan pelajaran atau kuis untuk mulai mengumpulkan XP.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {xpActivity.map((item) => (
+              <div key={item.id} className="flex items-center justify-between px-5 py-3 sm:px-6">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatXpActivityTime(item.createdAt)}
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-bold text-primary">+{item.xpGained} XP</span>
               </div>
-              <span className="shrink-0 text-sm font-bold text-primary">{item.xp}</span>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-border px-5 py-3 text-center sm:px-6">
-          <p className="text-xs text-muted-foreground">
-            Riwayat XP lengkap akan tersedia setelah integrasi Core selesai.
-          </p>
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

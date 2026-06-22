@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -34,6 +34,8 @@ import {
   type BadgeSort,
 } from './student-achievements-data';
 import { STUDENT_ROUTES } from './student-routes';
+import { equipStudentBadge } from '@/features/student/actions/profile-actions';
+import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 
 const FILTER_OPTIONS: { id: BadgeFilter; label: string }[] = [
   { id: 'all', label: 'Semua' },
@@ -112,7 +114,7 @@ function BadgeCard({
         {badge.name}
       </p>
       <p className="mt-0.5 text-[10px] text-muted-foreground">
-        {badge.unlocked ? badge.date : 'Terkunci'}
+        {badge.unlocked ? badge.date : badge.requirementText ?? 'Terkunci'}
       </p>
       {badge.unlocked && badge.xp > 0 && (
         <div className={cn('mt-2 inline-flex items-center gap-0.5 rounded-lg px-2 py-0.5', style.chip)}>
@@ -208,9 +210,13 @@ function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; i
 function BadgeDetailModal({
   badge,
   onClose,
+  onEquip,
+  isEquipping,
 }: {
   badge: AchievementBadge | null;
   onClose: () => void;
+  onEquip: (badgeId: string) => void;
+  isEquipping: boolean;
 }) {
   if (!badge) return null;
   const style = BADGE_RARITY_STYLES[badge.rarity];
@@ -242,7 +248,14 @@ function BadgeDetailModal({
               {badge.rarity}
             </span>
             <h3 className="mt-3 text-xl font-extrabold text-foreground">{badge.name}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{badge.desc}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {badge.desc || badge.requirementText}
+            </p>
+            {!badge.unlocked && badge.requirementText ? (
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                Syarat: {badge.requirementText}
+              </p>
+            ) : null}
             <div className="mt-5 grid grid-cols-2 gap-3">
               {badge.xp > 0 && (
                 <div className="rounded-xl border border-border bg-muted/30 p-3">
@@ -257,9 +270,28 @@ function BadgeDetailModal({
                 <p className="text-xs text-muted-foreground">Diraih</p>
               </div>
             </div>
-            <Button className="mt-5 w-full" onClick={onClose}>
-              Keren!
-            </Button>
+            {badge.unlocked ? (
+              <div className="mt-4 flex flex-col gap-2">
+                {!badge.isEquipped ? (
+                  <Button
+                    className="w-full"
+                    disabled={isEquipping}
+                    onClick={() => onEquip(badge.id)}
+                  >
+                    Pasang sebagai title
+                  </Button>
+                ) : (
+                  <p className="text-center text-xs font-semibold text-primary">✓ Title aktif</p>
+                )}
+                <Button variant="outline" className="w-full" onClick={onClose}>
+                  Tutup
+                </Button>
+              </div>
+            ) : (
+              <Button className="mt-5 w-full" onClick={onClose}>
+                Keren!
+              </Button>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -285,6 +317,7 @@ export function StudentAchievementsPage({
   const [sort, setSort] = useState<BadgeSort>('default');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [isEquipping, startEquipTransition] = useTransition();
 
   const filteredBadges = useMemo(
     () => filterAchievementBadges(badges, filter, rarityFilter, sort),
@@ -591,7 +624,18 @@ export function StudentAchievementsPage({
         </aside>
       </div>
 
-      <BadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
+      <BadgeDetailModal
+        badge={selectedBadge}
+        isEquipping={isEquipping}
+        onClose={() => setSelectedBadge(null)}
+        onEquip={(badgeId) => {
+          startEquipTransition(async () => {
+            await equipStudentBadge(badgeId);
+            window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+            setSelectedBadge(null);
+          });
+        }}
+      />
     </div>
   );
 }

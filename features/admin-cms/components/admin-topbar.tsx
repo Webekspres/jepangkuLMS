@@ -4,6 +4,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChevronRight, Menu } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/nextjs';
+import { NotificationBell } from '@/features/notifications/components/notification-bell';
+import { getAdminBreadcrumbs } from '@/features/admin-cms/lib/admin-nav';
+import { AUTH_ROUTES, ADMIN_ROUTES } from '@/lib/auth/constants';
+import { signOutFromApp } from '@/lib/auth/sign-out-client';
+import { ProfileThemeToggle } from '@/components/theme/profile-theme-toggle';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,10 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { getAdminBreadcrumbs } from '@/features/admin-cms/lib/admin-nav';
-import { AUTH_ROUTES } from '@/lib/auth/constants';
-import { signOutFromApp } from '@/lib/auth/sign-out-client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type AdminTopbarProps = {
   onMenuClick?: () => void;
@@ -76,41 +78,52 @@ export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
         })}
       </nav>
 
-      {user ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex shrink-0 items-center gap-2 rounded-lg p-1 transition-opacity hover:opacity-80"
-              aria-label="Menu pengguna"
-            >
-              <Avatar className="size-9 border border-border">
-                <AvatarImage src={user.imageUrl} alt={displayName} />
-                <AvatarFallback className="bg-brand-navy text-xs font-bold text-white">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-semibold">{displayName}</p>
-              <p className="text-xs text-muted-foreground">Admin CMS</p>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={AUTH_ROUTES.dashboard}>Dashboard Siswa</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => void signOutFromApp(signOut).then(() => router.push('/'))}
-            >
-              Keluar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
+      <div className="flex shrink-0 items-center gap-2">
+        <NotificationBell
+          footerHref={ADMIN_ROUTES.pembayaran}
+          footerLabel="Kelola enrollment"
+        />
+
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex shrink-0 items-center gap-2 rounded-lg p-1 transition-opacity hover:opacity-80"
+                aria-label="Menu pengguna"
+              >
+                <Avatar className="size-9 border border-border">
+                  <AvatarImage src={user.imageUrl} alt={displayName} />
+                  <AvatarFallback className="bg-brand-navy text-xs font-bold text-white">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 p-2">
+              <DropdownMenuLabel className="font-normal px-1">
+                <p className="text-sm font-semibold">{displayName}</p>
+                <p className="text-xs text-muted-foreground">Admin CMS</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="px-1 py-1">
+                <ProfileThemeToggle />
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={AUTH_ROUTES.dashboard}>Dashboard Siswa</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => void signOutFromApp(signOut).then(() => router.push('/'))}
+              >
+                Keluar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+      </div>
     </header>
   );
 }

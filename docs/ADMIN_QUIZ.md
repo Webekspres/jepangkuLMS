@@ -3,28 +3,27 @@
 | Meta | Nilai |
 | :--- | :--- |
 | **Status** | ✅ Keputusan final MVP |
-| **Terakhir diperbarui** | 2026-06-18 |
+| **Terakhir diperbarui** | 2026-06-19 |
 
 ## Ringkasan
 
-Route sitemap `/admin/quiz` dan `/admin/quiz/import` **tidak** mengimplementasikan CMS bank soal terpusat.
+Route sitemap `/admin/quiz` dan `/admin/quiz/import` **tidak** mengimplementasikan CMS bank soal terpusat dan **dihapus dari sidebar admin** (Juni 2026).
 
-Soal kuis dikelola **per pelajaran (lesson)** di dalam lesson workspace admin:
-
-```text
-/admin/kursus → [course] → modul → pelajaran → tab Bank Soal
-```
+| Jenis soal | Lokasi CMS |
+| :--- | :--- |
+| **Kuis per pelajaran** | `/admin/kursus → modul → pelajaran → tab Bank Soal` (lesson workspace) |
+| **Tryout JLPT** | `/admin/tryout → [sesi] → Soal` — filter level N5–N1 + bagian MOJI_GOI / BUNPOU_DOKKAI / CHOKAI |
 
 ## Alasan
 
-1. Soal di schema Prisma terikat `lessonId` — natural fit dengan konten pembelajaran.
-2. Admin sudah bisa CRUD soal + opsi jawaban di lesson workspace.
-3. Menghindari duplikasi UI dan sinkronisasi soal global vs soal lesson.
+1. Soal kuis di schema Prisma terikat `lessonId` — natural fit dengan konten pembelajaran.
+2. Soal tryout terikat `tryoutSessionId` + `tryoutLevel` — dikelola per sesi simulasi.
+3. Menghindari duplikasi UI dan menu "Bank Soal" global yang membingungkan.
 
-## Route `/admin/quiz`
+## Route `/admin/quiz` (legacy)
 
-Menampilkan halaman informasi + link ke Kelola Kursus.
+Halaman informasi + redirect ke Kelola Kursus — **tidak** muncul di sidebar.
 
-## Tryout JLPT
+## Import CSV
 
-Soal tryout (`Question.type = TRYOUT`, `lessonId = null`) dikelola via seed / migrasi data, bukan CMS admin Fase 1.
+Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (kolom `quiz_*`).

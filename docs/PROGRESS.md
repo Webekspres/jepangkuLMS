@@ -7,14 +7,14 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase** | 1 (MVP) |
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
-| **Terakhir diperbarui** | 2026-06-18 |
+| **Terakhir diperbarui** | 2026-06-19 |
 | **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **72%** (62 item terlacak) |
+| **Progres global Fase 1** | **75%** (62 item terlacak) |
 
 ### Progres global
 
 ```text
-[██████████████░░░░░░] 72%
+[███████████████░░░░░] 75%
 ```
 
 | Area | Bobot* | ✅ | 🟡 | ⬜ | % area |
@@ -65,7 +65,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Prisma schema PostgreSQL LMS | ✅ | + `LiveClass`, `TryoutSession`, `isFeatured` |
 | `lib/prisma.ts` singleton | ✅ | |
 | `lib/core/` JWT + award XP | 🟡 | Dev OK; prod Core token belum diverifikasi penuh |
-| `proxy.ts` auth + admin gate | ✅ | Clerk + role Core JWT |
+| `proxy.ts` auth + admin gate | ✅ | Clerk + Core JWT roles + LMS DB `LMS_ADMIN` |
 | Auth Clerk sign-in/sign-up | ✅ | |
 | TanStack Query providers | ✅ | Dipakai terbatas |
 | Zustand quiz store | 🟡 | Ada; inline quiz di lesson workspace |
@@ -102,10 +102,10 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :--- | :---: | :--- |
 | `/dashboard` | ✅ | Continue learning + JLPT path + **XP mingguan real** + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` | ✅ | Enrollment + pembayaran |
-| `/dashboard/belajar/...` | ✅ | Video, materi, kuis inline + Q&A comment section (mockup) |
+| `/dashboard/belajar/...` | ✅ | Video, materi, kuis inline + **Q&A DB (reply + @mention)** |
 | `/dashboard/kuis/.../hasil` | ✅ | |
-| `/dashboard/leaderboard` | 🟡 | LMS local points (bukan Core global XP) |
-| `/dashboard/profil` | 🟡 | Redesign: hero banner + stats + quick actions + edit profil page (`/edit`) |
+| `/dashboard/leaderboard` | ✅ | LMS poin + podium hierarki + mobile responsive |
+| `/dashboard/profil` | ✅ | Hero + stats + edit (display name, avatar R2, badge title) |
 | `/dashboard/achievements` | ✅ | Badge LMS + **milestone JLPT dari enrollment** |
 | `/dashboard/live-class` | ✅ | Jadwal live class dari DB |
 | `/dashboard/tryout` | ✅ | Pilih sesi/level + **ruang ujian JLPT** (Fase 1 N5) |
@@ -114,7 +114,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Route | Status | Catatan |
 | :--- | :---: | :--- |
-| `/admin/dashboard` | ✅ | |
+| `/admin/dashboard` | ✅ | Analytics enrollment, live class, tryout |
+| `/admin/live-class` | ✅ | CRUD jadwal live class |
+| `/admin/tryout` | ✅ | CRUD sesi + **CMS soal per level** (`/admin/tryout/[id]/soal`) |
 | `/admin/pembayaran` | ✅ | Enrollment PENDING/ACTIVE |
 | `/admin/kursus` + modul + lesson workspace | ✅ | CRUD + bank soal **per pelajaran** |
 | `/admin/kursus/import` | ✅ | CSV kursus |
@@ -133,7 +135,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **tryout** | ✅ | Selection + exam workspace + submit |
 | **live-class** | ✅ | Jadwal dari `LiveClass` model |
 | **public-api** | ✅ | Partner katalog |
-| **gamification** | 🟡 | LMS points/badge lokal; Core XP best-effort |
+| **gamification** | ✅ | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
 | **quiz-engine** | 🟡 | Inline di lesson; bukan focus-mode terpisah |
 
 ---
@@ -148,7 +150,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Seed N5 + materi XLSX + tryout N5 Fase 1 | ✅ |
 | Marketing katalog dari Prisma | ✅ |
 | Server Actions write paths | ✅ |
-| Award XP ke Core | 🟡 |
+| Award XP ke Core | 🟡 | `verify:core-gamification` script; flashcard/tryout wired |
 | News → Partner API wiring | ⬜ |
 
 ---
@@ -170,7 +172,6 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 - Integrasi News Partner API v1
 - Tryout semua level N4–N1 + sesi Fase 2–4 penuh
 - Leaderboard global dari Core API
-- Admin CMS live class & tryout bank
 
 ---
 
@@ -179,6 +180,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Tanggal | Perubahan |
 | :--- | :--- |
 | 2026-06-18 | Wire `/kursus` marketing ke Prisma + filter unggulan; dashboard XP mingguan & live class real; achievements milestone real; halaman Live Class & JLPT Tryout; dokumentasi ADMIN_QUIZ; update tracker 72% |
+| 2026-06-19 | R2 badge+avatar; CMS soal tryout; DnD urut modul/pelajaran; penamaan kurikulum UI-only; hapus Bank Soal sidebar |
+| 2026-06-19 | Badge unlock (FIRST_LESSON/QUIZ/TRYOUT) + bonus XP Core, equip badge sebagai title, LmsRole LMS_ADMIN/STUDENT + `/admin/users`, profil LMS (displayName/avatar), lint CI bersih |
+| 2026-06-19 | Gamifikasi: Core XP+poin unified, XP mingguan real (LmsXpEvent), badge CMS admin+R2, Q&A DB, leaderboard podium UI, UAT checklist, verify:core-gamification |
 | 2026-06-18 | UI polish: hero elliptic rounded bottom; MarketingPageHero dark navy di semua halaman publik; logo selalu berwarna (nav/footer/auth); fix navbar height glitch; CTA banner bg match pricing; Q&A section di lesson workspace; redesign & edit profil page siswa |
 | 2026-06-05 | `CORE_INTEGRATION_STATUS.md` blocker Core 500 |
 | 2026-06-03 | Dokumen awal progress tracker |

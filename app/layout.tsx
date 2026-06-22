@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { AppProviders } from "@/components/providers";
 import "./globals.css";
@@ -34,11 +33,6 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col">
-        <Script
-          id="vidstack-provider-destroyed-guard"
-          src="/scripts/vidstack-provider-destroyed-guard.js"
-          strategy="beforeInteractive"
-        />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

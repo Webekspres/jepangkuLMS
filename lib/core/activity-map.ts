@@ -3,6 +3,9 @@
 export const LMS_TO_CORE_ACTIVITY = {
   lesson_complete: 'COMPLETED_LESSON',
   quiz_complete: 'COMPLETED_QUIZ',
+  flashcard_visit: 'COMPLETED_LESSON',
+  tryout_complete: 'COMPLETED_QUIZ',
+  badge_unlock: 'COMPLETED_LESSON',
 } as const;
 
 export type LmsActivityKind = keyof typeof LMS_TO_CORE_ACTIVITY;

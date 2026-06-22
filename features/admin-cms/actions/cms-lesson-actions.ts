@@ -5,25 +5,25 @@ import { redirect } from 'next/navigation';
 import { Prisma } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
-import {
-  ensureUniqueLessonSlug,
-  resolveSlugInput,
-} from '@/lib/lms/slug';
+import { ensureUniqueLessonSlug, resolveSlugInput } from '@/lib/lms/slug';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { sanitizeCurriculumTitle } from '@/features/admin-cms/lib/curriculum-display';
 import {
   lessonCreateFormSchema,
   lessonUpdateFormSchema,
 } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
+import { getNextLessonOrder } from '@/features/admin-cms/lib/load-admin-cms-data';
 
 function parseLessonCreateForm(formData: FormData) {
+  const orderRaw = formData.get('order');
   return lessonCreateFormSchema.safeParse({
     moduleId: formData.get('moduleId'),
     courseId: formData.get('courseId'),
     title: formData.get('title'),
     slug: formData.get('slug') ?? '',
-    order: formData.get('order'),
+    order: orderRaw === null || orderRaw === '' ? undefined : orderRaw,
     content: formData.get('content') ?? '',
     videoUrl: formData.get('videoUrl') ?? '',
   });
@@ -35,7 +35,6 @@ function parseLessonUpdateForm(formData: FormData) {
     courseId: formData.get('courseId'),
     title: formData.get('title'),
     slug: formData.get('slug'),
-    order: formData.get('order'),
     content: formData.get('content') ?? '',
     videoUrl: formData.get('videoUrl') ?? '',
   });
@@ -56,16 +55,18 @@ export async function createLessonAction(formData: FormData): Promise<CmsActionR
   }
 
   const data = parsed.data;
-  const base = resolveSlugInput(data.slug, data.title, 'pelajaran', data.order);
+  const title = sanitizeCurriculumTitle(data.title);
+  const order = data.order ?? (await getNextLessonOrder(data.moduleId));
+  const base = resolveSlugInput(data.slug, title, 'pelajaran', order);
   const slug = await ensureUniqueLessonSlug(prisma, base);
 
   try {
     const lesson = await prisma.lesson.create({
       data: {
         moduleId: data.moduleId,
-        title: data.title,
+        title,
         slug,
-        order: data.order,
+        order,
         content: data.content || null,
         videoUrl: data.videoUrl || null,
       },
@@ -93,14 +94,14 @@ export async function updateLessonAction(
   }
 
   const data = parsed.data;
+  const title = sanitizeCurriculumTitle(data.title);
   try {
     await prisma.lesson.update({
       where: { id: lessonId },
       data: {
         moduleId: data.moduleId,
-        title: data.title,
+        title,
         slug: data.slug,
-        order: data.order,
         content: data.content || null,
         videoUrl: data.videoUrl || null,
       },
@@ -116,6 +117,38 @@ export async function updateLessonAction(
     }
     throw error;
   }
+}
+
+export async function reorderLessonsAction(
+  courseId: string,
+  moduleId: string,
+  orderedIds: string[],
+): Promise<CmsActionResult> {
+  await requireAdminAction();
+
+  const lessons = await prisma.lesson.findMany({
+    where: { moduleId },
+    select: { id: true },
+    orderBy: { order: 'asc' },
+  });
+
+  if (orderedIds.length !== lessons.length) {
+    return { ok: false, message: 'Daftar urutan pelajaran tidak lengkap.' };
+  }
+
+  const validIds = new Set(lessons.map((row) => row.id));
+  if (!orderedIds.every((id) => validIds.has(id))) {
+    return { ok: false, message: 'Pelajaran tidak valid untuk modul ini.' };
+  }
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.lesson.update({ where: { id }, data: { order: index + 1 } }),
+    ),
+  );
+
+  revalidateLessonPaths(courseId, moduleId);
+  return { ok: true };
 }
 
 export async function deleteLessonAction(
