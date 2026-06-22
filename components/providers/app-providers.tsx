@@ -6,6 +6,7 @@ import { AppSplash } from '@/components/app-splash';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
+import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
@@ -16,7 +17,10 @@ export default function AppProviders({ children }: { children: React.ReactNode }
     <ThemeProvider>
       <ClerkProviderThemed>
         <QueryProvider>
-          <AppSplash>{children}</AppSplash>
+          <AppSplash>
+            <CoreSessionSync />
+            {children}
+          </AppSplash>
         </QueryProvider>
       </ClerkProviderThemed>
     </ThemeProvider>
