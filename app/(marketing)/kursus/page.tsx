@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { CoursesCatalogPage } from '@/features/learning/components';
 import { loadMarketingCatalog } from '@/features/learning/lib/load-marketing-courses';
 
+/** Render at request time — `next build` (CI/Docker) has no PostgreSQL. Data cached via unstable_cache. */
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Katalog Kursus — JepangKu LMS',
   description:
