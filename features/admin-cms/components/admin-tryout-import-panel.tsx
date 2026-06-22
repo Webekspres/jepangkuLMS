@@ -86,14 +86,14 @@ export function AdminTryoutImportPanel({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" asChild>
+        <div className="flex items-center justify-between gap-2">
+          <Button type="button" variant="outline" size="sm" className="flex-1" asChild>
             <a href="/api/admin/tryout/template?format=csv" download>
               <Download className="size-4" />
               Template CSV
             </a>
           </Button>
-          <Button type="button" variant="outline" size="sm" asChild>
+          <Button type="button" variant="outline" size="sm" className="flex-1" asChild>
             <a href="/api/admin/tryout/template?format=xlsx" download>
               <Download className="size-4" />
               Template Excel

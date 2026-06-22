@@ -277,7 +277,8 @@
 .btn-3d-outline:hover,
 [data-slot="button"][data-variant="outline"]:hover {
   background-color: #fff !important;
-  background-image: linear-gradient(to bottom, #fff, #fff) !important;
+  background-image: linear-gradient(to bottom, #fff, #f8fafc) !important;
+  color: #1e293b !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
@@ -316,6 +317,7 @@
 .btn-3d-outline-dark:hover {
   background-color: var(--muted) !important;
   background-image: linear-gradient(to bottom, color-mix(in srgb, var(--card) 70%, white 8%), var(--muted)) !important;
+  color: var(--foreground) !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.14) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.06) inset,

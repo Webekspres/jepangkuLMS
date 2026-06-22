@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
@@ -242,10 +243,6 @@ export function TryoutExamWorkspace({
     setPhase('section-intro');
   }
 
-  if (!activeSectionMeta || !activeSection) {
-    return null;
-  }
-
   const shellProps = {
     sessionTitle,
     level,
@@ -253,6 +250,33 @@ export function TryoutExamWorkspace({
     isUrgent,
     formatTime,
   };
+
+  if (sectionsInExam.length === 0) {
+    return (
+      <TryoutFocusShell
+        sessionTitle={sessionTitle}
+        level={level}
+        timeLeft={timeLeft}
+        isUrgent={isUrgent}
+        formatTime={formatTime}
+      >
+        <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-8 text-center">
+          <h2 className="text-lg font-bold text-foreground">Belum ada soal untuk ujian ini</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Bank soal level {level} belum lengkap. Admin mungkin masih menyiapkan salah satu bagian
+            (MOJI GOI, BUNPOU DOKKAI, atau CHOKAI).
+          </p>
+          <Button asChild className="mt-6">
+            <Link href={STUDENT_ROUTES.tryout}>Kembali ke Pilih Sesi</Link>
+          </Button>
+        </div>
+      </TryoutFocusShell>
+    );
+  }
+
+  if (!activeSectionMeta || !activeSection) {
+    return null;
+  }
 
   if (phase === 'section-intro') {
     return (

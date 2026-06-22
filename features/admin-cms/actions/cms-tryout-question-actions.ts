@@ -5,6 +5,7 @@ import type { LevelJLPT } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { renumberTryoutQuestionsForLevel } from '@/features/admin-cms/lib/renumber-tryout-questions';
 import { type TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
 import { tryoutQuestionSchema, type TryoutQuestionInput } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
@@ -149,6 +150,61 @@ export async function updateTryoutQuestionAction(
   return { ok: true };
 }
 
+export async function reorderTryoutQuestionsAction(
+  sessionId: string,
+  level: LevelJLPT,
+  section: TryoutSectionValue,
+  orderedIds: string[],
+): Promise<CmsActionResult> {
+  await requireAdminAction();
+  await assertTryoutSession(sessionId);
+
+  const rows = await prisma.question.findMany({
+    where: {
+      tryoutSessionId: sessionId,
+      tryoutLevel: level,
+      tryoutSection: section,
+      type: 'TRYOUT',
+    },
+    select: { id: true },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  if (orderedIds.length !== rows.length) {
+    return { ok: false, message: 'Daftar urutan soal tidak lengkap.' };
+  }
+
+  const validIds = new Set(rows.map((row) => row.id));
+  if (!orderedIds.every((id) => validIds.has(id))) {
+    return { ok: false, message: 'Soal tidak valid untuk bagian ini.' };
+  }
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.question.update({ where: { id }, data: { sortOrder: index + 1 } }),
+    ),
+  );
+
+  revalidateTryout(sessionId);
+  return { ok: true };
+}
+
+/** Renumber sortOrder 1..n per section — fixes legacy global numbering. */
+export async function normalizeTryoutQuestionSortOrdersAction(
+  sessionId: string,
+  level: LevelJLPT,
+): Promise<CmsActionResult> {
+  await requireAdminAction();
+  await assertTryoutSession(sessionId);
+
+  const updated = await renumberTryoutQuestionsForLevel(sessionId, level);
+  if (updated > 0) {
+    revalidateTryout(sessionId);
+  }
+
+  return { ok: true };
+}
+
 export async function deleteTryoutQuestionAction(
   sessionId: string,
   questionId: string,
@@ -161,7 +217,11 @@ export async function deleteTryoutQuestionAction(
   });
   if (!existing) return { ok: false, message: 'Soal tryout tidak ditemukan.' };
 
+  const level = existing.tryoutLevel!;
+
   await prisma.question.delete({ where: { id: questionId } });
+  await renumberTryoutQuestionsForLevel(sessionId, level);
+
   revalidateTryout(sessionId);
   return { ok: true };
 }

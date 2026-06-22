@@ -134,6 +134,7 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
         </h2>
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li>· Tiga bagian terpisah: MOJI GOI → BUNPOU DOKKAI → CHOKAI.</li>
+          <li>· Bagian tanpa soal (mis. CHOKAI belum diisi) dilewati otomatis.</li>
           <li>· Setiap bagian diawali halaman petunjuk, lalu soal fokus per bagian.</li>
           <li>· Timer global — waktu habis otomatis tersimpan & terkirim.</li>
           <li>· Setelah selesai, lihat analisa jawaban benar/salah + penjelasan.</li>

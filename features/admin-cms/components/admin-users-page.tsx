@@ -9,7 +9,6 @@ import { updateUserRoleAction } from '@/features/admin-cms/actions/cms-user-acti
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminUserRow } from '@/features/admin-cms/lib/load-admin-users';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
@@ -141,11 +140,6 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                         <SelectItem value="LMS_ADMIN">Admin</SelectItem>
                       </SelectContent>
                     </Select>
-                    {user.role === 'LMS_ADMIN' ? (
-                      <Badge className="mt-1" variant="secondary">
-                        Admin
-                      </Badge>
-                    ) : null}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">

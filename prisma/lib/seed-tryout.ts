@@ -1,16 +1,16 @@
 import type { PrismaClient } from '@prisma/client';
+import { renumberTryoutQuestionsForLevel } from '@/features/admin-cms/lib/renumber-tryout-questions';
 
 type TryoutQuestionSeed = {
-  sortOrder: number;
   section: 'MOJI_GOI' | 'BUNPOU_DOKKAI' | 'CHOKAI';
   questionText: string;
   explanation: string;
   options: { text: string; isCorrect: boolean }[];
 };
 
+/** Soal N5 Fase 1 — urutan per bagian (sortOrder 1..n di dalam section). */
 const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
   {
-    sortOrder: 1,
     section: 'MOJI_GOI',
     questionText:
       'つぎのことばの読み方として、もっともよいものを、1・2・3・4からえらんでください。',
@@ -23,7 +23,6 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
     ],
   },
   {
-    sortOrder: 2,
     section: 'MOJI_GOI',
     questionText: '（　）に なにを いれますか。もっとも よいものを えらんでください。',
     explanation: '「〜てから」は「after doing ~」の意味。食べてから = after eating.',
@@ -35,44 +34,6 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
     ],
   },
   {
-    sortOrder: 3,
-    section: 'BUNPOU_DOKKAI',
-    questionText: '（　）に なにを いれますか。もっとも よいものを えらんでください。',
-    explanation: '「〜たいと思っています」 = I am thinking of wanting to ~.',
-    options: [
-      { text: 'よう', isCorrect: false },
-      { text: 'ない', isCorrect: false },
-      { text: 'たい', isCorrect: true },
-      { text: 'てい', isCorrect: false },
-    ],
-  },
-  {
-    sortOrder: 4,
-    section: 'BUNPOU_DOKKAI',
-    questionText: '文章を読んで、しつもんに こたえてください。\n田中さんは毎朝６時に起きます。\n\nQ: 田中さんは何時に起きますか。',
-    explanation: '「毎朝６時に起きます」から、答えは６時です。',
-    options: [
-      { text: '５時', isCorrect: false },
-      { text: '６時', isCorrect: true },
-      { text: '７時', isCorrect: false },
-      { text: '８時', isCorrect: false },
-    ],
-  },
-  {
-    sortOrder: 5,
-    section: 'CHOKAI',
-    questionText:
-      'スクリプトを読んで、しつもんに こたえてください。\n女：「すみません、図書館はどこですか。」\n男：「あそこの建物の隣にあります。」\n\nQ: 図書館はどこにありますか？',
-    explanation: '「隣」(となり) = next to.',
-    options: [
-      { text: '建物の中', isCorrect: false },
-      { text: '建物の隣', isCorrect: true },
-      { text: '建物の前', isCorrect: false },
-      { text: '建物の後ろ', isCorrect: false },
-    ],
-  },
-  {
-    sortOrder: 6,
     section: 'MOJI_GOI',
     questionText: 'このことばと だいたい おなじ いみの ことばは どれですか。',
     explanation: 'うれしい (嬉しい) = happy/glad.',
@@ -84,7 +45,39 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
     ],
   },
   {
-    sortOrder: 7,
+    section: 'MOJI_GOI',
+    questionText: 'つぎのことばの使い方として、もっとも よいものを えらんでください。',
+    explanation: '「大切な」(たいせつな) = important/precious.',
+    options: [
+      { text: 'にぎやか', isCorrect: false },
+      { text: '大切', isCorrect: true },
+      { text: '静か', isCorrect: false },
+      { text: '広い', isCorrect: false },
+    ],
+  },
+  {
+    section: 'BUNPOU_DOKKAI',
+    questionText: '（　）に なにを いれますか。もっとも よいものを えらんでください。',
+    explanation: '「〜たいと思っています」 = I am thinking of wanting to ~.',
+    options: [
+      { text: 'よう', isCorrect: false },
+      { text: 'ない', isCorrect: false },
+      { text: 'たい', isCorrect: true },
+      { text: 'てい', isCorrect: false },
+    ],
+  },
+  {
+    section: 'BUNPOU_DOKKAI',
+    questionText: '文章を読んで、しつもんに こたえてください。\n田中さんは毎朝６時に起きます。\n\nQ: 田中さんは何時に起きますか。',
+    explanation: '「毎朝６時に起きます」から、答えは６時です。',
+    options: [
+      { text: '５時', isCorrect: false },
+      { text: '６時', isCorrect: true },
+      { text: '７時', isCorrect: false },
+      { text: '８時', isCorrect: false },
+    ],
+  },
+  {
     section: 'BUNPOU_DOKKAI',
     questionText: '（　）に なにを いれますか。もっとも よいものを えらんでください。',
     explanation: '「〜できるようになりたい」= want to become able to ~.',
@@ -96,7 +89,6 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
     ],
   },
   {
-    sortOrder: 8,
     section: 'BUNPOU_DOKKAI',
     questionText:
       '文章を読んで、しつもんに こたえてください。\n日本では、春になると桜の花が咲きます。\n\nQ: 花見はいつですか？',
@@ -109,7 +101,18 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
     ],
   },
   {
-    sortOrder: 9,
+    section: 'CHOKAI',
+    questionText:
+      'スクリプトを読んで、しつもんに こたえてください。\n女：「すみません、図書館はどこですか。」\n男：「あそこの建物の隣にあります。」\n\nQ: 図書館はどこにありますか？',
+    explanation: '「隣」(となり) = next to.',
+    options: [
+      { text: '建物の中', isCorrect: false },
+      { text: '建物の隣', isCorrect: true },
+      { text: '建物の前', isCorrect: false },
+      { text: '建物の後ろ', isCorrect: false },
+    ],
+  },
+  {
     section: 'CHOKAI',
     questionText:
       'スクリプトを読んで、もっとも よいものを えらんでください。\nA：「明日、一緒に買い物しませんか。」\nB：「すみません、明日はちょっと…。」\n\nQ: Bさんは明日どうしますか？',
@@ -121,33 +124,16 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
       { text: '後で連絡する', isCorrect: false },
     ],
   },
-  {
-    sortOrder: 10,
-    section: 'MOJI_GOI',
-    questionText: 'つぎのことばの使い方として、もっとも よいものを えらんでください。',
-    explanation: '「大切な」(たいせつな) = important/precious.',
-    options: [
-      { text: 'にぎやか', isCorrect: false },
-      { text: '大切', isCorrect: true },
-      { text: '静か', isCorrect: false },
-      { text: '広い', isCorrect: false },
-    ],
-  },
 ];
 
-const SESSIONS: {
-  code: string;
-  title: string;
-  phaseLabel: string;
-  description: string;
-  sortOrder: number;
-}[] = [
+const SESSIONS = [
   {
     code: 'fase-1',
     title: 'Simulasi JLPT — Fase 1',
     phaseLabel: 'Fase 1',
     description: 'Sesi simulasi perdana — cocok untuk pemanasan dan mengukur baseline.',
     sortOrder: 1,
+    isActive: true,
   },
   {
     code: 'fase-2',
@@ -155,6 +141,7 @@ const SESSIONS: {
     phaseLabel: 'Fase 2',
     description: 'Sesi lanjutan dengan distribusi soal lebih menantang.',
     sortOrder: 2,
+    isActive: true,
   },
   {
     code: 'fase-3',
@@ -162,6 +149,7 @@ const SESSIONS: {
     phaseLabel: 'Fase 3',
     description: 'Simulasi intensif menjelang ujian resmi.',
     sortOrder: 3,
+    isActive: false,
   },
   {
     code: 'fase-4',
@@ -169,43 +157,31 @@ const SESSIONS: {
     phaseLabel: 'Fase 4',
     description: 'Final drill — kondisi ujian penuh.',
     sortOrder: 4,
+    isActive: false,
   },
-];
+] as const;
 
-export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
-  for (const session of SESSIONS) {
-    const row = await prisma.tryoutSession.upsert({
-      where: { code: session.code },
-      create: {
-        ...session,
-        isActive: session.code === 'fase-1' || session.code === 'fase-2',
-        timeLimitMinutes: 120,
-        scheduledAt: new Date(),
-      },
-      update: {
-        title: session.title,
-        phaseLabel: session.phaseLabel,
-        description: session.description,
-        sortOrder: session.sortOrder,
-      },
-    });
+async function seedFase1N5Questions(prisma: PrismaClient, sessionId: string): Promise<void> {
+  const existingCount = await prisma.question.count({
+    where: { tryoutSessionId: sessionId, tryoutLevel: 'N5', type: 'TRYOUT' },
+  });
 
-    if (session.code !== 'fase-1') continue;
-
-    const existingCount = await prisma.question.count({
-      where: { tryoutSessionId: row.id, tryoutLevel: 'N5' },
-    });
-
-    if (existingCount > 0) continue;
+  if (existingCount === 0) {
+    const counters: Record<TryoutQuestionSeed['section'], number> = {
+      MOJI_GOI: 0,
+      BUNPOU_DOKKAI: 0,
+      CHOKAI: 0,
+    };
 
     for (const q of N5_FASE1_QUESTIONS) {
+      counters[q.section] += 1;
       await prisma.question.create({
         data: {
           type: 'TRYOUT',
-          tryoutSessionId: row.id,
+          tryoutSessionId: sessionId,
           tryoutLevel: 'N5',
           tryoutSection: q.section,
-          sortOrder: q.sortOrder,
+          sortOrder: counters[q.section],
           questionText: q.questionText,
           explanation: q.explanation,
           xpReward: 10,
@@ -217,6 +193,37 @@ export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
           },
         },
       });
+    }
+  }
+
+  await renumberTryoutQuestionsForLevel(sessionId, 'N5', prisma);
+}
+
+export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
+  for (const session of SESSIONS) {
+    const row = await prisma.tryoutSession.upsert({
+      where: { code: session.code },
+      create: {
+        code: session.code,
+        title: session.title,
+        phaseLabel: session.phaseLabel,
+        description: session.description,
+        sortOrder: session.sortOrder,
+        isActive: session.isActive,
+        timeLimitMinutes: 120,
+        scheduledAt: new Date(),
+      },
+      update: {
+        title: session.title,
+        phaseLabel: session.phaseLabel,
+        description: session.description,
+        sortOrder: session.sortOrder,
+        isActive: session.isActive,
+      },
+    });
+
+    if (session.code === 'fase-1') {
+      await seedFase1N5Questions(prisma, row.id);
     }
   }
 }

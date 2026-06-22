@@ -66,7 +66,12 @@ export function TryoutFocusShell({
               {formatTime(timeLeft)}
               {isUrgent ? <AlertTriangle className="size-3.5" /> : null}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowExitDialog(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hover:brightness-100 hover:text-foreground!"
+              onClick={() => setShowExitDialog(true)}
+            >
               <ArrowLeft className="size-4" />
               <span className="hidden sm:inline">Keluar</span>
             </Button>
