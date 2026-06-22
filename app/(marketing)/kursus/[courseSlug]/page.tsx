@@ -1,19 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CourseDetailPage } from '@/features/learning/components/course-detail-page';
-import {
-  loadMarketingCourseDetail,
-  loadPublishedCourseSlugs,
-} from '@/features/learning/lib/load-marketing-courses';
+import { loadMarketingCourseDetail } from '@/features/learning/lib/load-marketing-courses';
 
 type PageProps = {
   params: Promise<{ courseSlug: string }>;
 };
 
-export async function generateStaticParams() {
-  const slugs = await loadPublishedCourseSlugs();
-  return slugs.map((courseSlug) => ({ courseSlug }));
-}
+/** Render at request time — `next build` (CI/Docker) has no PostgreSQL. Data cached via unstable_cache. */
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { courseSlug } = await params;
