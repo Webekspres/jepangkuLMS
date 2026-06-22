@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -34,6 +34,8 @@ import {
   type BadgeSort,
 } from './student-achievements-data';
 import { STUDENT_ROUTES } from './student-routes';
+import { equipStudentBadge } from '@/features/student/actions/profile-actions';
+import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 
 const FILTER_OPTIONS: { id: BadgeFilter; label: string }[] = [
   { id: 'all', label: 'Semua' },
@@ -112,7 +114,7 @@ function BadgeCard({
         {badge.name}
       </p>
       <p className="mt-0.5 text-[10px] text-muted-foreground">
-        {badge.unlocked ? badge.date : 'Terkunci'}
+        {badge.unlocked ? badge.date : badge.requirementText ?? 'Terkunci'}
       </p>
       {badge.unlocked && badge.xp > 0 && (
         <div className={cn('mt-2 inline-flex items-center gap-0.5 rounded-lg px-2 py-0.5', style.chip)}>
@@ -208,9 +210,13 @@ function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; i
 function BadgeDetailModal({
   badge,
   onClose,
+  onEquip,
+  isEquipping,
 }: {
   badge: AchievementBadge | null;
   onClose: () => void;
+  onEquip: (badgeId: string) => void;
+  isEquipping: boolean;
 }) {
   if (!badge) return null;
   const style = BADGE_RARITY_STYLES[badge.rarity];
@@ -242,7 +248,14 @@ function BadgeDetailModal({
               {badge.rarity}
             </span>
             <h3 className="mt-3 text-xl font-extrabold text-foreground">{badge.name}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{badge.desc}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {badge.desc || badge.requirementText}
+            </p>
+            {!badge.unlocked && badge.requirementText ? (
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                Syarat: {badge.requirementText}
+              </p>
+            ) : null}
             <div className="mt-5 grid grid-cols-2 gap-3">
               {badge.xp > 0 && (
                 <div className="rounded-xl border border-border bg-muted/30 p-3">
@@ -257,9 +270,28 @@ function BadgeDetailModal({
                 <p className="text-xs text-muted-foreground">Diraih</p>
               </div>
             </div>
-            <Button className="mt-5 w-full" onClick={onClose}>
-              Keren!
-            </Button>
+            {badge.unlocked ? (
+              <div className="mt-4 flex flex-col gap-2">
+                {!badge.isEquipped ? (
+                  <Button
+                    className="w-full"
+                    disabled={isEquipping}
+                    onClick={() => onEquip(badge.id)}
+                  >
+                    Pasang sebagai title
+                  </Button>
+                ) : (
+                  <p className="text-center text-xs font-semibold text-primary">✓ Title aktif</p>
+                )}
+                <Button variant="outline" className="w-full" onClick={onClose}>
+                  Tutup
+                </Button>
+              </div>
+            ) : (
+              <Button className="mt-5 w-full" onClick={onClose}>
+                Keren!
+              </Button>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -267,12 +299,16 @@ function BadgeDetailModal({
   );
 }
 
-export function StudentAchievementsPage() {
+export function StudentAchievementsPage({
+  milestones: milestonesProp,
+}: {
+  milestones?: AchievementMilestone[];
+}) {
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
   const badges = core.badges;
   const summary = getAchievementSummary(badges);
-  const milestones = buildAchievementMilestones(core.totalXp);
+  const milestones = milestonesProp ?? buildAchievementMilestones(core.totalXp);
   const displayName = identity?.displayName ?? core.displayName ?? 'Pengguna';
   const userInitial = displayName.charAt(0).toUpperCase();
 
@@ -281,6 +317,7 @@ export function StudentAchievementsPage() {
   const [sort, setSort] = useState<BadgeSort>('default');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [isEquipping, startEquipTransition] = useTransition();
 
   const filteredBadges = useMemo(
     () => filterAchievementBadges(badges, filter, rarityFilter, sort),
@@ -295,30 +332,35 @@ export function StudentAchievementsPage() {
   return (
     <div className="space-y-6 pb-8">
       {/* Hero profile */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border bg-linear-to-br from-primary/5 via-background to-brand-yellow/5 px-5 py-6 sm:px-6">
+      <section
+        className="relative overflow-hidden rounded-2xl shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #1E1B57 0%, #1a2d5a 60%, #2a1b4e 100%)' }}
+      >
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-red/20 blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-8 left-8 h-40 w-40 rounded-full bg-primary/20 blur-[60px]" />
+        <div className="relative px-5 py-6 sm:px-6">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="relative shrink-0 self-center md:self-auto">
-              <div className="flex size-24 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-4xl font-black text-primary shadow-sm">
+              <div className="flex size-24 items-center justify-center rounded-2xl bg-white/15 text-4xl font-black text-white shadow-sm ring-2 ring-white/20">
                 {userInitial}
               </div>
-              <div className="absolute -right-2 -bottom-2 flex size-10 items-center justify-center rounded-xl border-2 border-card bg-brand-yellow text-sm font-black text-foreground shadow-sm">
+              <div className="absolute -right-2 -bottom-2 flex size-10 items-center justify-center rounded-xl border-2 border-brand-navy bg-brand-yellow text-sm font-black text-brand-navy shadow-sm">
                 {core.level}
               </div>
             </div>
 
             <div className="flex-1 text-center md:text-left">
               <div className="mb-1 flex flex-wrap items-center justify-center gap-2 md:justify-start">
-                <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
+                <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
                   Pencapaian Saya
                 </h1>
                 {core.levelTitle ? (
-                  <span className="rounded-xl bg-primary px-2.5 py-0.5 text-xs font-bold text-primary-foreground">
+                  <span className="rounded-xl bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
                     {core.levelTitle}
                   </span>
                 ) : null}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-white/60">
                 {displayName} · Lv.{core.level} · {summary.unlockedCount} dari {summary.totalCount}{' '}
                 badge diraih
               </p>
@@ -326,20 +368,20 @@ export function StudentAchievementsPage() {
                 {[
                   { icon: '⚡', label: 'Total XP', value: formatDisplayNumber(core.totalXp) },
                   { icon: '🏆', label: 'Badge', value: `${summary.unlockedCount}/${summary.totalCount}` },
-                  { icon: '💰', label: 'Poin', value: formatDisplayNumber(core.currentPoints) },
+                  { icon: '💰', label: 'Poin', value: formatDisplayNumber(core.lmsPoints) },
                   {
                     icon: '🥇',
                     label: 'Rank',
-                    value: core.globalRank != null ? `#${core.globalRank}` : '—',
+                    value: core.lmsRank != null ? `#${core.lmsRank}` : '—',
                   },
                 ].map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-xl border border-border bg-background/80 px-3 py-2.5 text-center"
+                    className="rounded-xl bg-white/10 px-3 py-2.5 text-center backdrop-blur-sm"
                   >
                     <span className="text-base">{stat.icon}</span>
-                    <p className="text-sm font-bold text-foreground">{stat.value}</p>
-                    <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                    <p className="text-sm font-bold text-white">{stat.value}</p>
+                    <p className="text-[10px] text-white/60">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -370,18 +412,18 @@ export function StudentAchievementsPage() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-foreground">Lv.{core.level}</span>
-                  <span className="text-[10px] text-muted-foreground">level</span>
+                  <span className="text-lg font-black text-white">Lv.{core.level}</span>
+                  <span className="text-[10px] text-white/50">level</span>
                 </div>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatDisplayNumber(core.totalXp)} XP · {formatDisplayNumber(core.currentPoints)} poin
+              <p className="mt-1 text-xs text-white/50">
+                {formatDisplayNumber(core.totalXp)} XP · {formatDisplayNumber(core.lmsPoints)} poin
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex justify-end">
-            <Button variant="outline" size="sm" className="gap-2 border-brand-yellow/30 bg-brand-yellow/10" onClick={handleCelebrate}>
+            <Button variant="ghost" size="sm" className="gap-2 border border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" onClick={handleCelebrate}>
               🎉 Rayakan!
             </Button>
           </div>
@@ -486,8 +528,8 @@ export function StudentAchievementsPage() {
             {filteredBadges.length === 0 ? (
               <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
                 {core.coreConnected
-                  ? 'Belum ada badge di katalog Core.'
-                  : 'Menghubungkan ke Core…'}
+                  ? 'Belum ada badge tersedia.'
+                  : 'Memuat badge…'}
               </p>
             ) : (
               filteredBadges.map((badge, index) => (
@@ -557,8 +599,8 @@ export function StudentAchievementsPage() {
                 icon: Users,
                 label: 'Leaderboard Global',
                 sub:
-                  core.globalRank != null
-                    ? `Kamu #${core.globalRank} dari ${formatDisplayNumber(core.leaderboardTotal)}+`
+                  core.lmsRank != null
+                    ? `Kamu #${core.lmsRank} dari ${formatDisplayNumber(core.leaderboardTotal)}+`
                     : 'Lihat peringkat global',
                 accent: 'text-violet-700 bg-violet-500/10',
               },
@@ -582,13 +624,18 @@ export function StudentAchievementsPage() {
         </aside>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
-        {core.coreConnected
-          ? 'Badge & XP dari JepangKu Core · perjalanan JLPT masih estimasi lokal.'
-          : 'Menghubungkan ke Core untuk memuat badge…'}
-      </p>
-
-      <BadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
+      <BadgeDetailModal
+        badge={selectedBadge}
+        isEquipping={isEquipping}
+        onClose={() => setSelectedBadge(null)}
+        onEquip={(badgeId) => {
+          startEquipTransition(async () => {
+            await equipStudentBadge(badgeId);
+            window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+            setSelectedBadge(null);
+          });
+        }}
+      />
     </div>
   );
 }

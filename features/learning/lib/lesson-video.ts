@@ -1,7 +1,3 @@
-/** Video demo sementara — dipakai jika lesson belum punya `videoUrl` di DB. */
-export const DEMO_LESSON_VIDEO_URL =
-  'https://www.youtube.com/watch?v=jBCc-hmVZho';
-
 export function extractYouTubeVideoId(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
@@ -19,12 +15,10 @@ export function extractYouTubeVideoId(url: string): string | null {
 }
 
 export function resolveLessonVideoUrl(videoUrl: string | null | undefined): {
-  url: string;
-  isDemo: boolean;
+  url: string | null;
 } {
   const trimmed = videoUrl?.trim();
-  if (trimmed) return { url: trimmed, isDemo: false };
-  return { url: DEMO_LESSON_VIDEO_URL, isDemo: true };
+  return { url: trimmed || null };
 }
 
 export function getYouTubeThumbnailUrl(

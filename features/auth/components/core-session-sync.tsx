@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { syncCoreSessionSilent } from '@/features/auth/lib/sync-core-session';
+import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 
 /**
  * Best-effort Core JWT exchange setelah Clerk login.
@@ -19,7 +20,10 @@ export function CoreSessionSync() {
     attempted.current = true;
 
     void syncCoreSessionSilent().then((ok) => {
-      if (ok) router.refresh();
+      if (ok) {
+        requestStudentCoreDataRefresh();
+        router.refresh();
+      }
     });
   }, [router]);
 

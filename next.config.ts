@@ -46,6 +46,7 @@ const nextConfig: NextConfig = {
     // Biar Server Actions aman pas nerima kiriman form lewat Ngrok
     serverActions: {
       allowedOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
+      bodySizeLimit: "2mb",
     },
   },
 };

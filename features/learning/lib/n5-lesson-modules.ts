@@ -1,5 +1,11 @@
 import type { CourseSyllabusModule } from '@/features/learning/components/course-detail-data';
 import {
+  getDefaultExpandedModuleSlugs,
+  groupLessonsByDbModules,
+  type SyllabusModuleGroup,
+} from '@/features/learning/lib/course-tree';
+import { N5_MODULE_DEFINITIONS } from '@/prisma/lib/n5-modules';
+import {
   N5_ALL_LESSONS,
   type N5LessonDef,
   type N5Module,
@@ -8,53 +14,22 @@ import {
 export const N5_MODULE_META: Record<
   N5Module,
   { title: string; subtitle: string; order: number }
-> = {
-  aksara: {
-    title: 'Modul 1 — Hiragana & Katakana',
-    subtitle: '6 pelajaran · fondasi aksara Jepang',
-    order: 1,
-  },
-  kanji: {
-    title: 'Modul 2 — Kanji N5',
-    subtitle: '11 topik kanji per kategori',
-    order: 2,
-  },
-  kosakata: {
-    title: 'Modul 3 — Kosakata N5',
-    subtitle: '20 topik kosakata tematik',
-    order: 3,
-  },
-  'tata-bahasa': {
-    title: 'Modul 4 — Tata Bahasa N5',
-    subtitle: '19 pola tata bahasa',
-    order: 4,
-  },
-  kuis: {
-    title: 'Modul 5 — Kuis Latihan',
-    subtitle: '2 set kuis pilihan ganda',
-    order: 5,
-  },
-  tryout: {
-    title: 'Modul 6 — Try Out & Simulasi',
-    subtitle: 'Placement test + simulasi JLPT N5',
-    order: 6,
-  },
-};
+> = Object.fromEntries(
+  N5_MODULE_DEFINITIONS.map((mod) => [
+    mod.slug,
+    { title: mod.title, subtitle: mod.description, order: mod.order },
+  ]),
+) as Record<N5Module, { title: string; subtitle: string; order: number }>;
 
-const N5_MODULE_ORDER: N5Module[] = [
-  'aksara',
-  'kanji',
-  'kosakata',
-  'tata-bahasa',
-  'kuis',
-  'tryout',
-];
+const N5_MODULE_ORDER: N5Module[] = N5_MODULE_DEFINITIONS.sort(
+  (a, b) => a.order - b.order,
+).map((m) => m.slug);
 
 const N5_LESSON_MODULE_BY_SLUG = new Map(
   N5_ALL_LESSONS.map((lesson) => [lesson.slug, lesson.module]),
 );
 
-/** Tentukan modul dari slug lesson — selaras dengan seed N5. */
+/** Fallback: tentukan modul dari slug lesson jika kursus belum punya modul DB. */
 export function inferLessonModule(slug: string): N5Module {
   const fromCurriculum = N5_LESSON_MODULE_BY_SLUG.get(slug);
   if (fromCurriculum) return fromCurriculum;
@@ -73,14 +48,9 @@ export function inferLessonModule(slug: string): N5Module {
   return 'aksara';
 }
 
-export type GroupedLesson<T> = {
-  /** Id unik modul — biasanya slug N5Module */
-  module: string;
-  title: string;
-  subtitle: string;
-  lessons: T[];
-};
+export type GroupedLesson<T> = SyllabusModuleGroup<T>;
 
+/** Fallback grouping by slug heuristics — gunakan groupLessonsByDbModules jika modul ada di DB. */
 export function groupLessonsByModule<T extends { slug: string; order: number }>(
   lessons: T[],
 ): GroupedLesson<T>[] {
@@ -99,6 +69,29 @@ export function groupLessonsByModule<T extends { slug: string; order: number }>(
     subtitle: N5_MODULE_META[mod].subtitle,
     lessons: buckets.get(mod)!,
   }));
+}
+
+export function groupSyllabusWithDbModules<T extends { slug: string; order: number }>(
+  modules: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    description?: string | null;
+    order: number;
+    lessons: Array<{ slug: string; order: number }>;
+  }>,
+  syllabusItems: T[],
+): GroupedLesson<T>[] {
+  const bySlug = new Map(syllabusItems.map((item) => [item.slug, item]));
+
+  return groupLessonsByDbModules(
+    modules.map((mod) => ({
+      ...mod,
+      lessons: mod.lessons
+        .map((lesson) => bySlug.get(lesson.slug))
+        .filter((item): item is T => item != null),
+    })),
+  );
 }
 
 /** Silabus marketing N5 — 6 modul dari kurikulum resmi Phase 1. */
@@ -133,13 +126,7 @@ export function getDefaultExpandedModuleIds(
   groups: GroupedLesson<{ slug: string }>[],
   continueLessonSlug?: string | null,
 ): string[] {
-  if (continueLessonSlug) {
-    const active = groups.find((group) =>
-      group.lessons.some((lesson) => lesson.slug === continueLessonSlug),
-    );
-    if (active) return [active.module];
-  }
-  return groups[0] ? [groups[0].module] : [];
+  return getDefaultExpandedModuleSlugs(groups, continueLessonSlug);
 }
 
 /** Ringkasan modul untuk hero / dashboard (jumlah lesson per modul). */

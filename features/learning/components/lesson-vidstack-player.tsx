@@ -129,6 +129,8 @@ export function LessonVidstackPlayer({
               playbackRates={PLAYBACK_RATES}
               translations={ID_LAYOUT_TRANSLATIONS}
               noModal
+              /** React 19 + Vidstack: gesture layer calls `disabled()` as signal; avoid console TypeError. */
+              noGestures
               slots={{
                 settingsMenuItemsStart: <LessonYouTubeQualityMenu />,
               }}

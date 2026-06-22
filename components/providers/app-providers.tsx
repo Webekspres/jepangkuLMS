@@ -3,9 +3,12 @@
 import '@/lib/vidstack/suppress-provider-destroyed-rejection';
 
 import { AppSplash } from '@/components/app-splash';
+import { AppTopLoader } from '@/components/providers/app-top-loader';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
@@ -14,9 +17,13 @@ import { ThemeProvider } from '@/components/theme/theme-provider';
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
+      <AppTopLoader />
       <ClerkProviderThemed>
         <QueryProvider>
-          <AppSplash>{children}</AppSplash>
+          <TooltipProvider delayDuration={0}>
+            <AppSplash>{children}</AppSplash>
+            <Toaster richColors closeButton position="top-right" />
+          </TooltipProvider>
         </QueryProvider>
       </ClerkProviderThemed>
     </ThemeProvider>

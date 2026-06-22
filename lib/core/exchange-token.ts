@@ -42,6 +42,7 @@ export async function exchangeClerkSessionForCoreJwt(
             Authorization: `Bearer ${clerkSessionToken}`,
             Accept: 'application/json',
             'Content-Type': 'application/json',
+            'X-Jepangku-Application': 'LMS',
         },
         body: JSON.stringify({ application: 'LMS' }),
         cache: 'no-store',

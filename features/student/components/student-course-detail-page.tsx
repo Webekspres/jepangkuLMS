@@ -15,16 +15,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import type { CourseDetail } from '@/features/learning/components/course-detail-data';
 import { CourseSyllabusAccordion } from '@/features/learning/components/course-syllabus-accordion';
 import {
   getDefaultExpandedModuleIds,
-  groupLessonsByModule,
+  groupSyllabusWithDbModules,
 } from '@/features/learning/lib/n5-lesson-modules';
+import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
+import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
+import type { EnrollmentStatus } from '@prisma/client';
 
 type DbLesson = {
   id: string;
@@ -44,12 +45,18 @@ type DbCourse = {
   accent: keyof typeof JLPT_ACCENT;
   lessonCount: number;
   isPublished: boolean;
+  modules?: ModuleRow[];
   lessons: DbLesson[];
 };
 
 export type StudentCourseDetailPageProps = {
   course: DbCourse;
-  marketing: CourseDetail | undefined;
+  whatYouLearn: string[];
+  duration: string;
+  tags: string[];
+  priceIdr: number;
+  studentDisplayName: string | null;
+  enrollmentStatus: EnrollmentStatus | null;
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
@@ -57,14 +64,25 @@ export type StudentCourseDetailPageProps = {
 
 export function StudentCourseDetailPage({
   course,
-  marketing,
+  whatYouLearn,
+  duration,
+  tags,
+  priceIdr,
+  studentDisplayName,
+  enrollmentStatus,
   isEnrolled,
   progressPercent,
   continueLessonSlug,
 }: StudentCourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
-  const whatYouLearn = marketing?.whatYouLearn ?? [];
-  const fullDesc = marketing?.fullDesc ?? course.desc;
+  const fullDesc = course.desc;
+
+  const sidebarStatus =
+    enrollmentStatus === 'ACTIVE'
+      ? 'ACTIVE'
+      : enrollmentStatus === 'PENDING'
+        ? 'PENDING'
+        : 'none';
 
   const syllabusGroups = useMemo(() => {
     const mapped = course.lessons.map((lesson, index) => ({
@@ -72,8 +90,12 @@ export function StudentCourseDetailPage({
       locked: !isEnrolled && index > 0,
       href: isEnrolled ? STUDENT_ROUTES.belajar(course.slug, lesson.slug) : undefined,
     }));
-    return groupLessonsByModule(mapped);
-  }, [course.lessons, course.slug, isEnrolled]);
+
+    if (course.modules && course.modules.length > 0) {
+      return groupSyllabusWithDbModules(course.modules, mapped);
+    }
+    return groupLessonsFlat(mapped);
+  }, [course.lessons, course.modules, course.slug, isEnrolled]);
 
   const [expandedIds, setExpandedIds] = useState<string[]>(() =>
     getDefaultExpandedModuleIds(syllabusGroups, continueLessonSlug),
@@ -88,7 +110,7 @@ export function StudentCourseDetailPage({
   const moduleCount = syllabusGroups.length;
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="mx-auto max-w-5xl space-y-8 pb-10">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href={STUDENT_ROUTES.kursus} className="inline-flex items-center gap-1 hover:text-primary">
           <ArrowLeft className="size-4" />
@@ -106,7 +128,7 @@ export function StudentCourseDetailPage({
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                 <Badge className={cn('border-0 text-white', accent.badge)}>{course.level}</Badge>
-                {marketing?.tags.map((tag) => (
+                {tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="secondary"
@@ -129,7 +151,7 @@ export function StudentCourseDetailPage({
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-4 text-primary" />
-                {marketing?.duration ?? '—'}
+                {duration}
               </span>
             </div>
           </div>
@@ -175,50 +197,38 @@ export function StudentCourseDetailPage({
           </Card>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Card>
-            <CardContent className="space-y-5 p-6">
-              {isEnrolled ? (
-                <>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Progress kamu
-                    </p>
-                    <p className="mt-1 text-3xl font-extrabold tabular-nums text-primary">
-                      {progressPercent}%
-                    </p>
-                    <Progress value={progressPercent} className="mt-3" />
-                  </div>
-                  <Button asChild className="h-11 w-full gap-2">
-                    <Link
-                      href={STUDENT_ROUTES.belajar(
-                        course.slug,
-                        continueLessonSlug ?? course.lessons[0]?.slug ?? '',
-                      )}
-                    >
-                      <Play className="size-4" />
-                      Lanjutkan belajar
-                    </Link>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Daftar kursus ini untuk membuka semua modul, materi, dan kuis.
-                  </p>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link href={STUDENT_ROUTES.kursus}>Kembali & daftar</Link>
-                  </Button>
-                </>
-              )}
-              <Button asChild variant="outline" className="h-11 w-full gap-2">
-                <Link href={`/kursus/${course.slug}`}>
-                  <ExternalLink className="size-4" />
-                  Lihat halaman publik
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+        <aside className="lg:col-span-1">
+          {course.isPublished ? (
+            <CoursePaymentSidebar
+              courseSlug={course.slug}
+              courseTitle={course.title}
+              lessonCount={course.lessonCount}
+              priceIdr={priceIdr}
+              studentDisplayName={studentDisplayName}
+              enrollmentStatus={sidebarStatus}
+              progressPercent={progressPercent}
+              continueLessonSlug={continueLessonSlug}
+              firstLessonSlug={course.lessons[0]?.slug}
+            />
+          ) : (
+            <Card>
+              <CardContent className="space-y-5 p-6">
+                <p className="text-sm text-muted-foreground">
+                  Kursus ini belum dipublikasikan. Kembali ke katalog untuk melihat kursus lain.
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={STUDENT_ROUTES.kursus}>Ke katalog kursus</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <Button asChild variant="outline" className="mt-4 h-11 w-full gap-2">
+            <Link href={`/kursus/${course.slug}`}>
+              <ExternalLink className="size-4" />
+              Lihat halaman publik
+            </Link>
+          </Button>
         </aside>
       </div>
     </div>

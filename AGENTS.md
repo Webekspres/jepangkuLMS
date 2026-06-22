@@ -66,8 +66,9 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
 1. **Routing Layer (`app/`):**
    * Murni bertindak sebagai "resepsionis/routing" (RSC tipis).
    * File `page.tsx` di dalam `app/` dilarang menulis logic database rumit secara langsung atau me-render elemen UI kompleks. Panggil wrapper component dari `features/` untuk menangani rendering.
-   * Rute terproteksi bagi siswa dibungkus di dalam Route Group `app/(dashboard)/*`.
-   * Rute terproteksi bagi admin dibungkus di dalam folder `app/admin/*`.
+   * Rute publik/marketing dibungkus di Route Group `app/(marketing)/*`.
+   * Rute terproteksi bagi siswa dibungkus di Route Group `app/(student)/*` (URL tetap `/dashboard/*`).
+   * Rute terproteksi bagi admin dibungkus di Route Group `app/(admin)/admin/*` (URL tetap `/admin/*`).
 
 2. **Isolasi Domain (`features/`):**
    * Seluruh logika bisnis, state, Server Actions, dan UI khusus ditaruh di sini.
@@ -79,7 +80,29 @@ Kami memisahkan layout routing dengan logika bisnis utama. Patuhi struktur di ba
    * **Struktur Internal Domain Fitur:**
      * `actions/`: Next.js Server Actions dengan direktif `"use server"`.
      * `components/`: UI khusus untuk fitur tersebut.
+     * `hooks/`: Hook client reusable (mis. pagination tabel admin).
      * `store/`: Zustand local store (misalnya `useQuizStore.ts` untuk kuis).
+
+### Admin CMS — Pagination Tabel (WAJIB untuk tabel baru)
+
+Semua **tabel data** di dashboard admin (`/admin/*`) wajib memakai pagination client-side yang konsisten:
+
+| Item | Nilai / lokasi |
+| :--- | :--- |
+| Hook | `useAdminTablePagination` — `features/admin-cms/hooks/use-admin-table-pagination.ts` |
+| UI footer | `AdminTablePagination` — `features/admin-cms/components/admin-table-pagination.tsx` |
+| Konstanta | `ADMIN_TABLE_PAGE_SIZE_OPTIONS` = **5, 10, 15, 25, 100** (default **10**) — `features/admin-cms/lib/admin-table-pagination.ts` |
+
+**Pola implementasi:**
+
+1. Slice data dengan `paginatedItems` dari hook (bukan `.map()` langsung pada array penuh).
+2. Letakkan `<AdminTablePagination />` di bawah `<Table />`, biasanya masih di dalam `<Card className="overflow-hidden">`.
+3. Untuk tabel hasil **filter/search**, pass `resetKey` (mis. string query) agar halaman kembali ke 1 saat filter berubah.
+4. Prop `itemLabel` dalam bahasa Indonesia jamak/singular yang natural (mis. `kursus`, `modul`, `pelajaran`, `kosakata`).
+
+**Halaman yang sudah memakai pola ini:** Kelola Kursus, Modul, Pelajaran, flashcard (kosakata/kanji/tata bahasa) di lesson workspace, pratinjau impor CSV.
+
+Tabel admin **baru** (pembayaran, bank soal, dll.) harus mengikuti pola yang sama — jangan buat komponen pagination terpisah.
 
 3. **Shared Components & Core:**
    * Komponen UI primitif / reusable non-domain ditaruh di `components/ui/` (misalnya tombol, dialog, input).
