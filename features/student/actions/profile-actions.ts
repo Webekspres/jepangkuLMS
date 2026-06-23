@@ -34,6 +34,13 @@ export async function updateStudentDisplayName(
   }
 }
 
+/** Onboarding pertama — wajib set nama tampilan sebelum lanjut. */
+export async function completeStudentDisplayNameSetup(
+  displayName: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return updateStudentDisplayName(displayName);
+}
+
 const bioSchema = z.string().max(280, 'Bio maksimal 280 karakter.');
 
 export async function updateStudentBio(

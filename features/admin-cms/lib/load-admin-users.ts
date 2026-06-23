@@ -1,8 +1,10 @@
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
 export type AdminUserRow = {
   id: string;
   displayName: string | null;
+  resolvedDisplayName: string;
   role: 'LMS_STUDENT' | 'LMS_ADMIN';
   lmsPoints: number;
   badgeCount: number;
@@ -24,6 +26,10 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
   return users.map((user) => ({
     id: user.id,
     displayName: user.displayName,
+    resolvedDisplayName: resolvePublicDisplayName({
+      displayName: user.displayName,
+      ssoDisplayName: user.ssoDisplayName,
+    }),
     role: user.role,
     lmsPoints: user.lmsStats?.lmsPoints ?? 0,
     badgeCount: user._count.badges,

@@ -1,4 +1,5 @@
 import { StudentCoreDataHydrator } from '@/features/student/components/student-core-data-hydrator';
+import { DisplayNameSetupGate } from '@/features/student/components/display-name-setup-gate';
 import { StudentShell } from '@/features/student/components/student-shell';
 import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 
@@ -12,6 +13,7 @@ export function StudentCoreDataBoundary({
     <StudentCoreDataHydrator>
       <StudentShell>
         <CoreSessionSync />
+        <DisplayNameSetupGate />
         {children}
       </StudentShell>
     </StudentCoreDataHydrator>

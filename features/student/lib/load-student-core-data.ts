@@ -11,6 +11,7 @@ import {
   leaderboardDisplayInitials,
 } from '@/lib/lms/leaderboard';
 import { getUserLmsPoints } from '@/lib/lms/points';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { loadLmsUserProfile, resolveLmsAvatarUrl, resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { DEFAULT_LMS_ROLE } from '@/lib/auth/lms-roles';
 import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
@@ -37,7 +38,7 @@ function mapLeaderboardEntries(
   userId: string | null,
 ): StudentLeaderboardEntry[] {
   return items.map((item) => {
-    const name = item.displayName?.trim() || 'Pengguna';
+    const name = item.displayName?.trim() || 'Siswa JepangKu';
     return {
       rank: item.rank,
       userId: item.userId,
@@ -79,9 +80,16 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
 
   if (userId) {
     lmsProfile = await loadLmsUserProfile(userId);
+    const email = clerkUser?.primaryEmailAddress?.emailAddress ?? null;
     data.lmsRole = lmsProfile?.role ?? DEFAULT_LMS_ROLE;
     data.bio = lmsProfile?.bio ?? null;
-    data.displayName = (await resolveLmsDisplayName(userId, clerkName)) ?? clerkName;
+    data.displayName = await resolveLmsDisplayName(userId, clerkName, email);
+    data.needsDisplayNameSetup = !lmsProfile?.displayNameSetupAt;
+    data.suggestedDisplayName = resolvePublicDisplayName({
+      displayName: null,
+      ssoDisplayName: lmsProfile?.ssoDisplayName ?? clerkName,
+      email,
+    });
     data.avatarUrl = (await resolveLmsAvatarUrl(userId, clerkUser?.imageUrl ?? null)) ?? data.avatarUrl;
     data.lmsPoints = await getUserLmsPoints(userId);
     data.lmsRank = await getLmsRankForUser(userId);

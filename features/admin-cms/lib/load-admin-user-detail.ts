@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
 export type AdminUserEnrollmentRow = {
@@ -18,6 +19,8 @@ export type AdminUserEnrollmentRow = {
 export type AdminUserDetail = {
   id: string;
   displayName: string | null;
+  ssoDisplayName: string | null;
+  resolvedDisplayName: string;
   avatarUrl: string | null;
   role: 'LMS_STUDENT' | 'LMS_ADMIN';
   lmsPoints: number;
@@ -94,6 +97,11 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
   return {
     id: user.id,
     displayName: user.displayName,
+    ssoDisplayName: user.ssoDisplayName,
+    resolvedDisplayName: resolvePublicDisplayName({
+      displayName: user.displayName,
+      ssoDisplayName: user.ssoDisplayName,
+    }),
     avatarUrl: user.avatarUrl,
     role: user.role,
     lmsPoints: user.lmsStats?.lmsPoints ?? 0,

@@ -26,7 +26,7 @@ export function resolveClerkIdentity(user: ClerkUserLike | null | undefined): Cl
     [user.firstName, user.lastName].filter(Boolean).join(' ').trim() ||
     user.username?.trim() ||
     user.primaryEmailAddress?.emailAddress?.split('@')[0] ||
-    'Pengguna';
+    'Siswa JepangKu';
 
   const email = user.primaryEmailAddress?.emailAddress ?? null;
   const imageUrl = user.imageUrl ?? null;
