@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
@@ -19,20 +19,26 @@ import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
 import { STUDENT_ROUTES } from './student-routes';
 import { StudentUserProfile } from './student-user-profile';
+import { StudentNotificationBell } from './student-notification-bell';
 
 export function StudentNav() {
   const pathname = usePathname();
   const { signOut } = useClerk();
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
-  const displayName = identity?.displayName ?? core.displayName ?? '…';
+  const displayName = core.displayName ?? identity?.displayName ?? '…';
+  const badgeTitle = core.equippedBadgeTitle;
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   const statsPending =
-    isCoreIntegrationEnabled() &&
-    !core.coreConnected &&
-    core.leaderboardTotal === 0 &&
-    core.leaderboardTop10.length === 0;
+    !hydrated ||
+    (isCoreIntegrationEnabled() && core.status === 'loading' && !core.coreConnected);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -83,15 +89,17 @@ export function StudentNav() {
               <span className="text-muted-foreground">·</span>
               <Coins className="size-3.5 text-amber-500" />
               <span className="tabular-nums text-foreground">
-                {formatDisplayNumber(core.currentPoints)}
+                {formatDisplayNumber(core.lmsPoints)}
               </span>
             </div>
           )}
 
+          <StudentNotificationBell />
           <StudentUserProfile />
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
+          <StudentNotificationBell />
           <StudentUserProfile />
           <button
             type="button"
@@ -112,6 +120,9 @@ export function StudentNav() {
       >
         <div className="border-b border-border px-4 py-3">
           <p className="text-sm font-semibold text-foreground">{displayName}</p>
+          {badgeTitle ? (
+            <p className="text-xs font-medium text-primary">{badgeTitle}</p>
+          ) : null}
           {identity?.email ? (
             <p className="truncate text-xs text-muted-foreground">{identity.email}</p>
           ) : (

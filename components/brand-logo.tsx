@@ -8,7 +8,12 @@ const FOOTER_LOGO = {
   className: 'h-9 w-auto object-contain',
 } as const;
 
-type BrandLogoVariant = 'nav' | 'authForm' | 'footer';
+/**
+ * `nav` / `authForm` / `footer` — selalu tampilkan logo berwarna (logo.png).
+ * `footer-dark` — khusus untuk panel dark yang butuh kontras: tampilkan logo putih.
+ * `auth-panel-white` — panel brand kiri auth (selalu putih).
+ */
+type BrandLogoVariant = 'nav' | 'authForm' | 'footer' | 'footer-dark' | 'auth-panel-white';
 
 type BrandLogoProps = {
   variant?: BrandLogoVariant;
@@ -16,29 +21,22 @@ type BrandLogoProps = {
   className?: string;
 };
 
-/** Logo merek dengan swap otomatis light/dark — lihat DESIGN.md §3.4 */
 export function BrandLogo({ variant = 'nav', priority, className }: BrandLogoProps) {
-  const config = variant === 'footer' ? FOOTER_LOGO : BRAND_LOGO[variant];
+  const config =
+    variant === 'footer' || variant === 'footer-dark' ? FOOTER_LOGO : BRAND_LOGO[variant === 'auth-panel-white' ? 'authPanel' : variant] ?? BRAND_LOGO.nav;
   const imgClass = cn(config.className, className);
 
+  const useWhiteLogo = variant === 'footer-dark' || variant === 'auth-panel-white';
+  const src = useWhiteLogo ? '/brand/logo-white.png' : '/brand/logo.png';
+
   return (
-    <span className="relative inline-block leading-none">
-      <Image
-        src="/brand/logo.png"
-        alt="JepangKu"
-        width={config.width}
-        height={config.height}
-        className={cn(imgClass, 'dark:hidden')}
-        priority={priority}
-      />
-      <Image
-        src="/brand/logo-white.png"
-        alt="JepangKu"
-        width={config.width}
-        height={config.height}
-        className={cn(imgClass, 'hidden dark:inline-block')}
-        priority={priority}
-      />
-    </span>
+    <Image
+      src={src}
+      alt="JepangKu"
+      width={config.width}
+      height={config.height}
+      className={imgClass}
+      priority={priority}
+    />
   );
 }

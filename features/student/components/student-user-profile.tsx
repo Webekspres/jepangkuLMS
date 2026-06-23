@@ -1,26 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useClerk } from '@clerk/nextjs';
-import { useTheme } from 'next-themes';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   BookOpen,
   ChevronDown,
+  LayoutDashboard,
   LogOut,
-  Moon,
-  Settings,
-  Sun,
   Target,
   Trophy,
   User,
 } from 'lucide-react';
+import { ProfileThemeToggle } from '@/components/theme/profile-theme-toggle';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
-import { useIsClient } from '@/lib/hooks/use-is-client';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
@@ -34,92 +32,6 @@ const MENU_ITEMS = [
   { href: STUDENT_ROUTES.achievements, label: 'Achievements', icon: Trophy },
 ] as const;
 
-function ProfileThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useIsClient();
-
-  const isDark = mounted && resolvedTheme === 'dark';
-
-  function toggle() {
-    setTheme(isDark ? 'light' : 'dark');
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={!mounted}
-      className="flex w-full items-center gap-2 rounded-xl bg-muted/40 px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/60 disabled:opacity-60"
-      aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
-    >
-      <Sun className={cn('size-4 shrink-0', isDark ? 'text-muted-foreground' : 'text-amber-500')} />
-      <span className="flex-1 text-left text-foreground">
-        {isDark ? 'Mode Gelap' : 'Mode Terang'}
-      </span>
-      <span
-        className={cn(
-          'relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors',
-          isDark ? 'bg-secondary' : 'bg-muted',
-        )}
-        aria-hidden
-      >
-        <motion.span
-          className="absolute top-1 flex size-4 items-center justify-center rounded-full bg-card shadow-sm"
-          animate={{ x: isDark ? 22 : 2 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        >
-          {isDark ? (
-            <Moon className="size-2.5 text-blue-400" />
-          ) : (
-            <Sun className="size-2.5 text-amber-500" />
-          )}
-        </motion.span>
-      </span>
-      <Moon className={cn('size-4 shrink-0', isDark ? 'text-blue-400' : 'text-muted-foreground')} />
-    </button>
-  );
-}
-
-function ProfileAvatar({
-  className,
-  imageUrl,
-  initial,
-  size = 'md',
-}: {
-  className?: string;
-  imageUrl: string | null;
-  initial: string;
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  const sizeClass =
-    size === 'lg' ? 'size-12 rounded-xl text-lg' : size === 'sm' ? 'size-7 rounded-lg text-xs' : 'size-10 rounded-xl text-sm';
-
-  if (imageUrl) {
-    return (
-      <Image
-        src={imageUrl}
-        alt=""
-        width={size === 'lg' ? 48 : size === 'sm' ? 28 : 40}
-        height={size === 'lg' ? 48 : size === 'sm' ? 28 : 40}
-        className={cn('shrink-0 object-cover shadow-md', sizeClass, className)}
-      />
-    );
-  }
-
-  return (
-    <span
-      className={cn(
-        'flex shrink-0 items-center justify-center bg-linear-to-br from-primary to-brand-orange font-bold text-primary-foreground shadow-md',
-        sizeClass,
-        className,
-      )}
-      aria-hidden
-    >
-      {initial}
-    </span>
-  );
-}
-
 function xpProgressPercent(totalXp: number, level: number): number {
   if (totalXp <= 0) return 0;
   const xpInLevel = totalXp - (level - 1) * XP_PER_LEVEL;
@@ -131,9 +43,10 @@ export function StudentUserProfile() {
   const { signOut } = useClerk();
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
-  const displayName = identity?.displayName ?? core.displayName ?? 'Kamu';
-  const imageUrl = identity?.imageUrl ?? core.avatarUrl ?? null;
+  const displayName = core.displayName ?? identity?.displayName ?? 'Kamu';
+  const imageUrl = core.avatarUrl ?? identity?.imageUrl ?? null;
   const initial = (identity?.initial ?? displayName.slice(0, 2) ?? 'KM').toUpperCase();
+  const badgeTitle = core.equippedBadgeTitle;
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -202,9 +115,15 @@ export function StudentUserProfile() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
-                    <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                      Level N5
-                    </span>
+                    {badgeTitle ? (
+                      <span className="shrink-0 rounded-md bg-brand-yellow/15 px-1.5 py-0.5 text-[10px] font-bold text-brand-yellow">
+                        {badgeTitle}
+                      </span>
+                    ) : (
+                      <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        Level N5
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{levelSubtitle}</p>
                 </div>
@@ -231,6 +150,17 @@ export function StudentUserProfile() {
 
             {/* Nav links */}
             <div className="p-2">
+              {core.canAccessAdmin && (
+                <Link
+                  href={ADMIN_ROUTES.dashboard}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                >
+                  <LayoutDashboard className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  Dashboard Admin
+                </Link>
+              )}
               {MENU_ITEMS.map((item) => (
                 <Link
                   key={item.href}
@@ -252,15 +182,6 @@ export function StudentUserProfile() {
             </div>
 
             <div className="p-2 pt-1">
-              <Link
-                href={STUDENT_ROUTES.profil}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-              >
-                <Settings className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                Pengaturan Akun
-              </Link>
               <button
                 type="button"
                 role="menuitem"

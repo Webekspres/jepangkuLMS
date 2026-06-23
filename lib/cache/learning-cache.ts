@@ -1,6 +1,12 @@
 import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { mergeCourseDisplay } from '@/features/learning/lib/course-display';
+import {
+  COURSE_TREE_INCLUDE,
+  countLessonsInModules,
+  flattenLessonsFromModules,
+  mapCourseModulesFromPrisma,
+} from '@/features/learning/lib/course-tree';
 import type { StudentEnrollmentView } from '@/features/learning/lib/queries';
 import { computeCourseProgressFromLessons } from '@/features/learning/lib/progress';
 
@@ -16,32 +22,46 @@ export const LEARNING_CACHE_TAGS = {
 export const getCachedCoursesWithDbIds = unstable_cache(
   async () => {
     const courses = await prisma.course.findMany({
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         slug: true,
         title: true,
         description: true,
         level: true,
+        category: true,
+        priceIdr: true,
         isPublished: true,
-        _count: { select: { lessons: true } },
+        isFeatured: true,
+        modules: {
+          select: { _count: { select: { lessons: true } } },
+        },
       },
     });
 
-    return courses.map((course) => ({
-      ...mergeCourseDisplay({
-        slug: course.slug,
-        title: course.title,
-        description: course.description,
-        level: course.level,
-        isPublished: course.isPublished,
-        lessonCount: course._count.lessons,
-      }),
-      dbId: course.id,
-      lessonCount: course._count.lessons,
-    }));
+    return courses.map((course) => {
+      const lessonCount = course.modules.reduce(
+        (sum, mod) => sum + mod._count.lessons,
+        0,
+      );
+      return {
+        ...mergeCourseDisplay({
+          slug: course.slug,
+          title: course.title,
+          description: course.description,
+          level: course.level,
+          isPublished: course.isPublished,
+          lessonCount,
+          priceIdr: course.priceIdr,
+          category: course.category,
+          isFeatured: course.isFeatured,
+        }),
+        dbId: course.id,
+        lessonCount,
+      };
+    });
   },
-  ['learning-courses-catalog-v1'],
+  ['learning-courses-catalog-v5'],
   { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
 );
 
@@ -54,13 +74,20 @@ export function getCachedUserEnrollments(userId: string): Promise<StudentEnrollm
         include: {
           course: {
             include: {
-              lessons: { orderBy: { order: 'asc' }, select: { id: true, slug: true, order: true } },
+              modules: {
+                orderBy: { order: 'asc' },
+                include: {
+                  lessons: { orderBy: { order: 'asc' }, select: { id: true, slug: true, order: true } },
+                },
+              },
             },
           },
         },
       });
 
-      const allLessonIds = enrollments.flatMap((e) => e.course.lessons.map((l) => l.id));
+      const allLessonIds = enrollments.flatMap((e) =>
+        e.course.modules.flatMap((mod) => mod.lessons.map((l) => l.id)),
+      );
       const progressRows =
         allLessonIds.length === 0
           ? []
@@ -72,21 +99,20 @@ export function getCachedUserEnrollments(userId: string): Promise<StudentEnrollm
       const completedLessonIds = new Set(progressRows.map((p) => p.lessonId));
 
       return enrollments.map((enrollment) => {
+        const flatLessons = enrollment.course.modules.flatMap((mod) => mod.lessons);
         const completedSlugs = new Set(
-          enrollment.course.lessons
-            .filter((l) => completedLessonIds.has(l.id))
-            .map((l) => l.slug),
+          flatLessons.filter((l) => completedLessonIds.has(l.id)).map((l) => l.slug),
         );
 
         return {
           courseId: enrollment.courseId,
           courseSlug: enrollment.course.slug,
           enrollmentStatus: enrollment.status,
-          progress: computeCourseProgressFromLessons(enrollment.course.lessons, completedSlugs),
+          progress: computeCourseProgressFromLessons(flatLessons, completedSlugs),
         };
       });
     },
-    ['learning-user-enrollments-v1', userId],
+    ['learning-user-enrollments-v2', userId],
     {
       revalidate: 120,
       tags: [
@@ -139,23 +165,13 @@ export function getCachedCourseWithLessons(slug: string) {
     async (courseSlug: string) => {
       const course = await prisma.course.findUnique({
         where: { slug: courseSlug },
-        include: {
-          lessons: {
-            orderBy: { order: 'asc' },
-            select: {
-              id: true,
-              slug: true,
-              title: true,
-              order: true,
-              content: true,
-              videoUrl: true,
-              _count: { select: { questions: true } },
-            },
-          },
-        },
+        include: COURSE_TREE_INCLUDE,
       });
 
       if (!course) return null;
+
+      const modules = mapCourseModulesFromPrisma(course.modules);
+      const lessons = flattenLessonsFromModules(modules);
 
       return {
         ...mergeCourseDisplay({
@@ -164,20 +180,24 @@ export function getCachedCourseWithLessons(slug: string) {
           description: course.description,
           level: course.level,
           isPublished: course.isPublished,
-          lessonCount: course.lessons.length,
+          lessonCount: countLessonsInModules(modules),
+          priceIdr: course.priceIdr,
+          category: course.category,
+          isFeatured: course.isFeatured,
         }),
         dbId: course.id,
-        lessons: course.lessons.map((lesson) => ({
+        modules,
+        lessons: lessons.map((lesson) => ({
           id: lesson.id,
           slug: lesson.slug,
           title: lesson.title,
           order: lesson.order,
-          content: lesson.content,
-          hasQuiz: lesson._count.questions > 0,
+          content: lesson.content ?? null,
+          hasQuiz: lesson.hasQuiz ?? false,
         })),
       };
     },
-    ['learning-course-with-lessons-v1', slug],
+    ['learning-course-with-lessons-v5', slug],
     { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
   )(slug);
 }

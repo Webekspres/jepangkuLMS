@@ -63,8 +63,19 @@
 :root {
   color-scheme: light;
   /* Brand colors and variables for Light Theme */
-  --background: #ffffff;
-  --foreground: #12112d; /* Dark navy-tinted black for better readability */
+
+  /*
+   * Light surface scale
+   * | Token        | Hex       | Dipakai di                                              |
+   * |--------------|-----------|----------------------------------------------------------|
+   * | --background | #f5f4fc   | body, page canvas — subtle lavender tint (bukan putih polos) |
+   * | --card       | #ffffff   | cards, panels — putih agar menonjol di atas background  |
+   * | --header     | #ffffff   | sticky navbar — putih solid                             |
+   * | --muted      | #ebebf7   | muted fills — lebih berwarna dari sebelumnya            |
+   * | --border     | #dddcef   | border, divider — lavender-tinted                       |
+   */
+  --background: #f5f4fc;
+  --foreground: #12112d;
   
   --card: #ffffff;
   --card-foreground: #12112d;
@@ -72,7 +83,7 @@
   --popover: #ffffff;
   --popover-foreground: #12112d;
 
-  /* Sticky chrome (navbar) — light: sama dengan page */
+  /* Sticky chrome (navbar) — putih solid agar kontras dengan page background */
   --header: #ffffff;
   --header-foreground: #12112d;
   
@@ -84,7 +95,7 @@
   --secondary: #1E1B57;
   --secondary-foreground: #ffffff;
   
-  --muted: #f1f1f7;
+  --muted: #ebebf7;
   --muted-foreground: #5e5b88;
   
   /* Accent / Highlights: Orange (#FF4B2B) */
@@ -94,8 +105,8 @@
   --destructive: #EC1D24;
   --destructive-foreground: #ffffff;
   
-  --border: #e2e2ec;
-  --input: #e2e2ec;
+  --border: #dddcef;
+  --input: #dddcef;
   
   /* Ring focus uses Orange/Red focus indicators */
   --ring: #FF4B2B;
@@ -123,67 +134,60 @@
 .dark {
   color-scheme: dark;
   /*
-   * Dark surface scale — base #100E21
-   * | Token        | Hex       | Dipakai di                          |
-   * |--------------|-----------|-------------------------------------|
-   * | --background | #100E21   | body, main canvas (`bg-background`) |
-   * | --card       | #17152f   | cards, panels (`bg-card`)         |
-   * | --popover    | #17152f   | dropdown, theme menu (`bg-popover`) |
-   * | --header     | #17152f   | sticky navbar (`bg-header`)         |
-   * | --muted      | #1f1d3e   | muted fills, input tint (`bg-muted`)|
-   * | --border     | #26234c   | borders, dividers (`border-border`) |
-   * | --input      | #26234c   | input borders (`border-input`)      |
-   * | --foreground | #f4f4f9   | teks utama (`text-foreground`)      |
+   * Kunci dark mode: gap terang antara --background dan --card harus cukup besar
+   * agar konten (card, panel) jelas terpisah dari canvas halaman.
+   * | Token            | Hex       | L (approx) | Gap dari bg |
+   * |------------------|-----------|------------|-------------|
+   * | --background     | #131030   | ~12%       | baseline    |
+   * | --muted          | #1c1947   | ~17%       | +5%         |
+   * | --card           | #252262   | ~24%       | +12%  ← kunci|
+   * | --border         | #353280   | ~30%       | +18%        |
    */
-  --background: #100E21;
+  --background: #131030;
   --foreground: #f4f4f9;
 
-  --card: #17152f;
+  --card: #252262;
   --card-foreground: #f4f4f9;
 
-  --popover: #17152f;
+  --popover: #252262;
   --popover-foreground: #f4f4f9;
 
-  --header: #17152f;
+  --header: #181548;
   --header-foreground: #f4f4f9;
   
-  /* Primary Action remains Red Japanese */
   --primary: #EC1D24;
   --primary-foreground: #ffffff;
   
-  /* Secondary / Structural: Navy tone adjusted for dark background */
-  --secondary: #1E1B57;
+  --secondary: #2f2c78;
   --secondary-foreground: #ffffff;
   
-  --muted: #1f1d3e;
-  --muted-foreground: #9a97c2;
+  --muted: #1c1947;
+  --muted-foreground: #bcbadc;
   
-  /* Accent remains Orange */
   --accent: #FF4B2B;
   --accent-foreground: #ffffff;
   
   --destructive: #EC1D24;
   --destructive-foreground: #ffffff;
   
-  --border: #26234c;
-  --input: #26234c;
+  --border: #353280;
+  --input: #353280;
   
   --ring: #FF4B2B;
   
   --chart-1: #EC1D24;
   --chart-2: #FF4B2B;
   --chart-3: #F8E71C;
-  --chart-4: #1E1B57;
-  --chart-5: #3c3987;
+  --chart-4: #7f7dcc;
+  --chart-5: #4846a0;
   
-  /* Sidebar — satu tingkat di bawah base */
-  --sidebar: #0a081b;
+  --sidebar: #0e0c27;
   --sidebar-foreground: #f4f4f9;
   --sidebar-primary: #EC1D24;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #FF4B2B;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #17152f;
+  --sidebar-border: #252262;
   --sidebar-ring: #FF4B2B;
 }
 
@@ -197,6 +201,29 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ── Brand surfaces ─────────────────────────────────────────────────────────
+ * Permukaan khusus bermerek yang tidak bergantung pada tema light/dark.
+ * Dipakai di: dashboard welcome banner, landing stats band, footer.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.bg-brand-hero-navy {
+  background: linear-gradient(135deg, #1E1B57 0%, #1a2d5a 55%, #2a1b4e 100%);
+}
+
+.bg-brand-hero-red {
+  background: linear-gradient(135deg, #EC1D24 0%, #FF4B2B 50%, #1E1B57 100%);
+}
+
+/* ── Container max-width ────────────────────────────────────────────────────
+ * Tailwind v4 container default bisa sampai 2xl=1536px.
+ * Cap di 80rem (1280px = max-w-7xl) agar selaras dengan jepangku-news dan
+ * proporsi desain Figma yang lebih rapat.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .container {
+    max-width: 80rem;
   }
 }
 
@@ -250,7 +277,8 @@
 .btn-3d-outline:hover,
 [data-slot="button"][data-variant="outline"]:hover {
   background-color: #fff !important;
-  background-image: linear-gradient(to bottom, #fff, #fff) !important;
+  background-image: linear-gradient(to bottom, #fff, #f8fafc) !important;
+  color: #1e293b !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
@@ -289,6 +317,7 @@
 .btn-3d-outline-dark:hover {
   background-color: var(--muted) !important;
   background-image: linear-gradient(to bottom, color-mix(in srgb, var(--card) 70%, white 8%), var(--muted)) !important;
+  color: var(--foreground) !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.14) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.06) inset,

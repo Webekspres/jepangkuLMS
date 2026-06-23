@@ -3,6 +3,7 @@
 import '@/lib/vidstack/suppress-provider-destroyed-rejection';
 
 import { AppSplash } from '@/components/app-splash';
+import { AppTopLoader } from '@/components/providers/app-top-loader';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
@@ -15,6 +16,7 @@ import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
+      <AppTopLoader />
       <ClerkProviderThemed>
         <QueryProvider>
           <AppSplash>

@@ -8,24 +8,19 @@
   --video-controls-color: #fff;
   --media-brand: var(--primary);
   --media-focus-ring-color: var(--brand-orange);
-}
-
-/* JepangKu — Vidstack player theme (DESIGN.md tokens) */
-
-.jepangku-vidstack-player {
-  --video-brand: var(--primary);
-  --video-focus-ring-color: var(--brand-orange);
-  --video-border-radius: 1rem;
-  --video-border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  --video-controls-color: #fff;
-  --media-brand: var(--primary);
-  --media-focus-ring-color: var(--brand-orange);
   /* Progress bar — watched = Japanese red, unwatched = abu transparan */
   --media-slider-track-fill-bg: var(--primary);
   --media-slider-thumb-bg: var(--primary);
   --media-slider-thumb-border: 2px solid #fff;
   --media-slider-track-bg: rgb(255 255 255 / 0.22);
   --media-slider-track-progress-bg: rgb(255 255 255 / 0.38);
+  /* Menu pengaturan — cukup tinggi untuk submenu Kualitas / Kecepatan / Aksesibilitas */
+  --media-menu-min-width: min(100%, 17.5rem);
+  --media-menu-max-height: min(70vh, 24rem);
+  --media-menu-video-max-height: min(70vh, 24rem);
+  --media-menu-item-height: 2.75rem;
+  --media-menu-item-padding: 0.625rem 0.75rem;
+  --media-menu-padding: 0.75rem;
 }
 
 .jepangku-vidstack-player [data-media-player] {
@@ -94,11 +89,18 @@
   border-radius: 9999px;
 }
 
-/* Menu pengaturan — popover di dalam area player, bukan bottom sheet layar penuh */
-.jepangku-vidstack-player .vds-menu-items,
+/*
+ * Menu pengaturan — hanya panel root yang dibatasi tinggi.
+ * Jangan terapkan max-height ke submenu dalamnya (penyebab area opsi terpotong).
+ */
+.jepangku-vidstack-player .vds-menu-items[data-root],
 .jepangku-vidstack-player .vds-settings-menu-items {
   z-index: 50;
-  max-height: min(60vh, 18rem);
+  width: min(100%, 17.5rem);
+  min-height: 11rem;
+  max-height: min(70vh, 24rem) !important;
+  height: auto !important;
+  overflow-x: hidden;
   overflow-y: auto;
   border-radius: 0.75rem;
   border: 1px solid rgb(255 255 255 / 0.1);
@@ -107,10 +109,39 @@
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
 }
 
+/* Submenu (Kualitas, Kecepatan, Aksesibilitas) — isi penuh tanpa scroll nested */
+.jepangku-vidstack-player .vds-menu-items[data-submenu],
+.jepangku-vidstack-player .vds-quality-menu .vds-menu-items,
+.jepangku-vidstack-player .vds-speed-menu .vds-menu-items,
+.jepangku-vidstack-player .vds-accessibility-menu .vds-menu-items {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible;
+  min-height: 0;
+}
+
+.jepangku-vidstack-player .vds-menu-section {
+  width: 100%;
+}
+
+.jepangku-vidstack-player .vds-quality-radio-group,
+.jepangku-vidstack-player .vds-radio-group {
+  width: 100%;
+  max-height: min(50vh, 16rem);
+  overflow-y: auto;
+}
+
+.jepangku-vidstack-player .vds-menu-slider-item {
+  width: 100%;
+  min-height: 3.25rem;
+  padding-block: 0.5rem;
+}
+
 .jepangku-vidstack-player .vds-menu-item[data-hocus] {
   background: rgb(255 255 255 / 0.08);
 }
 
-.jepangku-vidstack-player .vds-menu-item[data-checked] {
+.jepangku-vidstack-player .vds-menu-item[data-checked],
+.jepangku-vidstack-player .vds-radio[data-checked] {
   color: var(--brand-yellow);
 }

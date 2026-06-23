@@ -10,7 +10,7 @@ import {
   LANDING_HERO_GRID_STYLE,
 } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
-import { DASHBOARD_JLPT_PATH, type JlptPathItem } from './dashboard-data';
+import { type JlptPathItem } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
 
 const LEVEL_META = Object.fromEntries(JLPT_LEVELS.map((entry) => [entry.level, entry]));
@@ -275,12 +275,12 @@ function MobileStageCard({ item }: { item: JlptPathItem }) {
   );
 }
 
-function MobileTrack() {
+function MobileTrack({ jlptPath }: { jlptPath: JlptPathItem[] }) {
   return (
     <div className="relative z-10 px-4 py-5 md:hidden">
       <ul className="flex flex-col">
-        {DASHBOARD_JLPT_PATH.map((item, index) => {
-          const isLast = index === DASHBOARD_JLPT_PATH.length - 1;
+        {jlptPath.map((item, index) => {
+          const isLast = index === jlptPath.length - 1;
 
           return (
             <li key={item.level}>
@@ -299,8 +299,8 @@ function MobileTrack() {
   );
 }
 
-export function DashboardJlptPath() {
-  const activeItem = DASHBOARD_JLPT_PATH.find((item) => item.status === 'active');
+export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
+  const activeItem = jlptPath.find((item) => item.status === 'active');
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -327,15 +327,15 @@ export function DashboardJlptPath() {
 
         {/* Desktop — full width, node & connector selang-seling */}
         <div className="relative z-10 hidden w-full items-start px-5 py-8 md:flex sm:px-6">
-          {DASHBOARD_JLPT_PATH.map((item, index) => (
+          {jlptPath.map((item, index) => (
             <Fragment key={item.level}>
-              {index > 0 && <PathSegment prev={DASHBOARD_JLPT_PATH[index - 1]!} />}
+              {index > 0 && <PathSegment prev={jlptPath[index - 1]!} />}
               <StageNode item={item} />
             </Fragment>
           ))}
         </div>
 
-        <MobileTrack />
+        <MobileTrack jlptPath={jlptPath} />
       </div>
 
       {activeItem && <ActiveStagePanel item={activeItem} />}

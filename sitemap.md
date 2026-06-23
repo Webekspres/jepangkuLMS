@@ -66,6 +66,13 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 ├── Section: Kursus yang Sedang Diikuti (Continue Learning)
 └── Section: Shortcut ke Leaderboard & Tryout
 
+/dashboard/live-class *          → Jadwal Live Class (Zoom)
+├── Filter kategori + pencarian
+└── Kartu kelas + link meeting
+
+/dashboard/tryout *              → Simulasi JLPT (pilih sesi + level)
+└── Mode ujian (?session=&level=) → Ruang ujian + timer + navigator soal
+
 /belajar/[courseSlug]/[lessonSlug] * → Course Workspace & Lesson View Page
 ├── Konten Pembelajaran (Teks, Gambar, Audio)
 ├── Secured Video Embed Player
@@ -118,9 +125,8 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 │   ├── Daftar Lesson (Filter by Kursus)
 │   └── /form                    → Buat / Edit Lesson (Teks Materi & Link Embed Video)
 │
-└── /quiz                        → CMS: Manajemen Bank Soal & Kuis
-    ├── Daftar Kuis & Soal
-    └── /import                  → Form Upload File CSV/Excel untuk Soal Kuis
+└── /quiz                        → CMS: Info bank soal (kelola per pelajaran di lesson workspace)
+    └── /import                  → Redirect ke info quiz (lihat docs/ADMIN_QUIZ.md)
 ```
 
 ---

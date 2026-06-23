@@ -10,12 +10,10 @@ export type CoreUserProfile = {
   avatarUrl: string | null;
 };
 
-/** Ringkasan gamifikasi dari Core (XP, level, poin). Selaraskan dengan jepangku-core/docs/SCHEMA_REFERENCE.md */
+/** Ringkasan gamifikasi global dari Core (XP + level lintas ekosistem). */
 export type CoreGamificationSummary = {
   userId: string;
   totalXp: number;
-  /** Saldo poin spendable (`users.current_points` di Core) */
-  currentPoints?: number;
   level: number;
 };
 

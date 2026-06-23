@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { shuffleArray } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
 
 export type FlashcardItem = {
@@ -18,31 +19,40 @@ export type FlashcardItem = {
   sub?: string | null;
   back: string;
   example?: string | null;
+  badge?: string;
+  accentColor?: string;
+  trackColorClass?: string;
 };
 
 type FlashcardDeckProps = {
   items: FlashcardItem[];
-  trackLabel: string;
-  /** Warna aksen track — token Tailwind bg-* */
+  /** Acak urutan kartu saat deck dimuat / di-reset */
+  shuffle?: boolean;
+  trackLabel?: string;
   trackColorClass?: string;
-  /** Hex untuk gradient & border (sesuai Figma per kategori) */
   accentColor?: string;
 };
 
 const NAVY_GRADIENT = 'linear-gradient(135deg, #0d1b3e 0%, #1a2d5a 100%)';
 
-export function FlashcardDeck({
+function FlashcardDeckInner({
   items,
-  trackLabel,
-  trackColorClass = 'bg-primary',
+  shuffle = true,
+  trackLabel = 'Flashcard',
   accentColor = '#ec1d24',
-}: FlashcardDeckProps) {
+  deckKey,
+  onReshuffle,
+}: FlashcardDeckProps & { deckKey: string; onReshuffle: () => void }) {
+  const [deck] = useState<FlashcardItem[]>(() =>
+    shuffle ? shuffleArray(items) : [...items],
+  );
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [unknown, setUnknown] = useState<Set<number>>(new Set());
+  void deckKey;
 
-  if (items.length === 0) {
+  if (deck.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         Belum ada materi flashcard untuk pelajaran ini.
@@ -50,8 +60,10 @@ export function FlashcardDeck({
     );
   }
 
-  const card = items[index];
-  const progress = items.length > 0 ? (known.size + unknown.size) / items.length : 0;
+  const card = deck[index];
+  const cardBadge = card.badge ?? trackLabel;
+  const cardAccent = card.accentColor ?? accentColor;
+  const progress = deck.length > 0 ? (known.size + unknown.size) / deck.length : 0;
 
   function goTo(next: number) {
     setIndex(next);
@@ -66,15 +78,12 @@ export function FlashcardDeck({
     }
     setFlipped(false);
     window.setTimeout(() => {
-      if (index < items.length - 1) goTo(index + 1);
+      if (index < deck.length - 1) goTo(index + 1);
     }, 200);
   }
 
   function resetDeck() {
-    setKnown(new Set());
-    setUnknown(new Set());
-    setIndex(0);
-    setFlipped(false);
+    onReshuffle();
   }
 
   return (
@@ -82,7 +91,7 @@ export function FlashcardDeck({
       <div className="mb-6 w-full">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {index + 1} / {items.length} kartu
+            {index + 1} / {deck.length} kartu
           </span>
           <div className="flex items-center gap-3 text-xs font-semibold">
             <span className="flex items-center gap-1 text-emerald-600">
@@ -98,12 +107,12 @@ export function FlashcardDeck({
         <div className="flex h-2 overflow-hidden rounded-full bg-muted">
           <motion.div
             className="h-full bg-emerald-500"
-            animate={{ width: `${(known.size / items.length) * 100}%` }}
+            animate={{ width: `${(known.size / deck.length) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
           <motion.div
             className="h-full bg-primary"
-            animate={{ width: `${(unknown.size / items.length) * 100}%` }}
+            animate={{ width: `${(unknown.size / deck.length) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
@@ -126,14 +135,14 @@ export function FlashcardDeck({
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               background: NAVY_GRADIENT,
-              border: `2px solid ${accentColor}40`,
+              border: `2px solid ${cardAccent}40`,
             }}
           >
             <span
               className="absolute top-4 left-4 rounded-lg px-2 py-1 text-xs font-bold text-white"
-              style={{ background: `${accentColor}80` }}
+              style={{ background: `${cardAccent}80` }}
             >
-              {trackLabel}
+              {cardBadge}
             </span>
             <span className="absolute top-4 right-4 text-xs text-white/40">Ketuk untuk flip →</span>
             {card.sub && (
@@ -162,13 +171,13 @@ export function FlashcardDeck({
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              background: `linear-gradient(135deg, ${accentColor}20 0%, white 100%)`,
-              border: `2px solid ${accentColor}`,
+              background: `linear-gradient(135deg, ${cardAccent}20 0%, white 100%)`,
+              border: `2px solid ${cardAccent}`,
             }}
           >
             <span
               className="absolute top-4 left-4 rounded-lg px-2 py-1 text-xs font-bold text-white"
-              style={{ background: accentColor }}
+              style={{ background: cardAccent }}
             >
               Arti
             </span>
@@ -176,7 +185,7 @@ export function FlashcardDeck({
             {card.example && (
               <div
                 className="mt-4 w-full rounded-xl p-3 text-center"
-                style={{ background: `${accentColor}15` }}
+                style={{ background: `${cardAccent}15` }}
               >
                 <p className="whitespace-pre-line text-sm text-muted-foreground">{card.example}</p>
               </div>
@@ -197,8 +206,7 @@ export function FlashcardDeck({
             <Button
               type="button"
               size="lg"
-              className="gap-2 px-8 text-white hover:opacity-90"
-              style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
+              className="gap-2 px-8"
               onClick={(e) => {
                 e.stopPropagation();
                 setFlipped(true);
@@ -255,7 +263,7 @@ export function FlashcardDeck({
           <ChevronLeft className="size-4" />
         </Button>
         <div className="flex gap-1.5">
-          {items.map((_, i) => (
+          {deck.map((_, i) => (
             <button
               key={i}
               type="button"
@@ -264,7 +272,7 @@ export function FlashcardDeck({
               className={cn(
                 'size-2 rounded-full transition-all',
                 i === index
-                  ? cn(trackColorClass, 'scale-125')
+                  ? 'scale-125 bg-primary'
                   : known.has(i)
                     ? 'bg-emerald-500'
                     : unknown.has(i)
@@ -278,7 +286,7 @@ export function FlashcardDeck({
           type="button"
           variant="outline"
           size="icon"
-          disabled={index >= items.length - 1}
+          disabled={index >= deck.length - 1}
           onClick={() => goTo(index + 1)}
           aria-label="Kartu selanjutnya"
         >
@@ -303,5 +311,18 @@ export function FlashcardDeck({
         </p>
       )}
     </div>
+  );
+}
+
+export function FlashcardDeck(props: FlashcardDeckProps) {
+  const itemsKey = props.items.map((item) => `${item.front}:${item.back}`).join('|');
+  const [seed, setSeed] = useState(0);
+  return (
+    <FlashcardDeckInner
+      key={`${itemsKey}:${seed}`}
+      {...props}
+      deckKey={`${itemsKey}:${seed}`}
+      onReshuffle={() => setSeed((value) => value + 1)}
+    />
   );
 }

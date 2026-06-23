@@ -5,6 +5,10 @@ export const STUDENT_ROUTES = {
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
   leaderboard: '/dashboard/leaderboard',
   tryout: '/dashboard/tryout',
+  tryoutExam: (session: string, level: string) =>
+    `/dashboard/tryout/${encodeURIComponent(session)}/${encodeURIComponent(level)}`,
+  tryoutResult: (attemptId: string) => `/dashboard/tryout/hasil/${encodeURIComponent(attemptId)}`,
+  liveClass: '/dashboard/live-class',
   profil: '/dashboard/profil',
   achievements: '/dashboard/achievements',
   belajar: (courseSlug: string, lessonSlug: string) =>

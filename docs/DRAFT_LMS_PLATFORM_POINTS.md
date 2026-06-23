@@ -1,7 +1,7 @@
-# Draft — Poin LMS & Leaderboard Platform (belum diimplementasi)
+# LMS — Poin, Badge & Display Name (implementasi)
 
-> **Status:** Draft arsitektur · **2026-06-05**  
-> **Keputusan sementara:** **Tunda implementasi** — push progress LMS saat ini dulu; eksekusi setelah Core menghapus `current_points` global dan tim Portal Berita selaras.
+> **Status:** Implementasi awal · **2026-06-15**  
+> Selaras Core API v2.1.0 — XP/level global di Core; poin, badge, leaderboard, display name di DB LMS.
 
 ---
 
@@ -111,17 +111,25 @@ Hitung ranking dari `UserProgress` + `QuizAttempt` + `Question.xpReward`. **Tida
 
 ---
 
-## 5. Aturan bisnis (draft)
+## 5. Aturan bisnis (selaras Portal Berita)
 
-| Event | `lmsPoints` (contoh) | `xpGained` ke Core |
-| :--- | :--- | :--- |
-| Lesson selesai | 10–20 | sama atau berbeda (product decision) |
-| Quiz lulus | skor × bobot | dari `Question.xpReward` / skor |
-| Tryout | skor × bobot lebih tinggi | idem |
+Referensi implementasi: `lib/lms/point-rules.ts` · pola idempotency mirip `jepangku-news/lib/points.ts`.
 
-- **`sourceKey` wajib unik** — mencegah double award saat retry server action.
-- User yang belum punya baris `UserLmsStats` dianggap `lmsPoints = 0` (lazy create on first event).
-- User Portal-only **tidak muncul** di leaderboard LMS kecuali pernah login LMS dan punya event.
+| Event | Poin LMS | Idempotency | Catatan |
+| :--- | :--- | :--- | :--- |
+| Login harian | +3 | `daily_login:{userId}:{YYYY-MM-DD}` (Asia/Jakarta) | Saat sync user anchor |
+| Pelajaran selesai | +15 | `lesson:{lessonId}:{userId}:complete` | Sekali per pelajaran |
+| Flashcard dikunjungi | +5 | `flashcard:{lessonId}:{userId}` | Sekali per pelajaran |
+| Komentar pelajaran | +2 | `lesson_comment:{lessonId}:{userId}` | Komentar top-level saja, bukan balasan |
+| Kuis selesai (base) | +10 | `quiz:{lessonId}:{userId}:completed` | Sekali per pelajaran/kuis |
+| Kuis jawaban benar | +5 × benar | `quiz:{lessonId}:{userId}:correct` | Transaksi terpisah dari base |
+| Tryout selesai (base) | +10 | `tryout:{session}:{level}:{userId}:completed` | Sekali per sesi+level |
+| Tryout jawaban benar | +5 × benar | `tryout:{session}:{level}:{userId}:correct` | Transaksi terpisah |
+
+- **`sourceKey` wajib unik per user+aktivitas** — mencegah double award saat retry.
+- Poin LMS **terpisah** dari poin Portal Berita (`sourceApp = news`).
+- Tidak ada poin negatif / pengurangan manual saat ini.
+- Like komentar, balasan Q&A, dan aktivitas guest **tidak** memberi poin.
 
 ---
 
