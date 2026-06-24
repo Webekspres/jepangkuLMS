@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { mapLmsBadgeRarityToDisplay } from '@/lib/lms/badge-rarity';
 import type { StudentAchievementBadge } from '@/features/student/lib/core-badge-mapper';
 import type { LmsBadgeUnlockRule } from '@prisma/client';
 
@@ -64,7 +65,7 @@ export async function loadLmsBadgesForUser(
       xp: badge.xpBonus,
       unlocked: Boolean(userBadge),
       date: userBadge ? formatBadgeDate(userBadge.unlockedAt) : null,
-      rarity: 'Common' as const,
+      rarity: mapLmsBadgeRarityToDisplay(badge.rarity),
       badgeType: 'LMS',
       requirementText: requirementLabel(badge.unlockRule, badge.unlockValue, badge.requirementText),
       isEquipped: activeEquippedId === badge.id,

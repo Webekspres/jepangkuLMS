@@ -13,7 +13,6 @@ import {
   MessageCircle,
   Play,
   Sparkles,
-  Star,
   Target,
   Video,
   Wifi,
