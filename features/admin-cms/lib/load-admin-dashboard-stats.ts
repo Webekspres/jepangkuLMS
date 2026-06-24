@@ -11,7 +11,7 @@ export type AdminDashboardStats = {
   upcomingLiveClasses: number;
   activeTryoutSessions: number;
   quizAttemptsThisWeek: number;
-  enrollmentTrend: { label: string; count: number }[];
+  enrollmentTrend: { dateKey: string; label: string; count: number }[];
 };
 
 export const loadAdminDashboardStats = cache(async function loadAdminDashboardStats(): Promise<AdminDashboardStats> {
@@ -47,7 +47,7 @@ export const loadAdminDashboardStats = cache(async function loadAdminDashboardSt
     }),
   ]);
 
-  const enrollmentTrend: { label: string; count: number }[] = [];
+  const enrollmentTrend: { dateKey: string; label: string; count: number }[] = [];
   for (let offset = 6; offset >= 0; offset -= 1) {
     const start = new Date();
     start.setDate(start.getDate() - offset);
@@ -58,6 +58,7 @@ export const loadAdminDashboardStats = cache(async function loadAdminDashboardSt
       (row) => row.createdAt >= start && row.createdAt <= end,
     ).length;
     enrollmentTrend.push({
+      dateKey: start.toISOString().slice(0, 10),
       label: start.toLocaleDateString('id-ID', { weekday: 'short' }),
       count,
     });

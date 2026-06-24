@@ -72,7 +72,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Zod validasi | ✅ | `lib/validations/` |
 | Folder `features/` domain | ✅ | learning, admin-cms, student, tryout, live-class, public-api |
 | Shadcn UI primitif | 🟡 | Cukup untuk MVP; tambah sesuai kebutuhan |
-| Prisma seed N5 + tryout + live class | ✅ | `prisma/seed.ts` |
+| Prisma seed N5 + tryout + live class + 8 badge starter | ✅ | `prisma/seed.ts`, `public/badges/*.png` |
 | Partner API v1 | ✅ | `docs/PARTNER_API.md` |
 | `.env` / Clerk / DB | 🟡 | Lokal OK; prod env tim |
 
@@ -149,7 +149,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Schema Course/Module/Lesson/Materi/Question | ✅ |
 | Schema Enrollment, UserProgress, QuizAttempt | ✅ |
 | Schema LiveClass, TryoutSession | ✅ |
-| Seed N5 + materi XLSX + tryout N5 Fase 1 | ✅ |
+| Seed N5 + materi XLSX + tryout N5 Fase 1 + live class + badge starter | ✅ |
 | Marketing katalog dari Prisma | ✅ |
 | Server Actions write paths | ✅ |
 | Award XP ke Core | 🟡 | `verify:core-gamification` script; flashcard/tryout wired |
@@ -181,6 +181,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-23 | Badge seed 8 PNG (`public/badges`), R2 fallback lokal + `use server` fix; grafik enrollment admin & XP mingguan (SimpleBarChart); seed idempotent re-run |
 | 2026-06-23 | XP mingguan dashboard (LmsXpEvent + WeeklyXpChart); video terproteksi via API enrollment gate; GA4 + GSC + panel admin Analytics |
 | 2026-06-22 | Hasil tryout: popup reveal animasi (Riki-style), tabel ringkasan skor & analisa per bagian JLPT |
 | 2026-06-22 | Tryout TOEFL-flow: intro per bagian, navigator isolasi, focus navbar, auto-submit timer, QuizAttempt+answersJson, halaman analisa `/hasil/[id]` |

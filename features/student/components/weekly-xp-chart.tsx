@@ -1,9 +1,10 @@
 'use client';
 
-import { motion } from 'motion/react';
 import { TrendingUp } from 'lucide-react';
+import { SimpleBarChart } from '@/components/charts/simple-bar-chart';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import type { DashboardWeeklyXpSummary } from '@/features/student/lib/load-dashboard-extras';
+import { formatChartDateLong } from '@/lib/format-chart-date';
 import { cn } from '@/lib/utils';
 
 type WeeklyXpChartProps = {
@@ -13,7 +14,6 @@ type WeeklyXpChartProps = {
 
 export function WeeklyXpChart({ data, className }: WeeklyXpChartProps) {
   const { days, totalWeekXp } = data;
-  const weeklyXpMax = Math.max(1, ...days.map((day) => day.xp));
   const hasActivity = totalWeekXp > 0;
 
   return (
@@ -32,32 +32,25 @@ export function WeeklyXpChart({ data, className }: WeeklyXpChartProps) {
         ) : null}
       </div>
 
-      <div className="flex h-40 items-end justify-between gap-1 sm:gap-2">
-        {days.map((day) => {
-          const heightPct = day.xp > 0 ? Math.max(12, (day.xp / weeklyXpMax) * 100) : 4;
-          return (
-            <div key={day.dateKey} className="flex flex-1 flex-col items-center gap-2">
-              <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
-                {day.xp > 0 ? formatDisplayNumber(day.xp) : ''}
-              </span>
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${heightPct}%` }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className={cn(
-                  'w-full min-h-[4px] max-h-28 rounded-t-lg',
-                  day.xp > 0
-                    ? 'bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow'
-                    : 'bg-muted/60',
-                )}
-                title={`${day.dateLabel}: ${day.xp} XP`}
-                aria-label={`${day.dateLabel}, ${day.xp} XP`}
-              />
-              <span className="text-[10px] font-medium text-muted-foreground">{day.day}</span>
-            </div>
-          );
-        })}
-      </div>
+      <SimpleBarChart
+        data={days.map((day) => ({
+          key: day.dateKey,
+          label: day.day,
+          value: day.xp,
+          tooltip: {
+            title: formatChartDateLong(day.dateKey),
+            value:
+              day.xp === 0
+                ? 'Belum ada XP tercatat'
+                : `${formatDisplayNumber(day.xp)} XP`,
+            description: `${day.day} · ${day.dateLabel}`,
+          },
+        }))}
+        valueFormatter={formatDisplayNumber}
+        barClassName="bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow"
+        emptyBarClassName="bg-muted/60"
+        height={160}
+      />
 
       <p className="text-xs text-muted-foreground">
         XP dari aktivitas belajar 7 hari terakhir (sinkron dengan penghargaan Core saat terhubung).

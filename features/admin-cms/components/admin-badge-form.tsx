@@ -138,7 +138,7 @@ export function AdminBadgeFormPage({
     <AdminPageShell
       label="Gamifikasi"
       title={isEdit ? 'Edit Badge' : 'Badge Baru'}
-      subtitle="Upload gambar ke R2 (PNG/JPEG/WebP, maks. 2 MB). Kode dipakai untuk unlock otomatis di kode."
+      subtitle="Upload ke R2 jika dikonfigurasi; jika tidak, gambar disimpan ke public/badges (lokal/VPS). Atau pakai URL statis /badges/…"
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.badges}>
@@ -149,8 +149,10 @@ export function AdminBadgeFormPage({
       }
     >
       {!r2Ready ? (
-        <Card className="mb-4 border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-          Upload gambar membutuhkan konfigurasi R2 di <code>.env</code>. Metadata badge tetap bisa disimpan.
+        <Card className="mb-4 border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          R2 belum dikonfigurasi atau token tidak punya izin tulis — upload gambar akan disimpan ke{' '}
+          <code className="text-foreground">public/badges/</code> (cocok untuk dev/VPS). Untuk production
+          dengan CDN, perbaiki env R2 atau gunakan field URL statis di bawah.
         </Card>
       ) : null}
 
@@ -252,7 +254,22 @@ export function AdminBadgeFormPage({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Gambar badge</Label>
+            <Label htmlFor="imageUrl">URL gambar statis (opsional)</Label>
+            <Input
+              id="imageUrl"
+              name="imageUrl"
+              placeholder="/badges/Word Rookie.png"
+              defaultValue={
+                badge?.imageUrl?.startsWith('/badges/') ? badge.imageUrl : ''
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Pakai file di <code>public/badges/</code> tanpa upload — mis. hasil seed awal.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image">Gambar badge (upload)</Label>
             {badge?.imageUrl && !removeImage && !hasNewImage ? (
               <div className="mb-2 flex items-center gap-3">
                 <Image
@@ -309,7 +326,7 @@ export function AdminBadgeFormPage({
               disabled={imageOptimizing || isPending}
             />
             <p className="text-xs text-muted-foreground">
-              Gambar otomatis dikonversi ke WebP sebelum diunggah ke R2.
+              Upload PNG/JPEG/WebP (maks. 2 MB). R2 jika tersedia; jika gagal, disimpan ke public/badges.
             </p>
           </div>
 

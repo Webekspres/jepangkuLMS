@@ -5,30 +5,12 @@ import { AdminStatCard } from '@/features/admin-cms/components/admin-stat-card';
 import type { AdminDashboardStats } from '@/features/admin-cms/lib/load-admin-dashboard-stats';
 import type { AdminAnalyticsConfig } from '@/features/admin-cms/lib/load-admin-analytics-config';
 import { AdminAnalyticsPanel } from '@/features/admin-cms/components/admin-analytics-panel';
+import { EnrollmentTrendChart } from '@/features/admin-cms/components/enrollment-trend-chart';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
-
-function EnrollmentTrendChart({ data }: { data: AdminDashboardStats['enrollmentTrend'] }) {
-  const max = Math.max(...data.map((d) => d.count), 1);
-
-  return (
-    <div className="flex h-32 items-end justify-between gap-2">
-      {data.map((day) => (
-        <div key={day.label} className="flex flex-1 flex-col items-center gap-1.5">
-          <span className="text-[10px] font-semibold text-muted-foreground">{day.count}</span>
-          <div
-            className="w-full rounded-t-md bg-primary/80 transition-all"
-            style={{ height: `${Math.max(8, (day.count / max) * 100)}%` }}
-          />
-          <span className="text-[10px] text-muted-foreground">{day.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function AdminDashboardPage({
   stats,
