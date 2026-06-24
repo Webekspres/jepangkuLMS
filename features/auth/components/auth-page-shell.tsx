@@ -1,9 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { BRAND_LOGO } from '@/lib/brand-logo';
+import { BrandLogo } from '@/components/brand-logo';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AuthBrandPanel } from './auth-brand-panel';
 
 type AuthPageShellProps = {
@@ -29,17 +29,14 @@ export function AuthPageShell({
     <div className="flex min-h-screen font-sans">
       <AuthBrandPanel {...brandPanel} />
 
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background px-6 py-10 sm:px-12 lg:w-1/2">
+      <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-background px-6 py-10 sm:px-12 lg:w-1/2">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+          <ThemeToggle />
+        </div>
+
         <div className="mb-8 text-center lg:hidden">
           <Link href="/" className="inline-block">
-            <Image
-              src="/brand/logo.png"
-              alt="JepangKu"
-              width={BRAND_LOGO.authForm.width}
-              height={BRAND_LOGO.authForm.height}
-              className={BRAND_LOGO.authForm.className}
-              priority
-            />
+            <BrandLogo variant="authForm" priority />
           </Link>
         </div>
 

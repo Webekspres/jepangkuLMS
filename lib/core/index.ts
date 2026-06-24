@@ -25,6 +25,9 @@ export {
   parseJwtPayload,
   type JepangKuJwtClaims,
 } from './jwt-claims';
+export { awardLmsXp, isCoreAwardConfigured } from './gamification';
+export { buildLmsIdempotencyKey, toCoreActivityType } from './activity-map';
+export { getCoreServiceToken, CORE_APPLICATION_LMS } from './config';
 export type { CoreSession } from './session';
 export type {
   CoreGamificationSummary,

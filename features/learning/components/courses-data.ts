@@ -3,6 +3,9 @@ import type { JlptAccent } from '@/features/marketing/components/landing-data';
 export const COURSE_LEVELS = ['Semua', 'N5', 'N4', 'N3', 'N2', 'N1'] as const;
 export type CourseLevel = (typeof COURSE_LEVELS)[number];
 
+export const COURSE_FEATURE_FILTERS = ['Semua', 'Unggulan'] as const;
+export type CourseFeatureFilter = (typeof COURSE_FEATURE_FILTERS)[number];
+
 export const COURSE_CATEGORIES = [
   'Semua',
   'Kosa Kata',
@@ -45,11 +48,11 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     slug: 'jlpt-n5-kursus-lengkap',
     title: 'JLPT N5 — Kursus Lengkap',
     level: 'N5',
-    desc: 'Dari nol sampai lulus N5! Hiragana, Katakana, 80 Kanji, tata bahasa dasar.',
-    lessons: 42,
+    desc: 'Dari nol sampai lulus N5! Hiragana, Katakana, 100 Kanji, tata bahasa dasar, dan simulasi ujian.',
+    lessons: 60,
     duration: '18 jam',
     availability: 'tersedia',
-    availabilityLabel: 'Modul awal tersedia',
+    availabilityLabel: 'Tersedia',
     price: 'Gratis',
     thumb: 'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'emerald',
@@ -65,7 +68,7 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     lessons: 35,
     duration: '14 jam',
     availability: 'segera',
-    availabilityLabel: 'Segera hadir',
+    availabilityLabel: 'Segera',
     price: 'Rp 299K',
     thumb: 'https://images.unsplash.com/photo-1593839154339-377e24b3ba32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'blue',
@@ -81,7 +84,7 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     lessons: 28,
     duration: '12 jam',
     availability: 'segera',
-    availabilityLabel: 'Segera hadir',
+    availabilityLabel: 'Segera',
     price: 'Rp 249K',
     thumb: 'https://images.unsplash.com/photo-1681317474675-494bd8e91d7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'amber',
@@ -97,7 +100,7 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     lessons: 30,
     duration: '10 jam',
     availability: 'segera',
-    availabilityLabel: 'Segera hadir',
+    availabilityLabel: 'Segera',
     price: 'Rp 199K',
     thumb: 'https://images.unsplash.com/photo-1542052125323-e69ad37a47c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'blue',
@@ -113,7 +116,7 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     lessons: 60,
     duration: '28 jam',
     availability: 'segera',
-    availabilityLabel: 'Segera hadir',
+    availabilityLabel: 'Segera',
     price: 'Rp 449K',
     thumb: 'https://images.unsplash.com/photo-1670233449318-2ddb73e062e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'amber',
@@ -129,7 +132,7 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     lessons: 25,
     duration: '11 jam',
     availability: 'segera',
-    availabilityLabel: 'Segera hadir',
+    availabilityLabel: 'Segera',
     price: 'Rp 279K',
     thumb: 'https://images.unsplash.com/photo-1595672410691-67ca64d681d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'violet',

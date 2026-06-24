@@ -31,19 +31,19 @@ export function TryoutInfoPage() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <PublicNavbar activeHref="/tryout" />
 
-      <MarketingPageHero contentClassName="px-4 py-14 text-center sm:py-16 md:px-8 md:py-20">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
-            <Trophy className="size-4 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">JLPT Try Out Center</span>
+      <MarketingPageHero>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
+            <Trophy className="size-4 text-brand-yellow" />
+            <span className="text-sm font-medium text-white/80">JLPT Try Out Center</span>
           </div>
-          <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] font-extrabold text-foreground">
+          <h1 className="mb-4 text-[clamp(1.75rem,4vw,3rem)] font-extrabold text-white">
             Simulasi Ujian
             <br />
-            <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
               JLPT Terstruktur
             </span>
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-muted-foreground">
+          <p className="mx-auto mb-8 max-w-2xl text-white/70">
             Halaman info try out JepangKu — jadwal simulasi, level yang tersedia, dan cara mulai.
             Ujian interaktif diakses setelah login dari dashboard.
           </p>
@@ -54,7 +54,7 @@ export function TryoutInfoPage() {
                 Daftar untuk Try Out
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 w-full px-6 sm:w-auto">
+            <Button asChild variant="outline" className="h-11 w-full border-white/40 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white sm:w-auto">
               <Link href="/sign-in">Sudah punya akun? Masuk</Link>
             </Button>
           </div>

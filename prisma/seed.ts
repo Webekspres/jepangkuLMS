@@ -2,16 +2,28 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type LevelJLPT } from '@prisma/client';
 import { Pool } from 'pg';
 
+import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
+import { seedLmsBadges } from './lib/seed-badges';
+import { seedLiveClasses } from './lib/seed-live-classes';
+import { seedN5AksaraMateri } from './lib/seed-n5-aksara';
+import { seedN5CourseStructure } from './lib/seed-n5-structure';
+import { seedTryoutSessions } from './lib/seed-tryout';
+import { DEFAULT_LMS_ROLE } from '../lib/auth/lms-roles';
+import { N5_LESSON_COUNT } from './lib/n5-curriculum';
+
 const DEMO_USER_ID = 'user_seed_demo_lms';
 
-const CATALOG = [
+const COURSE_CATALOG = [
   {
     slug: 'jlpt-n5-kursus-lengkap',
     title: 'JLPT N5 — Kursus Lengkap',
     level: 'N5' as LevelJLPT,
     description:
-      'Dari nol sampai lulus N5! Hiragana, Katakana, 80 Kanji, tata bahasa dasar.',
+      'Dari nol sampai lulus N5! Hiragana, Katakana, 100 Kanji, 200+ kosakata, 64 pola tata bahasa, dan simulasi ujian.',
     isPublished: true,
+    priceIdr: 0,
+    isFeatured: true,
+    category: 'Kosa Kata',
   },
   {
     slug: 'n4-tata-bahasa-intensif',
@@ -19,6 +31,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Pola kalimat N4 lengkap: て-form, たい, から, まで, dan 40+ pola lainnya.',
     isPublished: false,
+    priceIdr: 299_000,
+    isFeatured: false,
+    category: 'Tata Bahasa',
   },
   {
     slug: 'kanji-n5-n4-master',
@@ -26,6 +41,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Hafalkan 380 kanji N5+N4 dengan metode visual mnemonik yang efektif.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Kanji',
   },
   {
     slug: 'kosakata-n4-1500-kata',
@@ -33,6 +51,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Pelajari 1500 kosakata N4 dengan flashcard interaktif dan konteks kalimat nyata.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Kosa Kata',
   },
   {
     slug: 'jlpt-n3-kursus-menengah',
@@ -40,6 +61,9 @@ const CATALOG = [
     level: 'N3' as LevelJLPT,
     description: 'Kuasai N3 dengan 650 kanji, tata bahasa kompleks, dan reading comprehension.',
     isPublished: false,
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Tata Bahasa',
   },
   {
     slug: 'japanese-speaking-listening-n4',
@@ -47,34 +71,9 @@ const CATALOG = [
     level: 'N4' as LevelJLPT,
     description: 'Latih percakapan natural dan listening skill dengan dialog audio native speaker.',
     isPublished: false,
-  },
-] as const;
-
-const N5_LESSONS = [
-  {
-    slug: 'pengenalan-aksara-jepang',
-    title: 'Pengenalan aksara Jepang',
-    order: 1,
-    content: 'Mengenal Hiragana, Katakana, dan Kanji sebagai dasar membaca bahasa Jepang.',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-  },
-  {
-    slug: 'hiragana-a-ta',
-    title: 'Hiragana baris あ–た',
-    order: 2,
-    content: 'Belajar menulis dan membaca Hiragana baris あ, い, う, え, お hingga た.',
-  },
-  {
-    slug: 'hiragana-na-n',
-    title: 'Hiragana baris な–ん',
-    order: 3,
-    content: 'Menyelesaikan semua karakter Hiragana dasar.',
-  },
-  {
-    slug: 'katakana-lengkap',
-    title: 'Katakana lengkap',
-    order: 4,
-    content: 'Pengenalan Katakana untuk kata serapan dan nama asing.',
+    priceIdr: 0,
+    isFeatured: false,
+    category: 'Speaking',
   },
 ] as const;
 
@@ -88,36 +87,8 @@ function createPrisma(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
-async function main() {
-  const prisma = createPrisma();
-
-  console.log('Seeding LMS database...');
-
-  await prisma.user.upsert({
-    where: { id: DEMO_USER_ID },
-    create: { id: DEMO_USER_ID },
-    update: {},
-  });
-
-  const categories = await Promise.all([
-    prisma.category.upsert({
-      where: { name_type: { name: 'Dasar', type: 'KANJI' } },
-      create: { name: 'Dasar', type: 'KANJI' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Pengenalan', type: 'KOSAKATA' } },
-      create: { name: 'Pengenalan', type: 'KOSAKATA' },
-      update: {},
-    }),
-    prisma.category.upsert({
-      where: { name_type: { name: 'Partikel', type: 'TATA_BAHASA' } },
-      create: { name: 'Partikel', type: 'TATA_BAHASA' },
-      update: {},
-    }),
-  ]);
-
-  for (const course of CATALOG) {
+async function seedCourses(prisma: PrismaClient) {
+  for (const course of COURSE_CATALOG) {
     await prisma.course.upsert({
       where: { slug: course.slug },
       create: course,
@@ -126,117 +97,92 @@ async function main() {
         description: course.description,
         level: course.level,
         isPublished: course.isPublished,
+        priceIdr: course.priceIdr,
+        isFeatured: course.isFeatured,
+        category: course.category,
       },
     });
   }
+}
 
+async function seedN5Content(prisma: PrismaClient) {
   const n5 = await prisma.course.findUniqueOrThrow({
     where: { slug: 'jlpt-n5-kursus-lengkap' },
   });
 
-  for (const lesson of N5_LESSONS) {
-    await prisma.lesson.upsert({
-      where: { slug: lesson.slug },
-      create: { ...lesson, courseId: n5.id },
-      update: {
-        title: lesson.title,
-        order: lesson.order,
-        content: lesson.content,
-        videoUrl: 'videoUrl' in lesson ? (lesson.videoUrl ?? null) : null,
-        courseId: n5.id,
-      },
-    });
-  }
+  const { lessonIdsBySlug } = await seedN5CourseStructure(prisma, n5.id);
+  const aksaraCount = await seedN5AksaraMateri(prisma, lessonIdsBySlug);
+  console.log(`  ✓ N5 struktur + ${aksaraCount} baris flashcard aksara`);
 
-  const introLesson = await prisma.lesson.findUniqueOrThrow({
-    where: { slug: 'pengenalan-aksara-jepang' },
-  });
+  await importMateriFromXlsx(prisma, { courseSlug: n5.slug });
+  console.log('  ✓ Materi XLSX (kanji, kosakata, tata bahasa)');
 
-  const existingKanji = await prisma.materialKanji.count({
-    where: { lessonId: introLesson.id },
-  });
+  return n5.id;
+}
 
-  if (existingKanji === 0) {
-    await prisma.materialKanji.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '日',
-          furigana: 'にち',
-          romaji: 'nichi',
-          arti: 'hari / matahari',
-          onyomi: 'ニチ',
-          contohOnyomi: '日本',
-          artiOnyomi: 'Jepang',
-        },
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[0].id,
-          huruf: '本',
-          furigana: 'ほん',
-          romaji: 'hon',
-          arti: 'buku',
-          onyomi: 'ホン',
-          contohOnyomi: '日本語',
-          artiOnyomi: 'bahasa Jepang',
-        },
-      ],
-    });
-
-    await prisma.materialKosakata.createMany({
-      data: [
-        {
-          lessonId: introLesson.id,
-          categoryId: categories[1].id,
-          kosakata: 'こんにちは',
-          romaji: 'konnichiwa',
-          arti: 'halo / selamat siang',
-          contohKalimat: 'こんにちは、元気ですか。',
-        },
-      ],
-    });
-
-    const question = await prisma.question.create({
-      data: {
-        lessonId: introLesson.id,
-        type: 'QUIZ',
-        questionText: 'Aksara mana yang digunakan untuk menulis kata asli bahasa Jepang?',
-        explanation: 'Hiragana dipakai untuk kata asli Jepang dan okurigana.',
-        xpReward: 10,
-        options: {
-          create: [
-            { text: 'Hiragana', isCorrect: true },
-            { text: 'Katakana', isCorrect: false },
-            { text: 'Romaji', isCorrect: false },
-            { text: 'Kanji saja', isCorrect: false },
-          ],
-        },
-      },
-    });
-
-    console.log(`Created sample quiz question ${question.id}`);
-  }
-
+async function seedDemoEnrollment(prisma: PrismaClient, courseId: string) {
   await prisma.enrollment.upsert({
     where: {
-      userId_courseId: { userId: DEMO_USER_ID, courseId: n5.id },
+      userId_courseId: { userId: DEMO_USER_ID, courseId },
     },
     create: {
       userId: DEMO_USER_ID,
-      courseId: n5.id,
+      courseId,
       status: 'ACTIVE',
     },
     update: { status: 'ACTIVE' },
   });
+}
 
-  const counts = await prisma.$transaction([
-    prisma.course.count(),
-    prisma.lesson.count(),
-    prisma.question.count(),
-  ]);
+async function main() {
+  const prisma = createPrisma();
 
-  console.log(`Seed complete: ${counts[0]} courses, ${counts[1]} lessons, ${counts[2]} questions`);
+  console.log('🌱 Seeding JepangKu LMS (production-ready starter)...\n');
+  console.log('   Sumber materi: docs/Materi LMS JepangKu - Nihongo.xlsx');
+  console.log('   Badge gambar: public/badges/*.png\n');
+
+  await prisma.user.upsert({
+    where: { id: DEMO_USER_ID },
+    create: { id: DEMO_USER_ID, role: DEFAULT_LMS_ROLE },
+    update: {},
+  });
+  console.log('  ✓ Demo user');
+
+  await seedCourses(prisma);
+  console.log(`  ✓ ${COURSE_CATALOG.length} kursus katalog`);
+
+  const n5CourseId = await seedN5Content(prisma);
+
+  await seedLiveClasses(prisma);
+  console.log('  ✓ Live class jadwal');
+
+  await seedTryoutSessions(prisma);
+  console.log('  ✓ JLPT tryout sesi + soal N5 Fase 1');
+
+  const badgeCount = await seedLmsBadges(prisma);
+  console.log(`  ✓ ${badgeCount} badge LMS (gambar dari public/badges jika ada)`);
+
+  await seedDemoEnrollment(prisma, n5CourseId);
+  console.log('  ✓ Enrollment demo N5');
+
+  const [courses, lessons, kanji, kosakata, tataBahasa, questions, categories, badges] =
+    await prisma.$transaction([
+      prisma.course.count(),
+      prisma.lesson.count({ where: { module: { courseId: n5CourseId } } }),
+      prisma.materialKanji.count(),
+      prisma.materialKosakata.count(),
+      prisma.materialTataBahasa.count(),
+      prisma.question.count(),
+      prisma.category.count(),
+      prisma.lmsBadge.count(),
+    ]);
+
+  console.log(
+    `\n✅ Seed selesai: ${courses} kursus, ${lessons} pelajaran N5 (target ${N5_LESSON_COUNT}), ` +
+      `${kanji} kanji, ${kosakata} kosakata, ${tataBahasa} tata bahasa, ` +
+      `${questions} soal, ${categories} kategori, ${badges} badge`,
+  );
+
   await prisma.$disconnect();
 }
 

@@ -4,12 +4,9 @@ import {
   Calendar,
   Compass,
   Layers,
-  Play,
   Rocket,
-  Star,
   Target,
   Trophy,
-  Users,
   Video,
   Wifi,
   Zap,
@@ -64,7 +61,7 @@ export const JLPT_LEVELS = [
     accent: 'emerald',
     modules: 12,
     status: 'tersedia' as JlptLevelStatus,
-    statusLabel: 'Modul awal tersedia',
+    statusLabel: 'Tersedia',
   },
   {
     level: 'N4',
@@ -74,7 +71,7 @@ export const JLPT_LEVELS = [
     accent: 'blue',
     modules: 10,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N3',
@@ -84,7 +81,7 @@ export const JLPT_LEVELS = [
     accent: 'amber',
     modules: 14,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N2',
@@ -94,7 +91,7 @@ export const JLPT_LEVELS = [
     accent: 'violet',
     modules: 16,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N1',
@@ -104,7 +101,7 @@ export const JLPT_LEVELS = [
     accent: 'brand',
     modules: 18,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
 ] as const;
 
@@ -157,6 +154,8 @@ export const LANDING_FEATURES: {
   desc: string;
   tag: string;
   gradient: string;
+  /** Warna blob dekorasi sudut kanan atas card (opacity rendah). */
+  blobColor: string;
   href: string;
 }[] = [
   {
@@ -165,6 +164,7 @@ export const LANDING_FEATURES: {
     desc: 'Video lesson terstruktur per modul JLPT dengan subtitle Jepang–Indonesia.',
     tag: 'VOD',
     gradient: 'from-brand-red to-brand-orange',
+    blobColor: 'bg-brand-red',
     href: '/kursus',
   },
   {
@@ -173,6 +173,7 @@ export const LANDING_FEATURES: {
     desc: 'Simulasi ujian JLPT untuk mengukur kesiapanmu sebelum ujian resmi.',
     tag: 'JLPT',
     gradient: 'from-secondary to-brand-navy',
+    blobColor: 'bg-brand-navy',
     href: '/tryout',
   },
   {
@@ -181,6 +182,7 @@ export const LANDING_FEATURES: {
     desc: 'Kumpulkan XP dari kuis & materi, raih badge, dan pantau progres belajarmu.',
     tag: 'GAME',
     gradient: 'from-amber-500 to-brand-yellow',
+    blobColor: 'bg-amber-500',
     href: '/leaderboard',
   },
   {
@@ -189,6 +191,7 @@ export const LANDING_FEATURES: {
     desc: 'Sesi live interaktif bersama sensei — tanya jawab langsung, real-time.',
     tag: 'LIVE',
     gradient: 'from-emerald-500 to-emerald-600',
+    blobColor: 'bg-emerald-500',
     href: '/kursus',
   },
 ];

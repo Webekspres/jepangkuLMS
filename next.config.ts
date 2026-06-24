@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   outputFileTracingIncludes: {
     "/*": [
       "./node_modules/pg/**/*",
@@ -32,7 +33,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com",
+        hostname: "img.youtube.com",
       },
     ],
   },
@@ -41,9 +42,11 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
 
   experimental: {
+    optimizePackageImports: ['lucide-react', 'motion/react', '@vidstack/react'],
     // Biar Server Actions aman pas nerima kiriman form lewat Ngrok
     serverActions: {
       allowedOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
+      bodySizeLimit: "2mb",
     },
   },
 };

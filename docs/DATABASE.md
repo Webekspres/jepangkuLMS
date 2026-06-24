@@ -94,7 +94,7 @@ Checklist saat memutuskan (H-3 deploy):
 | :--- | :--- |
 | [AGENTS.md](../AGENTS.md) | Aturan Agent + ringkasan DB |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Alur data LMS |
-| [backend_core_services/](./backend_core_services/) | DB **Core** (terpisah) |
+| [jepangku-core/docs/](../../jepangku-core/docs/) | DB **Core** (terpisah, canonical) |
 
 | Versi | Tanggal | Catatan |
 | :--- | :--- | :--- |

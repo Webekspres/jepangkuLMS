@@ -42,6 +42,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-header-foreground: var(--header-foreground);
+  --color-header: var(--header);
   
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -59,15 +61,31 @@
 }
 
 :root {
+  color-scheme: light;
   /* Brand colors and variables for Light Theme */
-  --background: #ffffff;
-  --foreground: #12112d; /* Dark navy-tinted black for better readability */
+
+  /*
+   * Light surface scale
+   * | Token        | Hex       | Dipakai di                                              |
+   * |--------------|-----------|----------------------------------------------------------|
+   * | --background | #f5f4fc   | body, page canvas — subtle lavender tint (bukan putih polos) |
+   * | --card       | #ffffff   | cards, panels — putih agar menonjol di atas background  |
+   * | --header     | #ffffff   | sticky navbar — putih solid                             |
+   * | --muted      | #ebebf7   | muted fills — lebih berwarna dari sebelumnya            |
+   * | --border     | #dddcef   | border, divider — lavender-tinted                       |
+   */
+  --background: #f5f4fc;
+  --foreground: #12112d;
   
   --card: #ffffff;
   --card-foreground: #12112d;
   
   --popover: #ffffff;
   --popover-foreground: #12112d;
+
+  /* Sticky chrome (navbar) — putih solid agar kontras dengan page background */
+  --header: #ffffff;
+  --header-foreground: #12112d;
   
   /* Primary Action: Red Japanese (#EC1D24) */
   --primary: #EC1D24;
@@ -77,7 +95,7 @@
   --secondary: #1E1B57;
   --secondary-foreground: #ffffff;
   
-  --muted: #f1f1f7;
+  --muted: #ebebf7;
   --muted-foreground: #5e5b88;
   
   /* Accent / Highlights: Orange (#FF4B2B) */
@@ -87,8 +105,8 @@
   --destructive: #EC1D24;
   --destructive-foreground: #ffffff;
   
-  --border: #e2e2ec;
-  --input: #e2e2ec;
+  --border: #dddcef;
+  --input: #dddcef;
   
   /* Ring focus uses Orange/Red focus indicators */
   --ring: #FF4B2B;
@@ -114,53 +132,62 @@
 }
 
 .dark {
-  /* Deep dark navy theme based on Navy (#1E1B57) */
-  --background: #0b0a19;
+  color-scheme: dark;
+  /*
+   * Kunci dark mode: gap terang antara --background dan --card harus cukup besar
+   * agar konten (card, panel) jelas terpisah dari canvas halaman.
+   * | Token            | Hex       | L (approx) | Gap dari bg |
+   * |------------------|-----------|------------|-------------|
+   * | --background     | #131030   | ~12%       | baseline    |
+   * | --muted          | #1c1947   | ~17%       | +5%         |
+   * | --card           | #252262   | ~24%       | +12%  ← kunci|
+   * | --border         | #353280   | ~30%       | +18%        |
+   */
+  --background: #131030;
   --foreground: #f4f4f9;
-  
-  --card: #121127;
+
+  --card: #252262;
   --card-foreground: #f4f4f9;
-  
-  --popover: #121127;
+
+  --popover: #252262;
   --popover-foreground: #f4f4f9;
+
+  --header: #181548;
+  --header-foreground: #f4f4f9;
   
-  /* Primary Action remains Red Japanese */
   --primary: #EC1D24;
   --primary-foreground: #ffffff;
   
-  /* Secondary / Structural: Navy tone adjusted for dark background */
-  --secondary: #1E1B57;
+  --secondary: #2f2c78;
   --secondary-foreground: #ffffff;
   
-  --muted: #1a1936;
-  --muted-foreground: #9a97c2;
+  --muted: #1c1947;
+  --muted-foreground: #bcbadc;
   
-  /* Accent remains Orange */
   --accent: #FF4B2B;
   --accent-foreground: #ffffff;
   
   --destructive: #EC1D24;
   --destructive-foreground: #ffffff;
   
-  --border: #211f44;
-  --input: #211f44;
+  --border: #353280;
+  --input: #353280;
   
   --ring: #FF4B2B;
   
   --chart-1: #EC1D24;
   --chart-2: #FF4B2B;
   --chart-3: #F8E71C;
-  --chart-4: #1E1B57;
-  --chart-5: #3c3987;
+  --chart-4: #7f7dcc;
+  --chart-5: #4846a0;
   
-  /* Sidebar in dark mode */
-  --sidebar: #070612;
+  --sidebar: #0e0c27;
   --sidebar-foreground: #f4f4f9;
   --sidebar-primary: #EC1D24;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #FF4B2B;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #14132b;
+  --sidebar-border: #252262;
   --sidebar-ring: #FF4B2B;
 }
 
@@ -177,9 +204,32 @@
   }
 }
 
+/* ── Brand surfaces ─────────────────────────────────────────────────────────
+ * Permukaan khusus bermerek yang tidak bergantung pada tema light/dark.
+ * Dipakai di: dashboard welcome banner, landing stats band, footer.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.bg-brand-hero-navy {
+  background: linear-gradient(135deg, #1E1B57 0%, #1a2d5a 55%, #2a1b4e 100%);
+}
+
+.bg-brand-hero-red {
+  background: linear-gradient(135deg, #EC1D24 0%, #FF4B2B 50%, #1E1B57 100%);
+}
+
+/* ── Container max-width ────────────────────────────────────────────────────
+ * Tailwind v4 container default bisa sampai 2xl=1536px.
+ * Cap di 80rem (1280px = max-w-7xl) agar selaras dengan jepangku-news dan
+ * proporsi desain Figma yang lebih rapat.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .container {
+    max-width: 80rem;
+  }
+}
+
 /* Clerk SignIn/SignUp — samakan tombol dengan `components/ui/button.tsx` */
 .clerk-auth-primary-btn.cl-button {
-  border-radius: 0.125rem !important;
+  border-radius: var(--radius-sm) !important;
   border: 1px solid #c91d24 !important;
   background: linear-gradient(to bottom, #f2343a, #ec1d24) !important;
   color: #fff !important;
@@ -207,10 +257,13 @@
     0 4px 10px -8px rgba(184, 21, 28, 0.45) !important;
 }
 
-.clerk-auth-social-btn.cl-button {
-  border-radius: 0.125rem !important;
+/* Shared 3D outline — Button `variant="outline"` + Clerk social (single source of truth) */
+.btn-3d-outline,
+[data-slot="button"][data-variant="outline"] {
+  border-radius: var(--radius-sm) !important;
   border: 1px solid #cbd5e1 !important;
-  background: linear-gradient(to bottom, #fff, #f1f5f9) !important;
+  background-color: #fff !important;
+  background-image: linear-gradient(to bottom, #fff, #f1f5f9) !important;
   color: #1e293b !important;
   font-weight: 600 !important;
   box-shadow:
@@ -221,8 +274,11 @@
     0 8px 14px -10px rgba(15, 23, 42, 0.18) !important;
 }
 
-.clerk-auth-social-btn.cl-button:hover {
-  background: linear-gradient(to bottom, #fff, #fff) !important;
+.btn-3d-outline:hover,
+[data-slot="button"][data-variant="outline"]:hover {
+  background-color: #fff !important;
+  background-image: linear-gradient(to bottom, #fff, #f8fafc) !important;
+  color: #1e293b !important;
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
@@ -231,11 +287,160 @@
     0 11px 18px -10px rgba(15, 23, 42, 0.22) !important;
 }
 
-.clerk-auth-social-btn.cl-button:active {
+.btn-3d-outline:active,
+[data-slot="button"][data-variant="outline"]:active {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
     0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
     0 2px 0 0 #cbd5e1,
     0 3px 0 0 #94a3b8,
     0 5px 10px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+.dark .btn-3d-outline,
+.dark [data-slot="button"][data-variant="outline"],
+.btn-3d-outline-dark {
+  border: 1px solid color-mix(in srgb, var(--border) 85%, white 15%) !important;
+  background-color: var(--muted) !important;
+  background-image: linear-gradient(to bottom, var(--card), var(--muted)) !important;
+  color: var(--foreground) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 4px 0 0 var(--border),
+    0 5px 0 0 var(--background),
+    0 8px 14px -10px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark .btn-3d-outline:hover,
+.dark [data-slot="button"][data-variant="outline"]:hover,
+.btn-3d-outline-dark:hover {
+  background-color: var(--muted) !important;
+  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--card) 70%, white 8%), var(--muted)) !important;
+  color: var(--foreground) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.14) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 5px 0 0 var(--border),
+    0 6px 0 0 var(--sidebar),
+    0 11px 18px -10px rgba(0, 0, 0, 0.55) !important;
+}
+
+.dark .btn-3d-outline:active,
+.dark [data-slot="button"][data-variant="outline"]:active,
+.btn-3d-outline-dark:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 0 0 var(--border),
+    0 3px 0 0 var(--background),
+    0 5px 10px -10px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Clerk social — reuse btn-3d-outline; !important mengalahkan shadcn theme inline */
+.clerk-auth-social-btn.btn-3d-outline.cl-button,
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline.cl-button {
+  border: 1px solid #cbd5e1 !important;
+  background-color: #fff !important;
+  background-image: linear-gradient(to bottom, #fff, #f1f5f9) !important;
+  color: #1e293b !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 4px 0 0 #e2e8f0,
+    0 5px 0 0 #94a3b8,
+    0 8px 14px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline.cl-button:hover {
+  background-color: #fff !important;
+  background-image: linear-gradient(to bottom, #fff, #fff) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 5px 0 0 #cbd5e1,
+    0 6px 0 0 #94a3b8,
+    0 11px 18px -10px rgba(15, 23, 42, 0.22) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline.cl-button:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.7) inset,
+    0 2px 0 0 #cbd5e1,
+    0 3px 0 0 #94a3b8,
+    0 5px 10px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button {
+  border: 1px solid color-mix(in srgb, var(--border) 85%, white 15%) !important;
+  background-color: var(--muted) !important;
+  background-image: linear-gradient(to bottom, var(--card), var(--muted)) !important;
+  color: var(--foreground) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 4px 0 0 var(--border),
+    0 5px 0 0 var(--background),
+    0 8px 14px -10px rgba(0, 0, 0, 0.45) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button:hover {
+  background-color: var(--muted) !important;
+  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--card) 70%, white 8%), var(--muted)) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.14) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 5px 0 0 var(--border),
+    0 6px 0 0 var(--sidebar),
+    0 11px 18px -10px rgba(0, 0, 0, 0.55) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 0 0 var(--border),
+    0 3px 0 0 var(--background),
+    0 5px 10px -10px rgba(0, 0, 0, 0.4) !important;
+}
+
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button .cl-socialButtonsBlockButtonText,
+.clerk-auth-social-btn.btn-3d-outline-dark.cl-button .cl-socialButtonsBlockButtonText span {
+  color: var(--foreground) !important;
+}
+
+/* Clerk auth card dark — popover (sama bg theme switcher dropdown) */
+.clerk-auth-card--dark.cl-card,
+.clerk-auth-card-box--dark.cl-cardBox,
+.clerk-auth-main--dark.cl-main {
+  background-color: var(--popover) !important;
+  background-image: none !important;
+}
+
+.clerk-auth-card--dark .cl-footer,
+.clerk-auth-card--dark .cl-footerPages,
+.clerk-auth-card--dark .cl-footerPagesInner,
+.clerk-auth-card--dark .cl-internal-b47c9,
+.clerk-auth-card--dark [class*='footerPages'] {
+  background-color: var(--popover) !important;
+  background-image: none !important;
+}
+
+.clerk-auth-card--dark .cl-dividerLine {
+  background-color: var(--border) !important;
+}
+
+.clerk-auth-card--dark .cl-dividerText,
+.clerk-auth-card--dark .cl-footerActionText {
+  color: var(--muted-foreground) !important;
+}
+
+.clerk-auth-card--dark .cl-formFieldLabel {
+  color: var(--foreground) !important;
 }

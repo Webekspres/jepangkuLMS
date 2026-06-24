@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
@@ -16,6 +16,7 @@ import {
   Phone,
   Play,
   Shield,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
@@ -23,6 +24,7 @@ import { MarketingFooter } from '@/features/marketing/components/marketing-foote
 import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing-nav-layout';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
+import { CourseSyllabusAccordion } from './course-syllabus-accordion';
 import {
   ADMIN_WA_NUMBER,
   PAYMENT_BCA,
@@ -39,11 +41,34 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
   const isFree = course.priceNum === 0;
   const isAvailable = course.availability === 'tersedia';
 
+  const syllabusGroups = useMemo(
+    () =>
+      course.syllabus.map((mod, index) => ({
+        module: `syllabus-${index}`,
+        title: mod.title,
+        subtitle: `${mod.items.length} pelajaran`,
+        lessons: mod.items.map((item) => ({
+          slug: item.title,
+          title: item.title,
+          content: item.duration,
+          locked: item.locked,
+        })),
+      })),
+    [course.syllabus],
+  );
+
+  const [expandedSyllabusIds, setExpandedSyllabusIds] = useState<string[]>(() =>
+    syllabusGroups[0] ? [syllabusGroups[0].module] : [],
+  );
+
+  const handleSyllabusToggle = (moduleId: string) => {
+    setExpandedSyllabusIds((prev) =>
+      prev.includes(moduleId) ? prev.filter((id) => id !== moduleId) : [...prev, moduleId],
+    );
+  };
+
   const waConsultText = encodeURIComponent(
     `Halo, saya ingin konsultasi mengenai kursus "${course.title}" (${course.price}).`,
-  );
-  const waPaymentText = encodeURIComponent(
-    `Halo, saya ingin konfirmasi pembayaran untuk kursus "${course.title}" (${course.price}).\n\nNama: [nama Anda]\nNo. Rekening tujuan: ${PAYMENT_BCA.bank} ${PAYMENT_BCA.accountNumber} a/n ${PAYMENT_BCA.accountName}\n\nMohon konfirmasi. Terima kasih!`,
   );
 
   const handleCopyAccount = () => {
@@ -57,7 +82,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
       <PublicNavbar activeHref="/kursus" />
 
       {/* Sub-nav breadcrumb */}
-      <div className="border-b border-border bg-background/95 backdrop-blur-md">
+      <div className="border-b border-border bg-header backdrop-blur-md dark:backdrop-blur-none">
         <div className="container mx-auto flex items-center gap-3 px-4 py-3 md:px-8">
           <Link
             href="/kursus"
@@ -188,45 +213,12 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {course.syllabus.map((module) => (
-                  <div key={module.title} className="overflow-hidden rounded-xl border border-border">
-                    <div className="bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground">
-                      {module.title}
-                    </div>
-                    <ul className="divide-y divide-border">
-                      {module.items.map((item) => (
-                        <li
-                          key={item.title}
-                          className={cn(
-                            'flex items-center justify-between gap-3 px-4 py-3 text-sm',
-                            item.locked && 'bg-muted/20',
-                          )}
-                        >
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            {item.locked ? (
-                              <Lock className="size-3.5 shrink-0 text-muted-foreground" />
-                            ) : (
-                              <Play className="size-3.5 shrink-0 text-primary" />
-                            )}
-                            <span
-                              className={cn(
-                                'truncate',
-                                item.locked ? 'text-muted-foreground' : 'text-foreground',
-                              )}
-                            >
-                              {item.title}
-                            </span>
-                          </div>
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {item.locked ? 'Terdaftar' : item.duration}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+              <CourseSyllabusAccordion
+                groups={syllabusGroups}
+                expandedIds={expandedSyllabusIds}
+                onToggle={handleSyllabusToggle}
+                showGlobalIndex={false}
+              />
             </motion.div>
           </div>
 
@@ -319,19 +311,11 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                         </div>
                       </div>
                     </div>
-                    <Button
-                      asChild
-                      variant="secondary"
-                      className="mb-3 h-11 w-full gap-2 font-bold"
-                    >
-                      <a
-                        href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waPaymentText}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="size-4" />
-                        Konfirmasi Pembayaran
-                      </a>
+                    <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
+                      <Link href="/sign-up">
+                        <UserPlus className="size-4" />
+                        Daftar Sekarang
+                      </Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
                       <a

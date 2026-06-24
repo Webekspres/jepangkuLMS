@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Award, Coins, Trophy, Zap } from 'lucide-react';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import type { StudentCoreData } from '@/features/student/types/student-core-data';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { STUDENT_ROUTES } from './student-routes';
 
 export type DashboardStat = {
@@ -13,25 +14,34 @@ export type DashboardStat = {
 };
 
 export function buildDashboardStats(core: StudentCoreData): DashboardStat[] {
+  const coreOff = !isCoreIntegrationEnabled();
   const rankSub =
-    core.globalRank != null && core.leaderboardTotal > 0
+    core.lmsRank != null && core.leaderboardTotal > 0
       ? `dari ${formatDisplayNumber(core.leaderboardTotal)} pelajar`
-      : core.coreConnected
-        ? 'Belum masuk ranking'
-        : 'Menghubungkan ke Core…';
+      : coreOff
+        ? 'Leaderboard LMS'
+        : core.coreConnected
+          ? 'Belum masuk ranking'
+          : 'Memuat peringkat…';
+
+  const xpSub = coreOff
+    ? 'Segera hadir'
+    : core.coreConnected
+      ? 'Level progres kamu'
+      : 'Memuat level…';
 
   return [
     {
       label: 'Total XP',
       value: formatDisplayNumber(core.totalXp),
-      sub: core.coreConnected ? 'Dari JepangKu Core' : 'Menunggu sinkron Core',
+      sub: xpSub,
       icon: Zap,
       accentClass: 'text-primary bg-primary/10',
     },
     {
-      label: 'Poin',
-      value: formatDisplayNumber(core.currentPoints),
-      sub: 'Saldo poin spendable',
+      label: 'Poin LMS',
+      value: formatDisplayNumber(core.lmsPoints),
+      sub: 'Untuk leaderboard LMS',
       icon: Coins,
       accentClass: 'text-amber-600 bg-amber-500/10',
     },
@@ -43,8 +53,8 @@ export function buildDashboardStats(core: StudentCoreData): DashboardStat[] {
       accentClass: 'text-emerald-600 bg-emerald-500/10',
     },
     {
-      label: 'Rank Global',
-      value: core.globalRank != null ? `#${core.globalRank}` : '—',
+      label: 'Rank LMS',
+      value: core.lmsRank != null ? `#${core.lmsRank}` : '—',
       sub: rankSub,
       icon: Trophy,
       accentClass: 'text-violet-600 bg-violet-500/10',
@@ -129,6 +139,20 @@ export const DASHBOARD_WEEKLY_XP = [
 ] as const;
 
 export const DASHBOARD_WEEKLY_XP_MAX = Math.max(...DASHBOARD_WEEKLY_XP.map((d) => d.xp));
+
+export type DashboardWeeklyXpDay = {
+  day: string;
+  xp: number;
+};
+
+export type DashboardLivePreviewItem = {
+  id: string;
+  title: string;
+  time: string;
+  sensei: string;
+  live: boolean;
+  href: string;
+};
 
 export type LeaderboardPreviewRow = {
   rank: number;
