@@ -9,6 +9,7 @@ import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
@@ -21,7 +22,10 @@ export default function AppProviders({ children }: { children: React.ReactNode }
       <ClerkProviderThemed>
         <QueryProvider>
           <TooltipProvider delayDuration={0}>
-            <AppSplash>{children}</AppSplash>
+            <AppSplash>
+              <CoreSessionSync />
+              {children}
+            </AppSplash>
             <Toaster richColors closeButton position="top-right" />
           </TooltipProvider>
         </QueryProvider>

@@ -53,6 +53,12 @@ COPY --from=builder /app/node_modules/postgres-date ./node_modules/postgres-date
 COPY --from=builder /app/node_modules/postgres-interval ./node_modules/postgres-interval
 COPY --from=builder /app/node_modules/split2 ./node_modules/split2
 COPY --from=builder /app/node_modules/xtend ./node_modules/xtend
+# pino transport worker deps (serverExternalPackages — not in standalone trace)
+COPY --from=builder /app/node_modules/pino ./node_modules/pino
+COPY --from=builder /app/node_modules/pino-abstract-transport ./node_modules/pino-abstract-transport
+COPY --from=builder /app/node_modules/thread-stream ./node_modules/thread-stream
+COPY --from=builder /app/node_modules/sonic-boom ./node_modules/sonic-boom
+COPY --from=builder /app/node_modules/on-exit-leak-free ./node_modules/on-exit-leak-free
 USER nextjs
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
