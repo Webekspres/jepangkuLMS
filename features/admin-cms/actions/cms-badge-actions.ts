@@ -10,6 +10,7 @@ import {
 import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@/lib/r2';
 import type { LmsBadgeUnlockRule } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { parseLmsBadgeRarity } from '@/lib/lms/badge-rarity';
 
 export type CmsBadgeActionResult =
   | { ok: true; id?: string }
@@ -29,7 +30,8 @@ function parseBadgeMeta(formData: FormData) {
   const unlockValue = unlockValueRaw ? Number(unlockValueRaw) : null;
   const xpBonus = Number(formData.get('xpBonus') ?? 25) || 25;
   const requirementText = String(formData.get('requirementText') ?? '').trim() || null;
-  return { unlockRule, unlockValue, xpBonus, requirementText };
+  const rarity = parseLmsBadgeRarity(String(formData.get('rarity') ?? 'COMMON'));
+  return { unlockRule, unlockValue, xpBonus, requirementText, rarity };
 }
 
 async function parseBadgeImage(formData: FormData): Promise<{ buffer: Buffer; mime: string; ext: string } | null> {
@@ -106,6 +108,7 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
       description,
       imageUrl,
       sortOrder,
+      rarity: meta.rarity,
       unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,
@@ -161,6 +164,7 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
       description,
       sortOrder,
       imageUrl,
+      rarity: meta.rarity,
       unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,

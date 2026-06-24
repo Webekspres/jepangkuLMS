@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { LMS_BADGE_RARITY_OPTIONS } from '@/lib/lms/badge-rarity';
 
 type BadgeFormData = {
   id?: string;
@@ -32,6 +33,7 @@ type BadgeFormData = {
   description: string | null;
   imageUrl: string | null;
   sortOrder: number;
+  rarity: string;
   unlockRule: string;
   unlockValue: number | null;
   xpBonus: number;
@@ -50,6 +52,7 @@ export function AdminBadgeFormPage({
   const [error, setError] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [unlockRule, setUnlockRule] = useState(badge?.unlockRule ?? 'MANUAL');
+  const [rarity, setRarity] = useState(badge?.rarity ?? 'COMMON');
   const [imagePreview, setImagePreview] = useState<string | null>(
     badge?.imageUrl && !removeImage ? badge.imageUrl : null,
   );
@@ -159,6 +162,7 @@ export function AdminBadgeFormPage({
       <Card className="max-w-xl border-border p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="unlockRule" value={unlockRule} />
+          <input type="hidden" name="rarity" value={rarity} />
           <div className="space-y-2">
             <Label htmlFor="title">Judul</Label>
             <Input id="title" name="title" defaultValue={badge?.title ?? ''} required />
@@ -184,15 +188,36 @@ export function AdminBadgeFormPage({
             <Textarea id="description" name="description" rows={3} defaultValue={badge?.description ?? ''} />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="sortOrder">Urutan tampil</Label>
-            <Input
-              id="sortOrder"
-              name="sortOrder"
-              type="number"
-              min={0}
-              defaultValue={badge?.sortOrder ?? 0}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="rarity">Rarity</Label>
+              <Select value={rarity} onValueChange={setRarity}>
+                <SelectTrigger id="rarity">
+                  <SelectValue placeholder="Pilih rarity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LMS_BADGE_RARITY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Common (abu), Rare (biru), Epic (ungu), Legendary (emas).
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Urutan tampil</Label>
+              <Input
+                id="sortOrder"
+                name="sortOrder"
+                type="number"
+                min={0}
+                defaultValue={badge?.sortOrder ?? 0}
+              />
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

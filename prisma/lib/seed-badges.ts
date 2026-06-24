@@ -1,6 +1,6 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
-import type { LmsBadgeUnlockRule, PrismaClient } from '@prisma/client';
+import type { LmsBadgeRarity, LmsBadgeUnlockRule, PrismaClient } from '@prisma/client';
 
 /**
  * Starter badges — gambar dari `public/badges/*.png`.
@@ -19,6 +19,7 @@ type BadgeSeed = {
   unlockValue?: number;
   xpBonus: number;
   requirementText: string;
+  rarity: LmsBadgeRarity;
 };
 
 const BADGE_CATALOG: BadgeSeed[] = [
@@ -31,6 +32,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'FIRST_LESSON',
     xpBonus: 25,
     requirementText: 'Selesaikan pelajaran pertamamu',
+    rarity: 'COMMON',
   },
   {
     code: 'grammar-starter',
@@ -41,6 +43,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'FIRST_QUIZ',
     xpBonus: 30,
     requirementText: 'Selesaikan kuis pertama',
+    rarity: 'COMMON',
   },
   {
     code: 'kanji-beginner',
@@ -51,6 +54,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'MANUAL',
     xpBonus: 20,
     requirementText: 'Selesaikan modul kanji N5 (grant admin / milestone)',
+    rarity: 'COMMON',
   },
   {
     code: 'nihongo-explorer',
@@ -61,6 +65,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'MANUAL',
     xpBonus: 35,
     requirementText: 'Selesaikan kurikulum N5 (milestone)',
+    rarity: 'COMMON',
   },
   {
     code: 'n5-retry-rookie',
@@ -71,6 +76,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'MANUAL',
     xpBonus: 15,
     requirementText: 'Kuis N5 dengan skor < 50% (grant manual / fase 2)',
+    rarity: 'COMMON',
   },
   {
     code: 'n5-progress-achiever',
@@ -81,6 +87,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockRule: 'MANUAL',
     xpBonus: 40,
     requirementText: 'Kuis N5 skor 50–74% (grant manual / fase 2)',
+    rarity: 'RARE',
   },
   {
     code: 'n5-high-performer',
@@ -92,6 +99,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockValue: 75,
     xpBonus: 50,
     requirementText: 'Lulus simulasi JLPT N5 dengan skor ≥ 75%',
+    rarity: 'EPIC',
   },
   {
     code: 'n5-perfect-master',
@@ -103,6 +111,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     unlockValue: 100,
     xpBonus: 75,
     requirementText: 'Skor sempurna 100% pada simulasi JLPT N5',
+    rarity: 'LEGENDARY',
   },
 ];
 
@@ -137,6 +146,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         description: badge.description,
         imageUrl,
         sortOrder: badge.sortOrder,
+        rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
         xpBonus: badge.xpBonus,
@@ -147,6 +157,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         description: badge.description,
         imageUrl,
         sortOrder: badge.sortOrder,
+        rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
         xpBonus: badge.xpBonus,
