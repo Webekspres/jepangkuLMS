@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
+import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
 import type { ContinueLesson, JlptPathItem } from '@/features/student/components/dashboard-data';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { DEFAULT_THUMB } from '@/features/learning/lib/course-display';
@@ -103,6 +104,7 @@ function buildJlptPath(
 
 export const loadStudentKursusData = cache(async function loadStudentKursusData(): Promise<StudentKursusData> {
   const userId = await requireAuthUserId();
+  const adminAccess = await isLmsAdmin(userId);
 
   const [allCourses, enrollments] = await Promise.all([
     getCoursesWithDbIds(),
@@ -111,11 +113,32 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
 
   const courses = allCourses.filter((c) => c.isPublished);
 
+  // Admin bypass — untuk kursus yang belum di-enroll, buat synthetic enrollment
+  let effectiveEnrollments = enrollments;
+  if (adminAccess) {
+    const enrolledSlugs = new Set(enrollments.map((e) => e.courseSlug));
+    const syntheticEnrollments: StudentEnrollmentView[] = courses
+      .filter((c) => !enrolledSlugs.has(c.slug))
+      .map((c) => ({
+        courseId: c.dbId,
+        courseSlug: c.slug,
+        enrollmentStatus: 'ACTIVE' as const,
+        progress: {
+          completedCount: 0,
+          totalCount: c.lessonCount,
+          percent: 0,
+          status: 'not_started' as const,
+          continueLessonSlug: null,
+        },
+      }));
+    effectiveEnrollments = [...enrollments, ...syntheticEnrollments];
+  }
+
   const enrollmentBySlug = Object.fromEntries(
-    enrollments.map((e) => [e.courseSlug, e]),
+    effectiveEnrollments.map((e) => [e.courseSlug, e]),
   );
 
-  const enrolledCards: KursusEnrollmentCard[] = enrollments
+  const enrolledCards: KursusEnrollmentCard[] = effectiveEnrollments
     .map((enrollment) => {
       const course = courses.find((c) => c.slug === enrollment.courseSlug);
       if (!course) return null;
@@ -137,9 +160,9 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
     enrollmentBySlug,
     enrolledCards,
     stats: {
-      enrolled: enrollments.length,
-      active: enrollments.filter((e) => e.progress.status === 'active').length,
-      completed: enrollments.filter((e) => e.progress.status === 'completed').length,
+      enrolled: effectiveEnrollments.length,
+      active: effectiveEnrollments.filter((e) => e.progress.status === 'active').length,
+      completed: effectiveEnrollments.filter((e) => e.progress.status === 'completed').length,
     },
   };
 });
