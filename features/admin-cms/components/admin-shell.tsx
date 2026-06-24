@@ -4,14 +4,17 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AdminSidebar } from '@/features/admin-cms/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin-cms/components/admin-topbar';
+import type { ResolvedLmsProfilePresentation } from '@/lib/lms/user-profile';
 import { cn } from '@/lib/utils';
 
 export function AdminShell({
   children,
   pendingEnrollmentCount = 0,
+  sessionProfile = null,
 }: {
   children: React.ReactNode;
   pendingEnrollmentCount?: number;
+  sessionProfile?: ResolvedLmsProfilePresentation | null;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,7 +46,7 @@ export function AdminShell({
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <AdminTopbar onMenuClick={() => setMobileOpen(true)} />
+        <AdminTopbar onMenuClick={() => setMobileOpen(true)} sessionProfile={sessionProfile} />
         <main className={cn('flex-1 overflow-y-auto')}>{children}</main>
       </div>
     </div>
