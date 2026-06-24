@@ -101,7 +101,7 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
 
-  const displayName = core.displayName ?? identity?.displayName ?? 'Pengguna';
+  const displayName = core.displayName ?? identity?.displayName ?? 'Siswa JepangKu';
   const email = identity?.email ?? core.email;
   const avatarUrl = core.avatarUrl ?? identity?.imageUrl;
   const initial = displayName.charAt(0).toUpperCase();

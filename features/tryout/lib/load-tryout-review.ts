@@ -8,6 +8,7 @@ import {
   sortTryoutExamQuestions,
   type TryoutSectionValue,
 } from '@/features/admin-cms/lib/tryout-sections';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
 export type TryoutReviewQuestion = {
@@ -66,7 +67,7 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { displayName: true },
+    select: { displayName: true, ssoDisplayName: true },
   });
 
   let answers: Record<string, string> = {};
@@ -150,7 +151,10 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     total: attempt.totalQuestions ?? questions.length,
     pass: attempt.score >= 60,
     submittedAt: attempt.createdAt.toISOString(),
-    displayName: user?.displayName?.trim() || 'Siswa JepangKu',
+    displayName: resolvePublicDisplayName({
+      displayName: user?.displayName,
+      ssoDisplayName: user?.ssoDisplayName,
+    }),
     sectionBreakdown,
     questions,
   };

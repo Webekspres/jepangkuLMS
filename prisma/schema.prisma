@@ -64,8 +64,12 @@ enum LmsNotificationType {
 // ====================================================================
 model User {
   id              String   @id // Clerk User ID — tanpa @default(uuid())
-  /// Nama tampilan di LMS (bukan nama Google SSO dari Clerk)
+  /// Nama tampilan di LMS — dipilih user (bisa beda dari SSO)
   displayName     String?  @db.VarChar(32)
+  /// Nama dari SSO Clerk (Google, dll.) — fallback leaderboard & UI sebelum setup
+  ssoDisplayName  String?  @db.VarChar(64)
+  /// Setelah user konfirmasi nama di onboarding / edit profil
+  displayNameSetupAt DateTime?
   /// Bio singkat profil belajar
   bio             String?  @db.VarChar(280)
   /// Foto profil LMS — override Clerk jika di-set

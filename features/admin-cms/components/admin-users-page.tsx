@@ -40,6 +40,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
     return users.filter(
       (user) =>
         user.id.toLowerCase().includes(q) ||
+        (user.resolvedDisplayName ?? '').toLowerCase().includes(q) ||
         (user.displayName ?? '').toLowerCase().includes(q) ||
         user.role.toLowerCase().includes(q),
     );
@@ -115,7 +116,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
               paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <p className="font-medium text-foreground">{user.displayName ?? '—'}</p>
+                    <p className="font-medium text-foreground">{user.resolvedDisplayName}</p>
                     <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p>
                   </TableCell>
                   <TableCell>

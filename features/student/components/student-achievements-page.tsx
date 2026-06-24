@@ -309,7 +309,7 @@ export function StudentAchievementsPage({
   const badges = core.badges;
   const summary = getAchievementSummary(badges);
   const milestones = milestonesProp ?? buildAchievementMilestones(core.totalXp);
-  const displayName = identity?.displayName ?? core.displayName ?? 'Pengguna';
+  const displayName = core.displayName ?? identity?.displayName ?? 'Siswa JepangKu';
   const userInitial = displayName.charAt(0).toUpperCase();
 
   const [filter, setFilter] = useState<BadgeFilter>('all');

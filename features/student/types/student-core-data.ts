@@ -26,6 +26,10 @@ export type StudentCoreBadge = {
 export type StudentCoreData = {
   coreConnected: boolean;
   userId: string | null;
+  /** True sampai user konfirmasi nama tampilan pertama kali. */
+  needsDisplayNameSetup: boolean;
+  /** Nama awal dari SSO — prefill modal onboarding. */
+  suggestedDisplayName: string | null;
   displayName: string | null;
   email: string | null;
   avatarUrl: string | null;
@@ -60,6 +64,8 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   coreConnected: false,
   userId: null,
   displayName: null,
+  needsDisplayNameSetup: false,
+  suggestedDisplayName: null,
   email: null,
   avatarUrl: null,
   totalXp: 0,
