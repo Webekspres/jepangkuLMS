@@ -61,7 +61,7 @@ export const JLPT_LEVELS = [
     accent: 'emerald',
     modules: 12,
     status: 'tersedia' as JlptLevelStatus,
-    statusLabel: 'Modul awal tersedia',
+    statusLabel: 'Tersedia',
   },
   {
     level: 'N4',
@@ -71,7 +71,7 @@ export const JLPT_LEVELS = [
     accent: 'blue',
     modules: 10,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N3',
@@ -81,7 +81,7 @@ export const JLPT_LEVELS = [
     accent: 'amber',
     modules: 14,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N2',
@@ -91,7 +91,7 @@ export const JLPT_LEVELS = [
     accent: 'violet',
     modules: 16,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
   {
     level: 'N1',
@@ -101,7 +101,7 @@ export const JLPT_LEVELS = [
     accent: 'brand',
     modules: 18,
     status: 'segera' as JlptLevelStatus,
-    statusLabel: 'Segera hadir',
+    statusLabel: 'Segera',
   },
 ] as const;
 

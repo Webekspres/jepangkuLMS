@@ -3,6 +3,8 @@ import { BookOpen, Clock, GraduationCap, Target, Users, Video } from 'lucide-rea
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminStatCard } from '@/features/admin-cms/components/admin-stat-card';
 import type { AdminDashboardStats } from '@/features/admin-cms/lib/load-admin-dashboard-stats';
+import type { AdminAnalyticsConfig } from '@/features/admin-cms/lib/load-admin-analytics-config';
+import { AdminAnalyticsPanel } from '@/features/admin-cms/components/admin-analytics-panel';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +30,13 @@ function EnrollmentTrendChart({ data }: { data: AdminDashboardStats['enrollmentT
   );
 }
 
-export function AdminDashboardPage({ stats }: { stats: AdminDashboardStats }) {
+export function AdminDashboardPage({
+  stats,
+  analyticsConfig,
+}: {
+  stats: AdminDashboardStats;
+  analyticsConfig: AdminAnalyticsConfig;
+}) {
   const approvalRate =
     stats.totalEnrollments > 0
       ? Math.round((stats.activeEnrollments / stats.totalEnrollments) * 100)
@@ -132,6 +140,10 @@ export function AdminDashboardPage({ stats }: { stats: AdminDashboardStats }) {
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <AdminAnalyticsPanel config={analyticsConfig} />
       </div>
 
       <Card className="mt-6 border-border bg-card shadow-sm">

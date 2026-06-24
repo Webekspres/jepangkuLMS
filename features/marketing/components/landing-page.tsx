@@ -73,11 +73,11 @@ export function LandingPage() {
       {/* Navbar */}
       <motion.nav
         className={cn(
-          'fixed top-0 right-0 left-0 transition-all duration-300',
-          menuOpen ? 'z-102' : 'z-50',
+          "fixed top-0 right-0 left-0 transition-all duration-300",
+          menuOpen ? "z-102" : "z-50",
           scrolled
-            ? 'border-b border-border bg-header shadow-md backdrop-blur-md dark:backdrop-blur-none'
-            : 'bg-transparent',
+            ? "border-b border-border bg-header shadow-md backdrop-blur-md dark:backdrop-blur-none"
+            : "bg-transparent",
         )}
         initial={{ y: -80 }}
         animate={{ y: 0 }}
@@ -95,19 +95,24 @@ export function LandingPage() {
                 key={link.href}
                 href={link.href}
                 label={link.label}
-                variant={scrolled ? 'default' : 'light'}
+                variant={scrolled ? "default" : "light"}
               />
             ))}
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
-            <ThemeToggle className={cn(!scrolled && 'text-white hover:bg-white/10 hover:text-white')} />
+            <ThemeToggle
+              className={cn(
+                !scrolled && "text-white hover:bg-white/10 hover:text-white",
+              )}
+            />
             <Button
               asChild
               variant="outline"
               className={cn(
-                'h-10 px-5',
-                !scrolled && 'border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white',
+                "h-10 px-5",
+                !scrolled &&
+                  "border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white",
               )}
             >
               <Link href="/sign-in">Masuk</Link>
@@ -121,12 +126,19 @@ export function LandingPage() {
             <ThemeToggle size="icon-sm" />
             <button
               type="button"
-              className={cn('relative rounded-lg p-1', scrolled ? 'text-foreground' : 'text-white')}
+              className={cn(
+                "relative rounded-lg p-1",
+                scrolled ? "text-foreground" : "text-white",
+              )}
               onClick={() => setMenuOpen(!menuOpen)}
-              aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
+              aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
               aria-expanded={menuOpen}
             >
-              {menuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+              {menuOpen ? (
+                <X className="size-6" />
+              ) : (
+                <Menu className="size-6" />
+              )}
             </button>
           </div>
         </div>
@@ -152,7 +164,9 @@ export function LandingPage() {
           </nav>
           <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
             <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Tema tampilan
+              </span>
               <ThemeToggle size="icon-sm" />
             </div>
             <Button asChild variant="outline" className="h-11 w-full">
@@ -173,14 +187,14 @@ export function LandingPage() {
       {/* Elliptic bottom curve: border-radius 0 0 50% 50% / 0 0 6rem 6rem gives a wide smooth arch */}
       <section
         className="bg-brand-hero-navy relative flex min-h-[min(100svh,900px)] items-center overflow-hidden sm:min-h-[min(100svh,880px)]"
-        style={{ borderRadius: '0 0 50% 50% / 0 0 6rem 6rem' }}
+        style={{ borderRadius: "0 0 50% 50% / 0 0 6rem 6rem" }}
       >
         {/* Seigaiha pattern — subtle */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '40px 40px',
+            backgroundSize: "40px 40px",
           }}
         />
         {/* Grid overlay */}
@@ -193,10 +207,16 @@ export function LandingPage() {
 
         <div className="container relative mx-auto grid w-full items-center gap-6 px-4 pt-20 pb-10 sm:gap-8 sm:pt-24 sm:pb-12 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
           {/* LEFT: headline + buttons */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
               <Sparkles className="size-4 text-brand-yellow" />
-              <span className="text-sm font-medium text-white/80">Powered by JepangKu</span>
+              <span className="text-sm font-medium text-white/80">
+                Powered by JepangKu
+              </span>
             </div>
             <h1 className="mb-5 text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white">
               Kursus bahasa Jepang
@@ -208,21 +228,23 @@ export function LandingPage() {
               </span>
             </h1>
             <p className="mb-6 max-w-lg text-base leading-relaxed text-white/70 md:text-lg">
-              Belajar dengan video lesson, modul bertahap, kuis interaktif, dan try out JLPT — dimulai
-              dari N5 saat peluncuran awal.
+              Belajar dengan video lesson, modul bertahap, kuis interaktif, dan
+              try out JLPT — dimulai dari N5 saat peluncuran awal.
             </p>
 
             <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-3">
-              <p className="text-sm font-medium text-white/60">Kurikulum JLPT N5–N1</p>
+              <p className="text-sm font-medium text-white/60">
+                Kurikulum JLPT N5–N1
+              </p>
               <div className="flex -space-x-2.5" aria-hidden>
                 {HERO_TRUST_LEVELS.map((level, index) => (
                   <div
                     key={level}
                     className={cn(
-                      'flex size-9 items-center justify-center rounded-full border-2 border-brand-navy text-xs font-bold shadow-sm',
+                      "flex size-9 items-center justify-center rounded-full border-2 border-brand-navy text-xs font-bold shadow-sm",
                       index === 0
-                        ? 'bg-linear-to-br from-brand-red to-brand-orange text-white'
-                        : 'bg-white/20 text-white/90',
+                        ? "bg-linear-to-br from-brand-red to-brand-orange text-white"
+                        : "bg-white/20 text-white/90",
                     )}
                   >
                     {level}
@@ -238,9 +260,13 @@ export function LandingPage() {
                 size="lg"
                 className="h-11 w-full border-white/40 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white sm:h-12 sm:w-auto"
               >
-                <Link href="/sign-in">Masuk</Link>
+                <Link href="/sign-in">Mulai Belajar Sekarang</Link>
               </Button>
-              <Button asChild size="lg" className="h-11 w-full px-6 sm:h-12 sm:w-auto">
+              <Button
+                asChild
+                size="lg"
+                className="h-11 w-full px-6 sm:h-12 sm:w-auto"
+              >
                 <Link href="/kursus" className="inline-flex items-center gap-2">
                   Jelajahi Semua Kursus
                   <ArrowRight className="size-4" />
@@ -268,7 +294,9 @@ export function LandingPage() {
                   <div className="size-3 rounded-full bg-red-400/90" />
                   <div className="size-3 rounded-full bg-amber-400/90" />
                   <div className="size-3 rounded-full bg-emerald-400/90" />
-                  <span className="ml-2 truncate text-xs text-gray-400">jepangku.com/kursus/n5</span>
+                  <span className="ml-2 truncate text-xs text-gray-400">
+                    jepangku.com/kursus/n5
+                  </span>
                 </div>
                 <div className="flex min-h-[260px] sm:min-h-[300px]">
                   <aside className="hidden w-40 shrink-0 border-r border-gray-200 bg-gray-50 p-3 sm:block md:w-44">
@@ -280,10 +308,10 @@ export function LandingPage() {
                         <li
                           key={module.title}
                           className={cn(
-                            'flex items-center gap-2 rounded-lg px-2 py-2 text-xs',
+                            "flex items-center gap-2 rounded-lg px-2 py-2 text-xs",
                             module.active
-                              ? 'bg-primary/10 font-semibold text-primary'
-                              : 'text-gray-400',
+                              ? "bg-primary/10 font-semibold text-primary"
+                              : "text-gray-400",
                           )}
                         >
                           {module.active ? (
@@ -320,7 +348,7 @@ export function LandingPage() {
                         <motion.div
                           className="h-1.5 rounded-full bg-linear-to-r from-brand-red to-brand-orange"
                           initial={{ width: 0 }}
-                          animate={{ width: '25%' }}
+                          animate={{ width: "25%" }}
                           transition={{ duration: 1.2, delay: 0.5 }}
                         />
                       </div>
@@ -330,8 +358,11 @@ export function LandingPage() {
               </div>
             </div>
             <p className="mt-5 text-center text-sm text-white/60">
-              Bagian dari ekosistem{' '}
-              <Link href="/tentang" className="font-semibold text-white underline-offset-4 hover:underline">
+              Bagian dari ekosistem{" "}
+              <Link
+                href="/tentang"
+                className="font-semibold text-white underline-offset-4 hover:underline"
+              >
                 JepangKu
               </Link>
             </p>
@@ -340,7 +371,10 @@ export function LandingPage() {
       </section>
 
       {/* JLPT levels */}
-      <section id="kursus" className="relative z-10 bg-background pt-14 pb-20 sm:pt-20 md:pt-24 lg:pt-28 sm:pb-24">
+      <section
+        id="kursus"
+        className="relative z-10 bg-background pt-14 pb-20 sm:pt-20 md:pt-24 lg:pt-28 sm:pb-24"
+      >
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -349,15 +383,17 @@ export function LandingPage() {
             className="mb-16 text-center"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2">
-              <BookOpen className="size-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Jalur Pembelajaran JLPT</span>
+              {/* <BookOpen className="size-4 text-primary" /> */}
+              <span className="text-sm font-medium text-primary">
+                Jalur Pembelajaran JLPT
+              </span>
             </div>
             <h2 className="mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
               Pilih Level JLPT-mu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Lima level JLPT dalam satu peta belajar. Saat peluncuran, kami mulai dari N5 — level
-              lainnya dirilis bertahap sepanjang 2026.
+              Lima level JLPT dalam satu peta belajar. Saat peluncuran, kami
+              mulai dari N5 — level lainnya dirilis bertahap sepanjang 2026.
             </p>
           </motion.div>
 
@@ -373,14 +409,14 @@ export function LandingPage() {
                   transition={{ delay: i * 0.1 }}
                   whileHover={{ y: -8 }}
                   className={cn(
-                    'cursor-pointer rounded-2xl border-2 bg-card p-6 transition-shadow hover:shadow-lg',
+                    "cursor-pointer rounded-2xl border-2 bg-card p-6 transition-shadow hover:shadow-lg",
                     accent.border,
                   )}
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <div
                       className={cn(
-                        'flex size-12 items-center justify-center rounded-2xl text-lg font-bold',
+                        "flex size-12 items-center justify-center rounded-2xl text-lg font-bold",
                         accent.bg,
                         accent.text,
                       )}
@@ -389,23 +425,29 @@ export function LandingPage() {
                     </div>
                     <span
                       className={cn(
-                        'rounded-full px-2 py-1 text-xs font-bold text-primary-foreground',
+                        "rounded-full px-2 py-1 text-xs font-bold text-primary-foreground",
                         accent.badge,
                       )}
                     >
                       {lvl.level}
                     </span>
                   </div>
-                  <h3 className="mb-1 text-lg font-bold text-foreground">{lvl.label}</h3>
-                  <p className="mb-4 text-xs leading-relaxed text-muted-foreground">{lvl.desc}</p>
+                  <h3 className="mb-1 text-lg font-bold text-foreground">
+                    {lvl.label}
+                  </h3>
+                  <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+                    {lvl.desc}
+                  </p>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">{lvl.modules} modul direncanakan</span>
+                    <span className="text-xs text-muted-foreground">
+                      {lvl.modules} modul direncanakan
+                    </span>
                     <span
                       className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                        lvl.status === 'tersedia'
-                          ? 'bg-emerald-500/15 text-emerald-600'
-                          : 'bg-muted text-muted-foreground',
+                        "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                        lvl.status === "tersedia"
+                          ? "bg-emerald-500/15 text-emerald-600"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       {lvl.statusLabel}
@@ -413,24 +455,30 @@ export function LandingPage() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <motion.div
-                      className={cn('h-1.5 rounded-full', accent.bar)}
+                      className={cn("h-1.5 rounded-full", accent.bar)}
                       initial={{ width: 0 }}
-                      whileInView={{ width: lvl.status === 'tersedia' ? '35%' : '12%' }}
+                      whileInView={{
+                        width: lvl.status === "tersedia" ? "35%" : "12%",
+                      }}
                       viewport={{ once: true }}
                       transition={{ duration: 1, delay: i * 0.15 }}
                     />
                   </div>
-                  <Link href={lvl.status === 'tersedia' ? '/sign-up' : '/kursus'}>
+                  <Link
+                    href={lvl.status === "tersedia" ? "/sign-up" : "/kursus"}
+                  >
                     <motion.span
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       className={cn(
-                        'mt-4 block w-full rounded-xl py-2.5 text-center text-sm font-semibold',
+                        "mt-4 block w-full rounded-xl py-2.5 text-center text-sm font-semibold",
                         accent.bg,
                         accent.text,
                       )}
                     >
-                      {lvl.status === 'tersedia' ? 'Mulai Belajar' : 'Lihat Roadmap'}
+                      {lvl.status === "tersedia"
+                        ? "Mulai Belajar"
+                        : "Lihat Roadmap"}
                     </motion.span>
                   </Link>
                 </motion.div>
@@ -441,7 +489,10 @@ export function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="fitur" className="bg-linear-to-br from-muted/50 to-primary/5 py-24">
+      <section
+        id="fitur"
+        className="bg-linear-to-br from-muted/50 to-primary/5 py-24"
+      >
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -450,8 +501,10 @@ export function LandingPage() {
             className="mb-16 text-center"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background px-4 py-2 shadow-sm">
-              <Zap className="size-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Fitur Unggulan</span>
+              {/* <Zap className="size-4 text-primary" /> */}
+              <span className="text-sm font-medium text-primary">
+                Fitur Unggulan
+              </span>
             </div>
             <h2 className="mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
               Belajar Lebih Efektif &
@@ -459,8 +512,8 @@ export function LandingPage() {
               Menyenangkan
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Ekosistem belajar lengkap yang memadukan teknologi modern dengan pendekatan
-              gamifikasi.
+              Ekosistem belajar lengkap yang memadukan teknologi modern dengan
+              pendekatan gamifikasi.
             </p>
           </motion.div>
 
@@ -478,13 +531,13 @@ export function LandingPage() {
                 {/* Decorative corner blob — same style as Figma */}
                 <div
                   className={cn(
-                    'pointer-events-none absolute top-0 right-0 h-28 w-28 rounded-bl-full opacity-[0.08] transition-opacity group-hover:opacity-[0.14]',
+                    "pointer-events-none absolute top-0 right-0 h-28 w-28 rounded-bl-full opacity-[0.08] transition-opacity group-hover:opacity-[0.14]",
                     feat.blobColor,
                   )}
                 />
                 <div
                   className={cn(
-                    'mb-5 flex size-14 items-center justify-center rounded-2xl bg-linear-to-br text-primary-foreground shadow-lg transition-transform group-hover:scale-110',
+                    "mb-5 flex size-14 items-center justify-center rounded-2xl bg-linear-to-br text-primary-foreground shadow-lg transition-transform group-hover:scale-110",
                     feat.gradient,
                   )}
                 >
@@ -493,8 +546,12 @@ export function LandingPage() {
                 <span className="mb-3 inline-block rounded-lg bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
                   {feat.tag}
                 </span>
-                <h3 className="mb-2 text-base font-bold text-foreground">{feat.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{feat.desc}</p>
+                <h3 className="mb-2 text-base font-bold text-foreground">
+                  {feat.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {feat.desc}
+                </p>
                 <Link href={feat.href}>
                   <motion.span
                     className="mt-4 flex cursor-pointer items-center gap-1 text-sm font-semibold text-primary"
@@ -515,10 +572,13 @@ export function LandingPage() {
           className="pointer-events-none absolute inset-0 opacity-20"
           style={{
             backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(LANDING_SEIGAIHA)}")`,
-            backgroundSize: '60px 60px',
+            backgroundSize: "60px 60px",
           }}
         />
-        <div className="pointer-events-none absolute inset-0" style={LANDING_HERO_GRID_STYLE} />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={LANDING_HERO_GRID_STYLE}
+        />
         <div className="container relative mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -527,14 +587,15 @@ export function LandingPage() {
             className="mb-12 text-center"
           >
             <h2 className="text-[clamp(1.75rem,3vw,2.25rem)] font-extrabold text-white">
-              Platform{' '}
+              Platform{" "}
               <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
                 Terpadu
-              </span>{' '}
+              </span>{" "}
               untuk JLPT
             </h2>
             <p className="mt-2 text-sm text-white/60">
-              Satu platform, semua yang kamu butuhkan untuk lulus JLPT N5 sampai N1
+              Satu platform, semua yang kamu butuhkan untuk lulus JLPT N5 sampai
+              N1
             </p>
           </motion.div>
 
@@ -551,7 +612,9 @@ export function LandingPage() {
                 <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/20 text-white">
                   <item.icon className="size-6" />
                 </div>
-                <p className="text-2xl font-extrabold text-white">{item.value}</p>
+                <p className="text-2xl font-extrabold text-white">
+                  {item.value}
+                </p>
                 <p className="mt-1 text-xs text-white/55">{item.label}</p>
               </motion.div>
             ))}
@@ -569,14 +632,20 @@ export function LandingPage() {
             className="mb-12 text-center sm:mb-16"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
-              <Sparkles className="size-4 text-primary" />
-              <span className="text-sm font-medium text-muted-foreground">Nilai platform</span>
+              {/* <Sparkles className="size-4 text-primary" /> */}
+              <span className="text-sm font-medium text-muted-foreground">
+                Nilai platform
+              </span>
             </div>
             <h2 className="mb-3 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
-              Yang Kami <span className="text-brand-yellow">Bangun</span>
+              Yang Kami{" "}
+              <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+                Bangun
+              </span>
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Fokus pada nilai platform — tanpa angka yang belum bisa kami buktikan
+              Fokus pada nilai platform — tanpa angka yang belum bisa kami
+              buktikan
             </p>
           </motion.div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
@@ -592,8 +661,12 @@ export function LandingPage() {
                 <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
                   <pillar.icon className="size-6" />
                 </div>
-                <h3 className="mb-2 text-lg font-bold text-foreground">{pillar.title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{pillar.desc}</p>
+                <h3 className="mb-2 text-lg font-bold text-foreground">
+                  {pillar.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {pillar.desc}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -610,15 +683,17 @@ export function LandingPage() {
             className="mb-16 text-center"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2">
-              <GraduationCap className="size-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Paket Belajar</span>
+              {/* <GraduationCap className="size-4 text-primary" /> */}
+              <span className="text-sm font-medium text-primary">
+                Paket Belajar
+              </span>
             </div>
             <h2 className="mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
               Pilih Paket yang Cocok untukmu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Paket peluncuran — konsultasi & pembelian via admin WhatsApp. Harga dapat berubah
-              seiring penambahan konten.
+              Paket peluncuran — konsultasi & pembelian via admin WhatsApp.
+              Harga dapat berubah seiring penambahan konten.
             </p>
           </motion.div>
 
@@ -631,10 +706,10 @@ export function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 className={cn(
-                  'relative flex flex-col rounded-2xl border p-8',
+                  "relative flex flex-col rounded-2xl border p-8",
                   plan.highlighted
-                    ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                    : 'border-border bg-card',
+                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                    : "border-border bg-card",
                 )}
               >
                 {plan.highlighted && (
@@ -642,17 +717,26 @@ export function LandingPage() {
                     Terpopuler
                   </span>
                 )}
-                <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+                <h3 className="text-lg font-bold text-foreground">
+                  {plan.name}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {plan.description}
+                </p>
                 <p className="mt-6 text-3xl font-extrabold text-foreground">
                   {plan.price}
                   {plan.period && (
-                    <span className="text-base font-medium text-muted-foreground">{plan.period}</span>
+                    <span className="text-base font-medium text-muted-foreground">
+                      {plan.period}
+                    </span>
                   )}
                 </p>
                 <ul className="mt-6 flex flex-1 flex-col gap-2">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <li
+                      key={feature}
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
                       <span className="size-1.5 shrink-0 rounded-full bg-primary" />
                       {feature}
                     </li>
@@ -660,7 +744,7 @@ export function LandingPage() {
                 </ul>
                 <Button
                   asChild
-                  variant={plan.highlighted ? 'default' : 'outline'}
+                  variant={plan.highlighted ? "default" : "outline"}
                   className="mt-8 h-11 w-full gap-2"
                 >
                   <Link href="/hubungi">
@@ -683,9 +767,10 @@ export function LandingPage() {
             viewport={{ once: true }}
             className="mb-16 text-center"
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-yellow/30 bg-brand-yellow/10 px-4 py-2">
-              <Star className="size-4 text-brand-yellow" />
-              <span className="text-sm font-medium text-amber-700">Untuk Siapa JepangKu?</span>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2">
+              <span className="text-sm font-medium text-primary">
+                Untuk Siapa JepangKu?
+              </span>
             </div>
             <h2 className="text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
               Dirancang untuk
@@ -708,9 +793,15 @@ export function LandingPage() {
                 <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <item.icon className="size-6" />
                 </div>
-                <h3 className="mb-1 text-lg font-bold text-foreground">{item.title}</h3>
-                <p className="mb-4 text-xs font-medium text-primary">{item.persona}</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                <h3 className="mb-1 text-lg font-bold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mb-4 text-xs font-medium text-primary">
+                  {item.persona}
+                </p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {item.desc}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -728,17 +819,20 @@ export function LandingPage() {
             className="mx-auto max-w-3xl text-center"
           >
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2">
-              <Sparkles className="size-4 text-primary" />
-              <span className="text-sm font-medium text-primary">始めよう · Mulai dari N5</span>
+              <span className="text-sm font-medium text-primary">
+                Mulai dari N5
+              </span>
             </div>
             <h2 className="mb-4 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.12] tracking-tight text-foreground">
               Mulai perjalanan Japanmu
               <br />
-              <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">hari ini</span>
+              <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
+                hari ini
+              </span>
             </h2>
             <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Jadilah bagian dari komunitas awal JepangKu. Daftar gratis, mulai modul N5, atau
-              konsultasi paket lewat tim admin.
+              Jadilah bagian dari komunitas awal JepangKu. Daftar gratis, mulai
+              modul N5, atau konsultasi paket lewat tim admin.
             </p>
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
@@ -762,7 +856,7 @@ export function LandingPage() {
               </Button>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
-              Sudah punya akun?{' '}
+              Sudah punya akun?{" "}
               <Link
                 href="/sign-in"
                 className="font-semibold text-primary underline-offset-4 hover:underline"

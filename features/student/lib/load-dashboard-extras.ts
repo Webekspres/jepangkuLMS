@@ -10,8 +10,18 @@ import { loadDashboardJlptPath } from '@/features/student/lib/load-student-learn
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
 
 export type DashboardWeeklyXpDay = {
+  /** ISO date (YYYY-MM-DD) — unique chart key */
+  dateKey: string;
+  /** Short weekday label, e.g. Sen */
   day: string;
+  /** Calendar label, e.g. 23 Jun */
+  dateLabel: string;
   xp: number;
+};
+
+export type DashboardWeeklyXpSummary = {
+  days: DashboardWeeklyXpDay[];
+  totalWeekXp: number;
 };
 
 export type DashboardLivePreviewItem = {
@@ -77,7 +87,7 @@ export function mapJlptPathToMilestones(path: JlptPathItem[]): AchievementMilest
 }
 
 export const loadDashboardWeeklyXp = cache(async function loadDashboardWeeklyXp(): Promise<
-  DashboardWeeklyXpDay[]
+  DashboardWeeklyXpSummary
 > {
   const userId = await requireAuthUserId();
   const since = new Date();
@@ -90,6 +100,8 @@ export const loadDashboardWeeklyXp = cache(async function loadDashboardWeeklyXp(
   });
 
   const days: DashboardWeeklyXpDay[] = [];
+  let totalWeekXp = 0;
+
   for (let offset = 6; offset >= 0; offset -= 1) {
     const start = new Date();
     start.setDate(start.getDate() - offset);
@@ -101,10 +113,18 @@ export const loadDashboardWeeklyXp = cache(async function loadDashboardWeeklyXp(
       .filter((event) => event.createdAt >= start && event.createdAt <= end)
       .reduce((sum, event) => sum + event.xpGained, 0);
 
-    days.push({ day: DAY_LABELS[start.getDay()], xp });
+    totalWeekXp += xp;
+
+    const dateKey = start.toISOString().slice(0, 10);
+    days.push({
+      dateKey,
+      day: DAY_LABELS[start.getDay()],
+      dateLabel: start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      xp,
+    });
   }
 
-  return days;
+  return { days, totalWeekXp };
 });
 
 export const loadDashboardLivePreview = cache(async function loadDashboardLivePreview(

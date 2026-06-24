@@ -23,7 +23,7 @@ import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { FlashcardDeck } from '@/features/learning/components/flashcard-deck';
-import { LessonVideoPlayer } from '@/features/learning/components/lesson-video-player';
+import { SecureLessonVideoPlayer } from '@/features/learning/components/secure-lesson-video-player';
 import {
   LessonQuizPanel,
   type LessonQuizQuestion,
@@ -36,11 +36,8 @@ import {
   type GroupedLesson,
 } from '@/features/learning/lib/n5-lesson-modules';
 import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
-import {
-  resolveLessonVideoUrl,
-} from '@/features/learning/lib/lesson-video';
-import { LessonQaSection } from './lesson-qa-section';
 import type { LessonCommentView } from '@/features/learning/actions/lesson-qa-actions';
+import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
@@ -76,7 +73,7 @@ export type LessonWorkspaceProps = {
     slug: string;
     title: string;
     content: string | null;
-    videoUrl: string | null;
+    hasVideo: boolean;
     isCompleted: boolean;
     quizCount: number;
   };
@@ -375,7 +372,6 @@ export function LessonWorkspace({
   ];
 
   const hasQuiz = questions.length > 0;
-  const { url: videoUrl } = resolveLessonVideoUrl(lesson.videoUrl);
 
   const contentTabs = (
     <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5">
@@ -450,9 +446,9 @@ export function LessonWorkspace({
           </div>
 
           <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
-            {videoUrl ? (
-              <LessonVideoPlayer
-                videoUrl={videoUrl}
+            {lesson.hasVideo ? (
+              <SecureLessonVideoPlayer
+                lessonId={lesson.id}
                 title={lesson.title}
                 isActive={activeTab === 'video'}
               />

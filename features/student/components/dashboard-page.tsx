@@ -31,10 +31,11 @@ import {
   LESSON_CATEGORY_STYLE,
   type ContinueLesson,
   type DashboardLivePreviewItem,
-  type DashboardWeeklyXpDay,
   type JlptPathItem,
 } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
+import { WeeklyXpChart } from './weekly-xp-chart';
+import type { DashboardWeeklyXpSummary } from '@/features/student/lib/load-dashboard-extras';
 
 function DashboardSection({
   title,
@@ -66,7 +67,7 @@ function DashboardSection({
 export function DashboardPage({
   continueLessons = [],
   jlptPath,
-  weeklyXp = [...DASHBOARD_WEEKLY_XP],
+  weeklyXpSummary,
   liveSchedule = DASHBOARD_LIVE_SCHEDULE.map((item) => ({
     id: item.title,
     title: item.title,
@@ -78,7 +79,7 @@ export function DashboardPage({
 }: {
   continueLessons?: ContinueLesson[];
   jlptPath: JlptPathItem[];
-  weeklyXp?: DashboardWeeklyXpDay[];
+  weeklyXpSummary?: DashboardWeeklyXpSummary;
   liveSchedule?: DashboardLivePreviewItem[];
 }) {
   const { identity } = useClerkIdentity();
@@ -87,7 +88,15 @@ export function DashboardPage({
     core.displayName ?? identity?.displayName ?? '…';
   const badgeTitle = core.equippedBadgeTitle;
   const stats = buildDashboardStats(core);
-  const weeklyXpMax = Math.max(1, ...weeklyXp.map((day) => day.xp));
+  const weeklyXpData: DashboardWeeklyXpSummary = weeklyXpSummary ?? {
+    days: DASHBOARD_WEEKLY_XP.map((day, index) => ({
+      dateKey: `fallback-${index}`,
+      day: day.day,
+      dateLabel: day.day,
+      xp: day.xp,
+    })),
+    totalWeekXp: DASHBOARD_WEEKLY_XP.reduce((sum, day) => sum + day.xp, 0),
+  };
   const leaderboardPreview =
     core.leaderboardPreview.length > 0
       ? core.leaderboardPreview
@@ -261,30 +270,7 @@ export function DashboardPage({
           </DashboardSection>
 
           <DashboardSection title="XP Mingguan" icon={TrendingUp}>
-            <div className="flex h-40 items-end justify-between gap-1 sm:gap-2">
-              {weeklyXp.map((day) => {
-                const heightPct =
-                  day.xp > 0 ? Math.max(12, (day.xp / weeklyXpMax) * 100) : 4;
-                return (
-                  <div key={day.day} className="flex flex-1 flex-col items-center gap-2">
-                    <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">
-                      {day.xp > 0 ? formatDisplayNumber(day.xp) : ''}
-                    </span>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: `${heightPct}%` }}
-                      transition={{ duration: 0.6, delay: 0.1 }}
-                      className="w-full min-h-[4px] max-h-28 rounded-t-lg bg-linear-to-t from-brand-red via-brand-orange to-brand-yellow"
-                      title={`${day.xp} XP`}
-                    />
-                    <span className="text-[10px] font-medium text-muted-foreground">{day.day}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              XP yang kamu kumpulkan 7 hari terakhir (level global dari Core).
-            </p>
+            <WeeklyXpChart data={weeklyXpData} />
           </DashboardSection>
 
           <DashboardSection

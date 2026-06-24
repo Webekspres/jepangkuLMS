@@ -32,7 +32,10 @@ function isTransientDbError(error: unknown): boolean {
 /** Payload create User jangkar — selalu punya role eksplisit (default siswa). */
 export function userAnchorCreateData(
   userId: string,
-  extra?: Pick<Prisma.UserCreateInput, 'displayName' | 'ssoDisplayName' | 'avatarUrl' | 'bio'>,
+  extra?: Pick<
+    Prisma.UserCreateInput,
+    'displayName' | 'ssoDisplayName' | 'avatarUrl' | 'bio' | 'displayNameSetupAt'
+  >,
 ): Prisma.UserCreateInput {
   return {
     id: userId,

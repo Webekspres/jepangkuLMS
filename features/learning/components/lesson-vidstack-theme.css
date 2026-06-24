@@ -23,6 +23,15 @@
   --media-menu-padding: 0.75rem;
 }
 
+.jepangku-vidstack-player--secured [data-media-player] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.jepangku-vidstack-player--secured iframe {
+  pointer-events: auto;
+}
+
 .jepangku-vidstack-player [data-media-player] {
   width: 100%;
   border-radius: 1rem;

@@ -28,6 +28,8 @@ import {
   isIgnorableMediaError,
   safeMediaPromise,
 } from '@/lib/vidstack/safe-media-operation';
+import { trackAnalyticsEvent } from '@/lib/analytics/events';
+import { cn } from '@/lib/utils';
 import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
@@ -35,11 +37,16 @@ import {
 } from '@/features/learning/lib/lesson-video';
 
 export type LessonVidstackPlayerProps = {
-  videoUrl: string;
   title: string;
   isDemo?: boolean;
   /** Pause saat tab bukan video — player tetap mounted (hidden). */
   isActive?: boolean;
+  /** Direct YouTube id (preferred for secured playback). */
+  videoId?: string;
+  /** Legacy URL — avoid in student workspace; use API + videoId instead. */
+  videoUrl?: string;
+  secured?: boolean;
+  lessonId?: string;
 };
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -74,14 +81,25 @@ function onPlayFail(error: Error) {
   console.error('Video playback failed:', error);
 }
 
+function blockProtectedShortcuts(event: KeyboardEvent) {
+  const key = event.key.toLowerCase();
+  if ((event.ctrlKey || event.metaKey) && (key === 's' || key === 'p' || key === 'u')) {
+    event.preventDefault();
+  }
+}
+
 export function LessonVidstackPlayer({
   videoUrl,
+  videoId: videoIdProp,
   title,
   isDemo = false,
   isActive = true,
+  secured = false,
+  lessonId,
 }: LessonVidstackPlayerProps) {
   const playerRef = useRef<MediaPlayerInstance>(null);
-  const videoId = extractYouTubeVideoId(videoUrl);
+  const resolvedVideoId =
+    videoIdProp ?? (videoUrl ? extractYouTubeVideoId(videoUrl) : null);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -96,7 +114,54 @@ export function LessonVidstackPlayer({
     safeMediaPromise(playerRef.current?.pause());
   }, [isActive]);
 
-  if (!videoId) {
+  useEffect(() => {
+    if (!secured) return;
+    const player = playerRef.current;
+    if (!player) return;
+
+    const disablePiP = () => {
+      const video = player.el?.querySelector('video');
+      if (video) {
+        try {
+          video.disablePictureInPicture = true;
+          video.setAttribute('controlsList', 'nodownload noplaybackrate');
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    disablePiP();
+    const observer = new MutationObserver(disablePiP);
+    if (player.el) {
+      observer.observe(player.el, { childList: true, subtree: true });
+    }
+    return () => observer.disconnect();
+  }, [secured, resolvedVideoId]);
+
+  useEffect(() => {
+    if (!lessonId) return;
+    const player = playerRef.current;
+    if (!player) return;
+    return player.subscribe(({ paused }) => {
+      if (!paused) {
+        trackAnalyticsEvent('lesson_video_play', { lesson_id: lessonId });
+      }
+    });
+  }, [lessonId, resolvedVideoId]);
+
+  useEffect(() => {
+    if (!secured) return;
+    const onContextMenu = (event: MouseEvent) => event.preventDefault();
+    document.addEventListener('contextmenu', onContextMenu);
+    document.addEventListener('keydown', blockProtectedShortcuts);
+    return () => {
+      document.removeEventListener('contextmenu', onContextMenu);
+      document.removeEventListener('keydown', blockProtectedShortcuts);
+    };
+  }, [secured]);
+
+  if (!resolvedVideoId) {
     return (
       <div className="flex aspect-video items-center justify-center rounded-2xl border border-border bg-muted/30 px-6 text-center text-sm text-muted-foreground">
         URL video tidak valid — periksa link YouTube di CMS.
@@ -104,12 +169,20 @@ export function LessonVidstackPlayer({
     );
   }
 
-  const src = toVidstackYouTubeSrc(videoId);
-  const poster = getYouTubeThumbnailUrl(videoId, 'maxresdefault');
+  const appOrigin =
+    typeof window !== 'undefined' ? window.location.origin : undefined;
+  const src = toVidstackYouTubeSrc(resolvedVideoId, { origin: appOrigin });
+  const poster = getYouTubeThumbnailUrl(resolvedVideoId, 'maxresdefault');
 
   return (
     <div className="space-y-2 sm:space-y-3">
-      <div className="jepangku-vidstack-player rounded-2xl border border-border shadow-md">
+      <div
+        className={cn(
+          'jepangku-vidstack-player rounded-2xl border border-border shadow-md',
+          secured && 'jepangku-vidstack-player--secured',
+        )}
+        onContextMenu={secured ? (event) => event.preventDefault() : undefined}
+      >
         <MediaPlayer
           ref={playerRef}
           title={title}
@@ -129,7 +202,6 @@ export function LessonVidstackPlayer({
               playbackRates={PLAYBACK_RATES}
               translations={ID_LAYOUT_TRANSLATIONS}
               noModal
-              /** React 19 + Vidstack: gesture layer calls `disabled()` as signal; avoid console TypeError. */
               noGestures
               slots={{
                 settingsMenuItemsStart: <LessonYouTubeQualityMenu />,
@@ -139,6 +211,12 @@ export function LessonVidstackPlayer({
           </LessonYouTubeQualityProvider>
         </MediaPlayer>
       </div>
+
+      {secured ? (
+        <p className="text-center text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+          Video dilindungi — hanya untuk siswa terdaftar. Jangan bagikan rekaman layar.
+        </p>
+      ) : null}
 
       {isDemo && (
         <p className="text-center text-[11px] leading-relaxed text-muted-foreground sm:text-xs md:text-sm">

@@ -7,9 +7,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase** | 1 (MVP) |
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
-| **Terakhir diperbarui** | 2026-06-22 |
+| **Terakhir diperbarui** | 2026-06-23 |
 | **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **75%** (62 item terlacak) |
+| **Progres global Fase 1** | **76%** (62 item terlacak) |
 
 ### Progres global
 
@@ -164,7 +164,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route student memerlukan login | ✅ |
 | Route admin memerlukan role admin | ✅ |
 | Public read kursus/tryout info | ✅ |
-| Secured video (enrolled only) | 🟡 |
+| Secured video (enrolled only) | 🟡 | API gate + player hardening; YouTube bukan DRM penuh |
 | Enrollment gate lesson | ✅ |
 
 ---
@@ -181,6 +181,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-23 | XP mingguan dashboard (LmsXpEvent + WeeklyXpChart); video terproteksi via API enrollment gate; GA4 + GSC + panel admin Analytics |
 | 2026-06-22 | Hasil tryout: popup reveal animasi (Riki-style), tabel ringkasan skor & analisa per bagian JLPT |
 | 2026-06-22 | Tryout TOEFL-flow: intro per bagian, navigator isolasi, focus navbar, auto-submit timer, QuizAttempt+answersJson, halaman analisa `/hasil/[id]` |
 | 2026-06-18 | Wire `/kursus` marketing ke Prisma + filter unggulan; dashboard XP mingguan & live class real; achievements milestone real; halaman Live Class & JLPT Tryout; dokumentasi ADMIN_QUIZ; update tracker 72% |

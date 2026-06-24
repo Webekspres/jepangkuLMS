@@ -162,7 +162,7 @@ export async function getLessonWorkspace(
       title: lesson.title,
       order: lesson.order,
       content: lessonRow?.content ?? null,
-      videoUrl: lessonRow?.videoUrl ?? null,
+      hasVideo: Boolean(lessonRow?.videoUrl?.trim()),
       isCompleted: completedIds.has(lesson.id),
       quizCount,
     },
