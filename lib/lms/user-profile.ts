@@ -86,6 +86,24 @@ export async function resolveLmsAvatarUrl(
   return clerkFallback?.trim() || null;
 }
 
+export type ResolvedLmsProfilePresentation = {
+  displayName: string;
+  avatarUrl: string | null;
+};
+
+/** Display name + avatar for nav shells — LMS local first, Clerk fallback. */
+export async function loadResolvedLmsProfilePresentation(
+  userId: string,
+  clerkFallback?: { displayName?: string | null; imageUrl?: string | null },
+): Promise<ResolvedLmsProfilePresentation> {
+  const clerkName = clerkFallback?.displayName?.trim() || null;
+  const displayName =
+    (await resolveLmsDisplayName(userId, clerkName)) ?? clerkName ?? 'Pengguna';
+  const avatarUrl = await resolveLmsAvatarUrl(userId, clerkFallback?.imageUrl ?? null);
+
+  return { displayName, avatarUrl };
+}
+
 export async function updateLmsDisplayName(userId: string, displayName: string): Promise<void> {
   const error = validateLmsDisplayName(displayName);
   if (error) throw new Error(error);
