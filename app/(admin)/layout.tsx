@@ -5,6 +5,9 @@ import { AdminShell } from '@/features/admin-cms/components/admin-shell';
 import { getPendingEnrollmentCount } from '@/lib/lms/notifications';
 import { loadResolvedLmsProfilePresentation } from '@/lib/lms/user-profile';
 
+/** Auth + DB-backed shell — skip static generation during CI `next build`. */
+export const dynamic = 'force-dynamic';
+
 /** Admin area shell — sidebar CMS + konten utama. */
 export default async function AdminAreaLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
