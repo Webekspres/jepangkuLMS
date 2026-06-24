@@ -98,7 +98,7 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
--- TryoutSession (referenced by earlier migration; may be missing on staging)
+-- TryoutSession (also created in 20260622140000_tryout_attempt_answers; idempotent here)
 CREATE TABLE IF NOT EXISTS "TryoutSession" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
