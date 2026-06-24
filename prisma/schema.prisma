@@ -49,6 +49,13 @@ enum LmsBadgeUnlockRule {
   TRYOUT_PASS
 }
 
+enum LmsBadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
 enum LmsNotificationType {
   ENROLLMENT_PENDING
   ENROLLMENT_APPROVED
@@ -155,6 +162,7 @@ model LmsBadge {
   description     String?            @db.Text
   imageUrl        String?
   sortOrder       Int                @default(0)
+  rarity          LmsBadgeRarity     @default(COMMON)
   unlockRule      LmsBadgeUnlockRule @default(MANUAL)
   /// Nilai tambahan — mis. skor minimum untuk TRYOUT_PASS
   unlockValue     Int?

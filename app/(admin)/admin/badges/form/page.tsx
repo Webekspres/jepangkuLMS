@@ -24,6 +24,7 @@ export default async function AdminBadgeFormRoutePage({
               description: badge.description,
               imageUrl: badge.imageUrl,
               sortOrder: badge.sortOrder,
+              rarity: badge.rarity,
               unlockRule: badge.unlockRule,
               unlockValue: badge.unlockValue,
               xpBonus: badge.xpBonus,

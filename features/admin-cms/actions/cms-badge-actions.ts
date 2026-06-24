@@ -3,9 +3,14 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { BADGE_IMAGE_MAX_BYTES, BADGE_IMAGE_MIME_TYPES } from '@/lib/media/constants';
+import {
+  parseStaticImageUrl,
+  saveBadgeToPublicDir,
+} from '@/lib/media/local-badge-storage';
 import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@/lib/r2';
 import type { LmsBadgeUnlockRule } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { parseLmsBadgeRarity } from '@/lib/lms/badge-rarity';
 
 export type CmsBadgeActionResult =
   | { ok: true; id?: string }
@@ -25,7 +30,8 @@ function parseBadgeMeta(formData: FormData) {
   const unlockValue = unlockValueRaw ? Number(unlockValueRaw) : null;
   const xpBonus = Number(formData.get('xpBonus') ?? 25) || 25;
   const requirementText = String(formData.get('requirementText') ?? '').trim() || null;
-  return { unlockRule, unlockValue, xpBonus, requirementText };
+  const rarity = parseLmsBadgeRarity(String(formData.get('rarity') ?? 'COMMON'));
+  return { unlockRule, unlockValue, xpBonus, requirementText, rarity };
 }
 
 async function parseBadgeImage(formData: FormData): Promise<{ buffer: Buffer; mime: string; ext: string } | null> {
@@ -40,6 +46,33 @@ async function parseBadgeImage(formData: FormData): Promise<{ buffer: Buffer; mi
   const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
   const buffer = Buffer.from(await file.arrayBuffer());
   return { buffer, mime: file.type, ext };
+}
+
+async function resolveBadgeImageUrl(
+  code: string,
+  formData: FormData,
+  existingUrl: string | null = null,
+): Promise<string | null> {
+  const staticUrl = parseStaticImageUrl(String(formData.get('imageUrl') ?? ''));
+  if (staticUrl) return staticUrl;
+
+  const image = await parseBadgeImage(formData);
+  if (!image) return existingUrl;
+
+  if (isR2Configured()) {
+    try {
+      const key = `badges/${code}-${Date.now()}.${image.ext}`;
+      return await uploadToR2(image.buffer, key, image.mime);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (!message.includes('Access Denied') && !message.includes('belum dikonfigurasi')) {
+        throw error;
+      }
+      // Fallback ke public/badges untuk dev lokal atau VPS tanpa R2 write
+    }
+  }
+
+  return saveBadgeToPublicDir(code, image.buffer, image.ext);
 }
 
 export async function createBadgeAction(formData: FormData): Promise<CmsBadgeActionResult> {
@@ -59,17 +92,13 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
   if (existing) return { ok: false, message: `Kode "${code}" sudah dipakai.` };
 
   let imageUrl: string | null = null;
-  const image = await parseBadgeImage(formData);
-  if (image) {
-    if (!isR2Configured()) {
-      return {
-        ok: false,
-        message:
-          'R2 belum dikonfigurasi. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL di .env.',
-      };
-    }
-    const key = `badges/${code}-${Date.now()}.${image.ext}`;
-    imageUrl = await uploadToR2(image.buffer, key, image.mime);
+  try {
+    imageUrl = await resolveBadgeImageUrl(code, formData);
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+    };
   }
 
   const badge = await prisma.lmsBadge.create({
@@ -79,6 +108,7 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
       description,
       imageUrl,
       sortOrder,
+      rarity: meta.rarity,
       unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,
@@ -113,19 +143,18 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
     imageUrl = null;
   }
 
-  const image = await parseBadgeImage(formData);
-  if (image) {
-    if (!isR2Configured()) {
-      return {
-        ok: false,
-        message:
-          'R2 belum dikonfigurasi. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL di .env.',
-      };
+  try {
+    const resolved = await resolveBadgeImageUrl(badge.code, formData, imageUrl);
+    if (resolved !== imageUrl) {
+      const oldKey = extractR2KeyFromUrl(badge.imageUrl);
+      if (oldKey) await deleteFromR2(oldKey).catch(() => undefined);
+      imageUrl = resolved;
     }
-    const oldKey = extractR2KeyFromUrl(badge.imageUrl);
-    if (oldKey) await deleteFromR2(oldKey).catch(() => undefined);
-    const key = `badges/${badge.code}-${Date.now()}.${image.ext}`;
-    imageUrl = await uploadToR2(image.buffer, key, image.mime);
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+    };
   }
 
   await prisma.lmsBadge.update({
@@ -135,6 +164,7 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
       description,
       sortOrder,
       imageUrl,
+      rarity: meta.rarity,
       unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,

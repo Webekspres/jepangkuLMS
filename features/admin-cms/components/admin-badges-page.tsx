@@ -12,10 +12,13 @@ import { deleteBadgeAction } from '@/features/admin-cms/actions/cms-badge-action
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminBadgeRow } from '@/features/admin-cms/lib/load-admin-badges';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { mapLmsBadgeRarityToDisplay } from '@/lib/lms/badge-rarity';
+import { getBadgeRarityStyle } from '@/features/student/components/student-achievements-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -24,6 +27,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+
+function BadgeRarityChip({ rarity }: { rarity: AdminBadgeRow['rarity'] | null | undefined }) {
+  const rarityLabel = mapLmsBadgeRarityToDisplay(rarity ?? undefined);
+  const style = getBadgeRarityStyle(rarityLabel);
+  return (
+    <span
+      className={cn(
+        'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        style.chip,
+      )}
+    >
+      {rarityLabel}
+    </span>
+  );
+}
 
 export function AdminBadgesPage({
   badges,
@@ -113,6 +131,7 @@ export function AdminBadgesPage({
             <TableRow>
               <TableHead className="text-xs uppercase tracking-wider">Badge</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Kode</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider">Rarity</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Unlock</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Urutan</TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wider">Aksi</TableHead>
@@ -121,7 +140,7 @@ export function AdminBadgesPage({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                   <Award className="mx-auto mb-2 size-8 opacity-40" />
                   Belum ada badge. Buat badge pertama untuk gamifikasi LMS.
                 </TableCell>
@@ -156,6 +175,9 @@ export function AdminBadgesPage({
                     <Badge variant="secondary" className="font-mono text-[10px]">
                       {badge.code}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <BadgeRarityChip rarity={badge.rarity} />
                   </TableCell>
                   <TableCell className="tabular-nums">{badge.unlockCount}</TableCell>
                   <TableCell className="tabular-nums">{badge.sortOrder}</TableCell>

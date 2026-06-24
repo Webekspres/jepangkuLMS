@@ -1,3 +1,4 @@
+import type { LmsBadgeRarity } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 export type AdminBadgeRow = {
@@ -7,6 +8,7 @@ export type AdminBadgeRow = {
   description: string | null;
   imageUrl: string | null;
   sortOrder: number;
+  rarity: LmsBadgeRarity;
   unlockCount: number;
   createdAt: Date;
 };
@@ -24,6 +26,7 @@ export async function loadAdminBadges(): Promise<AdminBadgeRow[]> {
     description: row.description,
     imageUrl: row.imageUrl,
     sortOrder: row.sortOrder,
+    rarity: row.rarity ?? 'COMMON',
     unlockCount: row._count.userBadges,
     createdAt: row.createdAt,
   }));

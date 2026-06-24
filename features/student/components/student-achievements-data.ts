@@ -1,4 +1,5 @@
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
+import { normalizeBadgeRarityDisplay } from '@/lib/lms/badge-rarity';
 import type { StudentAchievementBadge } from '@/features/student/lib/core-badge-mapper';
 
 export type BadgeRarity = 'Common' | 'Rare' | 'Epic' | 'Legendary';
@@ -51,6 +52,16 @@ export const BADGE_RARITY_STYLES: Record<
     legend: 'bg-brand-yellow/10 border-brand-yellow/25 text-amber-700',
   },
 };
+
+export function resolveAchievementBadgeRarity(
+  rarity: BadgeRarity | string | null | undefined,
+): BadgeRarity {
+  return normalizeBadgeRarityDisplay(rarity);
+}
+
+export function getBadgeRarityStyle(rarity: BadgeRarity | string | null | undefined) {
+  return BADGE_RARITY_STYLES[resolveAchievementBadgeRarity(rarity)];
+}
 
 export function buildAchievementMilestones(totalXp: number): AchievementMilestone[] {
   return [
