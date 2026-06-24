@@ -3,7 +3,6 @@ name: deploy
 on:
   push:
     branches:
-      - dev-sultan
       - staging
       - main
   workflow_dispatch:
