@@ -19,12 +19,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { ResolvedLmsProfilePresentation } from '@/lib/lms/user-profile';
 
 type AdminTopbarProps = {
   onMenuClick?: () => void;
+  sessionProfile?: ResolvedLmsProfilePresentation | null;
 };
 
-export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
+export function AdminTopbar({ onMenuClick, sessionProfile = null }: AdminTopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
@@ -32,7 +34,12 @@ export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
   const breadcrumbs = getAdminBreadcrumbs(pathname);
 
   const displayName =
-    user?.fullName ?? user?.username ?? user?.primaryEmailAddress?.emailAddress ?? 'Admin';
+    sessionProfile?.displayName ??
+    user?.fullName ??
+    user?.username ??
+    user?.primaryEmailAddress?.emailAddress ??
+    'Admin';
+  const avatarUrl = sessionProfile?.avatarUrl ?? user?.imageUrl ?? null;
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
@@ -93,7 +100,7 @@ export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                 aria-label="Menu pengguna"
               >
                 <Avatar className="size-9 border border-border">
-                  <AvatarImage src={user.imageUrl} alt={displayName} />
+                  <AvatarImage src={avatarUrl ?? undefined} alt={displayName} />
                   <AvatarFallback className="bg-brand-navy text-xs font-bold text-white">
                     {initials}
                   </AvatarFallback>
