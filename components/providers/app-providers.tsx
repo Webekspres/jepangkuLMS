@@ -7,6 +7,8 @@ import { AppTopLoader } from '@/components/providers/app-top-loader';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 
 /**
@@ -19,10 +21,13 @@ export default function AppProviders({ children }: { children: React.ReactNode }
       <AppTopLoader />
       <ClerkProviderThemed>
         <QueryProvider>
-          <AppSplash>
-            <CoreSessionSync />
-            {children}
-          </AppSplash>
+          <TooltipProvider delayDuration={0}>
+            <AppSplash>
+              <CoreSessionSync />
+              {children}
+            </AppSplash>
+            <Toaster richColors closeButton position="top-right" />
+          </TooltipProvider>
         </QueryProvider>
       </ClerkProviderThemed>
     </ThemeProvider>
