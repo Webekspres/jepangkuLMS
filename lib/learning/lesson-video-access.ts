@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
 import { extractYouTubeVideoId } from '@/features/learning/lib/lesson-video';
 
 export type LessonVideoAccessResult =
@@ -23,15 +24,20 @@ export async function resolveLessonVideoAccess(
     return { ok: false, reason: 'not_found' };
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_courseId: { userId, courseId: lesson.module.courseId },
-    },
-    select: { status: true },
-  });
+  // Admin bypass — akses video tanpa enrollment
+  const adminAccess = await isLmsAdmin(userId);
 
-  if (!enrollment || enrollment.status !== 'ACTIVE') {
-    return { ok: false, reason: 'not_enrolled' };
+  if (!adminAccess) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId: lesson.module.courseId },
+      },
+      select: { status: true },
+    });
+
+    if (!enrollment || enrollment.status !== 'ACTIVE') {
+      return { ok: false, reason: 'not_enrolled' };
+    }
   }
 
   const videoId = extractYouTubeVideoId(lesson.videoUrl ?? '');
