@@ -9,6 +9,8 @@ import {
   loadDashboardWeeklyXp,
 } from '@/features/student/lib/load-dashboard-extras';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Beranda — JepangKu LMS',
   description: 'Student hub — lanjutkan belajar, pantau XP, dan progress JLPT-mu.',
