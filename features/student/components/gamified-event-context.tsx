@@ -66,31 +66,36 @@ export function GamifiedEventProvider({ children }: { children: ReactNode }) {
     };
 
     const originalFetch = window.fetch;
-    (window as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      try {
-        const response = await originalFetch(input, init);
-        if (response.status === 503 || response.status === 504) {
-          triggerStabilityAlert();
+    const customFetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        try {
+          const response = await originalFetch(input, init);
+          if (response.status === 503 || response.status === 504) {
+            triggerStabilityAlert();
+          }
+          return response;
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            (error.name === 'TimeoutError' ||
+              error.message.includes('timeout') ||
+              error.message.includes('Failed to fetch') ||
+              error.message.includes('NetworkError') ||
+              error.message.includes('network'))
+          ) {
+            triggerStabilityAlert();
+          }
+          throw error;
         }
-        return response;
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.name === 'TimeoutError' ||
-            error.message.includes('timeout') ||
-            error.message.includes('Failed to fetch') ||
-            error.message.includes('NetworkError') ||
-            error.message.includes('network'))
-        ) {
-          triggerStabilityAlert();
-        }
-        throw error;
-      }
-    };
+      },
+      originalFetch
+    );
+
+    (window as unknown as { fetch: typeof window.fetch }).fetch = customFetch;
 
     return () => {
       window.removeEventListener('gamified-event', handleEvent as EventListener);
-      (window as any).fetch = originalFetch;
+      (window as unknown as { fetch: typeof window.fetch }).fetch = originalFetch;
     };
   }, [triggerGamifiedEvent]);
 

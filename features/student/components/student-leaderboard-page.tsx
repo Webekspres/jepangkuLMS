@@ -9,7 +9,6 @@ import {
   Gem,
   Shield,
   Swords,
-  Target,
   Trophy,
   Users,
   Zap,

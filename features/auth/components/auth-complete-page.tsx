@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth, useClerk } from '@clerk/nextjs';
+import { Loader2 } from 'lucide-react';
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import { resolvePostAuthRedirect } from '@/lib/auth/oauth-urls';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
@@ -22,6 +24,8 @@ export function AuthCompletePage() {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isExchanging, setIsExchanging] = useState(false);
   const exchangeGeneration = useRef(0);
+
+  const isProd = process.env.NODE_ENV === 'production';
 
   const runExchange = (generation: number) => {
     setIsExchanging(true);
@@ -96,14 +100,16 @@ export function AuthCompletePage() {
             <Button size="sm" onClick={handleRetry}>
               Coba lagi
             </Button>
-            <Button asChild variant="default" size="sm">
-              <Link href={AUTH_ROUTES.dashboard}>Lanjut ke dashboard</Link>
-            </Button>
+            {!isProd && (
+              <Button asChild variant="default" size="sm">
+                <Link href={AUTH_ROUTES.dashboard}>Lanjut ke dashboard (Dev Bypass)</Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link href="/">Kembali ke beranda</Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              Keluar & ganti akun
+              Keluar &amp; ganti akun
             </Button>
           </div>
         </div>
@@ -112,15 +118,29 @@ export function AuthCompletePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4">
-      <span className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-      <p className="text-sm text-muted-foreground">Menyiapkan profil belajar Anda…</p>
-      <p className="max-w-xs text-center text-xs text-muted-foreground">
-        Proses ini bisa memakan beberapa detik.
-      </p>
-      <Button asChild variant="ghost" size="sm" className="mt-2">
-        <Link href={AUTH_ROUTES.dashboard}>Lewati & ke dashboard</Link>
-      </Button>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-foreground relative overflow-hidden">
+      <div className="flex flex-col items-center gap-8 sm:gap-10">
+        <div className="flex flex-col items-center gap-6 sm:gap-8">
+          <Image
+            src="/brand/logo.png"
+            alt="JepangKu"
+            width={280}
+            height={80}
+            className="h-20 w-auto object-contain sm:h-24 animate-pulse"
+            priority
+          />
+          <div className="flex items-center gap-2.5 text-sm font-medium text-muted-foreground tracking-wide select-none">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            <span>Menyiapkan profil belajar Anda…</span>
+          </div>
+        </div>
+      </div>
+
+      {!isProd && (
+        <Button asChild variant="ghost" size="sm" className="mt-8 text-muted-foreground hover:text-foreground">
+          <Link href={AUTH_ROUTES.dashboard}>Lewati &amp; ke dashboard (Dev Bypass)</Link>
+        </Button>
+      )}
     </div>
   );
 }

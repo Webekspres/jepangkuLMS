@@ -47,7 +47,7 @@ export function AuthBrandPanel({
       <div className="relative z-10 flex h-full flex-col justify-between py-10 px-16">
         <Link href="/" className="inline-block">
           <Image
-            src="/brand/logo-white.png"
+            src="/brand/logo.png"
             alt="JepangKu"
             width={BRAND_LOGO.authPanel.width}
             height={BRAND_LOGO.authPanel.height}

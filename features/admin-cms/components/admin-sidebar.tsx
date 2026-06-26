@@ -50,7 +50,7 @@ export function AdminSidebar({
         <Link href={ADMIN_ROUTES.dashboard} className="flex items-center gap-3" onClick={onNavigate}>
           <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary">
             <Image
-              src="/brand/logo-white.png"
+              src="/brand/logo.png"
               alt="JepangKu"
               width={24}
               height={24}
