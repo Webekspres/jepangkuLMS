@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useCallback, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
+import confetti from 'canvas-confetti';
 import {
   Award,
   BarChart2,
@@ -19,6 +20,7 @@ import { formatDisplayNumber } from '@/features/marketing/components/landing-dat
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { useStudentCoreData } from './student-core-data-context';
 import {
   buildAchievementMilestones,
@@ -415,10 +417,40 @@ export function StudentAchievementsPage({
     }
   };
 
-  const handleCelebrate = () => {
+  const handleCelebrate = useCallback(() => {
     setCelebrate(true);
     window.setTimeout(() => setCelebrate(false), 2800);
-  };
+
+    // Left-side burst
+    void confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { x: 0.2, y: 0.55 },
+      colors: ['#EC1D24', '#FF4B2B', '#F8E71C', '#1E1B57', '#ffffff'],
+      scalar: 1.1,
+    });
+    // Right-side burst (slight delay)
+    window.setTimeout(() => {
+      void confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.8, y: 0.55 },
+        colors: ['#EC1D24', '#FF4B2B', '#F8E71C', '#1E1B57', '#ffffff'],
+        scalar: 1.1,
+      });
+    }, 150);
+    // Center finale
+    window.setTimeout(() => {
+      void confetti({
+        particleCount: 60,
+        spread: 100,
+        origin: { x: 0.5, y: 0.6 },
+        colors: ['#F8E71C', '#ffffff', '#EC1D24'],
+        startVelocity: 35,
+        scalar: 0.9,
+      });
+    }, 350);
+  }, []);
 
   return (
     <div className="space-y-6 pb-8">
@@ -432,9 +464,12 @@ export function StudentAchievementsPage({
         <div className="relative px-5 py-6 sm:px-6">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="relative shrink-0 self-center md:self-auto">
-              <div className="flex size-24 items-center justify-center rounded-2xl bg-white/15 text-4xl font-black text-white shadow-sm ring-2 ring-white/20">
-                {userInitial}
-              </div>
+              <ProfileAvatar
+                imageUrl={core.avatarUrl}
+                initial={userInitial}
+                size="xl"
+                className="border-2 border-white/30 shadow-md ring-2 ring-white/20"
+              />
               <div className="absolute -right-2 -bottom-2 flex size-10 items-center justify-center rounded-xl border-2 border-brand-navy bg-brand-yellow text-sm font-black text-brand-navy shadow-sm">
                 {core.level}
               </div>
