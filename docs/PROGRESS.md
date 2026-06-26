@@ -182,6 +182,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-26 | Overhaul Jalur JLPT Saya stepper to an RPG-inspired adventure journey map with winding paths, Kamon-themed emblem nodes, radial progress rings, and a character dashboard stat sheet |
 | 2026-06-26 | Refactor copywriting halaman marketing & student dashboard, hapus Sesi Simulasi Mendatang di tryout, tambah avatar di welcome card, dan visual polish Live Class & Leaderboard |
 | 2026-06-26 | Implementasi rate limiting di middleware (proxy.ts) dan Redis-ready client; fix bun:test type declarations error |
 | 2026-06-23 | Badge seed 8 PNG (`public/badges`), R2 fallback lokal + `use server` fix; grafik enrollment admin & XP mingguan (SimpleBarChart); seed idempotent re-run |
