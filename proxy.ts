@@ -10,11 +10,11 @@ import { verifyCoreJwtToken } from '@/lib/core/verify-jwt';
 import { inMemoryRateLimiter } from '@/lib/rate-limit/in-memory';
 
 const RATE_LIMIT_RULES = {
-  PUBLIC_API: { limit: 60, windowMs: 60000, keyPrefix: 'rl:pub-api:' },
-  AUTH_API: { limit: 15, windowMs: 60000, keyPrefix: 'rl:auth-api:' },
-  SERVER_ACTIONS: { limit: 30, windowMs: 60000, keyPrefix: 'rl:action:' },
-  GENERAL_API: { limit: 100, windowMs: 60000, keyPrefix: 'rl:gen-api:' },
-  GENERAL_PAGE: { limit: 120, windowMs: 60000, keyPrefix: 'rl:page:' }
+  PUBLIC_API: { limit: 200, windowMs: 60000, keyPrefix: 'rl:pub-api:' },
+  AUTH_API: { limit: 50, windowMs: 60000, keyPrefix: 'rl:auth-api:' },
+  SERVER_ACTIONS: { limit: 100, windowMs: 60000, keyPrefix: 'rl:action:' },
+  GENERAL_API: { limit: 300, windowMs: 60000, keyPrefix: 'rl:gen-api:' },
+  GENERAL_PAGE: { limit: 300, windowMs: 60000, keyPrefix: 'rl:page:' }
 };
 
 const isProtectedRoute = createRouteMatcher(['/dashboard(.*)', '/admin(.*)']);
