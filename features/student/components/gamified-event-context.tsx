@@ -45,8 +45,52 @@ export function GamifiedEventProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener('gamified-event', handleEvent as EventListener);
+
+    // Global fetch interceptor for graceful degradation
+    let lastAlertTime = 0;
+    const alertCooldownMs = 10000; // 10 seconds cooldown between stability alerts
+
+    const triggerStabilityAlert = () => {
+      const now = Date.now();
+      if (now - lastAlertTime < alertCooldownMs) return;
+      lastAlertTime = now;
+
+      triggerGamifiedEvent({
+        type: 'SYSTEM_ALERT',
+        payload: {
+          title: 'Koneksi Tidak Stabil ⚠️',
+          message:
+            'Gagal terhubung ke server pusat JepangKu. Beberapa progres belajar Anda mungkin tidak tersimpan untuk sementara waktu.',
+        },
+      });
+    };
+
+    const originalFetch = window.fetch;
+    (window as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      try {
+        const response = await originalFetch(input, init);
+        if (response.status === 503 || response.status === 504) {
+          triggerStabilityAlert();
+        }
+        return response;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === 'TimeoutError' ||
+            error.message.includes('timeout') ||
+            error.message.includes('Failed to fetch') ||
+            error.message.includes('NetworkError') ||
+            error.message.includes('network'))
+        ) {
+          triggerStabilityAlert();
+        }
+        throw error;
+      }
+    };
+
     return () => {
       window.removeEventListener('gamified-event', handleEvent as EventListener);
+      (window as any).fetch = originalFetch;
     };
   }, [triggerGamifiedEvent]);
 

@@ -115,6 +115,18 @@ function GamifiedEventCard({
         </div>
       );
       break;
+
+    case 'SYSTEM_ALERT':
+      title = payload.title ?? 'Koneksi Terganggu ⚠️';
+      subText = <span>{payload.message}</span>;
+      themeBorderClass = 'border-brand-red/35 shadow-brand-red/15';
+      glowColor = 'bg-brand-red/10';
+      iconNode = (
+        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-brand-red/20 to-brand-orange/20 border border-brand-red/40 text-brand-yellow relative shadow-lg">
+          <Zap className="size-7 text-brand-red drop-shadow-[0_0_8px_rgba(236,29,36,0.8)] animate-pulse" />
+        </div>
+      );
+      break;
   }
 
   return (
