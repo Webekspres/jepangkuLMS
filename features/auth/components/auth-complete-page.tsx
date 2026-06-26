@@ -114,7 +114,7 @@ export function AuthCompletePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4">
       <span className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-      <p className="text-sm text-muted-foreground">Menyiapkan profil game kamu…</p>
+      <p className="text-sm text-muted-foreground">Menyiapkan profil belajar Anda…</p>
       <p className="max-w-xs text-center text-xs text-muted-foreground">
         Proses ini bisa memakan beberapa detik.
       </p>

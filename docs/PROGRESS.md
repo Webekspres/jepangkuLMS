@@ -7,28 +7,28 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase** | 1 (MVP) |
 | **Target** | Akhir Juni 2026 |
 | **Base domain** | `kursus.jepangku.com` |
-| **Terakhir diperbarui** | 2026-06-23 |
+| **Terakhir diperbarui** | 2026-06-26 |
 | **Arsitektur** | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **76%** (62 item terlacak) |
+| **Progres global Fase 1** | **90%** (63 item terlacak) |
 
 ### Progres global
 
 ```text
-[███████████████░░░░░] 75%
+[██████████████████░░] 90%
 ```
 
 | Area | Bobot* | ✅ | 🟡 | ⬜ | % area |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| Infrastruktur & platform | 18 | 12 | 5 | 1 | 82% |
-| Halaman & routing | 25 | 14 | 9 | 2 | 70% |
-| Domain `features/` | 6 | 4 | 2 | 0 | 80% |
-| Data & integrasi | 8 | 6 | 1 | 1 | 81% |
-| Keamanan & bisnis | 5 | 3 | 1 | 1 | 68% |
-| **Total** | **62** | **39** | **18** | **5** | **72%** |
+| Infrastruktur & platform | 16 | 12 | 4 | 0 | 85% |
+| Halaman & routing | 25 | 23 | 2 | 0 | 95% |
+| Domain `features/` | 8 | 7 | 1 | 0 | 92% |
+| Data & integrasi | 8 | 6 | 1 | 1 | 80% |
+| Keamanan & bisnis | 6 | 5 | 1 | 0 | 90% |
+| **Total** | **63** | **53** | **9** | **1** | **90%** |
 
-\*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
+*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(39 + 7,2) ÷ 62 ≈ 72%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(53 + 3.6) ÷ 63 ≈ 90%`.
 
 ---
 
@@ -47,11 +47,11 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Area | Selesai | Sebagian | Belum |
 | :--- | ---: | ---: | ---: |
-| Infrastruktur & platform | 12 | 5 | 1 |
-| Halaman & routing | 14 | 9 | 2 |
-| Domain `features/` | 4 | 2 | 0 |
+| Infrastruktur & platform | 12 | 4 | 0 |
+| Halaman & routing | 23 | 2 | 0 |
+| Domain `features/` | 7 | 1 | 0 |
 | Data & integrasi | 6 | 1 | 1 |
-| Keamanan & bisnis | 3 | 1 | 1 |
+| Keamanan & bisnis | 5 | 1 | 0 |
 
 ---
 
@@ -166,6 +166,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info | ✅ |
 | Secured video (enrolled only) | 🟡 | API gate + player hardening; YouTube bukan DRM penuh |
 | Enrollment gate lesson | ✅ |
+| Rate Limiting (Middleware + Redis) | ✅ | Limit public API, auth, Server Actions, & general pages; fallback in-memory |
 
 ---
 
@@ -181,6 +182,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-26 | Refactor copywriting halaman marketing & student dashboard, hapus Sesi Simulasi Mendatang di tryout, tambah avatar di welcome card, dan visual polish Live Class & Leaderboard |
+| 2026-06-26 | Implementasi rate limiting di middleware (proxy.ts) dan Redis-ready client; fix bun:test type declarations error |
 | 2026-06-23 | Badge seed 8 PNG (`public/badges`), R2 fallback lokal + `use server` fix; grafik enrollment admin & XP mingguan (SimpleBarChart); seed idempotent re-run |
 | 2026-06-23 | XP mingguan dashboard (LmsXpEvent + WeeklyXpChart); video terproteksi via API enrollment gate; GA4 + GSC + panel admin Analytics |
 | 2026-06-22 | Hasil tryout: popup reveal animasi (Riki-style), tabel ringkasan skor & analisa per bagian JLPT |

@@ -30,11 +30,16 @@ export async function uploadToR2(
     );
   }
 
+  const config = getR2Config();
+  // Prepend 'lms/' to segment files within the shared bucket, avoiding root clutter
+  const prefix = 'lms/';
+  const key = fileName.startsWith(prefix) ? fileName : `${prefix}${fileName}`;
+
   try {
     await s3Client.send(
       new PutObjectCommand({
-        Bucket: r2Config.bucket,
-        Key: fileName,
+        Bucket: config.bucket,
+        Key: key,
         Body: file,
         ContentType: contentType,
         CacheControl: R2_OBJECT_CACHE_CONTROL,
@@ -50,27 +55,39 @@ export async function uploadToR2(
     throw error;
   }
 
-  const publicUrl = r2Config.publicUrl.replace(/\/$/, '');
+  const publicUrl = config.publicUrl.replace(/\/$/, '');
   if (!publicUrl) {
     throw new Error('R2_PUBLIC_URL wajib di-set agar URL asset bisa diakses publik.');
   }
-  return `${publicUrl}/${fileName}`;
+  return `${publicUrl}/${key}`;
 }
 
 export async function deleteFromR2(fileName: string): Promise<void> {
   if (!s3Client) return;
 
+  const config = getR2Config();
+  const prefix = 'lms/';
+  const key = fileName.startsWith(prefix) ? fileName : `${prefix}${fileName}`;
+
   await s3Client.send(
     new DeleteObjectCommand({
-      Bucket: r2Config.bucket,
-      Key: fileName,
+      Bucket: config.bucket,
+      Key: key,
     }),
   );
 }
 
 export function extractR2KeyFromUrl(imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;
-  const publicUrl = r2Config.publicUrl.replace(/\/$/, '');
+  const config = getR2Config();
+  const publicUrl = config.publicUrl.replace(/\/$/, '');
   if (!publicUrl || !imageUrl.startsWith(publicUrl)) return null;
-  return imageUrl.slice(publicUrl.length + 1);
+  let key = imageUrl.slice(publicUrl.length + 1);
+  
+  // Strip 'lms/' prefix if present to keep compatibility with downstream checks (e.g. key.startsWith('avatars/'))
+  const prefix = 'lms/';
+  if (key.startsWith(prefix)) {
+    key = key.slice(prefix.length);
+  }
+  return key;
 }

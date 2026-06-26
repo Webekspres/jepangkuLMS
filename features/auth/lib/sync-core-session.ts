@@ -25,7 +25,7 @@ export async function syncCoreSessionAndRedirect(
     });
 
     if (!response.ok) {
-        let message = 'Gagal memuat profil game. Coba lagi.';
+        let message = 'Gagal memuat profil belajar Anda. Silakan coba lagi.';
         let code: string | undefined;
         try {
             const body = (await response.json()) as {
