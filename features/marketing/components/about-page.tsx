@@ -160,7 +160,7 @@ export function AboutPage() {
               Tim di Balik JepangKu
             </h2>
             <p className="mx-auto max-w-lg text-muted-foreground">
-              Profil tim akan dilengkapi — slot di bawah siap diisi nama, foto, dan bio resmi.
+              Di balik JepangKu LMS, terdapat tim profesional yang berdedikasi membantu Anda menguasai bahasa Jepang secara efektif.
             </p>
           </motion.div>
 

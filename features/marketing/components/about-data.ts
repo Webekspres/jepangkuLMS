@@ -11,16 +11,15 @@ export const ABOUT_HERO = {
 
 export const ABOUT_VISION = {
   title: 'Visi',
-  /** Placeholder */
-  body: '[Visi JepangKu LMS akan diisi di sini. Contoh: menjadi platform belajar bahasa Jepang terdepan yang terjangkau dan menyenangkan bagi pelajar Indonesia.]',
+  body: 'Menjadi ekosistem edukasi dan informasi Jepang terdepan di Indonesia yang memberdayakan generasi untuk meraih masa depan di Jepang.',
 } as const;
 
 export const ABOUT_MISSION = {
   title: 'Misi',
   items: [
-    '[Misi 1 — menyediakan kurikulum JLPT terstruktur dari N5 hingga N1.]',
-    '[Misi 2 — menghadirkan pengalaman belajar interaktif dengan gamifikasi XP & badge.]',
-    '[Misi 3 — mendukung persiapan ujian melalui kuis dan try out.]',
+    'Menyediakan informasi Jepang yang akurat, update, dan bermanfaat.',
+    'Menghadirkan pembelajaran bahasa Jepang yang efektif melalui teknologi.',
+    'Membangun komunitas yang suportif dan inspiratif.',
   ],
 } as const;
 
@@ -32,22 +31,22 @@ export const ABOUT_PILLARS: {
   {
     icon: BookOpen,
     title: 'Kurikulum JLPT',
-    desc: 'Materi disusun mengikuti level resmi N5–N1, bukan konten acak.',
+    desc: 'Materi disusun secara terstruktur mengikuti tingkat kemampuan resmi N5 hingga N1.',
   },
   {
     icon: Gamepad2,
     title: 'Gamifikasi',
-    desc: 'XP, badge, dan progress tracker agar belajar terasa seperti perjalanan.',
+    desc: 'XP, badge, dan progress tracker agar belajar bahasa Jepang terasa menyenangkan.',
   },
   {
     icon: GraduationCap,
     title: 'Try Out & Kuis',
-    desc: 'Latihan soal dan simulasi untuk mengukur kesiapan sebelum ujian resmi.',
+    desc: 'Latihan soal dan simulasi interaktif untuk menguji kesiapan sebelum ujian resmi.',
   },
   {
     icon: LineChart,
     title: 'Progress Transparan',
-    desc: 'Siswa bisa melihat perkembangan belajar dan riwayat attempt.',
+    desc: 'Siswa dapat memantau perkembangan materi, hasil kuis, dan riwayat belajar secara real-time.',
   },
 ];
 
@@ -55,7 +54,7 @@ export const ABOUT_PILLARS: {
 export const ABOUT_FACTS = [
   { label: 'Peluncuran', value: '2026' },
   { label: 'Level JLPT', value: 'N5–N1' },
-  { label: 'Fokus MVP', value: 'N5' },
+  { label: 'Fokus Utama', value: 'N5' },
   { label: 'Ekosistem', value: 'LMS + Portal' },
 ] as const;
 
@@ -67,34 +66,34 @@ export type AboutTeamMember = {
   accent: 'primary' | 'blue' | 'amber' | 'emerald';
 };
 
-/** Placeholder tim — update nama, foto, dan bio saat data final ada. */
+/** Tim dari profil perusahaan JepangKu. */
 export const ABOUT_TEAM: AboutTeamMember[] = [
   {
-    name: '[Nama Founder / CEO]',
-    role: 'Founder',
-    bio: 'Bio singkat akan ditambahkan.',
-    initials: 'JK',
+    name: 'Adam Fletcher',
+    role: 'Founder & CEO',
+    bio: 'Pendidik dan praktisi ed-tech dengan pengalaman lebih dari 10 tahun membangun ekosistem digital.',
+    initials: 'AF',
     accent: 'primary',
   },
   {
-    name: '[Nama Kepala Kurikulum]',
-    role: 'Kurikulum & JLPT',
-    bio: 'Bio singkat akan ditambahkan.',
-    initials: 'KK',
+    name: 'Ian Renassa',
+    role: 'Head of Curriculum',
+    bio: 'Spesialis kurikulum bahasa asing lulusan Jepang, merancang materi adaptif standar JLPT.',
+    initials: 'IR',
     accent: 'blue',
   },
   {
-    name: '[Nama Lead Sensei]',
-    role: 'Pengajar & Konten',
-    bio: 'Bio singkat akan ditambahkan.',
-    initials: 'LS',
+    name: 'George Wilkins',
+    role: 'Lead Japanese Instructor',
+    bio: 'Pengajar bahasa Jepang bersertifikat internasional dengan fokus pengajaran dasar ke mahir.',
+    initials: 'GW',
     accent: 'amber',
   },
   {
-    name: '[Nama Tim Teknologi]',
-    role: 'Platform & Produk',
-    bio: 'Bio singkat akan ditambahkan.',
-    initials: 'TT',
+    name: 'Reza Pratama',
+    role: 'Lead Software Engineer',
+    bio: 'Mengembangkan platform LMS interaktif yang ramah pengguna dengan integrasi gamifikasi penuh.',
+    initials: 'RP',
     accent: 'emerald',
   },
 ];

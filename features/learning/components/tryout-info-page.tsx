@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
   BarChart3,
-  Calendar,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -22,7 +21,6 @@ import { cn } from '@/lib/utils';
 import {
   TRYOUT_BENEFITS,
   TRYOUT_OFFERINGS,
-  TRYOUT_SCHEDULE,
   TRYOUT_STEPS,
 } from './tryout-data';
 
@@ -40,12 +38,12 @@ export function TryoutInfoPage() {
             Simulasi Ujian
             <br />
             <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-              JLPT Terstruktur
+              JLPT Terstandarisasi
             </span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-white/70">
-            Halaman info try out JepangKu — jadwal simulasi, level yang tersedia, dan cara mulai.
-            Ujian interaktif diakses setelah login dari dashboard.
+            Uji kesiapan JLPT Anda dengan simulasi ujian terstandarisasi berbasis Computer Based Test (CBT).
+            Dapatkan analisis skor mendalam untuk mengidentifikasi kekuatan dan kelemahan Anda.
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild className="h-11 w-full gap-2 px-6 sm:w-auto">
@@ -89,10 +87,10 @@ export function TryoutInfoPage() {
             className="mb-12 text-center"
           >
             <h2 className="mb-3 text-2xl font-extrabold text-foreground sm:text-3xl">
-              Paket Simulasi per Level
+              Simulasi Ujian per Level
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Lima level JLPT — peluncuran awal membuka simulasi N5 terlebih dahulu.
+              Simulasi lengkap dari level N5 hingga N1. Saat ini simulasi N5 telah tersedia sepenuhnya untuk mendampingi persiapan awal Anda.
             </p>
           </motion.div>
 
@@ -167,65 +165,7 @@ export function TryoutInfoPage() {
         </div>
       </section>
 
-      {/* Schedule */}
-      <section className="bg-linear-to-br from-muted/40 to-primary/5 py-20">
-        <div className="container mx-auto px-4 md:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background px-4 py-2">
-              <Calendar className="size-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Jadwal Try Out</span>
-            </div>
-            <h2 className="mb-3 text-2xl font-extrabold text-foreground sm:text-3xl">
-              Sesi Simulasi Mendatang
-            </h2>
-            <p className="mx-auto max-w-xl text-muted-foreground">
-              Jadwal dapat berubah seiring penambahan konten — cek halaman ini secara berkala.
-            </p>
-          </motion.div>
 
-          <div className="mx-auto max-w-3xl space-y-4">
-            {TRYOUT_SCHEDULE.map((slot, i) => (
-              <motion.div
-                key={slot.id}
-                initial={{ opacity: 0, x: -12 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex min-w-16 flex-col items-center rounded-xl bg-secondary/10 px-3 py-2 text-center">
-                    <span className="text-xs font-medium text-muted-foreground">{slot.dayLabel}</span>
-                    <span className="text-sm font-bold text-secondary">{slot.level}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{slot.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {slot.dateLabel} · {slot.time}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{slot.note}</p>
-                  </div>
-                </div>
-                <span
-                  className={cn(
-                    'shrink-0 self-start rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide sm:self-center',
-                    slot.status === 'buka'
-                      ? 'bg-emerald-500/15 text-emerald-600'
-                      : 'bg-amber-500/15 text-amber-600',
-                  )}
-                >
-                  {slot.status === 'buka' ? 'Pendaftaran dibuka' : 'Rencana'}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* How it works */}
       <section className="py-20">

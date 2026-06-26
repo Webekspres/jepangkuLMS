@@ -19,23 +19,23 @@ const PODIUM_META = [
   {
     crown: '🥈',
     podiumHeight: 'h-20 sm:h-24',
-    rankClass: 'text-muted-foreground',
-    ringClass: 'ring-muted-foreground/30',
-    blockClass: 'border-border bg-muted/80',
+    rankClass: 'text-slate-600 dark:text-slate-400 font-bold',
+    ringClass: 'ring-slate-300/50',
+    blockClass: 'border-slate-200 bg-linear-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 dark:border-slate-700 shadow-md shadow-slate-500/5',
   },
   {
     crown: '👑',
     podiumHeight: 'h-28 sm:h-36',
-    rankClass: 'text-primary',
-    ringClass: 'ring-brand-yellow/70',
-    blockClass: 'border-primary/30 bg-primary/10',
+    rankClass: 'text-amber-600 dark:text-brand-yellow font-black',
+    ringClass: 'ring-brand-yellow/85',
+    blockClass: 'border-brand-yellow/30 bg-linear-to-b from-amber-50/80 to-amber-100/90 dark:from-amber-950/20 dark:to-amber-900/30 dark:border-brand-yellow/20 shadow-xl shadow-amber-500/10 ring-2 ring-brand-yellow/10',
   },
   {
     crown: '🥉',
     podiumHeight: 'h-14 sm:h-20',
-    rankClass: 'text-amber-700',
-    ringClass: 'ring-amber-500/40',
-    blockClass: 'border-amber-500/30 bg-amber-500/10',
+    rankClass: 'text-amber-800 dark:text-amber-600 font-bold',
+    ringClass: 'ring-amber-500/50',
+    blockClass: 'border-amber-300/30 bg-linear-to-b from-amber-50/50 to-amber-100/50 dark:from-amber-950/10 dark:to-amber-900/15 dark:border-amber-900/20 shadow-md shadow-amber-600/5',
   },
 ] as const;
 
@@ -43,13 +43,17 @@ function LeaderboardAvatar({
   entry,
   size = 'md',
   highlight = false,
+  ringClass,
 }: {
   entry: StudentLeaderboardEntry;
   size?: 'sm' | 'md' | 'lg';
   highlight?: boolean;
+  ringClass?: string;
 }) {
   const sizeClass =
     size === 'lg' ? 'size-14 sm:size-16 text-sm' : size === 'md' ? 'size-10 text-xs' : 'size-8 text-[10px]';
+
+  const finalRing = ringClass ?? (highlight ? 'ring-brand-yellow/70' : 'ring-border');
 
   if (entry.imageUrl) {
     return (
@@ -61,7 +65,7 @@ function LeaderboardAvatar({
         className={cn(
           'shrink-0 rounded-full border-2 object-cover ring-2',
           sizeClass,
-          highlight ? 'ring-brand-yellow/70' : 'ring-border',
+          finalRing,
           entry.isYou && 'border-primary',
         )}
       />
@@ -73,7 +77,7 @@ function LeaderboardAvatar({
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full border-2 bg-secondary font-bold text-secondary-foreground ring-2',
         sizeClass,
-        highlight ? 'ring-brand-yellow/70' : 'ring-border',
+        finalRing,
         entry.isYou && 'border-primary bg-primary/10 text-primary',
       )}
     >
@@ -106,7 +110,7 @@ function PodiumSlot({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay, type: 'spring', stiffness: 280 }}
       >
-        <LeaderboardAvatar entry={entry} size={center ? 'lg' : 'md'} highlight={center} />
+        <LeaderboardAvatar entry={entry} size={center ? 'lg' : 'md'} highlight={center} ringClass={meta.ringClass} />
       </motion.div>
       <p className={cn('mt-2 max-w-full truncate text-center text-[11px] font-bold sm:text-xs', meta.rankClass)}>
         {entry.name}
@@ -198,30 +202,37 @@ export function StudentLeaderboardPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <section
+        className="relative overflow-hidden rounded-2xl shadow-lg text-white"
+        style={{ background: 'linear-gradient(135deg, #1E1B57 0%, #14123c 60%, #1e1136 100%)' }}
+      >
+        {/* Glow effects */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-yellow/10 blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-8 left-8 h-40 w-40 rounded-full bg-primary/20 blur-[60px]" />
+
+        <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6 z-10">
           <div>
-            <p className="mb-1 text-xs font-semibold tracking-wide text-primary uppercase">
-              Peringkat global
+            <p className="mb-1 text-xs font-semibold tracking-wider text-brand-yellow uppercase">
+              Peringkat Pelajar
             </p>
-            <h1 className="flex items-center gap-2 text-2xl font-extrabold text-foreground sm:text-3xl">
-              <Trophy className="size-7 text-brand-yellow" />
-              Leaderboard
+            <h1 className="flex items-center gap-2 text-2xl font-extrabold text-white sm:text-3xl">
+              <Trophy className="size-7 text-brand-yellow drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] animate-pulse" />
+              Papan Peringkat
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Top 10 siswa berdasarkan poin LMS. Level & XP global dari Core.
+            <p className="mt-1.5 text-xs text-white/70 sm:text-sm">
+              10 Pelajar terbaik dengan poin tertinggi. Kumpulkan poin dengan menyelesaikan pelajaran dan try out!
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:min-w-[16rem]">
-            <div className="rounded-xl border border-border bg-muted/30 p-3">
-              <p className="text-[11px] text-muted-foreground">Rank kamu</p>
-              <p className="text-2xl font-black text-primary">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+              <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Rank Anda</p>
+              <p className="text-2xl font-black text-brand-yellow">
                 {context.rank != null ? `#${context.rank}` : '—'}
               </p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/30 p-3">
-              <p className="text-[11px] text-muted-foreground">Total siswa</p>
-              <p className="text-lg font-bold tabular-nums text-foreground">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+              <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Total Pelajar</p>
+              <p className="text-2xl font-black text-white">
                 {context.totalLearnersLabel}
               </p>
             </div>
@@ -229,11 +240,10 @@ export function StudentLeaderboardPage() {
         </div>
 
         {context.pointsToNext > 0 && context.nextRankName && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-brand-yellow/25 bg-brand-yellow/10 px-3 py-2 text-sm">
-            <Target className="size-4 text-amber-700" />
-            <span className="text-foreground">
-              <strong>{formatDisplayNumber(context.pointsToNext)} poin</strong> lagi untuk salip{' '}
-              <strong>{context.nextRankName}</strong>
+          <div className="relative border-t border-white/10 px-5 py-3 sm:px-6 flex items-center gap-2 text-xs sm:text-sm text-white/80 bg-black/10 z-10">
+            <Target className="size-4 text-brand-yellow animate-pulse" />
+            <span>
+              Tinggal <strong>{formatDisplayNumber(context.pointsToNext)} poin</strong> lagi untuk menyalip <strong>{context.nextRankName}</strong>! Semangat!
             </span>
           </div>
         )}
