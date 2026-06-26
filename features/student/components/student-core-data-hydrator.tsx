@@ -7,6 +7,7 @@ import {
   writeCachedStudentCoreData,
 } from '@/features/student/lib/student-core-data-cache';
 import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import {
   EMPTY_STUDENT_CORE_DATA,
   toStudentCoreDataContextValue,
@@ -41,6 +42,17 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         .then((response) => (response.ok ? response.json() : EMPTY_STUDENT_CORE_DATA))
         .then((json: StudentCoreData) => {
           if (cancelled) return;
+
+          const isEnabled = isCoreIntegrationEnabled();
+          if (isEnabled && !json.coreConnected) {
+            if (process.env.NODE_ENV === 'production') {
+              window.location.href = '/maintenance?reason=core_offline';
+              return;
+            } else {
+              console.warn('⚠️ Core service offline. Development bypass active.');
+            }
+          }
+
           if (json.coreConnected) {
             writeCachedStudentCoreData(json);
           }
