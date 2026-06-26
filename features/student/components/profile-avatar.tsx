@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useIsClient } from '@/lib/hooks/use-is-client';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 
 type ProfileAvatarProps = {
@@ -40,14 +41,13 @@ export function ProfileAvatar({
     const pixels = PIXEL_SIZES[size];
 
     if (isClient && imageUrl) {
-        const isR2 = imageUrl.includes('.r2.dev');
         return (
             <Image
                 src={imageUrl}
                 alt=""
                 width={pixels}
                 height={pixels}
-                unoptimized={isR2}
+                unoptimized={isUnoptimizedImageSrc(imageUrl)}
                 className={cn('shrink-0 object-cover shadow-md', sizeClass, className)}
             />
         );
