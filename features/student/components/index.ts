@@ -12,3 +12,5 @@ export { STUDENT_ROUTES } from './student-routes';
 export {
   buildDashboardStats,
 } from './dashboard-data';
+export { GamifiedEventProvider, useGamifiedEvent } from './gamified-event-context';
+export { GamifiedEventToaster } from './gamified-event-toaster';
