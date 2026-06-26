@@ -40,12 +40,14 @@ export function ProfileAvatar({
   const pixels = PIXEL_SIZES[size];
 
   if (isClient && imageUrl) {
+    const isR2 = imageUrl.includes('.r2.dev');
     return (
       <Image
         src={imageUrl}
         alt=""
         width={pixels}
         height={pixels}
+        unoptimized={isR2}
         className={cn('shrink-0 object-cover shadow-md', sizeClass, className)}
       />
     );

@@ -1,7 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
-import { uploadToR2, deleteFromR2, extractR2KeyFromUrl, isR2Configured } from '@/lib/r2';
+import {
+  uploadToR2,
+  deleteFromR2,
+  extractR2KeyFromUrl,
+  isR2Configured,
+  normalizeR2PublicUrl,
+} from '@/lib/r2';
 import { BADGE_IMAGE_MAX_BYTES, BADGE_IMAGE_MIME_TYPES } from '@/lib/media/constants';
 
 const DISPLAY_NAME_MIN = 2;
@@ -92,7 +98,7 @@ export async function resolveLmsAvatarUrl(
     select: { avatarUrl: true },
   });
   const local = user?.avatarUrl?.trim();
-  if (local) return local;
+  if (local) return normalizeR2PublicUrl(local) ?? local;
   return clerkFallback?.trim() || null;
 }
 

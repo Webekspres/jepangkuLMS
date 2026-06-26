@@ -77,13 +77,47 @@ export async function deleteFromR2(fileName: string): Promise<void> {
   );
 }
 
+/** Rewrite legacy pub-*.r2.dev host to current R2_PUBLIC_URL (DB may still store old bucket URL). */
+export function normalizeR2PublicUrl(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  const trimmed = url.trim();
+  const publicUrl = getR2Config().publicUrl.replace(/\/$/, '');
+  if (!publicUrl) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (!parsed.hostname.endsWith('.r2.dev')) return trimmed;
+    const currentHost = new URL(publicUrl).hostname;
+    if (parsed.hostname === currentHost) return trimmed;
+    return `${publicUrl}${parsed.pathname}${parsed.search}`;
+  } catch {
+    return trimmed;
+  }
+}
+
 export function extractR2KeyFromUrl(imageUrl: string | null | undefined): string | null {
-  if (!imageUrl) return null;
+  const normalized = normalizeR2PublicUrl(imageUrl);
+  if (!normalized) return null;
+
   const config = getR2Config();
   const publicUrl = config.publicUrl.replace(/\/$/, '');
-  if (!publicUrl || !imageUrl.startsWith(publicUrl)) return null;
-  let key = imageUrl.slice(publicUrl.length + 1);
-  
+  let key: string | null = null;
+
+  if (publicUrl && normalized.startsWith(publicUrl)) {
+    key = normalized.slice(publicUrl.length + 1);
+  } else {
+    try {
+      const parsed = new URL(normalized);
+      if (parsed.hostname.endsWith('.r2.dev')) {
+        key = parsed.pathname.replace(/^\//, '');
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  if (!key) return null;
+
   // Strip 'lms/' prefix if present to keep compatibility with downstream checks (e.g. key.startsWith('avatars/'))
   const prefix = 'lms/';
   if (key.startsWith(prefix)) {
