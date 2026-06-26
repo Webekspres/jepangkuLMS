@@ -1,7 +1,16 @@
 import { type RateLimitResult } from "./in-memory";
 
+interface BunRedisClient {
+  ping(): Promise<string>;
+  zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number>;
+  zadd(key: string, score: number, member: string): Promise<number>;
+  zcard(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
+  zrange(key: string, start: number, stop: number, withScores?: "WITHSCORES"): Promise<string[]>;
+}
+
 export class RedisRateLimiter {
-  private client: any = null;
+  private client: BunRedisClient | null = null;
   private status: "disconnected" | "connected" | "unavailable" = "disconnected";
 
   constructor(

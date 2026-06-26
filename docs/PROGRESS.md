@@ -182,6 +182,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal | Perubahan |
 | :--- | :--- |
+| 2026-06-26 | Refactor profile photo cropping modal to be fully theme-adaptive; replace custom RPG loading screens with the standard JepangKu splash loading interface and enforce production fail-gate restrictions on core connection errors |
 | 2026-06-26 | Implement deferred avatar upload flow to Cloudflare R2 on form save with client-side react-easy-crop editor, local object URL preview, memory leak cleanup, and z-index toaster layer adjustment |
 | 2026-06-26 | Overhaul Jalur JLPT Saya stepper to an RPG-inspired adventure journey map with winding paths, Kamon-themed emblem nodes, radial progress rings, and a character dashboard stat sheet |
 | 2026-06-26 | Refactor copywriting halaman marketing & student dashboard, hapus Sesi Simulasi Mendatang di tryout, tambah avatar di welcome card, dan visual polish Live Class & Leaderboard |

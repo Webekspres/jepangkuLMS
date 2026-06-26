@@ -11,6 +11,27 @@ import {
 
 const FOOTER_WA_URL = buildWhatsAppUrl('Halo, saya ingin bertanya tentang JepangKu LMS.');
 
+function InstagramIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
 function FooterLinkGroup({
   title,
   links,
@@ -64,10 +85,22 @@ export function MarketingFooter() {
           </div>
 
           <div className="lg:col-span-8">
-            <div className="grid gap-8 sm:grid-cols-3">
+            <div className="grid gap-8 grid-cols-2 sm:grid-cols-4">
               <FooterLinkGroup title="Jelajahi" links={MARKETING_FOOTER_EXPLORE} />
               <FooterLinkGroup title="Bantuan" links={MARKETING_FOOTER_SUPPORT} />
               <FooterLinkGroup title="Legal" links={MARKETING_FOOTER_LEGAL} />
+              <div>
+                <h3 className="mb-4 text-sm font-bold tracking-wide text-white/90">Ikuti Kami</h3>
+                <a
+                  href="https://www.instagram.com/jepangkunihongo/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-white/55 transition-colors hover:text-white"
+                >
+                  <InstagramIcon className="size-4 text-brand-yellow" />
+                  Instagram
+                </a>
+              </div>
             </div>
           </div>
         </div>

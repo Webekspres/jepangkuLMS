@@ -14,7 +14,6 @@ import {
   Compass,
 } from 'lucide-react';
 import {
-  JLPT_ACCENT,
   JLPT_LEVELS,
   LANDING_HERO_GRID_STYLE,
 } from '@/features/marketing/components/landing-data';
@@ -24,9 +23,6 @@ import { STUDENT_ROUTES } from './student-routes';
 
 const LEVEL_META = Object.fromEntries(JLPT_LEVELS.map((entry) => [entry.level, entry]));
 
-const JLPT_LEVEL_ACCENT = Object.fromEntries(
-  JLPT_LEVELS.map((entry) => [entry.level, JLPT_ACCENT[entry.accent]]),
-);
 
 const segments = [
   { path: "M 10 67.7 C 20 67.7, 20 24.6, 30 24.6" },

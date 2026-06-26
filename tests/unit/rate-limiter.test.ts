@@ -1,4 +1,4 @@
-import { describe, expect, test, mock } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { InMemoryRateLimiter } from '@/lib/rate-limit/in-memory';
 
 describe('InMemoryRateLimiter', () => {

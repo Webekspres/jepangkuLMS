@@ -4,7 +4,6 @@ import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
 import type { ContinueLesson, JlptPathItem } from '@/features/student/components/dashboard-data';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { DEFAULT_THUMB } from '@/features/learning/lib/course-display';
-import type { CourseProgress } from '@/features/learning/lib/progress';
 import {
   getCoursesWithDbIds,
   getUserEnrollments,
@@ -40,66 +39,6 @@ function lessonCategoryFromMaterials(counts: {
   if (counts.kosakatas > 0) return 'Kosa Kata';
   if (counts.tataBahasas > 0) return 'Tata Bahasa';
   return 'Tata Bahasa';
-}
-
-const JLPT_LEVEL_ORDER: JlptPathItem['level'][] = ['N5', 'N4', 'N3', 'N2', 'N1'];
-
-function buildJlptPath(
-  enrollments: StudentEnrollmentView[],
-  courses: (CatalogCourse & { dbId: string; lessonCount: number; isPublished: boolean })[],
-): JlptPathItem[] {
-  const courseBySlug = Object.fromEntries(courses.map((c) => [c.slug, c]));
-  const levelStats = new Map<
-    JlptPathItem['level'],
-    { percent: number; status: CourseProgress['status'] }
-  >();
-
-  for (const enrollment of enrollments) {
-    const course = courseBySlug[enrollment.courseSlug];
-    if (!course) continue;
-    const level = course.level as JlptPathItem['level'];
-    if (!JLPT_LEVEL_ORDER.includes(level)) continue;
-
-    const current = levelStats.get(level);
-    if (!current || enrollment.progress.percent > current.percent) {
-      levelStats.set(level, {
-        percent: enrollment.progress.percent,
-        status: enrollment.progress.status,
-      });
-    }
-  }
-
-  const hasPublished = (level: JlptPathItem['level']) =>
-    courses.some((c) => c.level === level && c.isPublished);
-
-  const path: JlptPathItem[] = [];
-  let chainUnlocked = true;
-
-  for (const level of JLPT_LEVEL_ORDER) {
-    const stat = levelStats.get(level);
-
-    if (stat?.status === 'completed') {
-      path.push({ level, status: 'done' });
-      continue;
-    }
-
-    if (stat && stat.status !== 'not_started' && chainUnlocked) {
-      path.push({ level, status: 'active', progress: stat.percent });
-      chainUnlocked = false;
-      continue;
-    }
-
-    if (chainUnlocked && hasPublished(level)) {
-      path.push({ level, status: 'active', progress: stat?.percent ?? 0 });
-      chainUnlocked = false;
-      continue;
-    }
-
-    path.push({ level, status: 'locked' });
-    chainUnlocked = false;
-  }
-
-  return path;
 }
 
 export const loadStudentKursusData = cache(async function loadStudentKursusData(): Promise<StudentKursusData> {
@@ -171,12 +110,74 @@ export const loadDashboardJlptPath = cache(async function loadDashboardJlptPath(
   JlptPathItem[]
 > {
   const userId = await requireAuthUserId();
-  const [allCourses, enrollments] = await Promise.all([
-    getCoursesWithDbIds(),
-    getUserEnrollments(userId),
-  ]);
-  const courses = allCourses.filter((c) => c.isPublished);
-  return buildJlptPath(enrollments, courses);
+
+  // 1. Fetch all published courses with modules and lessons
+  const courses = await prisma.course.findMany({
+    where: { isPublished: true },
+    select: {
+      id: true,
+      slug: true,
+      level: true,
+      modules: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          lessons: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // 2. Fetch all completed lessons for this user
+  const completedRows = await prisma.userProgress.findMany({
+    where: { userId, isCompleted: true },
+    select: { lessonId: true },
+  });
+  const completedLessonIds = new Set(completedRows.map((r) => r.lessonId));
+
+  // 3. For each level, calculate completed modules and total modules
+  const levelProgress = new Map<JlptPathItem['level'], number>();
+  const levels: JlptPathItem['level'][] = ['N5', 'N4', 'N3', 'N2', 'N1'];
+
+  for (const lvl of levels) {
+    const levelCourses = courses.filter((c) => c.level === lvl);
+    const levelModules = levelCourses.flatMap((c) => c.modules);
+    const totalModules = levelModules.length;
+
+    let completedModules = 0;
+    for (const mod of levelModules) {
+      if (mod.lessons.length > 0 && mod.lessons.every((l) => completedLessonIds.has(l.id))) {
+        completedModules++;
+      }
+    }
+
+    const progressPercent = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+    levelProgress.set(lvl, progressPercent);
+  }
+
+  // 4. Build the linear progress chain
+  const path: JlptPathItem[] = [];
+  let foundActive = false;
+
+  for (const lvl of levels) {
+    const progress = levelProgress.get(lvl) ?? 0;
+    if (progress === 100) {
+      path.push({ level: lvl, status: 'done', progress: 100 });
+    } else if (!foundActive) {
+      // First incomplete level becomes active
+      path.push({ level: lvl, status: 'active', progress });
+      foundActive = true;
+    } else {
+      // All subsequent levels are locked
+      path.push({ level: lvl, status: 'locked', progress: 0 });
+    }
+  }
+
+  return path;
 });
 
 export const loadDashboardContinueLessons = cache(async function loadDashboardContinueLessons(): Promise<

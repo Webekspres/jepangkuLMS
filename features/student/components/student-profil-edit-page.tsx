@@ -99,7 +99,7 @@ export function StudentProfilEditPage() {
       const preview = URL.createObjectURL(croppedBlob);
       setAvatarPreviewUrl(preview);
       setAvatarError(null);
-    } catch (error) {
+    } catch {
       setAvatarError('Gagal memproses potong foto.');
       toast.error('Gagal memproses potong foto.');
     }
@@ -151,7 +151,7 @@ export function StudentProfilEditPage() {
         toast.success('Profil berhasil disimpan.');
         window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
         router.refresh();
-      } catch (error) {
+      } catch {
         setDisplayNameError('Terjadi kesalahan saat menyimpan profil.');
         toast.error('Terjadi kesalahan saat menyimpan profil.');
       }
@@ -322,21 +322,21 @@ export function StudentProfilEditPage() {
 
       {/* ── Modal Potong Foto (react-easy-crop) ────────────────────────────────── */}
       {isCropModalOpen && imageSrc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-brand-yellow/30 bg-slate-950 p-5 shadow-2xl text-white">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 dark:bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-slate-200 dark:border-brand-yellow/30 bg-white dark:bg-slate-950 p-5 shadow-2xl">
             {/* Header */}
             <div className="mb-4">
-              <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Camera className="size-5 text-brand-yellow" />
                 Sesuaikan Foto Profil
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Geser, perbesar, dan putar gambar agar pas di dalam lingkaran.
               </p>
             </div>
 
-            {/* Cropper Container */}
-            <div className="relative w-full h-64 sm:h-80 bg-black rounded-2xl overflow-hidden border border-white/10">
+            {/* Cropper Container — always dark canvas for focus */}
+            <div className="relative w-full h-64 sm:h-80 bg-black rounded-2xl overflow-hidden border border-black/10 dark:border-white/10">
               <Cropper
                 image={imageSrc}
                 crop={crop}
@@ -356,7 +356,7 @@ export function StudentProfilEditPage() {
             <div className="mt-4 space-y-4">
               {/* Zoom Slider */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-slate-300">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
                   <span>Perbesar (Zoom)</span>
                   <span>{zoom.toFixed(1)}x</span>
                 </div>
@@ -367,13 +367,13 @@ export function StudentProfilEditPage() {
                   step={0.1}
                   value={zoom}
                   onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
                 />
               </div>
 
               {/* Rotation Slider */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-slate-300">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
                   <span>Putar (Rotation)</span>
                   <span>{rotation}°</span>
                 </div>
@@ -384,26 +384,26 @@ export function StudentProfilEditPage() {
                   step={1}
                   value={rotation}
                   onChange={(e) => setRotation(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
                 />
               </div>
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-4">
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-white/10 pt-4">
               <Button
                 variant="ghost"
                 onClick={() => {
                   setIsCropModalOpen(false);
                   setImageSrc(null);
                 }}
-                className="text-slate-300 hover:text-white hover:bg-white/5"
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5"
               >
                 Batal
               </Button>
               <Button
                 onClick={handleApplyCrop}
-                className="bg-brand-yellow text-slate-950 font-bold hover:bg-brand-yellow/90 border border-transparent"
+                className="bg-brand-yellow font-bold hover:bg-brand-yellow/90 border border-transparent"
               >
                 Terapkan Foto
               </Button>
