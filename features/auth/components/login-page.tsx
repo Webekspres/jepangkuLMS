@@ -32,7 +32,7 @@ export function LoginPage() {
           'Kuasai JLPT N5 hingga N1 dengan metode gamifikasi yang membuat belajar terasa seperti bermain game.',
       }}
       heading="Selamat Datang!"
-      subheading="Masuk ke akun Jepangku-mu dan lanjutkan belajar."
+      subheading="Masuk ke akun JepangKu dan lanjutkan belajar."
     >
       {mounted ? (
         <SignIn

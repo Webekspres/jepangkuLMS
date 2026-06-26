@@ -26,8 +26,7 @@ export function BrandLogo({ variant = 'nav', priority, className }: BrandLogoPro
     variant === 'footer' || variant === 'footer-dark' ? FOOTER_LOGO : BRAND_LOGO[variant === 'auth-panel-white' ? 'authPanel' : variant] ?? BRAND_LOGO.nav;
   const imgClass = cn(config.className, className);
 
-  const useWhiteLogo = variant === 'footer-dark' || variant === 'auth-panel-white';
-  const src = useWhiteLogo ? '/brand/logo-white.png' : '/brand/logo.png';
+  const src = '/brand/logo.png';
 
   return (
     <Image

@@ -23,8 +23,6 @@ import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
-const XP_PER_LEVEL = 800;
-
 const MENU_ITEMS = [
   { href: STUDENT_ROUTES.profil, label: 'Profil Saya', icon: User },
   { href: STUDENT_ROUTES.kursus, label: 'Kursus Saya', icon: BookOpen },
@@ -34,8 +32,29 @@ const MENU_ITEMS = [
 
 function xpProgressPercent(totalXp: number, level: number): number {
   if (totalXp <= 0) return 0;
-  const xpInLevel = totalXp - (level - 1) * XP_PER_LEVEL;
-  const pct = (xpInLevel / XP_PER_LEVEL) * 100;
+
+  const thresholds: Record<number, number> = {
+    1: 0,
+    2: 100,
+    3: 300,
+    4: 600,
+    5: 1000,
+  };
+
+  const getThreshold = (lvl: number): number => {
+    if (lvl <= 1) return 0;
+    if (lvl in thresholds) return thresholds[lvl];
+    return 1000 + (lvl - 5) * 500;
+  };
+
+  const currentThreshold = getThreshold(level);
+  const nextThreshold = getThreshold(level + 1);
+  const range = nextThreshold - currentThreshold;
+
+  if (range <= 0) return 99.9;
+
+  const xpInLevel = Math.max(0, totalXp - currentThreshold);
+  const pct = (xpInLevel / range) * 100;
   return Math.min(99.9, Math.max(0, Math.round(pct * 10) / 10));
 }
 
@@ -116,7 +135,7 @@ export function StudentUserProfile() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
                     {badgeTitle ? (
-                      <span className="shrink-0 rounded-md bg-brand-yellow/15 px-1.5 py-0.5 text-[10px] font-bold text-brand-yellow">
+                      <span className="shrink-0 inline-flex items-center gap-0.5 rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground dark:border-brand-yellow/30 dark:bg-brand-yellow/15 dark:text-brand-yellow">
                         {badgeTitle}
                       </span>
                     ) : (

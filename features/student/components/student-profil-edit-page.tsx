@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, Loader2, Save, User } from 'lucide-react';
+import Cropper, { type Area } from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,61 +32,133 @@ export function StudentProfilEditPage() {
   const [displayNameSaved, setDisplayNameSaved] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [isAvatarPending, startAvatarTransition] = useTransition();
+
+  // Image Crop states
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string>('avatar.jpg');
+
+  // Local crop preview file states
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+
+  // cleanup object URL to avoid memory leak
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    };
+  }, [avatarPreviewUrl]);
 
   function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setAvatarError(null);
-    startAvatarTransition(async () => {
-      try {
-        const { optimizeImageFileForUpload } = await import('@/lib/media/optimize-image-client');
-        const optimized = await optimizeImageFileForUpload(file, {
-          maxWidth: 512,
-          maxHeight: 512,
-        });
-        const formData = new FormData();
-        formData.set('avatar', optimized.file);
-        const result = await updateStudentAvatar(formData);
-        if (!result.ok) {
-          setAvatarError(result.error);
-          toast.error(result.error);
-          return;
-        }
-        toast.success('Foto profil diperbarui.');
-        window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
-        router.refresh();
-      } catch {
-        setAvatarError('Gagal memproses foto.');
-        toast.error('Gagal memproses foto.');
+    setSelectedFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result as string);
+      setIsCropModalOpen(true);
+      setZoom(1);
+      setRotation(0);
+      setCrop({ x: 0, y: 0 });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so selecting same image triggers change again
+    event.target.value = '';
+  }
+
+  async function handleApplyCrop() {
+    if (!imageSrc || !croppedAreaPixels) return;
+    setIsCropModalOpen(false);
+
+    try {
+      const { getCroppedImg } = await import('@/features/student/lib/crop-image');
+      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation);
+      if (!croppedBlob) {
+        setAvatarError('Gagal memotong foto.');
+        return;
       }
-    });
+
+      const croppedFile = new File([croppedBlob], selectedFileName, {
+        type: 'image/jpeg',
+      });
+
+      setPendingAvatarFile(croppedFile);
+
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+      const preview = URL.createObjectURL(croppedBlob);
+      setAvatarPreviewUrl(preview);
+      setAvatarError(null);
+    } catch {
+      setAvatarError('Gagal memproses potong foto.');
+      toast.error('Gagal memproses potong foto.');
+    }
   }
 
   function handleSave() {
     setDisplayNameError(null);
     setDisplayNameSaved(false);
+    setAvatarError(null);
+
     startTransition(async () => {
-      const nameResult = await updateStudentDisplayName(displayName);
-      if (!nameResult.ok) {
-        setDisplayNameError(nameResult.error);
-        toast.error(nameResult.error);
-        return;
-      }
+      try {
+        // 1. If there's a pending avatar file, upload it first
+        if (pendingAvatarFile) {
+          const { optimizeImageFileForUpload } = await import('@/lib/media/optimize-image-client');
+          const optimized = await optimizeImageFileForUpload(pendingAvatarFile, {
+            maxWidth: 512,
+            maxHeight: 512,
+          });
 
-      const bioResult = await updateStudentBio(bio);
-      if (!bioResult.ok) {
-        setDisplayNameError(bioResult.error);
-        toast.error(bioResult.error);
-        return;
-      }
+          const formData = new FormData();
+          formData.set('avatar', optimized.file);
 
-      setDisplayNameSaved(true);
-      toast.success('Profil berhasil disimpan.');
-      window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
-      router.refresh();
+          const avatarResult = await updateStudentAvatar(formData);
+          if (!avatarResult.ok) {
+            setAvatarError(avatarResult.error);
+            toast.error(avatarResult.error);
+            return;
+          }
+        }
+
+        // 2. Save Name and Bio
+        const nameResult = await updateStudentDisplayName(displayName);
+        if (!nameResult.ok) {
+          setDisplayNameError(nameResult.error);
+          toast.error(nameResult.error);
+          return;
+        }
+
+        const bioResult = await updateStudentBio(bio);
+        if (!bioResult.ok) {
+          setDisplayNameError(bioResult.error);
+          toast.error(bioResult.error);
+          return;
+        }
+
+        setDisplayNameSaved(true);
+        setPendingAvatarFile(null); // Clear pending avatar
+        toast.success('Profil berhasil disimpan.');
+        window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+        router.refresh();
+      } catch {
+        setDisplayNameError('Terjadi kesalahan saat menyimpan profil.');
+        toast.error('Terjadi kesalahan saat menyimpan profil.');
+      }
     });
   }
+
+  const displayAvatarUrl = avatarPreviewUrl ?? avatarUrl;
 
   return (
     <div className="space-y-6 pb-8">
@@ -114,9 +187,9 @@ export function StudentProfilEditPage() {
         </p>
         <div className="flex items-center gap-5">
           <div className="relative shrink-0">
-            {avatarUrl ? (
+            {displayAvatarUrl ? (
               <Image
-                src={avatarUrl}
+                src={displayAvatarUrl}
                 alt=""
                 width={80}
                 height={80}
@@ -133,7 +206,7 @@ export function StudentProfilEditPage() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="sr-only"
-                disabled={isAvatarPending}
+                disabled={isPending}
                 onChange={handleAvatarChange}
               />
             </label>
@@ -143,8 +216,8 @@ export function StudentProfilEditPage() {
               Ubah foto profile kamu!
             </p>
             {avatarError ? <p className="mt-2 text-xs text-destructive">{avatarError}</p> : null}
-            {isAvatarPending ? (
-              <p className="mt-2 text-xs text-muted-foreground">Mengunggah foto…</p>
+            {isPending && pendingAvatarFile ? (
+              <p className="mt-2 text-xs text-muted-foreground animate-pulse">Mengunggah foto…</p>
             ) : null}
             <p className="mt-2 text-xs text-muted-foreground">
               format yang didukung: JPG, PNG, WebP (max 2MB)
@@ -246,6 +319,98 @@ export function StudentProfilEditPage() {
           <Link href={STUDENT_ROUTES.profil}>Batal</Link>
         </Button>
       </div>
+
+      {/* ── Modal Potong Foto (react-easy-crop) ────────────────────────────────── */}
+      {isCropModalOpen && imageSrc && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 dark:bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-slate-200 dark:border-brand-yellow/30 bg-white dark:bg-slate-950 p-5 shadow-2xl">
+            {/* Header */}
+            <div className="mb-4">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Camera className="size-5 text-brand-yellow" />
+                Sesuaikan Foto Profil
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Geser, perbesar, dan putar gambar agar pas di dalam lingkaran.
+              </p>
+            </div>
+
+            {/* Cropper Container — always dark canvas for focus */}
+            <div className="relative w-full h-64 sm:h-80 bg-black rounded-2xl overflow-hidden border border-black/10 dark:border-white/10">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onRotationChange={setRotation}
+                onCropComplete={(_, croppedPixels) => setCroppedAreaPixels(croppedPixels)}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="mt-4 space-y-4">
+              {/* Zoom Slider */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <span>Perbesar (Zoom)</span>
+                  <span>{zoom.toFixed(1)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                />
+              </div>
+
+              {/* Rotation Slider */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <span>Putar (Rotation)</span>
+                  <span>{rotation}°</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={rotation}
+                  onChange={(e) => setRotation(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-white/10 pt-4">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsCropModalOpen(false);
+                  setImageSrc(null);
+                }}
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleApplyCrop}
+                className="bg-brand-yellow font-bold hover:bg-brand-yellow/90 border border-transparent"
+              >
+                Terapkan Foto
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

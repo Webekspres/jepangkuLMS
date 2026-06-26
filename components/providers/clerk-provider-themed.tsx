@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ui } from '@clerk/ui';
+import { idID } from '@clerk/localizations';
 import { useTheme } from 'next-themes';
 import { getClerkAppearance } from '@/features/auth/components/clerk-appearance';
 import { getClerkPostAuthRedirectUrl } from '@/lib/auth/clerk-redirect-urls';
@@ -26,6 +27,7 @@ export function ClerkProviderThemed({ children }: { children: React.ReactNode })
 
   return (
     <ClerkProvider
+      localization={idID}
       ui={ui}
       signInUrl={getClerkSignInUrl()}
       signUpUrl={getClerkSignUpUrl()}

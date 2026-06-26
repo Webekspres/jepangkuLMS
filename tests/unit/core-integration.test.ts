@@ -13,10 +13,10 @@ describe('lms-roles', () => {
   it('dev bypass is off outside development', () => {
     const prevNodeEnv = process.env.NODE_ENV;
     const prevBypass = process.env.LMS_DEV_ADMIN_BYPASS;
-    (process.env as any).NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     process.env.LMS_DEV_ADMIN_BYPASS = 'true';
     expect(isDevAdminBypassEnabled()).toBe(false);
-    (process.env as any).NODE_ENV = prevNodeEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = prevNodeEnv;
     process.env.LMS_DEV_ADMIN_BYPASS = prevBypass;
   });
 
