@@ -7,6 +7,7 @@ import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
 import { buildReplyWithMention } from '@/features/learning/lib/lesson-qa-utils';
 import { LMS_POINTS, lmsLessonCommentSourceKey } from '@/lib/lms/point-rules';
 import { awardLmsPoints } from '@/lib/lms/points';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
 export type LessonCommentReplyView = {
@@ -48,9 +49,11 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-async function resolveDisplayName(userId: string, displayName: string | null): Promise<string> {
-  if (displayName?.trim()) return displayName.trim();
-  return 'Siswa';
+async function resolveDisplayName(
+  displayName: string | null,
+  ssoDisplayName: string | null,
+): Promise<string> {
+  return resolvePublicDisplayName({ displayName, ssoDisplayName });
 }
 
 export async function loadLessonComments(
@@ -61,10 +64,10 @@ export async function loadLessonComments(
     where: { lessonId },
     orderBy: { createdAt: 'desc' },
     include: {
-      user: { select: { id: true, displayName: true } },
+      user: { select: { id: true, displayName: true, ssoDisplayName: true } },
       replies: {
         orderBy: { createdAt: 'asc' },
-        include: { user: { select: { id: true, displayName: true } } },
+        include: { user: { select: { id: true, displayName: true, ssoDisplayName: true } } },
       },
     },
   });
@@ -73,7 +76,7 @@ export async function loadLessonComments(
 
   return Promise.all(
     rows.map(async (row) => {
-      const author = await resolveDisplayName(row.userId, row.user.displayName);
+      const author = await resolveDisplayName(row.user.displayName, row.user.ssoDisplayName);
       return {
         id: row.id,
         author,
@@ -84,7 +87,10 @@ export async function loadLessonComments(
         isYou: viewer === row.userId,
         replies: await Promise.all(
           row.replies.map(async (reply) => {
-            const replyAuthor = await resolveDisplayName(reply.userId, reply.user.displayName);
+            const replyAuthor = await resolveDisplayName(
+              reply.user.displayName,
+              reply.user.ssoDisplayName,
+            );
             return {
               id: reply.id,
               author: replyAuthor,

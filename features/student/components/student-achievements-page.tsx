@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useCallback, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
+import confetti from 'canvas-confetti';
 import {
   Award,
   BarChart2,
@@ -19,18 +20,24 @@ import { formatDisplayNumber } from '@/features/marketing/components/landing-dat
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { useStudentCoreData } from './student-core-data-context';
 import {
   buildAchievementMilestones,
+  BADGE_RARITY_FILTER_ORDER,
   BADGE_RARITY_ORDER,
-  BADGE_RARITY_STYLES,
+  buildAchievementBadgeEmptyMessage,
   filterAchievementBadges,
   getAchievementSummary,
+  getBadgeRarityCounts,
+  getBadgeRarityStyle,
   getBadgeXpByRarity,
+  resolveAchievementBadgeRarity,
   type AchievementBadge,
   type AchievementMilestone,
   type BadgeFilter,
   type BadgeRarity,
+  type BadgeRarityFilter,
   type BadgeSort,
 } from './student-achievements-data';
 import { STUDENT_ROUTES } from './student-routes';
@@ -82,7 +89,8 @@ function BadgeCard({
   badge: AchievementBadge;
   onSelect: (badge: AchievementBadge) => void;
 }) {
-  const style = BADGE_RARITY_STYLES[badge.rarity];
+  const rarityLabel = resolveAchievementBadgeRarity(badge.rarity);
+  const style = getBadgeRarityStyle(rarityLabel);
 
   return (
     <motion.button
@@ -97,16 +105,14 @@ function BadgeCard({
         badge.unlocked && 'cursor-pointer hover:shadow-sm',
       )}
     >
-      {badge.rarity !== 'Common' && (
-        <span
-          className={cn(
-            'absolute top-2 right-2 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase',
-            style.chip,
-          )}
-        >
-          {badge.rarity}
-        </span>
-      )}
+      <span
+        className={cn(
+          'absolute top-2 right-2 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase',
+          style.chip,
+        )}
+      >
+        {rarityLabel}
+      </span>
       <div className="mb-2 flex justify-center">
         <BadgeIcon badge={badge} />
       </div>
@@ -207,6 +213,74 @@ function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; i
   );
 }
 
+function BadgeRarityFilterBar({
+  rarityFilter,
+  rarityCounts,
+  onChange,
+}: {
+  rarityFilter: BadgeRarityFilter;
+  rarityCounts: ReturnType<typeof getBadgeRarityCounts>;
+  onChange: (rarity: BadgeRarityFilter) => void;
+}) {
+  const options: { id: BadgeRarityFilter; label: string }[] = [
+    { id: 'all', label: 'Semua' },
+    ...BADGE_RARITY_FILTER_ORDER.map((rarity) => ({
+      id: rarity,
+      label: RARITY_LABELS[rarity],
+    })),
+  ];
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2"
+      role="group"
+      aria-label="Filter rarity badge"
+    >
+      <span className="text-xs font-semibold text-muted-foreground">Rarity:</span>
+      {options.map((option) => {
+        const count = rarityCounts[option.id];
+        const isActive = rarityFilter === option.id;
+        const isRarity = option.id !== 'all';
+        const style = isRarity ? getBadgeRarityStyle(option.id) : null;
+
+        return (
+          <button
+            key={option.id}
+            type="button"
+            disabled={count === 0}
+            onClick={() => onChange(option.id)}
+            aria-pressed={isActive}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all',
+              count === 0 && 'cursor-not-allowed opacity-40',
+              isActive
+                ? isRarity && style
+                  ? cn(style.legend, style.ring, 'ring-2 ring-offset-1 ring-offset-background shadow-sm')
+                  : 'border-primary bg-primary text-primary-foreground'
+                : isRarity && style
+                  ? cn('border', style.legend, 'hover:brightness-95')
+                  : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted',
+            )}
+          >
+            {isRarity && style ? (
+              <span className={cn('size-2 rounded-full', style.dot)} aria-hidden />
+            ) : null}
+            <span>{option.label}</span>
+            <span
+              className={cn(
+                'rounded-md px-1.5 py-0.5 text-[10px] tabular-nums',
+                isActive ? 'bg-background/20' : 'bg-background/60 text-muted-foreground',
+              )}
+            >
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BadgeDetailModal({
   badge,
   onClose,
@@ -219,7 +293,8 @@ function BadgeDetailModal({
   isEquipping: boolean;
 }) {
   if (!badge) return null;
-  const style = BADGE_RARITY_STYLES[badge.rarity];
+  const rarityLabel = resolveAchievementBadgeRarity(badge.rarity);
+  const style = getBadgeRarityStyle(rarityLabel);
 
   return (
     <AnimatePresence>
@@ -245,7 +320,7 @@ function BadgeDetailModal({
               <BadgeIcon badge={badge} size="lg" />
             </motion.div>
             <span className={cn('inline-flex rounded-lg px-3 py-1 text-xs font-bold uppercase', style.chip)}>
-              {badge.rarity}
+              {rarityLabel}
             </span>
             <h3 className="mt-3 text-xl font-extrabold text-foreground">{badge.name}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -309,25 +384,73 @@ export function StudentAchievementsPage({
   const badges = core.badges;
   const summary = getAchievementSummary(badges);
   const milestones = milestonesProp ?? buildAchievementMilestones(core.totalXp);
-  const displayName = identity?.displayName ?? core.displayName ?? 'Pengguna';
+  const displayName = core.displayName ?? identity?.displayName ?? 'Siswa JepangKu';
   const userInitial = displayName.charAt(0).toUpperCase();
 
   const [filter, setFilter] = useState<BadgeFilter>('all');
-  const [rarityFilter, setRarityFilter] = useState<BadgeRarity | 'all'>('all');
+  const [rarityFilter, setRarityFilter] = useState<BadgeRarityFilter>('all');
   const [sort, setSort] = useState<BadgeSort>('default');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [isEquipping, startEquipTransition] = useTransition();
 
+  const rarityCounts = useMemo(() => getBadgeRarityCounts(badges, filter), [badges, filter]);
+
+  const effectiveRarityFilter: BadgeRarityFilter =
+    rarityFilter !== 'all' && rarityCounts[rarityFilter] === 0 ? 'all' : rarityFilter;
+
   const filteredBadges = useMemo(
-    () => filterAchievementBadges(badges, filter, rarityFilter, sort),
-    [badges, filter, rarityFilter, sort],
+    () => filterAchievementBadges(badges, filter, effectiveRarityFilter, sort),
+    [badges, filter, effectiveRarityFilter, sort],
   );
 
-  const handleCelebrate = () => {
+  const emptyMessage = useMemo(
+    () => buildAchievementBadgeEmptyMessage(filter, effectiveRarityFilter),
+    [filter, effectiveRarityFilter],
+  );
+
+  const handleStatusFilterChange = (nextFilter: BadgeFilter) => {
+    setFilter(nextFilter);
+    const counts = getBadgeRarityCounts(badges, nextFilter);
+    if (rarityFilter !== 'all' && counts[rarityFilter] === 0) {
+      setRarityFilter('all');
+    }
+  };
+
+  const handleCelebrate = useCallback(() => {
     setCelebrate(true);
     window.setTimeout(() => setCelebrate(false), 2800);
-  };
+
+    // Left-side burst
+    void confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { x: 0.2, y: 0.55 },
+      colors: ['#EC1D24', '#FF4B2B', '#F8E71C', '#1E1B57', '#ffffff'],
+      scalar: 1.1,
+    });
+    // Right-side burst (slight delay)
+    window.setTimeout(() => {
+      void confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.8, y: 0.55 },
+        colors: ['#EC1D24', '#FF4B2B', '#F8E71C', '#1E1B57', '#ffffff'],
+        scalar: 1.1,
+      });
+    }, 150);
+    // Center finale
+    window.setTimeout(() => {
+      void confetti({
+        particleCount: 60,
+        spread: 100,
+        origin: { x: 0.5, y: 0.6 },
+        colors: ['#F8E71C', '#ffffff', '#EC1D24'],
+        startVelocity: 35,
+        scalar: 0.9,
+      });
+    }, 350);
+  }, []);
 
   return (
     <div className="space-y-6 pb-8">
@@ -341,9 +464,12 @@ export function StudentAchievementsPage({
         <div className="relative px-5 py-6 sm:px-6">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="relative shrink-0 self-center md:self-auto">
-              <div className="flex size-24 items-center justify-center rounded-2xl bg-white/15 text-4xl font-black text-white shadow-sm ring-2 ring-white/20">
-                {userInitial}
-              </div>
+              <ProfileAvatar
+                imageUrl={core.avatarUrl}
+                initial={userInitial}
+                size="xl"
+                className="border-2 border-white/30 shadow-md ring-2 ring-white/20"
+              />
               <div className="absolute -right-2 -bottom-2 flex size-10 items-center justify-center rounded-xl border-2 border-brand-navy bg-brand-yellow text-sm font-black text-brand-navy shadow-sm">
                 {core.level}
               </div>
@@ -465,7 +591,7 @@ export function StudentAchievementsPage({
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setFilter(option.id)}
+                  onClick={() => handleStatusFilterChange(option.id)}
                   className={cn(
                     'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
                     filter === option.id
@@ -479,25 +605,13 @@ export function StudentAchievementsPage({
             </div>
           </div>
 
+          <BadgeRarityFilterBar
+            rarityFilter={effectiveRarityFilter}
+            rarityCounts={rarityCounts}
+            onChange={setRarityFilter}
+          />
+
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Rarity:</span>
-            {(['all', ...BADGE_RARITY_ORDER] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRarityFilter(r)}
-                className={cn(
-                  'rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors',
-                  rarityFilter === r
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : r === 'all'
-                      ? 'border-border bg-muted/50 text-muted-foreground'
-                      : cn('border', BADGE_RARITY_STYLES[r].legend),
-                )}
-              >
-                {r === 'all' ? 'Semua' : RARITY_LABELS[r]}
-              </button>
-            ))}
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as BadgeSort)}
@@ -510,26 +624,33 @@ export function StudentAchievementsPage({
             </select>
           </div>
 
-          <p className="text-xs text-muted-foreground">{filteredBadges.length} badge ditampilkan</p>
+          <p className="text-xs text-muted-foreground">
+            {filteredBadges.length} badge ditampilkan
+            {effectiveRarityFilter !== 'all' ? ` · filter ${effectiveRarityFilter}` : ''}
+            {filter !== 'all' ? ` · ${filter === 'unlocked' ? 'diraih' : 'terkunci'}` : ''}
+          </p>
 
           <div className="flex flex-wrap gap-2">
-            {BADGE_RARITY_ORDER.map((r) => (
+            {BADGE_RARITY_FILTER_ORDER.map((r) => {
+              const legendStyle = getBadgeRarityStyle(r);
+              return (
               <div
                 key={r}
-                className={cn('flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold', BADGE_RARITY_STYLES[r].legend)}
+                className={cn('flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold', legendStyle.legend)}
               >
-                <span className={cn('size-2 rounded-full', BADGE_RARITY_STYLES[r].dot)} />
+                <span className={cn('size-2 rounded-full', legendStyle.dot)} />
                 {r}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {filteredBadges.length === 0 ? (
               <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
-                {core.coreConnected
-                  ? 'Belum ada badge tersedia.'
-                  : 'Memuat badge…'}
+                {!core.coreConnected && badges.length === 0
+                  ? 'Memuat badge…'
+                  : emptyMessage}
               </p>
             ) : (
               filteredBadges.map((badge, index) => (
@@ -553,7 +674,7 @@ export function StudentAchievementsPage({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {BADGE_RARITY_ORDER.map((rarity) => {
                 const { count, xp } = getBadgeXpByRarity(badges, rarity);
-                const style = BADGE_RARITY_STYLES[rarity];
+                const style = getBadgeRarityStyle(rarity);
                 return (
                   <div key={rarity} className={cn('rounded-xl border p-3 text-center', style.legend)}>
                     <p className={cn('text-xl font-black', style.label)}>{count}</p>

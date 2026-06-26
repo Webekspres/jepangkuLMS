@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
+import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
 import {
   getCachedCourseWithLessons,
   getCachedUserEnrollments,
@@ -15,6 +16,8 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
   courseSlug: string,
 ) {
   const userId = await requireAuthUserId();
+  const adminAccess = await isLmsAdmin(userId);
+
   const [course, enrollmentRow, user, activeEnrollments] = await Promise.all([
     getCachedCourseWithLessons(courseSlug),
     prisma.enrollment.findFirst({
@@ -31,7 +34,11 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
   if (!course) return null;
 
   const modules = course.modules ?? [];
-  const enrollmentStatus = (enrollmentRow?.status ?? null) as EnrollmentStatus | null;
+
+  // Admin bypass — dianggap enrolled ACTIVE meski tanpa enrollment record
+  const enrollmentStatus = adminAccess
+    ? 'ACTIVE'
+    : ((enrollmentRow?.status ?? null) as EnrollmentStatus | null);
   const isEnrolled = enrollmentStatus === 'ACTIVE';
   const enrollment = activeEnrollments.find((e) => e.courseSlug === courseSlug) ?? null;
 
@@ -40,7 +47,7 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
     enrollment,
     enrollmentStatus,
     isEnrolled,
-    isPending: enrollmentStatus === 'PENDING',
+    isPending: !adminAccess && enrollmentStatus === 'PENDING',
     studentDisplayName: user?.displayName ?? null,
     whatYouLearn: buildWhatYouLearnFromModules(modules),
     duration: estimateCourseDuration(course.lessonCount),

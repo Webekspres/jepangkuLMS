@@ -140,14 +140,14 @@ export function StudentProfilEditPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">
-              Unggah foto JPG, PNG, atau WebP (maks. 2 MB). Disimpan di LMS/R2.
+              Ubah foto profile kamu!
             </p>
             {avatarError ? <p className="mt-2 text-xs text-destructive">{avatarError}</p> : null}
             {isAvatarPending ? (
               <p className="mt-2 text-xs text-muted-foreground">Mengunggah foto…</p>
             ) : null}
             <p className="mt-2 text-xs text-muted-foreground">
-              Foto Clerk tetap dipakai jika belum upload foto LMS.
+              format yang didukung: JPG, PNG, WebP (max 2MB)
             </p>
           </div>
         </div>
@@ -194,7 +194,7 @@ export function StudentProfilEditPage() {
           </div>
 
           {/* Email (readonly from Clerk) */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -205,7 +205,7 @@ export function StudentProfilEditPage() {
             <p className="text-xs text-muted-foreground">
               Email dikelola melalui akun Clerk dan tidak dapat diubah di sini.
             </p>
-          </div>
+          </div> */}
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { getInitials } from '@/features/student/lib/leaderboard-helpers';
 
 export type LmsLeaderboardItem = {
@@ -33,6 +34,7 @@ export async function fetchLmsLeaderboard(
         user: {
           select: {
             displayName: true,
+            ssoDisplayName: true,
             avatarUrl: true,
             equippedBadge: { select: { title: true } },
           },
@@ -43,7 +45,10 @@ export async function fetchLmsLeaderboard(
   ]);
 
   const items: LmsLeaderboardItem[] = rows.map((row, index) => {
-    const name = row.user.displayName?.trim() || 'Pengguna';
+    const name = resolvePublicDisplayName({
+      displayName: row.user.displayName,
+      ssoDisplayName: row.user.ssoDisplayName,
+    });
     return {
       rank: offset + index + 1,
       userId: row.userId,

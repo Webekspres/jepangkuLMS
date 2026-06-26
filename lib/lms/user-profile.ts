@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { uploadToR2, deleteFromR2, extractR2KeyFromUrl, isR2Configured } from '@/lib/r2';
 import { BADGE_IMAGE_MAX_BYTES, BADGE_IMAGE_MIME_TYPES } from '@/lib/media/constants';
 
@@ -30,6 +31,8 @@ export function validateLmsDisplayName(value: string): string | null {
 
 export type LmsUserProfile = {
   displayName: string | null;
+  ssoDisplayName: string | null;
+  displayNameSetupAt: Date | null;
   bio: string | null;
   avatarUrl: string | null;
   equippedBadgeId: string | null;
@@ -41,6 +44,8 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
     where: { id: userId },
     select: {
       displayName: true,
+      ssoDisplayName: true,
+      displayNameSetupAt: true,
       bio: true,
       avatarUrl: true,
       equippedBadgeId: true,
@@ -50,6 +55,8 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
   if (!user) return null;
   return {
     displayName: user.displayName,
+    ssoDisplayName: user.ssoDisplayName,
+    displayNameSetupAt: user.displayNameSetupAt,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
     equippedBadgeId: user.equippedBadgeId,
@@ -57,19 +64,22 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
   };
 }
 
-/** Nama tampilan LMS — prioritas DB lokal, fallback Clerk/Core. */
+/** Nama tampilan LMS — prioritas DB lokal, fallback SSO/Clerk. */
 export async function resolveLmsDisplayName(
   userId: string,
   fallback?: string | null,
-): Promise<string | null> {
+  email?: string | null,
+): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { displayName: true },
+    select: { displayName: true, ssoDisplayName: true },
   });
-  const local = user?.displayName?.trim();
-  if (local) return local;
-  const fb = fallback?.trim();
-  return fb || null;
+
+  return resolvePublicDisplayName({
+    displayName: user?.displayName,
+    ssoDisplayName: user?.ssoDisplayName ?? fallback,
+    email,
+  });
 }
 
 /** Avatar LMS — prioritas DB lokal, fallback Clerk. */
@@ -108,11 +118,26 @@ export async function updateLmsDisplayName(userId: string, displayName: string):
   const error = validateLmsDisplayName(displayName);
   if (error) throw new Error(error);
 
+  const trimmed = displayName.trim();
+
   await prisma.user.upsert({
     where: { id: userId },
-    create: userAnchorCreateData(userId, { displayName: displayName.trim() }),
-    update: { displayName: displayName.trim() },
+    create: userAnchorCreateData(userId, {
+      displayName: trimmed,
+      displayNameSetupAt: new Date(),
+    }),
+    update: {
+      displayName: trimmed,
+      displayNameSetupAt: new Date(),
+    },
   });
+}
+
+export async function completeLmsDisplayNameSetup(
+  userId: string,
+  displayName: string,
+): Promise<void> {
+  await updateLmsDisplayName(userId, displayName);
 }
 
 export async function updateLmsAvatarFromUpload(

@@ -1,8 +1,10 @@
+import { cache } from 'react';
 import { prisma } from '@/lib/prisma';
 import {
   canAccessLmsAdminPanel,
   DEFAULT_LMS_ROLE,
   hasLmsAdminAccess,
+  isDevAdminBypassEnabled,
 } from '@/lib/auth/lms-roles';
 import type { LmsRole } from '@prisma/client';
 
@@ -32,3 +34,17 @@ export async function getUserLmsRole(userId: string): Promise<LmsRole> {
   });
   return user?.role ?? DEFAULT_LMS_ROLE;
 }
+
+/**
+ * Lightweight check: apakah user ini admin LMS?
+ * Digunakan untuk bypass enrollment — admin otomatis punya akses ke semua kursus.
+ * Cached per request via React `cache()`.
+ */
+export const isLmsAdmin = cache(async function isLmsAdmin(userId: string): Promise<boolean> {
+  if (isDevAdminBypassEnabled()) return true;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  return user?.role === 'LMS_ADMIN';
+});

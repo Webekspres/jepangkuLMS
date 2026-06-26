@@ -6,6 +6,7 @@ import {
   getCachedUserEnrollments,
 } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
+import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
 import {
   COURSE_TREE_INCLUDE,
   flattenLessonsFromModules,
@@ -101,12 +102,17 @@ export async function getLessonWorkspace(
   const lesson = allLessons.find((l) => l.slug === lessonSlug);
   if (!lesson) return null;
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: course.id } },
-  });
+  // Admin bypass — akses semua kursus tanpa enrollment
+  const adminAccess = await isLmsAdmin(userId);
 
-  if (!enrollment || enrollment.status !== 'ACTIVE') {
-    return { accessDenied: true as const, courseSlug, lessonSlug };
+  if (!adminAccess) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: course.id } },
+    });
+
+    if (!enrollment || enrollment.status !== 'ACTIVE') {
+      return { accessDenied: true as const, courseSlug, lessonSlug };
+    }
   }
 
   const lessonIds = allLessons.map((l) => l.id);
@@ -162,7 +168,7 @@ export async function getLessonWorkspace(
       title: lesson.title,
       order: lesson.order,
       content: lessonRow?.content ?? null,
-      videoUrl: lessonRow?.videoUrl ?? null,
+      hasVideo: Boolean(lessonRow?.videoUrl?.trim()),
       isCompleted: completedIds.has(lesson.id),
       quizCount,
     },
@@ -193,12 +199,17 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
 
   const course = lesson.module.course;
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: course.id } },
-  });
+  // Admin bypass — akses semua kuis tanpa enrollment
+  const adminAccessQuiz = await isLmsAdmin(userId);
 
-  if (!enrollment || enrollment.status !== 'ACTIVE') {
-    return { accessDenied: true as const, lessonSlug };
+  if (!adminAccessQuiz) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: course.id } },
+    });
+
+    if (!enrollment || enrollment.status !== 'ACTIVE') {
+      return { accessDenied: true as const, lessonSlug };
+    }
   }
 
   if (lesson.questions.length === 0) {

@@ -137,7 +137,9 @@ async function seedDemoEnrollment(prisma: PrismaClient, courseId: string) {
 async function main() {
   const prisma = createPrisma();
 
-  console.log('🌱 Seeding JepangKu LMS...\n');
+  console.log('🌱 Seeding JepangKu LMS (production-ready starter)...\n');
+  console.log('   Sumber materi: docs/Materi LMS JepangKu - Nihongo.xlsx');
+  console.log('   Badge gambar: public/badges/*.png\n');
 
   await prisma.user.upsert({
     where: { id: DEMO_USER_ID },

@@ -71,7 +71,7 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
   const [grantCourseId, setGrantCourseId] = useState(courses[0]?.id ?? '');
   const [rejectEnrollmentId, setRejectEnrollmentId] = useState<string | null>(null);
 
-  const displayName = user.displayName?.trim() || 'Pengguna';
+  const displayName = user.resolvedDisplayName;
   const initial = displayName.charAt(0).toUpperCase();
   const rejectTarget = user.enrollments.find((row) => row.id === rejectEnrollmentId);
 

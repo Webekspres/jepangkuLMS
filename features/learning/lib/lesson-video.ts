@@ -28,7 +28,20 @@ export function getYouTubeThumbnailUrl(
   return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
 }
 
-/** Format sumber resmi Vidstack untuk provider YouTube. */
-export function toVidstackYouTubeSrc(videoId: string): `youtube/${string}` {
-  return `youtube/${videoId}`;
+/** Build Vidstack YouTube src with privacy-oriented embed params. */
+export function toVidstackYouTubeSrc(
+  videoId: string,
+  options?: { origin?: string },
+): `youtube/${string}` {
+  const params = new URLSearchParams({
+    rel: '0',
+    modestbranding: '1',
+    playsinline: '1',
+    iv_load_policy: '3',
+    disablekb: '1',
+  });
+  if (options?.origin) {
+    params.set('origin', options.origin);
+  }
+  return `youtube/${videoId}?${params.toString()}` as `youtube/${string}`;
 }
