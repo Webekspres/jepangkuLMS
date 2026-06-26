@@ -7,6 +7,16 @@ import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
 import { getRolesFromClaims, parseJwtPayload } from '@/lib/core/jwt-claims';
 import { verifyCoreJwtToken } from '@/lib/core/verify-jwt';
 
+import { inMemoryRateLimiter } from '@/lib/rate-limit/in-memory';
+
+const RATE_LIMIT_RULES = {
+  PUBLIC_API: { limit: 60, windowMs: 60000, keyPrefix: 'rl:pub-api:' },
+  AUTH_API: { limit: 15, windowMs: 60000, keyPrefix: 'rl:auth-api:' },
+  SERVER_ACTIONS: { limit: 30, windowMs: 60000, keyPrefix: 'rl:action:' },
+  GENERAL_API: { limit: 100, windowMs: 60000, keyPrefix: 'rl:gen-api:' },
+  GENERAL_PAGE: { limit: 120, windowMs: 60000, keyPrefix: 'rl:page:' }
+};
+
 const isProtectedRoute = createRouteMatcher(['/dashboard(.*)', '/admin(.*)']);
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 
@@ -46,8 +56,64 @@ async function hasCoreAdminRole(request: NextRequest, userId: string | null): Pr
 
 export default clerkMiddleware(
   async (auth, request) => {
-    const { userId } = await auth();
     const { pathname } = request.nextUrl;
+    const isWebhook = pathname.startsWith('/api/webhooks/clerk');
+    const isStatic = pathname.startsWith('/_next') || pathname.includes('.');
+    if (!isWebhook && !isStatic) {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || '127.0.0.1';
+      let rule = RATE_LIMIT_RULES.GENERAL_PAGE;
+      let isApi = false;
+
+      if (pathname.startsWith('/api/v1/public')) {
+        rule = RATE_LIMIT_RULES.PUBLIC_API;
+        isApi = true;
+      } else if (pathname.startsWith('/api/auth/core-token')) {
+        rule = RATE_LIMIT_RULES.AUTH_API;
+        isApi = true;
+      } else if (request.method === 'POST' && (request.headers.has('next-action') || request.headers.has('Next-Action'))) {
+        rule = RATE_LIMIT_RULES.SERVER_ACTIONS;
+        isApi = true;
+      } else if (pathname.startsWith('/api/')) {
+        rule = RATE_LIMIT_RULES.GENERAL_API;
+        isApi = true;
+      }
+
+      const rlKey = `${rule.keyPrefix}${ip}`;
+      const rlResult = await inMemoryRateLimiter.limit(rlKey, rule.limit, rule.windowMs);
+
+      if (!rlResult.success) {
+        const headers = {
+          'Content-Type': isApi ? 'application/json' : 'text/html',
+          'X-RateLimit-Limit': String(rule.limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(rlResult.reset),
+          'Retry-After': String(Math.ceil((rlResult.reset - Date.now()) / 1000)),
+        };
+
+        if (isApi) {
+          return new NextResponse(
+            JSON.stringify({
+              error: 'Too Many Requests',
+              message: 'Rate limit exceeded. Please try again later.',
+            }),
+            { status: 429, headers }
+          );
+        } else {
+          return new NextResponse(
+            `<html>
+              <head><title>Too Many Requests</title></head>
+              <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1>Too Many Requests</h1>
+                <p>Rate limit exceeded. Please try again later.</p>
+              </body>
+            </html>`,
+            { status: 429, headers }
+          );
+        }
+      }
+    }
+
+    const { userId } = await auth();
 
     if (userId && pathname === '/') {
       return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));

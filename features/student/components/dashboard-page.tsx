@@ -23,6 +23,7 @@ import {
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { DashboardJlptPath } from './dashboard-jlpt-path';
 import {
   buildDashboardStats,
@@ -106,6 +107,8 @@ export function DashboardPage({
           points,
           isYou,
         }));
+  const avatarUrl = core.avatarUrl ?? identity?.imageUrl;
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="space-y-6 pb-10 sm:space-y-8">
@@ -118,47 +121,55 @@ export function DashboardPage({
         <div className="pointer-events-none absolute right-0 top-0 size-64 translate-x-1/3 -translate-y-1/3 rounded-full bg-primary/15 blur-3xl" />
 
         <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div>
-            <p className="mb-1 text-xs font-medium tracking-wide text-white/50 uppercase">
-              おはよう
-            </p>
-            <h1 className="text-[clamp(1.35rem,3vw,1.75rem)] font-extrabold tracking-tight text-white">
-              Halo, {displayName}!{' '}
-            </h1>
-            <p className="mt-1 text-sm text-white/60">
-              {badgeTitle ? (
-                <>
-                  <span className="font-semibold text-brand-yellow">{badgeTitle}</span>
-                  <span className="text-white/40"> · </span>
-                </>
-              ) : null}
-              {core.levelTitle
-                ? `${core.levelTitle} · Lv.${core.level}`
-                : `Level ${core.level}`}{' '}
-              · Terus semangat belajar hari ini
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <ProfileAvatar
+              imageUrl={avatarUrl}
+              initial={initial}
+              size="lg"
+              className="border-2 border-white/30 shadow-md ring-2 ring-white/10"
+            />
+            <div>
+              <p className="mb-1 text-xs font-medium tracking-wide text-white/50 uppercase">
+                おはよう
+              </p>
+              <h1 className="text-[clamp(1.35rem,3vw,1.75rem)] font-extrabold tracking-tight text-white">
+                Halo, {displayName}!
+              </h1>
+              <p className="mt-1 text-sm text-white/60">
+                {badgeTitle ? (
+                  <>
+                    <span className="font-semibold text-brand-yellow">{badgeTitle}</span>
+                    <span className="text-white/40"> · </span>
+                  </>
+                ) : null}
+                {core.levelTitle
+                  ? `${core.levelTitle} · Lv.${core.level}`
+                  : `Level ${core.level}`}{' '}
+                · Terus semangat belajar hari ini
+              </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1 text-xs font-semibold text-brand-yellow">
-                <Zap className="size-3.5" />
-                {formatDisplayNumber(core.totalXp)} XP
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
-                <Coins className="size-3.5" />
-                {formatDisplayNumber(core.lmsPoints)} poin
-              </span>
-              {core.lmsRank != null ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
-                  <Star className="size-3.5 text-primary" />
-                  Rank #{core.lmsRank}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1 text-xs font-semibold text-brand-yellow">
+                  <Zap className="size-3.5" />
+                  {formatDisplayNumber(core.totalXp)} XP
                 </span>
-              ) : null}
-              {core.badgeCount > 0 ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
-                  <Award className="size-3.5" />
-                  {core.badgeCount} badge
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
+                  <Coins className="size-3.5" />
+                  {formatDisplayNumber(core.lmsPoints)} poin
                 </span>
-              ) : null}
+                {core.lmsRank != null ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
+                    <Star className="size-3.5 text-primary" />
+                    Rank #{core.lmsRank}
+                  </span>
+                ) : null}
+                {core.badgeCount > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
+                    <Award className="size-3.5" />
+                    {core.badgeCount} badge
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -359,7 +370,7 @@ export function DashboardPage({
           </DashboardSection>
 
           <DashboardSection
-            title="Jadwal Live Class"
+            title="Kelas Interaktif Live"
             icon={Calendar}
             action={
               <Link href="/dashboard/live-class" className="text-xs font-semibold text-primary hover:underline">
@@ -367,26 +378,51 @@ export function DashboardPage({
               </Link>
             }
           >
+            {/* Visual Classroom Banner */}
+            <div className="relative mb-4 h-24 w-full overflow-hidden rounded-xl bg-linear-to-r from-violet-600 to-indigo-600">
+              <Image
+                src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
+                alt="Live Class"
+                fill
+                className="object-cover opacity-45 mix-blend-overlay"
+                sizes="(max-width: 768px) 100vw, 300px"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-3 bg-linear-to-t from-black/60 to-transparent">
+                <span className="text-[10px] font-bold tracking-wider text-white/90 uppercase">
+                  Tatap Muka Virtual
+                </span>
+                <p className="text-xs font-extrabold text-white leading-tight">
+                  Tanya Jawab & Praktik Langsung Bersama Sensei
+                </p>
+              </div>
+            </div>
+
             <ul className="space-y-3">
               {liveSchedule.length === 0 ? (
-                <li className="text-sm text-muted-foreground">Belum ada jadwal live class.</li>
+                <li className="text-xs text-muted-foreground leading-relaxed">
+                  Belum ada kelas interaktif terjadwal. Ikuti sesi live untuk melatih percakapan langsung!
+                </li>
               ) : (
               liveSchedule.map((item) => (
                 <li
                   key={item.id}
-                  className="rounded-xl border border-border/80 bg-background/80 p-3"
+                  className="rounded-xl border border-border/80 bg-background/80 p-3 hover:border-primary/20 transition-colors"
                 >
-                  <div className="mb-1 flex items-center gap-2">
-                    {item.live && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    {item.live ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary animate-pulse">
                         <Wifi className="size-3" />
-                        LIVE
+                        LIVE SEKARANG
                       </span>
+                    ) : (
+                      <span className="text-[9px] font-bold tracking-wider text-muted-foreground uppercase">SELANJUTNYA</span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.time}</p>
-                  <p className="text-xs text-muted-foreground">{item.sensei}</p>
+                  <p className="text-sm font-semibold text-foreground leading-snug">{item.title}</p>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{item.time}</span>
+                    <span className="font-semibold text-primary">{item.sensei}</span>
+                  </div>
                 </li>
               ))
               )}

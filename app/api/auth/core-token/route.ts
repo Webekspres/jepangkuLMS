@@ -15,7 +15,7 @@ function mapExchangeError(error: CoreTokenExchangeError) {
         return {
             status: 503,
             message:
-                'Akun belum tersinkron di Core. Clerk webhook atau db:reconcile-clerk diperlukan — tunggu ~10 detik lalu coba lagi.',
+                'Akun Anda belum tersinkronisasi. Silakan tunggu sekitar 10 detik lalu coba lagi.',
             details: {
                 coreCode: error.code,
                 coreRequestId: error.coreRequestId,
@@ -28,7 +28,7 @@ function mapExchangeError(error: CoreTokenExchangeError) {
         return {
             status: 401,
             message:
-                'Core menolak sesi Clerk (INVALID_SESSION). Pastikan LMS dan Core memakai app Clerk yang sama — sk_test dengan sk_test, atau sk_live dengan sk_live.',
+                'Sesi masuk Anda telah berakhir. Silakan masuk kembali ke akun Anda.',
             details: {
                 coreCode: error.code,
                 coreRequestId: error.coreRequestId,
@@ -40,41 +40,16 @@ function mapExchangeError(error: CoreTokenExchangeError) {
     if (error.code === 'AUTH_NOT_CONFIGURED' || error.code === 'CORE_NOT_CONFIGURED') {
         return {
             status: 503,
-            message: 'Layanan auth Core belum siap. Coba lagi nanti.',
+            message: 'Layanan autentikasi sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
             details: { coreCode: error.code, ...error.details },
         };
     }
 
-    if (error.code === 'INTERNAL_ERROR') {
+    if (error.code === 'INTERNAL_ERROR' || error.code === 'JWT_SIGN_FAILED' || error.code === 'USER_SYNC_FAILED') {
         return {
             status: 503,
             message:
-                'Core Backend error saat menerbitkan JWT. Cek log Core dengan coreRequestId di details.',
-            details: {
-                coreCode: error.code,
-                coreRequestId: error.coreRequestId,
-                ...error.details,
-            },
-        };
-    }
-
-    if (error.code === 'JWT_SIGN_FAILED') {
-        return {
-            status: 503,
-            message: 'Core gagal menandatangani JWT (JWT_PRIVATE_KEY). Minta tim Core perbaiki & redeploy.',
-            details: {
-                coreCode: error.code,
-                coreRequestId: error.coreRequestId,
-                ...error.details,
-            },
-        };
-    }
-
-    if (error.code === 'USER_SYNC_FAILED') {
-        return {
-            status: 503,
-            message:
-                'Core gagal sync user dari Clerk. Pastikan CLERK_SECRET_KEY Core sama dengan app Clerk LMS.',
+                'Sistem gagal memuat profil belajar Anda. Silakan coba beberapa saat lagi.',
             details: {
                 coreCode: error.code,
                 coreRequestId: error.coreRequestId,
@@ -85,7 +60,7 @@ function mapExchangeError(error: CoreTokenExchangeError) {
 
     return {
         status: error.status >= 500 ? 503 : error.status,
-        message: error.message,
+        message: 'Terjadi kesalahan koneksi sistem. Silakan coba lagi.',
         details: {
             coreCode: error.code,
             coreRequestId: error.coreRequestId,

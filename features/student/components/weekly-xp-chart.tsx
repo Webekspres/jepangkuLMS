@@ -53,7 +53,7 @@ export function WeeklyXpChart({ data, className }: WeeklyXpChartProps) {
       />
 
       <p className="text-xs text-muted-foreground">
-        XP dari aktivitas belajar 7 hari terakhir (sinkron dengan penghargaan Core saat terhubung).
+        Grafik XP dari aktivitas belajar Anda dalam 7 hari terakhir.
       </p>
     </div>
   );

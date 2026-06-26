@@ -53,7 +53,7 @@ export function CoreConnectionBanner() {
         <div className="flex min-w-0 items-start gap-2.5">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0 text-sm">
-            <p className="font-semibold text-foreground">Profil game belum siap</p>
+            <p className="font-semibold text-foreground">Profil belajar belum siap</p>
             <p className="text-muted-foreground">
               XP dan leaderboard sedang disinkronkan. Coba lagi atau keluar untuk ganti akun.
             </p>
