@@ -11,7 +11,7 @@ export function GamifiedEventToaster() {
   const { toasts, dismissGamifiedEvent } = useGamifiedEvent();
 
   return (
-    <div className="fixed top-4 left-1/2 z-50 flex w-full -translate-x-1/2 flex-col items-center gap-3 px-4 sm:max-w-md pointer-events-none">
+    <div className="fixed top-4 left-1/2 z-[100] flex w-full -translate-x-1/2 flex-col items-center gap-3 px-4 sm:max-w-md pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <GamifiedEventCard
