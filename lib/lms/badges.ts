@@ -9,6 +9,10 @@ const UNLOCK_RULE_LABELS: Record<LmsBadgeUnlockRule, string> = {
     FIRST_LESSON: 'Selesaikan pelajaran pertama',
     FIRST_QUIZ: 'Selesaikan kuis pertama',
     TRYOUT_PASS: 'Lulus tryout JLPT',
+    QUIZ_SCORE_THRESHOLD: 'Skor kuis minimum',
+    CATEGORY_COMPLETE: 'Selesaikan kategori materi',
+    TRYOUT_SCORE_THRESHOLD: 'Skor tryout minimum',
+    SPECIFIC_COURSE_COMPLETE: 'Selesaikan kursus spesifik',
 };
 
 function formatBadgeDate(date: Date): string {
@@ -23,10 +27,26 @@ function requirementLabel(
     rule: LmsBadgeUnlockRule,
     unlockValue: number | null,
     requirementText: string | null,
+    targetLevel?: string | null,
+    targetCategory?: string | null,
+    targetCourseTitle?: string | null,
 ): string {
     if (requirementText?.trim()) return requirementText.trim();
-    if (rule === 'TRYOUT_PASS') {
-        return `${UNLOCK_RULE_LABELS.TRYOUT_PASS} (skor ≥ ${unlockValue ?? 60}%)`;
+    if (rule === 'TRYOUT_PASS' || rule === 'TRYOUT_SCORE_THRESHOLD') {
+        const levelStr = targetLevel ? ` ${targetLevel}` : '';
+        return `Lulus simulasi JLPT${levelStr} (skor ≥ ${unlockValue ?? 60}%)`;
+    }
+    if (rule === 'QUIZ_SCORE_THRESHOLD') {
+        const levelStr = targetLevel ? ` ${targetLevel}` : '';
+        return `Skor kuis${levelStr} ≥ ${unlockValue ?? 60}%`;
+    }
+    if (rule === 'CATEGORY_COMPLETE') {
+        const levelStr = targetLevel ? ` ${targetLevel}` : '';
+        const catStr = targetCategory ? ` ${targetCategory}` : '';
+        return `Selesaikan seluruh materi${catStr}${levelStr}`;
+    }
+    if (rule === 'SPECIFIC_COURSE_COMPLETE') {
+        return `Selesaikan kursus: ${targetCourseTitle ?? 'Kursus Terpilih'}`;
     }
     return UNLOCK_RULE_LABELS[rule];
 }
@@ -37,7 +57,10 @@ export async function loadLmsBadgesForUser(
     equippedBadgeId?: string | null,
 ): Promise<StudentAchievementBadge[]> {
     const [catalog, unlocked, user] = await Promise.all([
-        prisma.lmsBadge.findMany({ orderBy: { sortOrder: 'asc' } }),
+        prisma.lmsBadge.findMany({
+            orderBy: { sortOrder: 'asc' },
+            include: { targetCourse: { select: { title: true } } },
+        }),
         prisma.userBadge.findMany({
             where: { userId },
             include: { badge: true },
@@ -68,7 +91,14 @@ export async function loadLmsBadgesForUser(
             date: userBadge ? formatBadgeDate(userBadge.unlockedAt) : null,
             rarity: mapLmsBadgeRarityToDisplay(badge.rarity),
             badgeType: 'LMS',
-            requirementText: requirementLabel(badge.unlockRule, badge.unlockValue, badge.requirementText),
+            requirementText: requirementLabel(
+                badge.unlockRule,
+                badge.unlockValue,
+                badge.requirementText,
+                badge.targetLevel,
+                badge.targetCategory,
+                badge.targetCourse?.title,
+            ),
             isEquipped: activeEquippedId === badge.id,
         };
     });
