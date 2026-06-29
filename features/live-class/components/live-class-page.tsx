@@ -9,6 +9,7 @@ import {
   Clock,
   ExternalLink,
   Filter,
+  PlayCircle,
   Search,
   User,
   Video,
@@ -16,9 +17,59 @@ import {
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
-import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
+import type { LiveClassView, LiveSessionView } from '@/features/student/lib/load-dashboard-extras';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
+
+function LiveSessionRow({ session }: { session: LiveSessionView }) {
+  return (
+    <div className="rounded-lg bg-muted/40 p-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-foreground">{session.title}</p>
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="size-3 text-emerald-500" />
+            {session.dateLabel} · {session.timeLabel}
+          </p>
+        </div>
+        {session.status === 'live' ? (
+          <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+            LIVE
+          </span>
+        ) : session.status === 'ended' ? (
+          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            Selesai
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+            Akan datang
+          </span>
+        )}
+      </div>
+
+      {session.status === 'live' && session.meetingUrl ? (
+        <Button asChild size="sm" className="mt-2 h-8 w-full gap-2 bg-secondary hover:bg-secondary/90">
+          <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
+            <Video className="size-3.5" />
+            Gabung via Zoom
+            <ExternalLink className="size-3 opacity-70" />
+          </a>
+        </Button>
+      ) : session.status === 'ended' && session.recordingUrl ? (
+        <Button asChild size="sm" variant="outline" className="mt-2 h-8 w-full gap-2">
+          <a href={session.recordingUrl} target="_blank" rel="noopener noreferrer">
+            <PlayCircle className="size-3.5" />
+            Tonton Rekaman
+          </a>
+        </Button>
+      ) : (
+        <Button disabled size="sm" variant="outline" className="mt-2 h-8 w-full">
+          {session.status === 'ended' ? 'Rekaman belum tersedia' : 'Belum dimulai'}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 const CATEGORIES = ['Semua', 'Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
 
@@ -155,15 +206,16 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                   {cls.description}
                 </p>
-                <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                  <p className="flex items-center gap-2">
+                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
                     <Calendar className="size-3.5 text-blue-500" />
-                    {cls.dateLabel}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <Clock className="size-3.5 text-emerald-500" />
-                    {cls.timeLabel}
-                  </p>
+                    {cls.sessionCount} pertemuan
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {cls.priceIdr > 0
+                      ? `Rp${cls.priceIdr.toLocaleString('id-ID')}`
+                      : 'Gratis'}
+                  </span>
                 </div>
                 <div className="mt-3">
                   <div className="mb-1 flex justify-between text-xs text-muted-foreground">
@@ -182,19 +234,16 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
                     />
                   </div>
                 </div>
-                {cls.meetingUrl && !cls.isFull ? (
-                  <Button asChild className="mt-4 h-10 w-full gap-2 bg-secondary hover:bg-secondary/90">
-                    <a href={cls.meetingUrl} target="_blank" rel="noopener noreferrer">
-                      <Video className="size-4" />
-                      Gabung via Zoom
-                      <ExternalLink className="size-3 opacity-70" />
-                    </a>
-                  </Button>
-                ) : (
-                  <Button disabled className="mt-4 h-10 w-full">
-                    {cls.isFull ? 'Kelas Penuh' : 'Link belum tersedia'}
-                  </Button>
-                )}
+
+                <div className="mt-4 space-y-2 border-t border-border pt-3">
+                  {cls.sessions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Jadwal pertemuan belum tersedia.</p>
+                  ) : (
+                    cls.sessions.map((session) => (
+                      <LiveSessionRow key={session.id} session={session} />
+                    ))
+                  )}
+                </div>
               </div>
             </motion.article>
           );

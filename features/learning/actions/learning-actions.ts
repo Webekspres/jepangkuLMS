@@ -31,7 +31,7 @@ export async function requestEnrollment(courseId: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId } },
-    create: { userId, courseId, status: 'PENDING' },
+    create: { userId, courseId, type: 'COURSE', status: 'PENDING' },
     update: {},
   });
 
@@ -64,7 +64,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, status },
+    create: { userId, courseId: course.id, type: 'COURSE', status },
     update: { status },
   });
 
@@ -102,7 +102,7 @@ export async function enrollInCourse(courseSlug: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, status: 'ACTIVE' },
+    create: { userId, courseId: course.id, type: 'COURSE', status: 'ACTIVE' },
     update: { status: 'ACTIVE' },
   });
 

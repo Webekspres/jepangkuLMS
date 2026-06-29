@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { TryoutExamWorkspace } from '@/features/tryout/components/tryout-exam-workspace';
 import { loadTryoutExam } from '@/features/student/lib/load-dashboard-extras';
+import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { Button } from '@/components/ui/button';
 
@@ -33,6 +34,23 @@ export default async function TryoutExamRoutePage({ params }: PageProps) {
     level as (typeof LEVELS)[number],
   );
   if (!exam) notFound();
+
+  const access = evaluateTryoutAccess({
+    isStrictTimeBound: exam.session.isStrictTimeBound,
+    scheduledAt: exam.session.scheduledAt,
+    timeLimitMinutes: exam.session.timeLimitMinutes,
+  });
+  if (!access.ok) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-8 text-center">
+        <h1 className="text-xl font-bold">Tryout belum dapat diakses</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{access.message}</p>
+        <Button asChild className="mt-6">
+          <Link href={STUDENT_ROUTES.tryout}>Kembali</Link>
+        </Button>
+      </div>
+    );
+  }
 
   if (exam.empty) {
     return (

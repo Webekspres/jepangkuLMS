@@ -21,6 +21,7 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
 }> {
   const [enrollments, courses] = await Promise.all([
     prisma.enrollment.findMany({
+      where: { type: 'COURSE' },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       include: {
         user: { select: { displayName: true } },
@@ -33,17 +34,19 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
     }),
   ]);
 
-  const rows: AdminEnrollmentRow[] = enrollments.map((row) => ({
-    id: row.id,
-    status: row.status,
-    createdAt: row.createdAt,
-    userId: row.userId,
-    userDisplayName: row.user.displayName,
-    courseId: row.courseId,
-    courseTitle: row.course.title,
-    courseSlug: row.course.slug,
-    priceIdr: row.course.priceIdr,
-  }));
+  const rows: AdminEnrollmentRow[] = enrollments
+    .filter((row) => row.course !== null && row.courseId !== null)
+    .map((row) => ({
+      id: row.id,
+      status: row.status,
+      createdAt: row.createdAt,
+      userId: row.userId,
+      userDisplayName: row.user.displayName,
+      courseId: row.courseId!,
+      courseTitle: row.course!.title,
+      courseSlug: row.course!.slug,
+      priceIdr: row.course!.priceIdr,
+    }));
 
   return {
     enrollments: rows,

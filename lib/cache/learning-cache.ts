@@ -70,7 +70,7 @@ export function getCachedUserEnrollments(userId: string): Promise<StudentEnrollm
   return unstable_cache(
     async () => {
       const enrollments = await prisma.enrollment.findMany({
-        where: { userId, status: 'ACTIVE' },
+        where: { userId, status: 'ACTIVE', type: 'COURSE' },
         include: {
           course: {
             include: {
@@ -86,7 +86,7 @@ export function getCachedUserEnrollments(userId: string): Promise<StudentEnrollm
       });
 
       const allLessonIds = enrollments.flatMap((e) =>
-        e.course.modules.flatMap((mod) => mod.lessons.map((l) => l.id)),
+        (e.course?.modules ?? []).flatMap((mod) => mod.lessons.map((l) => l.id)),
       );
       const progressRows =
         allLessonIds.length === 0
@@ -98,19 +98,22 @@ export function getCachedUserEnrollments(userId: string): Promise<StudentEnrollm
 
       const completedLessonIds = new Set(progressRows.map((p) => p.lessonId));
 
-      return enrollments.map((enrollment) => {
-        const flatLessons = enrollment.course.modules.flatMap((mod) => mod.lessons);
-        const completedSlugs = new Set(
-          flatLessons.filter((l) => completedLessonIds.has(l.id)).map((l) => l.slug),
-        );
+      return enrollments
+        .filter((enrollment) => enrollment.course !== null && enrollment.courseId !== null)
+        .map((enrollment) => {
+          const course = enrollment.course!;
+          const flatLessons = course.modules.flatMap((mod) => mod.lessons);
+          const completedSlugs = new Set(
+            flatLessons.filter((l) => completedLessonIds.has(l.id)).map((l) => l.slug),
+          );
 
-        return {
-          courseId: enrollment.courseId,
-          courseSlug: enrollment.course.slug,
-          enrollmentStatus: enrollment.status,
-          progress: computeCourseProgressFromLessons(flatLessons, completedSlugs),
-        };
-      });
+          return {
+            courseId: enrollment.courseId!,
+            courseSlug: course.slug,
+            enrollmentStatus: enrollment.status,
+            progress: computeCourseProgressFromLessons(flatLessons, completedSlugs),
+          };
+        });
     },
     ['learning-user-enrollments-v2', userId],
     {

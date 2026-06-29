@@ -116,7 +116,7 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
               <TableHead>Judul</TableHead>
               <TableHead>Sensei</TableHead>
               <TableHead>Level</TableHead>
-              <TableHead>Jadwal</TableHead>
+              <TableHead>Pertemuan</TableHead>
               <TableHead>Peserta</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
@@ -142,13 +142,19 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
                     <Badge variant="secondary">{row.level}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(row.scheduledAt).toLocaleString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    <span className="font-medium text-foreground">{row.sessionCount} sesi</span>
+                    {row.nextSessionAt ? (
+                      <p className="text-xs">
+                        {new Date(row.nextSessionAt).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    ) : (
+                      <p className="text-xs">Belum dijadwalkan</p>
+                    )}
                   </TableCell>
                   <TableCell>
                     {row.filledSlots}/{row.maxSlots}

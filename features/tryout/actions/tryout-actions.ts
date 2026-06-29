@@ -12,6 +12,7 @@ import {
   lmsTryoutCorrectSourceKey,
 } from '@/lib/lms/point-rules';
 import { sortTryoutExamQuestions } from '@/features/admin-cms/lib/tryout-sections';
+import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -42,6 +43,16 @@ export async function submitTryoutAttempt(input: {
 
   if (!session) {
     return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
+  }
+
+  // Gerbang akses: strict = harus dalam jendela jadwal; open practice = bebas.
+  const access = evaluateTryoutAccess({
+    isStrictTimeBound: session.isStrictTimeBound,
+    scheduledAt: session.scheduledAt,
+    timeLimitMinutes: session.timeLimitMinutes,
+  });
+  if (!access.ok) {
+    return { ok: false, message: access.message };
   }
 
   const rows = await prisma.question.findMany({

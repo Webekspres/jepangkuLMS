@@ -41,8 +41,8 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
   await notifyEnrollmentApproved({
     enrollmentId: enrollment.id,
     studentUserId: enrollment.userId,
-    courseTitle: enrollment.course.title,
-    courseSlug: enrollment.course.slug,
+    courseTitle: enrollment.course?.title ?? 'Kursus',
+    courseSlug: enrollment.course?.slug ?? '',
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
@@ -72,7 +72,7 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
   await notifyEnrollmentRejected({
     enrollmentId: enrollment.id,
     studentUserId: enrollment.userId,
-    courseTitle: enrollment.course.title,
+    courseTitle: enrollment.course?.title ?? 'Kursus',
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
@@ -110,7 +110,7 @@ export async function grantEnrollmentAction(formData: FormData): Promise<CmsActi
 
   await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId } },
-    create: { userId, courseId, status: 'ACTIVE' },
+    create: { userId, courseId, type: 'COURSE', status: 'ACTIVE' },
     update: { status: 'ACTIVE' },
   });
 

@@ -6,6 +6,11 @@ import type { JlptPathItem } from '@/features/student/components/dashboard-data'
 import type { AchievementMilestone } from '@/features/student/components/student-achievements-data';
 import { resolveTryoutQuestionDisplay, sortTryoutExamQuestions, assignTryoutExamNumbers } from '@/features/admin-cms/lib/tryout-sections';
 import { loadDashboardJlptPath } from '@/features/student/lib/load-student-learning-data';
+import {
+  resolveLiveSessionStatus,
+  type LiveSessionStatus,
+} from '@/features/live-class/lib/session-access';
+import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
 
@@ -131,17 +136,18 @@ export const loadDashboardLivePreview = cache(async function loadDashboardLivePr
   limit = 2,
 ): Promise<DashboardLivePreviewItem[]> {
   const now = new Date();
-  const rows = await prisma.liveClass.findMany({
-    where: { isPublished: true, scheduledAt: { gte: now } },
+  const rows = await prisma.liveClassSession.findMany({
+    where: { scheduledAt: { gte: now }, liveClass: { isPublished: true } },
     orderBy: { scheduledAt: 'asc' },
     take: limit,
+    include: { liveClass: { select: { title: true, senseiName: true } } },
   });
 
   return rows.map((row) => ({
     id: row.id,
-    title: row.title,
+    title: row.liveClass.title,
     time: formatLiveClassSchedule(row.scheduledAt),
-    sensei: row.senseiName,
+    sensei: row.liveClass.senseiName,
     live: row.scheduledAt.getTime() - now.getTime() <= 60 * 60 * 1000,
     href: '/dashboard/live-class',
   }));
@@ -163,6 +169,12 @@ export type TryoutSessionView = {
   scheduledAt: string | null;
   timeLimitMinutes: number;
   questionCount: number;
+  priceIdr: number;
+  isStrictTimeBound: boolean;
+  /** true = boleh dimulai sekarang (open practice atau dalam jendela jadwal). */
+  isAccessible: boolean;
+  /** Pesan jika belum bisa diakses (mis. di luar jadwal). */
+  accessMessage: string | null;
 };
 
 export const loadTryoutSessions = cache(async function loadTryoutSessions(): Promise<
@@ -176,16 +188,31 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
     },
   });
 
-  return sessions.map((session) => ({
-    id: session.id,
-    code: session.code,
-    title: session.title,
-    phaseLabel: session.phaseLabel,
-    description: session.description,
-    scheduledAt: session.scheduledAt?.toISOString() ?? null,
-    timeLimitMinutes: session.timeLimitMinutes,
-    questionCount: session._count.questions,
-  }));
+  const now = new Date();
+
+  return sessions.map((session) => {
+    const access = evaluateTryoutAccess({
+      isStrictTimeBound: session.isStrictTimeBound,
+      scheduledAt: session.scheduledAt,
+      timeLimitMinutes: session.timeLimitMinutes,
+      now,
+    });
+
+    return {
+      id: session.id,
+      code: session.code,
+      title: session.title,
+      phaseLabel: session.phaseLabel,
+      description: session.description,
+      scheduledAt: session.scheduledAt?.toISOString() ?? null,
+      timeLimitMinutes: session.timeLimitMinutes,
+      questionCount: session._count.questions,
+      priceIdr: session.priceIdr,
+      isStrictTimeBound: session.isStrictTimeBound,
+      isAccessible: access.ok,
+      accessMessage: access.ok ? null : access.message,
+    };
+  });
 });
 
 export type TryoutExamQuestion = {
@@ -258,6 +285,20 @@ export async function loadTryoutExam(sessionCode: string, level: LevelJLPT) {
   };
 }
 
+export type LiveSessionView = {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  endsAt: string;
+  dateLabel: string;
+  timeLabel: string;
+  status: LiveSessionStatus;
+  /** Hanya terisi saat sesi sedang berlangsung (jendela akses). */
+  meetingUrl: string | null;
+  /** VOD — tampil setelah sesi selesai jika tersedia. */
+  recordingUrl: string | null;
+};
+
 export type LiveClassView = {
   id: string;
   title: string;
@@ -266,13 +307,15 @@ export type LiveClassView = {
   senseiLevel: string | null;
   category: string;
   level: LevelJLPT;
-  dateLabel: string;
-  timeLabel: string;
+  priceIdr: number;
   maxSlots: number;
   filledSlots: number;
   thumbUrl: string | null;
-  meetingUrl: string | null;
   isFull: boolean;
+  sessionCount: number;
+  /** Label sesi terjadwal terdekat untuk ringkasan kartu. */
+  nextSessionLabel: string | null;
+  sessions: LiveSessionView[];
 };
 
 export const loadPublishedLiveClasses = cache(async function loadPublishedLiveClasses(): Promise<
@@ -280,18 +323,38 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
 > {
   const rows = await prisma.liveClass.findMany({
     where: { isPublished: true },
-    orderBy: { scheduledAt: 'asc' },
+    include: { sessions: { orderBy: { scheduledAt: 'asc' } } },
+    orderBy: { createdAt: 'desc' },
   });
 
+  const now = new Date();
+
   return rows.map((row) => {
-    const end = row.endsAt ?? new Date(row.scheduledAt.getTime() + 90 * 60_000);
-    const dateLabel = row.scheduledAt.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+    const sessions: LiveSessionView[] = row.sessions.map((session) => {
+      const status = resolveLiveSessionStatus(session.scheduledAt, session.endsAt, now);
+      const dateLabel = session.scheduledAt.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const timeLabel = `${session.scheduledAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} – ${session.endsAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+
+      return {
+        id: session.id,
+        title: session.title,
+        scheduledAt: session.scheduledAt.toISOString(),
+        endsAt: session.endsAt.toISOString(),
+        dateLabel,
+        timeLabel,
+        status,
+        // Access control: link meeting hanya saat sesi live.
+        meetingUrl: status === 'live' ? session.meetingUrl : null,
+        recordingUrl: session.recordingUrl,
+      };
     });
-    const timeLabel = `${row.scheduledAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+
+    const nextSession = row.sessions.find((session) => session.scheduledAt >= now);
 
     return {
       id: row.id,
@@ -301,13 +364,14 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
       senseiLevel: row.senseiLevel,
       category: row.category,
       level: row.level,
-      dateLabel,
-      timeLabel,
+      priceIdr: row.priceIdr,
       maxSlots: row.maxSlots,
       filledSlots: row.filledSlots,
       thumbUrl: row.thumbUrl,
-      meetingUrl: row.meetingUrl,
       isFull: row.filledSlots >= row.maxSlots,
+      sessionCount: row.sessions.length,
+      nextSessionLabel: nextSession ? formatLiveClassSchedule(nextSession.scheduledAt) : null,
+      sessions,
     };
   });
 });
