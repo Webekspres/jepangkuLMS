@@ -9,6 +9,7 @@ export const optionalSlugField = z.string().trim().optional().or(z.literal(''));
 const courseFields = {
   title: z.string().trim().min(1, 'Judul wajib diisi').max(200),
   description: z.string().trim().max(5000).optional().or(z.literal('')),
+  outcomes: z.array(z.string().trim().min(1).max(200)).max(20).default([]),
   level: levelJlptSchema,
   priceIdr: z.coerce.number().int().min(0, 'Harga tidak boleh negatif').max(99_999_999),
   isPublished: z.coerce.boolean(),

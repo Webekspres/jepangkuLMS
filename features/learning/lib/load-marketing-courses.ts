@@ -21,7 +21,7 @@ export async function loadMarketingCourseDetail(slug: string): Promise<CourseDet
   const course = await getCachedCourseWithLessons(slug);
   if (!course?.isPublished) return null;
 
-  const { dbId, modules, lessons, ...catalog } = course;
+  const { dbId, modules, lessons, outcomes, ...catalog } = course;
   void dbId;
   void lessons;
 
@@ -32,6 +32,7 @@ export async function loadMarketingCourseDetail(slug: string): Promise<CourseDet
       lessons: catalog.lessonCount,
     },
     modules,
+    outcomes,
   });
 }
 

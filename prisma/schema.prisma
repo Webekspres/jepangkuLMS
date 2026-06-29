@@ -206,6 +206,8 @@ model Course {
   title       String
   slug        String    @unique
   description String?   @db.Text
+  /// Poin "Yang akan kamu pelajari" — dikelola admin, bukan diturunkan dari Module.
+  outcomes    String[]
   level       LevelJLPT @default(N5)
   /// Kategori tampilan katalog (Kosa Kata, Tata Bahasa, Kanji, …)
   category    String    @default("Kosa Kata")

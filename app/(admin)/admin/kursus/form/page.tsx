@@ -28,6 +28,7 @@ export default async function AdminKursusFormPage({ searchParams }: AdminKursusF
         title: course.title,
         slug: course.slug,
         description: course.description ?? '',
+        outcomes: course.outcomes,
         level: course.level,
         priceIdr: course.priceIdr,
         isPublished: course.isPublished,

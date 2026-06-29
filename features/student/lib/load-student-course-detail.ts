@@ -5,10 +5,7 @@ import {
   getCachedCourseWithLessons,
   getCachedUserEnrollments,
 } from '@/lib/cache/learning-cache';
-import {
-  buildWhatYouLearnFromModules,
-  estimateCourseDuration,
-} from '@/features/learning/lib/course-display';
+import { estimateCourseDuration } from '@/features/learning/lib/course-display';
 import { prisma } from '@/lib/prisma';
 import type { EnrollmentStatus } from '@prisma/client';
 
@@ -33,8 +30,6 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
 
   if (!course) return null;
 
-  const modules = course.modules ?? [];
-
   // Admin bypass — dianggap enrolled ACTIVE meski tanpa enrollment record
   const enrollmentStatus = adminAccess
     ? 'ACTIVE'
@@ -49,7 +44,7 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
     isEnrolled,
     isPending: !adminAccess && enrollmentStatus === 'PENDING',
     studentDisplayName: user?.displayName ?? null,
-    whatYouLearn: buildWhatYouLearnFromModules(modules),
+    whatYouLearn: course.outcomes ?? [],
     duration: estimateCourseDuration(course.lessonCount),
     tags: [course.level],
     priceIdr: course.priceIdr,
