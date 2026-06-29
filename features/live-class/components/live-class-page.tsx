@@ -15,6 +15,7 @@ import {
   Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
@@ -204,9 +205,10 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">
-          Tidak ada kelas untuk filter ini.
-        </div>
+        <EmptyState
+          title="Belum ada kelas untuk filter ini"
+          description="Coba pilih kategori atau level lain. Kelas baru ditambahkan secara berkala."
+        />
       ) : null}
 
       <section className="rounded-2xl border border-border bg-muted/30 px-6 py-10 text-center">

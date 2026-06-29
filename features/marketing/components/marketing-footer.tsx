@@ -60,8 +60,14 @@ function FooterLinkGroup({
 
 export function MarketingFooter() {
   return (
-    <footer className="bg-brand-hero-navy">
-      <div className="container mx-auto px-4 py-14 md:px-8">
+    <footer className="relative overflow-hidden bg-brand-hero-navy">
+      {/* Footer backdrop (bg-footer.webp) + overlay to protect text contrast */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-footer.webp')] bg-cover bg-right-bottom opacity-35"
+        aria-hidden
+      />
+      <div className="pointer-events-none absolute inset-0 bg-brand-hero-navy/80" aria-hidden />
+      <div className="relative z-10 container mx-auto px-4 py-14 md:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-4">
             <Link href="/" className="inline-block">

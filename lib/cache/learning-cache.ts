@@ -61,7 +61,7 @@ export const getCachedCoursesWithDbIds = unstable_cache(
       };
     });
   },
-  ['learning-courses-catalog-v5'],
+  ['learning-courses-catalog-v6'],
   { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
 );
 
@@ -200,7 +200,7 @@ export function getCachedCourseWithLessons(slug: string) {
         })),
       };
     },
-    ['learning-course-with-lessons-v5', slug],
+    ['learning-course-with-lessons-v6', slug],
     { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
   )(slug);
 }
