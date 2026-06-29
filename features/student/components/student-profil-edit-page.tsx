@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import Image from 'next/image';
+import { isUnoptimizedImageSrc, resolveMediaUrl } from '@/lib/media/image-src';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, Loader2, Save, User } from 'lucide-react';
@@ -158,7 +159,7 @@ export function StudentProfilEditPage() {
     });
   }
 
-  const displayAvatarUrl = avatarPreviewUrl ?? avatarUrl;
+  const displayAvatarUrl = resolveMediaUrl(avatarPreviewUrl ?? avatarUrl);
 
   return (
     <div className="space-y-6 pb-8">
@@ -193,6 +194,7 @@ export function StudentProfilEditPage() {
                 alt=""
                 width={80}
                 height={80}
+                unoptimized={isUnoptimizedImageSrc(displayAvatarUrl)}
                 className="size-20 rounded-2xl border-2 border-border object-cover"
               />
             ) : (
