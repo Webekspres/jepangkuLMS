@@ -53,7 +53,13 @@ function FlashcardDeckInner({
 
   // Shuffle only after mount (client-only) to avoid a hydration mismatch.
   useEffect(() => {
-    if (shuffle) setDeck((current) => shuffleArray(current));
+    if (!shuffle) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setDeck((current) => shuffleArray(current));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [shuffle]);
 
   if (deck.length === 0) {

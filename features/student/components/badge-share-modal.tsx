@@ -4,7 +4,10 @@ import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Download,
+  Globe,
+  Hash,
   Loader2,
+  MessageSquare,
   Share2,
   X,
   Zap,
@@ -13,42 +16,6 @@ import * as htmlToImage from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { resolveAchievementBadgeRarity, type AchievementBadge } from './student-achievements-data';
-
-// Custom SVG Icons for Social Media
-function WhatsAppIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.97-1.861-1.868-4.339-2.897-6.97-2.899-5.437 0-9.862 4.369-9.866 9.802-.001 1.836.52 3.578 1.503 5.122L1.874 21.66l4.773-1.256zm13.514-6.32c-.066-.109-.242-.175-.506-.307-.264-.132-1.562-.77-1.804-.858-.242-.089-.418-.132-.594.132-.176.265-.682.858-.836 1.034-.154.176-.308.198-.572.066-.264-.132-1.117-.412-2.13-1.314-.787-.701-1.317-1.567-1.471-1.832-.154-.265-.016-.408.116-.539.118-.118.264-.308.396-.463.132-.154.176-.264.264-.44.089-.176.044-.331-.022-.463-.066-.132-.594-1.432-.814-1.961-.215-.518-.432-.447-.594-.456-.154-.008-.33-.01-.506-.01-.176 0-.462.066-.704.33-.242.264-.924.903-.924 2.199 0 1.296.946 2.543 1.078 2.719.132.176 1.861 2.842 4.508 3.982.63.272 1.122.434 1.505.556.633.201 1.21.173 1.666.105.508-.076 1.562-.638 1.782-1.254.22-.616.22-1.144.154-1.254z" />
-    </svg>
-  );
-}
-
-// Custom SVG Icon for X/Twitter
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
-// Custom SVG Icon for Threads
-function ThreadsIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3.842 16.5c-.714 0-1.428-.214-2.142-.643-.5-.286-.928-.714-1.285-1.214-.5.714-1.143 1.214-1.928 1.571-.786.357-1.643.5-2.5.5-1.357 0-2.429-.429-3.214-1.286-.786-.857-1.214-2.071-1.214-3.571s.428-2.714 1.285-3.571c.857-.857 2-1.286 3.429-1.286 1.428 0 2.571.429 3.357 1.286.786.857 1.143 2 1.143 3.357 0 .5-.071 1-.143 1.429-.071.429-.214.857-.357 1.214-.143.357-.357.643-.643.857-.286.214-.571.286-.928.286-.357 0-.643-.071-.929-.286-.286-.214-.5-.5-.643-.857-.143-.357-.214-.786-.214-1.214s.071-.857.214-1.214c.143-.357.357-.643.643-.857s.571-.286.929-.286c.214 0 .429.071.643.143v-1.286c-.214-.071-.428-.143-.714-.143-.928 0-1.714.286-2.285.857-.572.571-.857 1.428-.857 2.5s.285 1.929.857 2.5c.571.571 1.286.857 2.143.857s1.571-.286 2.143-.857c.571-.571.857-1.428.857-2.5 0-.5 0-1-.071-1.5-.071-.5-.214-1-.357-1.429-.214-.429-.429-.857-.714-1.214-.286-.357-.714-.643-1.214-.786-.5-.143-1.071-.214-1.714-.214-1.643 0-3 .5-4.071 1.5S3.929 10.143 3.929 12s.5 3.5 1.5 4.5c1 .929 2.357 1.429 4.071 1.429.929 0 1.786-.143 2.571-.429.786-.286 1.429-.714 2-.1.214-.786.5-1.571.786-2.286.286-.714.5-1.429.643-2.143.143-.714.214-1.429.214-2.143 0-2.357-.643-4.214-1.929-5.5C14.429.643 12.357 0 9.857 0 7.143 0 4.857.714 3.071 2.143 1.286 3.571.357 5.5.357 8c0 2.357.786 4.286 2.357 5.714C4.286 15.143 6.357 16 9 16c.857 0 1.714-.071 2.571-.214.857-.143 1.643-.357 2.357-.643z" />
-    </svg>
-  );
-}
-
-// Custom SVG Icon for Facebook
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-    </svg>
-  );
-}
 
 type BadgeShareModalProps = {
   badge: AchievementBadge | null;
@@ -104,6 +71,8 @@ export function BadgeShareModal({
   const threadsUrl = `https://threads.net/intent/post?text=${encodeURIComponent(shareText + ' ' + lmsUrl)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(lmsUrl)}&quote=${encodeURIComponent(shareText)}`;
 
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
   const handleNativeShare = async () => {
     if (navigator.share) {
       try {
@@ -128,9 +97,17 @@ export function BadgeShareModal({
       
       // html-to-image capture options
       const dataUrl = await htmlToImage.toPng(node, {
+        cacheBust: true,
         width: 1080,
         height: 1920,
-        cacheBust: true,
+        backgroundColor: '#1E1B57',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          width: '1080px',
+          height: '1920px',
+          backgroundColor: '#1E1B57',
+        },
       });
 
       // Trigger download
@@ -248,7 +225,7 @@ export function BadgeShareModal({
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 p-3 text-foreground transition-all group"
                 >
-                  <WhatsAppIcon className="size-5 text-[#25D366] group-hover:scale-110 transition-transform" />
+                  <MessageSquare className="size-5 text-[#25D366] group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold">WA</span>
                 </a>
 
@@ -258,7 +235,7 @@ export function BadgeShareModal({
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted hover:bg-muted/80 border border-border p-3 text-foreground transition-all group"
                 >
-                  <XIcon className="size-5 text-foreground group-hover:scale-110 transition-transform" />
+                  <X className="size-5 text-foreground group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold">X</span>
                 </a>
 
@@ -268,7 +245,7 @@ export function BadgeShareModal({
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted hover:bg-muted/80 border border-border p-3 text-foreground transition-all group"
                 >
-                  <ThreadsIcon className="size-5 text-foreground group-hover:scale-110 transition-transform" />
+                  <Hash className="size-5 text-foreground group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold">Threads</span>
                 </a>
 
@@ -278,41 +255,55 @@ export function BadgeShareModal({
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-[#1877F2]/10 hover:bg-[#1877F2]/20 border border-[#1877F2]/20 p-3 text-foreground transition-all group"
                 >
-                  <FacebookIcon className="size-5 text-[#1877F2] group-hover:scale-110 transition-transform" />
+                  <Globe className="size-5 text-[#1877F2] group-hover:scale-110 transition-transform" />
                   <span className="text-[10px] font-bold">Facebook</span>
                 </a>
               </div>
 
               {/* Action Buttons: Native Share, Download Card, Equip Title */}
-              <div className="flex flex-col gap-2 pt-1">
-                {typeof navigator !== 'undefined' && navigator.share && (
-                  <Button
-                    onClick={handleNativeShare}
-                    variant="outline"
-                    className="w-full gap-2 border-border bg-muted/30 text-foreground hover:bg-muted/50 rounded-2xl"
-                  >
-                    <Share2 className="size-4" />
-                    Bagikan Lainnya (Sistem)
-                  </Button>
-                )}
-
-                <Button
-                  onClick={handleDownloadCard}
-                  disabled={isDownloading}
-                  className="w-full gap-2 bg-gradient-to-r from-brand-red to-brand-orange text-white hover:brightness-110 rounded-2xl font-bold"
-                >
-                  {isDownloading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Membuat Gambar...
-                    </>
+              <div className="flex flex-col gap-3 pt-1">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {canNativeShare ? (
+                    <Button
+                      onClick={handleNativeShare}
+                      variant="outline"
+                      className="w-full gap-2 rounded-2xl border-border bg-muted/30 text-foreground hover:bg-muted/50"
+                    >
+                      <Share2 className="size-4" />
+                      Bagikan Lainnya
+                    </Button>
                   ) : (
-                    <>
-                      <Download className="size-4" />
-                      Simpan Kartu (IG Story / Foto)
-                    </>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full gap-2 rounded-2xl border-border bg-muted/30 text-foreground hover:bg-muted/50"
+                    >
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                        <Share2 className="size-4" />
+                        Bagikan Lainnya
+                      </a>
+                    </Button>
                   )}
-                </Button>
+
+                  <Button
+                    onClick={handleDownloadCard}
+                    disabled={isDownloading}
+                    variant="outline"
+                    className="w-full gap-2 rounded-2xl border-border bg-muted/30 text-foreground hover:bg-muted/50"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Membuat Gambar...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="size-4" />
+                        Simpan gambar
+                      </>
+                    )}
+                  </Button>
+                </div>
 
                 {downloadError && (
                   <p className="text-xs text-destructive mt-1">{downloadError}</p>
@@ -320,11 +311,11 @@ export function BadgeShareModal({
 
                 {/* Equip Title Action */}
                 {onEquip && (
-                  <div className="mt-2 border-t border-border pt-3">
+                  <div className="mt-1">
                     {!badge.isEquipped ? (
                       <Button
-                        variant="ghost"
-                        className="w-full text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl py-1"
+                        variant="default"
+                        className="w-full gap-2 py-3 text-sm font-semibold"
                         disabled={isEquipping}
                         onClick={() => onEquip(badge.id)}
                       >
@@ -347,7 +338,7 @@ export function BadgeShareModal({
         style={{
           position: 'fixed',
           left: '-9999px',
-          top: '-9999px',
+          top: '0px',
           width: '1080px',
           height: '1920px',
           display: 'flex',
