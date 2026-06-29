@@ -5,7 +5,12 @@ COPY package.json bun.lock ./
 # postinstall runs `prisma generate` — schema + config must exist before install
 COPY prisma/schema.prisma prisma/schema.prisma
 COPY prisma.config.ts ./
-RUN bun install --frozen-lockfile
+RUN set -eux; \
+    for i in 1 2 3; do \
+      bun install --frozen-lockfile && break; \
+      echo "bun install failed (attempt $i), retrying..."; \
+      sleep 3; \
+    done
 
 FROM oven/bun:1 AS builder
 WORKDIR /app
