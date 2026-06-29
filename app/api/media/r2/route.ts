@@ -17,7 +17,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
 
-        return new NextResponse(object.body, {
+        return new NextResponse(Buffer.from(object.body), {
             headers: {
                 'Content-Type': object.contentType,
                 'Cache-Control': R2_OBJECT_CACHE_CONTROL,
