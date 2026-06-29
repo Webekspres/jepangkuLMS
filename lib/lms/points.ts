@@ -1,6 +1,11 @@
+import type { LmsCoreSyncStatus } from '@prisma/client';
 import { getJakartaDateKey } from '@/lib/jakarta-calendar';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
-import { awardLmsXp, isCoreAwardConfigured } from '@/lib/core/gamification';
+import {
+  awardLmsXp,
+  coreResultToSyncStatus,
+  isCoreAwardConfigured,
+} from '@/lib/core/gamification';
 import { GAMIFICATION_REWARDS } from '@/features/student/lib/gamification-rewards';
 import { LMS_POINTS, lmsDailyLoginSourceKey } from '@/lib/lms/point-rules';
 import { logLmsXpEvent } from '@/lib/lms/xp-events';
@@ -110,16 +115,17 @@ export async function checkDailyLoginLms(userId: string): Promise<boolean> {
   // Hanya award XP saat poin baru diberikan → Core dipanggil maksimal sekali/hari.
   const dailyLoginXp = GAMIFICATION_REWARDS.DAILY_LOGIN.xp;
   if (awarded && dailyLoginXp > 0) {
+    const coreIdempotencyKey = buildLmsIdempotencyKey('daily_login', userId, today);
+    let coreStatus: LmsCoreSyncStatus = 'SKIPPED';
     if (isCoreAwardConfigured()) {
-      await awardLmsXp({
+      const coreResult = await awardLmsXp({
         userId,
         kind: 'daily_login',
         xpGained: dailyLoginXp,
         sourceRefId: today,
-        idempotencyKey: buildLmsIdempotencyKey('daily_login', userId, today),
-      }).catch((error) => {
-        lmsLog.warn({ userId, error }, 'Daily login Core XP skipped');
+        idempotencyKey: coreIdempotencyKey,
       });
+      coreStatus = coreResultToSyncStatus(coreResult);
     }
     await logLmsXpEvent({
       userId,
@@ -127,6 +133,9 @@ export async function checkDailyLoginLms(userId: string): Promise<boolean> {
       sourceKey: `xp:${lmsDailyLoginSourceKey(userId, today)}`,
       sourceType: 'DAILY_LOGIN',
       sourceId: today,
+      coreKind: 'daily_login',
+      coreIdempotencyKey,
+      coreStatus,
     });
   }
 

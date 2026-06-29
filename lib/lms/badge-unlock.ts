@@ -1,6 +1,10 @@
-import type { LmsBadgeUnlockRule } from '@prisma/client';
+import type { LmsBadgeUnlockRule, LmsCoreSyncStatus } from '@prisma/client';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
-import { awardLmsXp, isCoreAwardConfigured } from '@/lib/core/gamification';
+import {
+  awardLmsXp,
+  coreResultToSyncStatus,
+  isCoreAwardConfigured,
+} from '@/lib/core/gamification';
 import { logLmsXpEvent } from '@/lib/lms/xp-events';
 import { notifyBadgeUnlocked } from '@/lib/lms/notifications';
 import { prisma } from '@/lib/prisma';
@@ -40,14 +44,17 @@ async function awardBadgeBonusXp(userId: string, badgeId: string, xpBonus: numbe
   if (xpBonus <= 0) return;
 
   const sourceKey = `badge:${badgeId}`;
+  const coreIdempotencyKey = buildLmsIdempotencyKey('badge_unlock', userId, badgeId);
+  let coreStatus: LmsCoreSyncStatus = 'SKIPPED';
   if (isCoreAwardConfigured()) {
-    await awardLmsXp({
+    const coreResult = await awardLmsXp({
       userId,
       kind: 'badge_unlock',
       xpGained: xpBonus,
       sourceRefId: badgeId,
-      idempotencyKey: buildLmsIdempotencyKey('badge_unlock', userId, badgeId),
+      idempotencyKey: coreIdempotencyKey,
     });
+    coreStatus = coreResultToSyncStatus(coreResult);
   }
 
   await logLmsXpEvent({
@@ -56,6 +63,9 @@ async function awardBadgeBonusXp(userId: string, badgeId: string, xpBonus: numbe
     sourceKey: `xp:${sourceKey}`,
     sourceType: 'BADGE_UNLOCK',
     sourceId: badgeId,
+    coreKind: 'badge_unlock',
+    coreIdempotencyKey,
+    coreStatus,
   });
 }
 
