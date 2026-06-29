@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RupiahInput } from '@/components/ui/rupiah-input';
 import {
   Select,
   SelectContent,
@@ -187,14 +188,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="priceIdr">Harga (Rp)</Label>
-              <Input
-                id="priceIdr"
-                name="priceIdr"
-                type="number"
-                min={0}
-                step={1000}
-                defaultValue={liveClass?.priceIdr ?? 0}
-              />
+              <RupiahInput id="priceIdr" name="priceIdr" defaultValue={liveClass?.priceIdr ?? 0} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="maxSlots">Kapasitas</Label>

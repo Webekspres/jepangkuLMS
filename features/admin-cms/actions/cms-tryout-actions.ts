@@ -26,10 +26,23 @@ function parseTryoutForm(formData: FormData) {
   const timeLimitMinutes = Number(formData.get('timeLimitMinutes') ?? 120) || 120;
   const sortOrder = Number(formData.get('sortOrder') ?? 0) || 0;
   const isActive = formData.get('isActive') === 'on';
+  const isStrictTimeBound = formData.get('isStrictTimeBound') === 'on';
+  const priceIdr = Math.max(0, Math.trunc(Number(formData.get('priceIdr') ?? 0) || 0));
   const code = slugifyCode(codeRaw || title);
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
-  return { title, code, phaseLabel, description, scheduledAt, timeLimitMinutes, sortOrder, isActive };
+  return {
+    title,
+    code,
+    phaseLabel,
+    description,
+    scheduledAt,
+    timeLimitMinutes,
+    sortOrder,
+    isActive,
+    isStrictTimeBound,
+    priceIdr,
+  };
 }
 
 function validateTryout(data: ReturnType<typeof parseTryoutForm>): string | null {
@@ -59,6 +72,8 @@ export async function createTryoutSessionAction(formData: FormData): Promise<Cms
       timeLimitMinutes: data.timeLimitMinutes,
       sortOrder: data.sortOrder,
       isActive: data.isActive,
+      isStrictTimeBound: data.isStrictTimeBound,
+      priceIdr: data.priceIdr,
     },
   });
 
@@ -95,6 +110,8 @@ export async function updateTryoutSessionAction(
       timeLimitMinutes: data.timeLimitMinutes,
       sortOrder: data.sortOrder,
       isActive: data.isActive,
+      isStrictTimeBound: data.isStrictTimeBound,
+      priceIdr: data.priceIdr,
     },
   });
 

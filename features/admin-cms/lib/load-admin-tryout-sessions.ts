@@ -47,5 +47,7 @@ export async function loadAdminTryoutSessionById(id: string) {
     timeLimitMinutes: row.timeLimitMinutes,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
+    priceIdr: row.priceIdr,
+    isStrictTimeBound: row.isStrictTimeBound,
   };
 }
