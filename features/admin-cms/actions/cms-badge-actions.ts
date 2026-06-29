@@ -28,7 +28,7 @@ function parseBadgeMeta(formData: FormData) {
   const unlockRule = String(formData.get('unlockRule') ?? 'MANUAL');
   const unlockValueRaw = String(formData.get('unlockValue') ?? '').trim();
   const unlockValue = unlockValueRaw ? Number(unlockValueRaw) : null;
-  const xpBonus = Number(formData.get('xpBonus') ?? 25) || 25;
+  const xpBonus = Number(formData.get('xpBonus') ?? 10) || 10;
   const requirementText = String(formData.get('requirementText') ?? '').trim() || null;
   const rarity = parseLmsBadgeRarity(String(formData.get('rarity') ?? 'COMMON'));
   return { unlockRule, unlockValue, xpBonus, requirementText, rarity };

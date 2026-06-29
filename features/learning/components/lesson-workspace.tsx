@@ -30,6 +30,7 @@ import {
 } from '@/features/learning/components/lesson-quiz-panel';
 import { buildLessonFlashcards } from '@/features/learning/lib/build-lesson-flashcards';
 import { markLessonComplete, recordFlashcardVisit } from '@/features/learning/actions/learning-actions';
+import { GAMIFICATION_REWARDS as REWARDS } from '@/features/student/lib/gamification-rewards';
 import {
   getDefaultExpandedModuleIds,
   groupSyllabusWithDbModules,
@@ -209,8 +210,10 @@ function LessonCurriculumList({
   );
 }
 
+type LessonXpTask = { label: string; xp: number; done: boolean };
+
 type LessonXpPanelProps = {
-  xpTasks: { label: string; xp: string; done: boolean }[];
+  xpTasks: LessonXpTask[];
   completed: boolean;
   isPending: boolean;
   onComplete: () => void;
@@ -259,7 +262,7 @@ function LessonXpPanel({
                 task.done ? 'text-emerald-600' : 'text-muted-foreground',
               )}
             >
-              {task.xp}
+              +{task.xp} XP
             </span>
           </div>
         ))}
@@ -297,8 +300,35 @@ export function LessonWorkspace({
   const [completed, setCompleted] = useState(lesson.isCompleted);
   const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
   const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
-  const [activeTab, setActiveTab] = useState<ContentTab>(initialTab);
-  const [flashcardVisited, setFlashcardVisited] = useState(initialTab === 'flashcard');
+
+  const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
+
+  // Content availability flags — drive both the tabs and the XP checklist.
+  const hasVideo = lesson.hasVideo;
+  const hasFlashcard = flashcards.length > 0;
+  const hasQuiz = questions.length > 0;
+
+  // Intelligent default: pick the first available tab (video → flashcard → quiz),
+  // respecting the requested initialTab only when that content actually exists.
+  const firstAvailableTab: ContentTab | null = hasVideo
+    ? 'video'
+    : hasFlashcard
+      ? 'flashcard'
+      : hasQuiz
+        ? 'quiz'
+        : null;
+
+  const resolvedInitialTab: ContentTab | null =
+    initialTab === 'video' && hasVideo
+      ? 'video'
+      : initialTab === 'flashcard' && hasFlashcard
+        ? 'flashcard'
+        : initialTab === 'quiz' && hasQuiz
+          ? 'quiz'
+          : firstAvailableTab;
+
+  const [activeTab, setActiveTab] = useState<ContentTab | null>(resolvedInitialTab);
+  const [flashcardVisited, setFlashcardVisited] = useState(resolvedInitialTab === 'flashcard');
   const [quizPassed, setQuizPassed] = useState(false);
 
   if (curriculumLessonSlug !== lesson.slug) {
@@ -309,12 +339,12 @@ export function LessonWorkspace({
   }
 
   useEffect(() => {
-    if (initialTab === 'flashcard') {
+    if (resolvedInitialTab === 'flashcard') {
       startTransition(async () => {
         await recordFlashcardVisit(lesson.id);
       });
     }
-  }, [lesson.id, initialTab, startTransition]);
+  }, [lesson.id, resolvedInitialTab, startTransition]);
 
   useEffect(() => {
     if (!mobileCurriculumOpen) return;
@@ -342,11 +372,12 @@ export function LessonWorkspace({
     );
   };
 
-  const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
-
   function handleComplete() {
     startTransition(async () => {
-      const result = await markLessonComplete(lesson.id);
+      // Completion only awards the lesson-read reward (LESSON_COMPLETED).
+      // Flashcard & quiz XP are granted by their own idempotent server actions,
+      // so they are intentionally NOT aggregated here (would double-count).
+      const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
       if ('success' in result || result.alreadyCompleted) {
         setCompleted(true);
         router.refresh();
@@ -365,40 +396,72 @@ export function LessonWorkspace({
     }
   }
 
-  const xpTasks = [
-    { label: 'Video / materi dibaca', xp: '+10 XP', done: completed || Boolean(lesson.content) },
-    { label: 'Flashcard dijelajahi', xp: '+10 XP', done: flashcardVisited },
-    { label: 'Quiz lulus 70%+', xp: '+50 XP', done: quizPassed },
-  ];
+  // Only reward (and show) content that actually exists in this lesson.
+  const xpTasks: LessonXpTask[] = [];
+  if (hasVideo || lesson.content) {
+    xpTasks.push({
+      label: 'Video / materi dibaca',
+      xp: REWARDS.LESSON_COMPLETED.xp,
+      done: completed || Boolean(lesson.content),
+    });
+  }
+  if (hasFlashcard) {
+    xpTasks.push({
+      label: 'Flashcard dijelajahi',
+      xp: REWARDS.FLASHCARD_EXPLORED.xp,
+      done: flashcardVisited,
+    });
+  }
+  if (hasQuiz) {
+    xpTasks.push({
+      label: 'Quiz lulus 70%+',
+      xp: REWARDS.QUIZ_COMPLETED.xp,
+      done: quizPassed,
+    });
+  }
 
-  const hasQuiz = questions.length > 0;
+  type TabDef = { id: ContentTab; label: string; icon: typeof Play };
+  const availableTabs = (
+    [
+      hasVideo ? { id: 'video', label: 'Video', icon: Play } : null,
+      hasFlashcard ? { id: 'flashcard', label: 'Flashcard', icon: Layers } : null,
+      hasQuiz ? { id: 'quiz', label: 'Quiz', icon: HelpCircle } : null,
+    ] as (TabDef | null)[]
+  ).filter((tab): tab is TabDef => tab !== null);
 
-  const contentTabs = (
-    <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5">
-      {(
-        [
-          { id: 'video', label: 'Video', icon: Play },
-          { id: 'flashcard', label: 'Flashcard', icon: Layers },
-          { id: 'quiz', label: 'Quiz', icon: HelpCircle },
-        ] as const
-      ).map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => handleTabChange(tab.id)}
-          className={cn(
-            'inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:justify-start sm:gap-1.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-sm',
-            activeTab === tab.id
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-muted/50',
-          )}
-        >
-          <tab.icon className="size-3.5 sm:size-4" />
-          <span className="truncate">{tab.label}</span>
-        </button>
-      ))}
-    </div>
-  );
+  const tabColsClass =
+    availableTabs.length >= 3
+      ? 'grid-cols-3'
+      : availableTabs.length === 2
+        ? 'grid-cols-2'
+        : 'grid-cols-1';
+
+  const contentTabs =
+    availableTabs.length > 0 ? (
+      <div
+        className={cn(
+          'grid gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5',
+          tabColsClass,
+        )}
+      >
+        {availableTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => handleTabChange(tab.id)}
+            className={cn(
+              'inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:justify-start sm:gap-1.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-sm',
+              activeTab === tab.id
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-muted/50',
+            )}
+          >
+            <tab.icon className="size-3.5 sm:size-4" />
+            <span className="truncate">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   const curriculumPanel = (
     <LessonCurriculumList
@@ -445,69 +508,15 @@ export function LessonWorkspace({
             {contentTabs}
           </div>
 
-          <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
-            {lesson.hasVideo ? (
+          {/* ── Priority 1 (TOP): Dynamic content area — active tab content ── */}
+          {hasVideo && (
+            <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
               <SecureLessonVideoPlayer
                 lessonId={lesson.id}
                 title={lesson.title}
                 isActive={activeTab === 'video'}
               />
-            ) : (
-              <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Belum ada video untuk pelajaran ini. Tambahkan URL YouTube di Admin CMS.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {activeTab === 'video' && (
-            <div className="space-y-3 sm:space-y-4">
-              <Card className="border-border/80 shadow-sm">
-                <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5 md:p-6">
-                  <div className="hidden lg:block">
-                    <h2 className="text-xl font-bold text-foreground md:text-2xl">{lesson.title}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground md:text-base">{course.title}</p>
-                  </div>
-                  {lesson.content && (
-                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:text-base">
-                      {lesson.content}
-                    </p>
-                  )}
-                  <div className="hidden flex-wrap gap-2 sm:flex">
-                    <Button variant="outline" size="sm" onClick={() => handleTabChange('flashcard')}>
-                      <Layers className="size-4" />
-                      Flashcard
-                    </Button>
-                    {hasQuiz && (
-                      <Button size="sm" onClick={() => handleTabChange('quiz')}>
-                        <HelpCircle className="size-4" />
-                        Mulai quiz ({questions.length})
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="lg:hidden">
-                <LessonXpPanel
-                  xpTasks={xpTasks}
-                  completed={completed}
-                  isPending={isPending}
-                  onComplete={handleComplete}
-                  compact
-                />
-              </div>
             </div>
-          )}
-
-          {/* Q&A / forum section — only visible in video tab */}
-          {activeTab === 'video' && (
-            <LessonQaSection
-              lessonId={lesson.id}
-              lessonTitle={lesson.title}
-              initialComments={lessonComments}
-            />
           )}
 
           {activeTab === 'flashcard' && (
@@ -557,6 +566,64 @@ export function LessonWorkspace({
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {/* ── Priority 2 (MIDDLE): Lesson header & description ── */}
+          {activeTab === firstAvailableTab && (
+            <div className="space-y-3 sm:space-y-4">
+              <Card className="border-border/80 shadow-sm">
+                <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5 md:p-6">
+                  <div className="hidden lg:block">
+                    <h2 className="text-xl font-bold text-foreground md:text-2xl">{lesson.title}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground md:text-base">{course.title}</p>
+                  </div>
+                  {lesson.content && (
+                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:text-base">
+                      {lesson.content}
+                    </p>
+                  )}
+                  {(hasFlashcard || hasQuiz) && (
+                    <div className="hidden flex-wrap gap-2 sm:flex">
+                      {hasFlashcard && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTabChange('flashcard')}
+                        >
+                          <Layers className="size-4" />
+                          Flashcard
+                        </Button>
+                      )}
+                      {hasQuiz && (
+                        <Button size="sm" onClick={() => handleTabChange('quiz')}>
+                          <HelpCircle className="size-4" />
+                          Mulai quiz ({questions.length})
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="lg:hidden">
+                <LessonXpPanel
+                  xpTasks={xpTasks}
+                  completed={completed}
+                  isPending={isPending}
+                  onComplete={handleComplete}
+                  compact
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Priority 3 (BOTTOM): Q&A / discussion ── */}
+          {activeTab === firstAvailableTab && (
+            <LessonQaSection
+              lessonId={lesson.id}
+              lessonTitle={lesson.title}
+              initialComments={lessonComments}
+            />
           )}
         </div>
 

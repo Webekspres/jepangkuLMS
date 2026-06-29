@@ -1,20 +1,27 @@
 /**
  * LMS platform points — selaras pola Portal Berita (`jepangku-news/lib/points.ts`).
  * Poin LMS disimpan lokal (`UserLmsStats` + `LmsPointEvent`), terpisah dari poin news & XP global Core.
+ *
+ * Nilai diturunkan dari SSOT `features/student/lib/gamification-rewards.ts`
+ * supaya XP (level Core) & Poin (mata uang LMS) tetap satu sumber kebenaran.
  */
+import {
+  GAMIFICATION_REWARDS,
+  POINTS_PER_CORRECT_ANSWER,
+} from '@/features/student/lib/gamification-rewards';
 
 export const LMS_SOURCE_APP = 'lms' as const;
 
-/** Nilai poin tetap per aktivitas LMS. */
+/** Nilai POIN tetap per aktivitas LMS (mata uang leaderboard). */
 export const LMS_POINTS = {
-  DAILY_LOGIN: 3,
-  LESSON_COMPLETE: 15,
-  FLASHCARD_VISIT: 5,
-  LESSON_COMMENT: 2,
-  QUIZ_BASE: 10,
-  QUIZ_PER_CORRECT: 5,
-  TRYOUT_BASE: 10,
-  TRYOUT_PER_CORRECT: 5,
+  DAILY_LOGIN: GAMIFICATION_REWARDS.DAILY_LOGIN.points,
+  LESSON_COMPLETE: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
+  FLASHCARD_VISIT: GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.points,
+  LESSON_COMMENT: GAMIFICATION_REWARDS.LESSON_COMMENT.points,
+  QUIZ_BASE: GAMIFICATION_REWARDS.QUIZ_COMPLETED.points,
+  QUIZ_PER_CORRECT: POINTS_PER_CORRECT_ANSWER,
+  TRYOUT_BASE: GAMIFICATION_REWARDS.TRYOUT_COMPLETED.points,
+  TRYOUT_PER_CORRECT: POINTS_PER_CORRECT_ANSWER,
 } as const;
 
 export type LmsPointActivityType =

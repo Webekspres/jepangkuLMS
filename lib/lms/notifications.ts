@@ -197,3 +197,11 @@ export async function dismissNotification(
   });
   return result.count > 0;
 }
+
+/** Hapus semua notifikasi yang sudah dibaca milik user. */
+export async function deleteReadNotifications(userId: string): Promise<number> {
+  const result = await prisma.lmsNotification.deleteMany({
+    where: { userId, readAt: { not: null } },
+  });
+  return result.count;
+}

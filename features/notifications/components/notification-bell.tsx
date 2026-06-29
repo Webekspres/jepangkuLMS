@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { LmsNotificationType } from '@prisma/client';
 import {
+  deleteReadNotificationsAction,
   dismissNotificationAction,
   fetchNotificationsAction,
   markAllNotificationsReadAction,
@@ -60,6 +61,8 @@ type NotificationBellProps = {
   buttonClassName?: string;
   footerHref?: string;
   footerLabel?: string;
+  /** 'navigate' → footer link; 'clear-read' → tombol hapus notifikasi terbaca. */
+  footerMode?: 'navigate' | 'clear-read';
 };
 
 export function NotificationBell({
@@ -67,6 +70,7 @@ export function NotificationBell({
   buttonClassName,
   footerHref = '/dashboard',
   footerLabel = 'Buka dashboard',
+  footerMode = 'navigate',
 }: NotificationBellProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -76,6 +80,7 @@ export function NotificationBell({
   const rootRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((item) => !item.readAt).length;
+  const readCount = notifications.filter((item) => item.readAt).length;
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -135,6 +140,13 @@ export function NotificationBell({
     startTransition(async () => {
       await dismissNotificationAction(id);
       setNotifications((prev) => prev.filter((item) => item.id !== id));
+    });
+  }
+
+  function clearRead() {
+    startTransition(async () => {
+      await deleteReadNotificationsAction();
+      setNotifications((prev) => prev.filter((item) => !item.readAt));
     });
   }
 
@@ -257,15 +269,30 @@ export function NotificationBell({
               </div>
             )}
 
-            <div className="border-t border-border px-4 py-2.5 text-center">
-              <Link
-                href={footerHref}
-                onClick={() => setOpen(false)}
-                className="text-[10px] font-semibold text-primary hover:underline underline-offset-4"
-              >
-                {footerLabel}
-              </Link>
-            </div>
+            {footerMode === 'clear-read'
+              ? notifications.length > 0 && (
+                  <div className="border-t border-border px-4 py-2.5 text-center">
+                    <button
+                      type="button"
+                      onClick={clearRead}
+                      disabled={isPending || readCount === 0}
+                      className="cursor-pointer text-[10px] font-semibold text-destructive transition-colors hover:underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                    >
+                      Hapus semua
+                    </button>
+                  </div>
+                )
+              : (
+                  <div className="border-t border-border px-4 py-2.5 text-center">
+                    <Link
+                      href={footerHref}
+                      onClick={() => setOpen(false)}
+                      className="text-[10px] font-semibold text-primary hover:underline underline-offset-4"
+                    >
+                      {footerLabel}
+                    </Link>
+                  </div>
+                )}
           </motion.div>
         ) : null}
       </AnimatePresence>

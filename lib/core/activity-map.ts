@@ -6,6 +6,7 @@ export const LMS_TO_CORE_ACTIVITY = {
   flashcard_visit: 'COMPLETED_LESSON',
   tryout_complete: 'COMPLETED_QUIZ',
   badge_unlock: 'COMPLETED_LESSON',
+  daily_login: 'DAILY_LOGIN',
 } as const;
 
 export type LmsActivityKind = keyof typeof LMS_TO_CORE_ACTIVITY;
