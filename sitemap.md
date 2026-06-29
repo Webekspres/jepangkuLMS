@@ -9,11 +9,11 @@
 
 ## 📌 Konvensi Simbol
 
-| Simbol | Keterangan |
-| :--- | :--- |
-| `[slug]` | Dynamic route / URL dinamis berdasarkan data |
-| `*` | Requires login (Akses terproteksi khusus Siswa) |
-| `***` | Requires login (Akses terproteksi khusus Admin) |
+| Simbol     | Keterangan                                       |
+| :--------- | :----------------------------------------------- |
+| `[slug]`   | Dynamic route / URL dinamis berdasarkan data     |
+| `*`        | Requires login (Akses terproteksi khusus Siswa)  |
+| `***`      | Requires login (Akses terproteksi khusus Admin)  |
 | `[FASE 2]` | Fitur ditunda, di luar lingkup pengerjaan Fase 1 |
 
 ---
@@ -106,27 +106,23 @@ Area pelacakan progres siswa berdasarkan poin pengalaman (XP) yang diperoleh dar
 
 ## 5. Admin Area & CMS `***` (Admin Only)
 
-Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi dengan memanfaatkan fitur upload CSV untuk bank soal agar tidak perlu membuat dynamic form yang kompleks.
+Manajemen konten materi dan validasi pembayaran. Impor massal via **formulir Excel** multi-tab (kursus & tryout).
 
 ```plaintext
 /admin ***
 ├── /dashboard                   → Overview Statistik Sederhana
-│   └── (Total Siswa Aktif, Jumlah Kursus, & Request Pembayaran Pending)
 │
 ├── /pembayaran                  → Manajemen Validasi Akses Manual
-│   ├── Tabel Antrean Request Pembayaran dari WhatsApp Admin
-│   └── Action: Tombol "Approve & Enroll" (Membuka akses kelas untuk siswa)
 │
 ├── /kursus                      → CMS: Manajemen Kursus
-│   ├── Daftar Kursus
-│   └── /form                    → Buat / Edit Detail Kursus (Judul, Deskripsi, Level N5)
+│   ├── /import                  → Impor kursus dari formulir Excel (6 tab)
+│   └── … modul / pelajaran / workspace
 │
-├── /lesson                      → CMS: Manajemen Lesson (Materi)
-│   ├── Daftar Lesson (Filter by Kursus)
-│   └── /form                    → Buat / Edit Lesson (Teks Materi & Link Embed Video)
+├── /tryout                      → CMS JLPT Tryout
+│   ├── /import                  → Impor sesi + soal (workbook Excel, tanpa Chokai)
+│   └── /[sessionId]/soal        → Kelola soal per sesi
 │
-└── /quiz                        → CMS: Info bank soal (kelola per pelajaran di lesson workspace)
-    └── /import                  → Redirect ke info quiz (lihat docs/ADMIN_QUIZ.md)
+└── /quiz                        → Info bank soal (kelola per pelajaran di lesson workspace)
 ```
 
 ---
@@ -145,12 +141,12 @@ Manajemen konten materi dan validasi pembayaran. Difokuskan pada efisiensi denga
 
 ## 📊 Ringkasan Estimasi Halaman Fase 1
 
-| Area Routing | Jumlah Halaman Aktif |
-| :--- | :--- |
-| Public / Marketing | 4 |
-| Auth Area (Custom UI) | 2 |
-| Student Area (Core LMS) | 4 |
-| Gamification Center | 2 |
-| Admin Area (Termasuk Lean CMS) | 8 |
-| Halaman Statis | 5 |
-| **Total Estimasi Beban Kerja** | **~25 Halaman** |
+| Area Routing                   | Jumlah Halaman Aktif |
+| :----------------------------- | :------------------- |
+| Public / Marketing             | 4                    |
+| Auth Area (Custom UI)          | 2                    |
+| Student Area (Core LMS)        | 4                    |
+| Gamification Center            | 2                    |
+| Admin Area (Termasuk Lean CMS) | 8                    |
+| Halaman Statis                 | 5                    |
+| **Total Estimasi Beban Kerja** | **~25 Halaman**      |
