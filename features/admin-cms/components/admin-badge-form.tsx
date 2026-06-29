@@ -263,7 +263,7 @@ export function AdminBadgeFormPage({
                 name="xpBonus"
                 type="number"
                 min={0}
-                defaultValue={badge?.xpBonus ?? 25}
+                defaultValue={badge?.xpBonus ?? 10}
               />
             </div>
 

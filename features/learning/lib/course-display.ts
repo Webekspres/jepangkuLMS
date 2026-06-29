@@ -8,8 +8,7 @@ import type { JlptAccent } from '@/features/marketing/components/landing-data';
 import type { ModuleRow } from '@/features/learning/lib/course-tree';
 import { formatIdr } from '@/lib/lms/format-price';
 
-const DEFAULT_THUMB =
-  'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
+const DEFAULT_THUMB = '/assets/bg-courses.webp';
 
 /** Estimasi durasi dari jumlah pelajaran (~20 menit per pelajaran). */
 export function estimateCourseDuration(lessonCount: number): string {

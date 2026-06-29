@@ -4,18 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
+import { generateSlug } from '@/lib/string-helpers';
 
 export type CmsTryoutActionResult =
   | { ok: true; id?: string }
   | { ok: false; message: string };
-
-function slugifyCode(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 function parseTryoutForm(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim();
@@ -26,10 +19,23 @@ function parseTryoutForm(formData: FormData) {
   const timeLimitMinutes = Number(formData.get('timeLimitMinutes') ?? 120) || 120;
   const sortOrder = Number(formData.get('sortOrder') ?? 0) || 0;
   const isActive = formData.get('isActive') === 'on';
-  const code = slugifyCode(codeRaw || title);
+  const isStrictTimeBound = formData.get('isStrictTimeBound') === 'on';
+  const priceIdr = Math.max(0, Math.trunc(Number(formData.get('priceIdr') ?? 0) || 0));
+  const code = generateSlug(codeRaw || title);
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
-  return { title, code, phaseLabel, description, scheduledAt, timeLimitMinutes, sortOrder, isActive };
+  return {
+    title,
+    code,
+    phaseLabel,
+    description,
+    scheduledAt,
+    timeLimitMinutes,
+    sortOrder,
+    isActive,
+    isStrictTimeBound,
+    priceIdr,
+  };
 }
 
 function validateTryout(data: ReturnType<typeof parseTryoutForm>): string | null {
@@ -59,6 +65,8 @@ export async function createTryoutSessionAction(formData: FormData): Promise<Cms
       timeLimitMinutes: data.timeLimitMinutes,
       sortOrder: data.sortOrder,
       isActive: data.isActive,
+      isStrictTimeBound: data.isStrictTimeBound,
+      priceIdr: data.priceIdr,
     },
   });
 
@@ -95,6 +103,8 @@ export async function updateTryoutSessionAction(
       timeLimitMinutes: data.timeLimitMinutes,
       sortOrder: data.sortOrder,
       isActive: data.isActive,
+      isStrictTimeBound: data.isStrictTimeBound,
+      priceIdr: data.priceIdr,
     },
   });
 

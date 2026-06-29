@@ -11,7 +11,12 @@ import {
   lmsTryoutCompletedSourceKey,
   lmsTryoutCorrectSourceKey,
 } from '@/lib/lms/point-rules';
+import {
+  resolveTryoutXp,
+  TRYOUT_PASS_SCORE_PERCENT,
+} from '@/features/student/lib/gamification-rewards';
 import { sortTryoutExamQuestions } from '@/features/admin-cms/lib/tryout-sections';
+import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -44,6 +49,16 @@ export async function submitTryoutAttempt(input: {
     return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
   }
 
+  // Gerbang akses: strict = harus dalam jendela jadwal; open practice = bebas.
+  const access = evaluateTryoutAccess({
+    isStrictTimeBound: session.isStrictTimeBound,
+    scheduledAt: session.scheduledAt,
+    timeLimitMinutes: session.timeLimitMinutes,
+  });
+  if (!access.ok) {
+    return { ok: false, message: access.message };
+  }
+
   const rows = await prisma.question.findMany({
     where: {
       type: 'TRYOUT',
@@ -73,6 +88,8 @@ export async function submitTryoutAttempt(input: {
 
   const score = Math.round((correct / questions.length) * 100);
   const scored = calculateTryoutPoints(correct);
+  // XP flat (+ bonus lulus); poin tetap skala dengan jawaban benar.
+  const tryoutXp = resolveTryoutXp(score);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
@@ -91,7 +108,7 @@ export async function submitTryoutAttempt(input: {
   await awardLmsSplitActivity({
     userId,
     coreKind: 'tryout_complete',
-    xpAmount: scored.total,
+    xpAmount: tryoutXp,
     sourceId: attempt.id,
     idempotencyKey: buildLmsIdempotencyKey(
       'tryout_complete',
@@ -138,6 +155,6 @@ export async function submitTryoutAttempt(input: {
     correct,
     total: questions.length,
     pointsReward: scored.total,
-    pass: score >= 60,
+    pass: score >= TRYOUT_PASS_SCORE_PERCENT,
   };
 }

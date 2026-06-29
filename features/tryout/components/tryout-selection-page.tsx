@@ -27,7 +27,9 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
     [sessions, selectedSession],
   );
 
-  const canStart = Boolean(activeSession && activeSession.questionCount > 0);
+  const canStart = Boolean(
+    activeSession && activeSession.questionCount > 0 && activeSession.isAccessible,
+  );
 
   return (
     <div className="space-y-8 pb-10">
@@ -83,16 +85,36 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
                     : 'border-border hover:border-primary/30',
                 )}
               >
-                <p className="text-sm font-bold text-foreground">{session.phaseLabel}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-foreground">{session.phaseLabel}</p>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                      session.isStrictTimeBound
+                        ? 'bg-amber-500/15 text-amber-600'
+                        : 'bg-emerald-500/15 text-emerald-600',
+                    )}
+                  >
+                    {session.isStrictTimeBound ? 'Terjadwal' : 'Latihan'}
+                  </span>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {session.scheduledAt
-                    ? new Date(session.scheduledAt).toLocaleDateString('id-ID')
+                  {session.isStrictTimeBound && session.scheduledAt
+                    ? new Date(session.scheduledAt).toLocaleString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                     : 'Tersedia sekarang'}
                 </p>
                 <p className="mt-2 text-[10px] font-medium text-muted-foreground">
                   {session.questionCount > 0
                     ? `${session.questionCount} soal`
                     : 'Soal menyusul'}
+                  {session.priceIdr > 0
+                    ? ` · Rp${session.priceIdr.toLocaleString('id-ID')}`
+                    : ''}
                 </p>
               </button>
             );
@@ -155,7 +177,11 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
           Masuk Ujian
           <ChevronRight className="size-4" />
         </Button>
-        {!canStart ? (
+        {activeSession && !activeSession.isAccessible ? (
+          <p className="text-xs font-medium text-amber-600">
+            {activeSession.accessMessage ?? 'Tryout belum dapat diakses saat ini.'}
+          </p>
+        ) : !canStart ? (
           <p className="text-xs text-muted-foreground">
             Soal untuk sesi/level ini belum tersedia. Coba Fase 1 + N5.
           </p>

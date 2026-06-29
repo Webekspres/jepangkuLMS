@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import {
   COURSE_LEVELS,
@@ -283,20 +284,22 @@ export function StudentKursusPage({
         </div>
 
         {filtered.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              {search ? `Tidak ada kursus untuk "${search}".` : 'Tidak ada kursus ditemukan.'}
-            </p>
-            {search && (
-              <button
-                type="button"
-                className="mt-2 text-xs font-semibold text-primary hover:underline"
-                onClick={() => setSearch('')}
-              >
-                Hapus pencarian
-              </button>
-            )}
-          </div>
+          <EmptyState
+            className="rounded-2xl border border-dashed border-border"
+            title={search ? `Tidak ada kursus untuk "${search}"` : 'Tidak ada kursus ditemukan'}
+            description="Coba ubah kata kunci atau filter level untuk menemukan kursus lainnya."
+            action={
+              search ? (
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-primary hover:underline"
+                  onClick={() => setSearch('')}
+                >
+                  Hapus pencarian
+                </button>
+              ) : null
+            }
+          />
         )}
       </section>
     </div>

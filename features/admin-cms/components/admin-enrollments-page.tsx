@@ -13,7 +13,10 @@ import {
   rejectEnrollmentAction,
 } from '@/features/admin-cms/actions/cms-enrollment-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
-import type { AdminEnrollmentRow } from '@/features/admin-cms/lib/load-admin-enrollments';
+import type {
+  AdminEnrollmentProductOption,
+  AdminEnrollmentRow,
+} from '@/features/admin-cms/lib/load-admin-enrollments';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { formatIdr } from '@/lib/lms/format-price';
 import { Badge } from '@/components/ui/badge';
@@ -38,18 +41,36 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+type EnrollmentProductType = 'COURSE' | 'LIVE_CLASS' | 'TRYOUT';
+
 type AdminEnrollmentsPageProps = {
   enrollments: AdminEnrollmentRow[];
   pendingCount: number;
-  courses: { id: string; title: string; slug: string }[];
+  courses: AdminEnrollmentProductOption[];
+  liveClasses: AdminEnrollmentProductOption[];
+  tryoutSessions: AdminEnrollmentProductOption[];
 };
 
 type StatusFilter = 'all' | 'PENDING' | 'ACTIVE';
+
+const PRODUCT_TYPE_LABEL: Record<EnrollmentProductType, string> = {
+  COURSE: 'Kursus',
+  LIVE_CLASS: 'Live Class',
+  TRYOUT: 'JLPT Tryout',
+};
+
+const PRODUCT_TYPE_BADGE: Record<EnrollmentProductType, string> = {
+  COURSE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  LIVE_CLASS: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  TRYOUT: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+};
 
 export function AdminEnrollmentsPage({
   enrollments,
   pendingCount,
   courses,
+  liveClasses,
+  tryoutSessions,
 }: AdminEnrollmentsPageProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -58,7 +79,20 @@ export function AdminEnrollmentsPage({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [grantUserId, setGrantUserId] = useState('');
-  const [grantCourseId, setGrantCourseId] = useState(courses[0]?.id ?? '');
+  const [grantType, setGrantType] = useState<EnrollmentProductType>('COURSE');
+
+  const productsByType = useMemo<Record<EnrollmentProductType, AdminEnrollmentProductOption[]>>(
+    () => ({ COURSE: courses, LIVE_CLASS: liveClasses, TRYOUT: tryoutSessions }),
+    [courses, liveClasses, tryoutSessions],
+  );
+
+  const productOptions = productsByType[grantType];
+  const [grantProductId, setGrantProductId] = useState(productOptions[0]?.id ?? '');
+
+  const handleTypeChange = (value: EnrollmentProductType) => {
+    setGrantType(value);
+    setGrantProductId(productsByType[value][0]?.id ?? '');
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,8 +102,8 @@ export function AdminEnrollmentsPage({
       return (
         row.userId.toLowerCase().includes(q) ||
         (row.userDisplayName?.toLowerCase().includes(q) ?? false) ||
-        row.courseTitle.toLowerCase().includes(q) ||
-        row.courseSlug.toLowerCase().includes(q)
+        row.productTitle.toLowerCase().includes(q) ||
+        row.productSubtitle.toLowerCase().includes(q)
       );
     });
   }, [enrollments, query, statusFilter]);
@@ -103,7 +137,8 @@ export function AdminEnrollmentsPage({
     event.preventDefault();
     const formData = new FormData();
     formData.set('userId', grantUserId);
-    formData.set('courseId', grantCourseId);
+    formData.set('type', grantType);
+    formData.set('productId', grantProductId);
     runAction(() => grantEnrollmentAction(formData), 'Enrollment berhasil diberikan.');
   };
 
@@ -128,8 +163,8 @@ export function AdminEnrollmentsPage({
         </Card>
         <Card className="p-4 md:col-span-2">
           <p className="mb-3 text-sm font-semibold text-foreground">Aktifkan enrollment manual</p>
-          <form onSubmit={handleGrant} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-2">
+          <form onSubmit={handleGrant} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex-1 space-y-2 sm:min-w-[180px]">
               <Label htmlFor="grant-user-id">Clerk User ID</Label>
               <Input
                 id="grant-user-id"
@@ -139,22 +174,48 @@ export function AdminEnrollmentsPage({
                 required
               />
             </div>
-            <div className="flex-1 space-y-2">
-              <Label>Kursus</Label>
-              <Select value={grantCourseId} onValueChange={setGrantCourseId}>
+            <div className="space-y-2 sm:w-40">
+              <Label>Tipe Produk</Label>
+              <Select
+                value={grantType}
+                onValueChange={(value) => handleTypeChange(value as EnrollmentProductType)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih kursus" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.title}
+                  <SelectItem value="COURSE">Kursus</SelectItem>
+                  <SelectItem value="LIVE_CLASS">Live Class</SelectItem>
+                  <SelectItem value="TRYOUT">JLPT Tryout</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 space-y-2 sm:min-w-[180px]">
+              <Label>{PRODUCT_TYPE_LABEL[grantType]}</Label>
+              <Select
+                value={grantProductId}
+                onValueChange={setGrantProductId}
+                disabled={productOptions.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      productOptions.length === 0
+                        ? `Belum ada ${PRODUCT_TYPE_LABEL[grantType].toLowerCase()}`
+                        : 'Pilih item'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {productOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={isPending || !grantCourseId} className="gap-2">
+            <Button type="submit" disabled={isPending || !grantProductId} className="gap-2">
               <UserPlus className="size-4" />
               Aktifkan
             </Button>
@@ -189,7 +250,8 @@ export function AdminEnrollmentsPage({
           <TableHeader>
             <TableRow>
               <TableHead>Siswa</TableHead>
-              <TableHead>Kursus</TableHead>
+              <TableHead>Tipe</TableHead>
+              <TableHead>Produk</TableHead>
               <TableHead>Harga</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tanggal</TableHead>
@@ -199,7 +261,7 @@ export function AdminEnrollmentsPage({
           <TableBody>
             {paginatedItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
                   Tidak ada enrollment untuk filter ini.
                 </TableCell>
               </TableRow>
@@ -218,8 +280,15 @@ export function AdminEnrollmentsPage({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <p className="font-medium">{row.courseTitle}</p>
-                    <p className="text-xs text-muted-foreground">{row.courseSlug}</p>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${PRODUCT_TYPE_BADGE[row.type]}`}
+                    >
+                      {PRODUCT_TYPE_LABEL[row.type]}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-medium">{row.productTitle}</p>
+                    <p className="text-xs text-muted-foreground">{row.productSubtitle}</p>
                   </TableCell>
                   <TableCell>{formatIdr(row.priceIdr)}</TableCell>
                   <TableCell>
@@ -279,7 +348,7 @@ export function AdminEnrollmentsPage({
         title="Tolak enrollment?"
         description={
           rejectTarget
-            ? `Hapus permintaan enrollment ${rejectTarget.userDisplayName ?? rejectTarget.userId} untuk kursus ${rejectTarget.courseTitle}?`
+            ? `Hapus permintaan enrollment ${rejectTarget.userDisplayName ?? rejectTarget.userId} untuk ${rejectTarget.productTitle}?`
             : 'Hapus permintaan enrollment ini?'
         }
         confirmLabel="Tolak"

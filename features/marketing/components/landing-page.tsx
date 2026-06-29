@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
@@ -188,6 +189,16 @@ export function LandingPage() {
         className="bg-brand-hero-navy relative flex min-h-[min(100svh,900px)] items-center overflow-hidden sm:min-h-[min(100svh,880px)]"
         style={{ borderRadius: "0 0 50% 50% / 0 0 6rem 6rem" }}
       >
+        {/* Photographic backdrop (bg-hero.webp) */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-hero.webp')] bg-cover bg-center opacity-35"
+          aria-hidden
+        />
+        {/* Dark gradient overlay — keeps light text readable */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand-hero-navy/85 via-brand-hero-navy/70 to-brand-hero-navy/95"
+          aria-hidden
+        />
         {/* Seigaiha pattern — subtle */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.07]"
@@ -809,6 +820,23 @@ export function LandingPage() {
 
       {/* CTA final — bg-background matches pricing section directly above */}
       <section className="bg-background relative overflow-hidden">
+        {/* Sakura decorative accents — break up the solid block */}
+        <Image
+          src="/assets/asset-section.webp"
+          alt=""
+          width={220}
+          height={220}
+          aria-hidden
+          className="pointer-events-none absolute -top-10 -left-10 w-32 select-none opacity-40 sm:w-44 md:w-52"
+        />
+        <Image
+          src="/assets/asset-section.webp"
+          alt=""
+          width={220}
+          height={220}
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -bottom-10 w-32 -scale-x-100 select-none opacity-40 sm:w-44 md:w-52"
+        />
         <div className="container relative mx-auto px-4 py-16 md:px-8 sm:py-20 md:py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

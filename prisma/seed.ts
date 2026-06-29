@@ -128,6 +128,7 @@ async function seedDemoEnrollment(prisma: PrismaClient, courseId: string) {
     create: {
       userId: DEMO_USER_ID,
       courseId,
+      type: 'COURSE',
       status: 'ACTIVE',
     },
     update: { status: 'ACTIVE' },

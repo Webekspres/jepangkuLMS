@@ -17,7 +17,8 @@ import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-ac
 
 const grantEnrollmentSchema = z.object({
   userId: z.string().trim().min(1, 'User ID wajib diisi'),
-  courseId: uuidSchema,
+  type: z.enum(['COURSE', 'LIVE_CLASS', 'TRYOUT']),
+  productId: uuidSchema,
 });
 
 export async function approveEnrollmentAction(enrollmentId: string): Promise<CmsActionResult> {
@@ -41,8 +42,8 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
   await notifyEnrollmentApproved({
     enrollmentId: enrollment.id,
     studentUserId: enrollment.userId,
-    courseTitle: enrollment.course.title,
-    courseSlug: enrollment.course.slug,
+    courseTitle: enrollment.course?.title ?? 'Kursus',
+    courseSlug: enrollment.course?.slug ?? '',
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
@@ -72,7 +73,7 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
   await notifyEnrollmentRejected({
     enrollmentId: enrollment.id,
     studentUserId: enrollment.userId,
-    courseTitle: enrollment.course.title,
+    courseTitle: enrollment.course?.title ?? 'Kursus',
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
@@ -87,20 +88,15 @@ export async function grantEnrollmentAction(formData: FormData): Promise<CmsActi
 
   const parsed = grantEnrollmentSchema.safeParse({
     userId: formData.get('userId'),
-    courseId: formData.get('courseId'),
+    type: formData.get('type'),
+    productId: formData.get('productId'),
   });
 
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const { userId, courseId } = parsed.data;
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { title: true, slug: true },
-  });
-  if (!course) return { ok: false, message: 'Kursus tidak ditemukan.' };
+  const { userId, type, productId } = parsed.data;
 
   await prisma.user.upsert({
     where: { id: userId },
@@ -108,18 +104,50 @@ export async function grantEnrollmentAction(formData: FormData): Promise<CmsActi
     update: {},
   });
 
-  await prisma.enrollment.upsert({
-    where: { userId_courseId: { userId, courseId } },
-    create: { userId, courseId, status: 'ACTIVE' },
-    update: { status: 'ACTIVE' },
-  });
+  if (type === 'COURSE') {
+    const course = await prisma.course.findUnique({
+      where: { id: productId },
+      select: { title: true, slug: true },
+    });
+    if (!course) return { ok: false, message: 'Kursus tidak ditemukan.' };
 
-  await notifyCourseGranted({
-    studentUserId: userId,
-    courseTitle: course.title,
-    courseSlug: course.slug,
-    courseId,
-  });
+    await prisma.enrollment.upsert({
+      where: { userId_courseId: { userId, courseId: productId } },
+      create: { userId, courseId: productId, type: 'COURSE', status: 'ACTIVE' },
+      update: { status: 'ACTIVE' },
+    });
+
+    await notifyCourseGranted({
+      studentUserId: userId,
+      courseTitle: course.title,
+      courseSlug: course.slug,
+      courseId: productId,
+    });
+  } else if (type === 'LIVE_CLASS') {
+    const liveClass = await prisma.liveClass.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+    if (!liveClass) return { ok: false, message: 'Live class tidak ditemukan.' };
+
+    await prisma.enrollment.upsert({
+      where: { userId_liveClassId: { userId, liveClassId: productId } },
+      create: { userId, liveClassId: productId, type: 'LIVE_CLASS', status: 'ACTIVE' },
+      update: { status: 'ACTIVE' },
+    });
+  } else {
+    const tryout = await prisma.tryoutSession.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+    if (!tryout) return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
+
+    await prisma.enrollment.upsert({
+      where: { userId_tryoutSessionId: { userId, tryoutSessionId: productId } },
+      create: { userId, tryoutSessionId: productId, type: 'TRYOUT', status: 'ACTIVE' },
+      update: { status: 'ACTIVE' },
+    });
+  }
 
   revalidateStudentLearningSurfaces({ userId });
   revalidatePath(ADMIN_ROUTES.pembayaran);

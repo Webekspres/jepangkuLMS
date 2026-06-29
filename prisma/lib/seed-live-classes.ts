@@ -3,6 +3,15 @@ import type { LevelJLPT, PrismaClient } from '@prisma/client';
 const DEFAULT_THUMB =
   'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
 
+type LiveSessionSeed = {
+  title: string;
+  daysFromNow: number;
+  hour: number;
+  minute: number;
+  durationMinutes: number;
+  meetingUrl: string;
+};
+
 type LiveClassSeed = {
   title: string;
   description: string;
@@ -10,47 +19,80 @@ type LiveClassSeed = {
   senseiLevel: string;
   category: string;
   level: LevelJLPT;
-  daysFromNow: number;
-  hour: number;
-  minute: number;
-  durationMinutes: number;
+  priceIdr: number;
   maxSlots: number;
   filledSlots: number;
-  meetingUrl: string;
+  sessions: LiveSessionSeed[];
 };
 
 const LIVE_CLASSES: LiveClassSeed[] = [
   {
-    title: 'Pola Kalimat N4: てform & Aplikasinya',
+    title: 'Batch N4: Tata Bahasa Intensif',
     description:
-      'Pelajari penggunaan て-form secara menyeluruh — dari sambungan kata kerja hingga bentuk sopan sehari-hari.',
+      'Program 3 pertemuan menguasai pola kalimat inti N4 — て-form, bentuk sopan, dan aplikasi sehari-hari.',
     senseiName: 'Sensei Yuki Tanaka',
     senseiLevel: 'N2 Instructor',
     category: 'Tata Bahasa',
     level: 'N4',
-    daysFromNow: 2,
-    hour: 19,
-    minute: 0,
-    durationMinutes: 90,
+    priceIdr: 150_000,
     maxSlots: 30,
     filledSlots: 22,
-    meetingUrl: 'https://zoom.us/j/example1',
+    sessions: [
+      {
+        title: 'Pertemuan 1 — て-form & Sambungan Kata Kerja',
+        daysFromNow: 2,
+        hour: 19,
+        minute: 0,
+        durationMinutes: 90,
+        meetingUrl: 'https://zoom.us/j/n4grammar-1',
+      },
+      {
+        title: 'Pertemuan 2 — Bentuk Sopan & Keigo Dasar',
+        daysFromNow: 4,
+        hour: 19,
+        minute: 0,
+        durationMinutes: 90,
+        meetingUrl: 'https://zoom.us/j/n4grammar-2',
+      },
+      {
+        title: 'Pertemuan 3 — Latihan Soal & Review',
+        daysFromNow: 6,
+        hour: 19,
+        minute: 0,
+        durationMinutes: 90,
+        meetingUrl: 'https://zoom.us/j/n4grammar-3',
+      },
+    ],
   },
   {
-    title: 'Kanji Speed Drill — 50 Kanji N5 dalam 60 Menit',
+    title: 'Kanji Speed Drill N5',
     description:
-      'Sesi drill intensif: baca, tulis, dan hafal 50 kanji N5 dengan metode visual mnemonik bersama.',
+      'Sesi drill intensif: baca, tulis, dan hafal kanji N5 dengan metode visual mnemonik bersama.',
     senseiName: 'Sensei Hana Matsuda',
     senseiLevel: 'N1 Native',
     category: 'Kanji',
     level: 'N5',
-    daysFromNow: 3,
-    hour: 20,
-    minute: 0,
-    durationMinutes: 60,
+    priceIdr: 0,
     maxSlots: 25,
-    filledSlots: 25,
-    meetingUrl: 'https://zoom.us/j/example2',
+    filledSlots: 18,
+    sessions: [
+      {
+        title: 'Pertemuan 1 — 50 Kanji Dasar',
+        daysFromNow: 3,
+        hour: 20,
+        minute: 0,
+        durationMinutes: 60,
+        meetingUrl: 'https://zoom.us/j/kanjidrill-1',
+      },
+      {
+        title: 'Pertemuan 2 — 50 Kanji Lanjutan',
+        daysFromNow: 5,
+        hour: 20,
+        minute: 0,
+        durationMinutes: 60,
+        meetingUrl: 'https://zoom.us/j/kanjidrill-2',
+      },
+    ],
   },
   {
     title: 'Daily Conversation: Situasi di Kantor',
@@ -60,45 +102,27 @@ const LIVE_CLASSES: LiveClassSeed[] = [
     senseiLevel: 'N1 Business',
     category: 'Speaking',
     level: 'N3',
-    daysFromNow: 4,
-    hour: 18,
-    minute: 30,
-    durationMinutes: 90,
+    priceIdr: 200_000,
     maxSlots: 20,
     filledSlots: 13,
-    meetingUrl: 'https://zoom.us/j/example3',
-  },
-  {
-    title: 'JLPT N3 Tips & Trik: Dokkai Section',
-    description:
-      'Strategi menjawab soal membaca N3 — teknik skimming, menemukan kata kunci, dan manajemen waktu.',
-    senseiName: 'Sensei Yuki Tanaka',
-    senseiLevel: 'N2 Instructor',
-    category: 'JLPT Tips',
-    level: 'N3',
-    daysFromNow: 6,
-    hour: 9,
-    minute: 0,
-    durationMinutes: 90,
-    maxSlots: 40,
-    filledSlots: 31,
-    meetingUrl: 'https://zoom.us/j/example4',
-  },
-  {
-    title: 'Vocabulary Master: 100 Kata N4 Paling Sering Muncul',
-    description:
-      'Kuasai 100 kosakata N4 yang paling sering keluar di ujian JLPT, lengkap dengan contoh kalimat dan konteks.',
-    senseiName: 'Sensei Hana Matsuda',
-    senseiLevel: 'N1 Native',
-    category: 'Kosa Kata',
-    level: 'N4',
-    daysFromNow: 7,
-    hour: 15,
-    minute: 0,
-    durationMinutes: 90,
-    maxSlots: 35,
-    filledSlots: 18,
-    meetingUrl: 'https://zoom.us/j/example5',
+    sessions: [
+      {
+        title: 'Pertemuan 1 — Salam & Perkenalan Formal',
+        daysFromNow: 4,
+        hour: 18,
+        minute: 30,
+        durationMinutes: 90,
+        meetingUrl: 'https://zoom.us/j/bizconvo-1',
+      },
+      {
+        title: 'Pertemuan 2 — Melapor & Meminta Tolong',
+        daysFromNow: 8,
+        hour: 18,
+        minute: 30,
+        durationMinutes: 90,
+        meetingUrl: 'https://zoom.us/j/bizconvo-2',
+      },
+    ],
   },
 ];
 
@@ -112,35 +136,44 @@ function addDays(base: Date, days: number, hour: number, minute: number): Date {
 export async function seedLiveClasses(prisma: PrismaClient): Promise<void> {
   const now = new Date();
 
-  for (const item of LIVE_CLASSES) {
-    const scheduledAt = addDays(now, item.daysFromNow, item.hour, item.minute);
-    const endsAt = new Date(scheduledAt.getTime() + item.durationMinutes * 60_000);
-
-    const existing = await prisma.liveClass.findFirst({
-      where: { title: item.title },
-      select: { id: true },
-    });
-
-    const data = {
-      title: item.title,
-      description: item.description,
-      senseiName: item.senseiName,
-      senseiLevel: item.senseiLevel,
-      category: item.category,
-      level: item.level,
-      scheduledAt,
-      endsAt,
-      maxSlots: item.maxSlots,
-      filledSlots: item.filledSlots,
+  for (const program of LIVE_CLASSES) {
+    const programData = {
+      title: program.title,
+      description: program.description,
+      senseiName: program.senseiName,
+      senseiLevel: program.senseiLevel,
+      category: program.category,
+      level: program.level,
+      priceIdr: program.priceIdr,
+      maxSlots: program.maxSlots,
+      filledSlots: program.filledSlots,
       thumbUrl: DEFAULT_THUMB,
-      meetingUrl: item.meetingUrl,
       isPublished: true,
     };
 
-    if (existing) {
-      await prisma.liveClass.update({ where: { id: existing.id }, data });
-    } else {
-      await prisma.liveClass.create({ data });
-    }
+    const existing = await prisma.liveClass.findFirst({
+      where: { title: program.title },
+      select: { id: true },
+    });
+
+    const liveClassId = existing
+      ? (await prisma.liveClass.update({ where: { id: existing.id }, data: programData })).id
+      : (await prisma.liveClass.create({ data: programData })).id;
+
+    // Idempotent: bersihkan sesi lama lalu buat ulang dari definisi seed.
+    await prisma.liveClassSession.deleteMany({ where: { liveClassId } });
+
+    await prisma.liveClassSession.createMany({
+      data: program.sessions.map((session) => {
+        const scheduledAt = addDays(now, session.daysFromNow, session.hour, session.minute);
+        return {
+          liveClassId,
+          title: session.title,
+          scheduledAt,
+          endsAt: new Date(scheduledAt.getTime() + session.durationMinutes * 60_000),
+          meetingUrl: session.meetingUrl,
+        };
+      }),
+    });
   }
 }

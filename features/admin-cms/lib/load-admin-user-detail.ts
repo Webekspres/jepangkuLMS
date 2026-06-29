@@ -53,6 +53,7 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
       equippedBadge: { select: { title: true } },
       progress: { where: { isCompleted: true }, select: { lessonId: true } },
       enrollments: {
+        where: { type: 'COURSE' },
         orderBy: { createdAt: 'desc' },
         include: {
           course: {
@@ -75,24 +76,27 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
 
   const completedLessonIds = new Set(user.progress.map((row) => row.lessonId));
 
-  const enrollments: AdminUserEnrollmentRow[] = user.enrollments.map((row) => {
-    const lessonIds = row.course.modules.flatMap((mod) => mod.lessons.map((lesson) => lesson.id));
-    const totalLessons = lessonIds.length;
-    const completedLessons = lessonIds.filter((id) => completedLessonIds.has(id)).length;
+  const enrollments: AdminUserEnrollmentRow[] = user.enrollments
+    .filter((row) => row.course !== null)
+    .map((row) => {
+      const course = row.course!;
+      const lessonIds = course.modules.flatMap((mod) => mod.lessons.map((lesson) => lesson.id));
+      const totalLessons = lessonIds.length;
+      const completedLessons = lessonIds.filter((id) => completedLessonIds.has(id)).length;
 
-    return {
-      id: row.id,
-      status: row.status,
-      createdAt: row.createdAt,
-      courseId: row.course.id,
-      courseTitle: row.course.title,
-      courseSlug: row.course.slug,
-      courseLevel: row.course.level,
-      priceIdr: row.course.priceIdr,
-      completedLessons,
-      totalLessons,
-    };
-  });
+      return {
+        id: row.id,
+        status: row.status,
+        createdAt: row.createdAt,
+        courseId: course.id,
+        courseTitle: course.title,
+        courseSlug: course.slug,
+        courseLevel: course.level,
+        priceIdr: course.priceIdr,
+        completedLessons,
+        totalLessons,
+      };
+    });
 
   return {
     id: user.id,

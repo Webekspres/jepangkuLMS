@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-06-26                                                  |
+| **Terakhir diperbarui**   | 2026-06-29                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **90%** (63 item terlacak)                                  |
 
@@ -182,6 +182,10 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-29 | Rebalance ekonomi XP/Poin: SSOT `features/student/lib/gamification-rewards.ts` (XP flat & kecil sesuai kurva Core 50 XP/level, Poin ≈10× boleh skala performa); XP kuis/tryout di-decouple dari jumlah benar (anti lompat-level); bonus XP badge per-rarity (5/10/20/25); daily-login award XP                                  |
+| 2026-06-29 | Halaman detail Live Class `/dashboard/live-class/[id]` (hero + status enrollment + timeline sesi real-time: Rekaman/Gabung Zoom/terjadwal); server action `requestLiveClassEnrollment` (gratis→ACTIVE, berbayar→PENDING + notif admin)                          |
+| 2026-06-29 | Hybrid slug UX: util `generateSlug`/`sanitizeSlugWhileTyping`, auto-fill Judul→Kode di form tryout (editable, sanitasi onChange), sanitasi field slug lanjutan (course/module)                                                                                  |
+| 2026-06-29 | Admin CMS polymorphic enrollment (pilih tipe produk Course/Live Class/Tryout + badge tipe di tabel); form tryout dapat harga (`priceIdr`) & toggle `isStrictTimeBound`; util `RupiahInput` auto-format ribuan untuk tryout & live class                          |
 | 2026-06-26 | Hapus rate limiting middleware di `proxy.ts` — memblokir staging (shared IP + RSC request volume)                                                                                                                                                               |
 | 2026-06-26 | Refactor profile photo cropping modal to be fully theme-adaptive; replace custom RPG loading screens with the standard JepangKu splash loading interface and enforce production fail-gate restrictions on core connection errors                                |
 | 2026-06-26 | Implement deferred avatar upload flow to Cloudflare R2 on form save with client-side react-easy-crop editor, local object URL preview, memory leak cleanup, and z-index toaster layer adjustment                                                                |

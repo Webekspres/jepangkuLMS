@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
 import {
+  deleteReadNotifications,
   dismissNotification,
   loadUserNotifications,
   markAllNotificationsRead,
@@ -58,6 +59,18 @@ export async function dismissNotificationAction(
     const userId = await requireUserId();
     const ok = await dismissNotification(userId, notificationId);
     if (!ok) return { ok: false, message: 'Notifikasi tidak ditemukan.' };
+    revalidatePath('/dashboard');
+    revalidatePath('/admin');
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'Gagal menghapus notifikasi.' };
+  }
+}
+
+export async function deleteReadNotificationsAction(): Promise<NotificationActionResult> {
+  try {
+    const userId = await requireUserId();
+    await deleteReadNotifications(userId);
     revalidatePath('/dashboard');
     revalidatePath('/admin');
     return { ok: true };
