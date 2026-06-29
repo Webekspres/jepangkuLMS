@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { StudentCoreDataProvider } from '@/features/student/components/student-core-data-context';
 import {
@@ -25,13 +26,14 @@ function defaultContextValue(): StudentCoreDataContextValue {
 
 /** Core gamification dimuat client-side agar halaman LMS tidak menunggu HTTP Core di SSR. */
 export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorProps) {
+    const { userId: clerkUserId } = useAuth();
     const [value, setValue] = useState<StudentCoreDataContextValue>(() => defaultContextValue());
 
     useEffect(() => {
         let cancelled = false;
 
         queueMicrotask(() => {
-            const cached = readCachedStudentCoreData();
+            const cached = readCachedStudentCoreData(clerkUserId);
             if (cached?.coreConnected && !cancelled) {
                 setValue(toStudentCoreDataContextValue(cached, 'ready'));
             }
@@ -74,7 +76,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
             cancelled = true;
             window.removeEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
         };
-    }, []);
+    }, [clerkUserId]);
 
     return <StudentCoreDataProvider value={value}>{children}</StudentCoreDataProvider>;
 }
