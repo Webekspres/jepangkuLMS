@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RupiahInput } from '@/components/ui/rupiah-input';
 import { Textarea } from '@/components/ui/textarea';
+import { generateSlug, sanitizeSlugWhileTyping } from '@/lib/string-helpers';
 import { toast } from 'sonner';
 
 type TryoutFormData = {
@@ -38,6 +39,21 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
   const [error, setError] = useState<string | null>(null);
   const [isStrict, setIsStrict] = useState(session?.isStrictTimeBound ?? true);
   const isEdit = Boolean(session?.id);
+
+  const [title, setTitle] = useState(session?.title ?? '');
+  const [code, setCode] = useState(session?.code ?? '');
+  // Saat edit (kode sudah ada), jangan timpa kode otomatis dari judul.
+  const [isSlugTouched, setIsSlugTouched] = useState(Boolean(session?.code));
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (!isSlugTouched) setCode(generateSlug(value));
+  };
+
+  const handleCodeChange = (value: string) => {
+    setIsSlugTouched(true);
+    setCode(sanitizeSlugWhileTyping(value));
+  };
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,7 +94,14 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Judul Sesi</Label>
-            <Input id="title" name="title" defaultValue={session?.title ?? ''} required />
+            <Input
+              id="title"
+              name="title"
+              value={title}
+              onChange={(event) => handleTitleChange(event.target.value)}
+              placeholder="Simulasi JLPT — Fase 1"
+              required
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -88,9 +111,16 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
                 id="code"
                 name="code"
                 placeholder="fase-1-2026"
-                defaultValue={session?.code ?? ''}
+                value={code}
+                onChange={(event) => handleCodeChange(event.target.value)}
+                onBlur={(event) => setCode(generateSlug(event.target.value))}
+                spellCheck={false}
+                autoComplete="off"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Otomatis dari judul. Bisa diubah manual; spasi & simbol dirapikan sendiri.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phaseLabel">Label Fase</Label>

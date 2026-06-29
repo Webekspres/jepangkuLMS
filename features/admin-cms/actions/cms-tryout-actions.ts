@@ -4,18 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
+import { generateSlug } from '@/lib/string-helpers';
 
 export type CmsTryoutActionResult =
   | { ok: true; id?: string }
   | { ok: false; message: string };
-
-function slugifyCode(input: string): string {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 function parseTryoutForm(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim();
@@ -28,7 +21,7 @@ function parseTryoutForm(formData: FormData) {
   const isActive = formData.get('isActive') === 'on';
   const isStrictTimeBound = formData.get('isStrictTimeBound') === 'on';
   const priceIdr = Math.max(0, Math.trunc(Number(formData.get('priceIdr') ?? 0) || 0));
-  const code = slugifyCode(codeRaw || title);
+  const code = generateSlug(codeRaw || title);
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
   return {

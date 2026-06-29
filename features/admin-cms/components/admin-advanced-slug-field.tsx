@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { generateSlug, sanitizeSlugWhileTyping } from '@/lib/string-helpers';
 import { cn } from '@/lib/utils';
 
 type AdminAdvancedSlugFieldProps = {
@@ -41,7 +42,8 @@ export function AdminAdvancedSlugField({
           <Input
             id={id}
             value={slug}
-            onChange={(event) => onSlugChange(event.target.value)}
+            onChange={(event) => onSlugChange(sanitizeSlugWhileTyping(event.target.value))}
+            onBlur={(event) => onSlugChange(generateSlug(event.target.value))}
             placeholder="contoh-judul-kursus"
             spellCheck={false}
             autoComplete="off"
