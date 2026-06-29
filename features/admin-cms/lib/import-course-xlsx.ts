@@ -46,6 +46,26 @@ type LessonBucket = {
     questions: CourseSyllabusTree['course']['modules'][0]['lessons'][0]['questions'];
 };
 
+type CourseMeta = {
+    no: number;
+    title: string;
+    level: string;
+    description?: string;
+    isPublished: boolean;
+    category: string;
+    priceIdr: number;
+    slug: string;
+};
+
+type ModuleMeta = {
+    noKursus: number;
+    noModul: number;
+    title: string;
+    order: number;
+    description?: string;
+    slug: string;
+};
+
 function emptyPreview(): Omit<CourseImportPreview, 'ok'> {
     return {
         rowCount: 0,
@@ -146,26 +166,6 @@ function buildTreesFromWorkbook(
         'jenis_kartu',
     ]);
     const kuisSheet = sheetToRecords(workbook, ['kuis', 'quiz', '6. kuis'], ['no_pelajaran', 'pertanyaan']);
-
-    type CourseMeta = {
-        no: number;
-        title: string;
-        level: string;
-        description?: string;
-        isPublished: boolean;
-        category: string;
-        priceIdr: number;
-        slug: string;
-    };
-
-    type ModuleMeta = {
-        noKursus: number;
-        noModul: number;
-        title: string;
-        order: number;
-        description?: string;
-        slug: string;
-    };
 
     const courses = new Map<number, CourseMeta>();
     const modules = new Map<string, ModuleMeta>();
