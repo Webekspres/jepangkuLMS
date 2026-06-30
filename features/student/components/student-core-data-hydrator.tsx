@@ -45,12 +45,8 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
 
                     const isEnabled = isCoreIntegrationEnabled();
                     if (isEnabled && !json.coreConnected) {
-                        if (process.env.NODE_ENV === 'production') {
-                            window.location.href = '/maintenance?reason=core_offline';
-                            return;
-                        } else {
-                            console.warn('⚠️ Core service offline. Development bypass active.');
-                        }
+                        // ponytail: keep LMS usable when Core sync is temporarily down; hard maintenance can be reintroduced via dedicated feature flag later.
+                        console.warn('⚠️ Core service offline. Falling back to LMS local data.');
                     }
 
                     if (json.coreConnected) {
