@@ -183,7 +183,7 @@ export const LANDING_FEATURES: {
     tag: 'GAME',
     gradient: 'from-amber-500 to-brand-yellow',
     blobColor: 'bg-amber-500',
-    href: '/leaderboard',
+    href: '/sign-up',
   },
   {
     icon: Wifi,
@@ -192,7 +192,7 @@ export const LANDING_FEATURES: {
     tag: 'LIVE',
     gradient: 'from-emerald-500 to-emerald-600',
     blobColor: 'bg-emerald-500',
-    href: '/kursus',
+    href: '/sign-up',
   },
 ];
 
@@ -204,23 +204,23 @@ export const LANDING_PILLARS: {
 }[] = [
   {
     icon: Layers,
-    title: '5 Level JLPT',
-    desc: 'Kurikulum terstruktur dari N5 pemula hingga N1 mahir.',
+    title: "5 Level JLPT",
+    desc: "Kurikulum terstruktur dari N5 pemula hingga N1 mahir.",
   },
   {
     icon: Target,
-    title: 'Fokus MVP N5',
-    desc: 'Peluncuran awal dimulai dari modul N5 — level lain menyusul bertahap.',
+    title: "Berorientasi Target",
+    desc: "Materi dan latihan soal dirancang presisi sesuai kisi-kisi ujian JLPT asli.",
   },
   {
     icon: Compass,
-    title: 'Satu Platform',
-    desc: 'Video, kuis, try out, dan gamifikasi dalam satu ekosistem belajar.',
+    title: "All-in-One Ecosystem",
+    desc: "Video, kuis, try out, dan gamifikasi dalam satu ekosistem belajar.",
   },
   {
     icon: Calendar,
-    title: 'Roadmap 2026',
-    desc: 'Konten dan fitur dikembangkan transparan sepanjang tahun ini.',
+    title: "Roadmap 2026",
+    desc: "Konten dan fitur dikembangkan transparan sepanjang tahun ini.",
   },
 ];
 
@@ -255,27 +255,38 @@ export const FLOATING_KANJI = ['日', '本', '語', '学', '習', '漢', '字', 
 
 export const PRICING_PLANS = [
   {
-    name: 'N5 Starter',
-    price: 'Rp 299.000',
-    period: '/bulan',
-    description: 'Cocok untuk pemula yang baru mulai perjalanan JLPT.',
-    features: ['Akses video N5', 'Try out bulanan', 'XP & badge dasar'],
+    name: "N5 Starter",
+    price: "Gratis",
+    period: "",
+    description:
+      "Cocok untuk kamu yang baru mulai belajar huruf dan kosakata dasar Jepang.",
+    features: ["Akses video N5 gratis", "tes pelatihan JLPT N5"],
     highlighted: false,
   },
   {
-    name: 'N3 Intensif',
-    price: 'Rp 599.000',
-    period: '/bulan',
-    description: 'Paket untuk siswa yang serius naik level — konsultasi via admin.',
-    features: ['Semua level hingga N3', 'Live class berkala', 'Analitik skor JLPT'],
+    name: "N4 Intensif",
+    price: "Segera",
+    period: "",
+    description:
+      "Paket untuk siswa yang serius naik level — konsultasi via admin.",
+    features: [
+      "Semua level hingga N4",
+      "Live class berkala",
+      "Analitik skor JLPT",
+    ],
     highlighted: true,
   },
   {
-    name: 'N1 Master',
-    price: 'Konsultasi',
-    period: '',
-    description: 'Program premium menuju N1 — hubungi tim untuk rencana khusus.',
-    features: ['Mentoring 1-on-1', 'Materi & try out N1', 'Prioritas support admin'],
+    name: "N1 Master",
+    price: "Konsultasi",
+    period: "",
+    description:
+      "Program premium menuju N1 — hubungi tim untuk rencana khusus.",
+    features: [
+      "Mentoring 1-on-1",
+      "Materi & try out N1",
+      "Prioritas support admin",
+    ],
     highlighted: false,
   },
 ] as const;
