@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { renumberTryoutQuestionsForLevel } from '@/features/admin-cms/lib/renumber-tryout-questions';
+import { renumberTryoutQuestionsForSession } from '@/features/admin-cms/lib/renumber-tryout-questions';
 
 type TryoutQuestionSeed = {
   section: 'MOJI_GOI' | 'BUNPOU_DOKKAI' | 'CHOKAI';
@@ -79,49 +79,46 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
   },
   {
     section: 'BUNPOU_DOKKAI',
-    questionText: '（　）に なにを いれますか。もっとも よいものを えらんでください。',
-    explanation: '「〜できるようになりたい」= want to become able to ~.',
+    questionText: 'つぎの文の意味として、もっとも よいものを えらんでください。\n彼は 毎日 日本語を 勉強しています。',
+    explanation: '「毎日 日本語を 勉強しています」= He studies Japanese every day.',
     options: [
-      { text: '話せる', isCorrect: true },
-      { text: '話す', isCorrect: false },
-      { text: '話した', isCorrect: false },
-      { text: '話して', isCorrect: false },
+      { text: 'He studied Japanese yesterday.', isCorrect: false },
+      { text: 'He studies Japanese every day.', isCorrect: true },
+      { text: 'He will study Japanese tomorrow.', isCorrect: false },
+      { text: 'He does not study Japanese.', isCorrect: false },
     ],
   },
   {
     section: 'BUNPOU_DOKKAI',
-    questionText:
-      '文章を読んで、しつもんに こたえてください。\n日本では、春になると桜の花が咲きます。\n\nQ: 花見はいつですか？',
-    explanation: '「春になると桜の花が咲きます」から、花見は春に行われます。',
+    questionText: '（　）に 入る 言葉は どれですか。\nわたしは 毎朝 コーヒーを（　）。',
+    explanation: '「飲みます」= drink (polite present).',
     options: [
-      { text: '冬', isCorrect: false },
-      { text: '春', isCorrect: true },
-      { text: '夏', isCorrect: false },
-      { text: '秋', isCorrect: false },
+      { text: '飲みます', isCorrect: true },
+      { text: '飲みました', isCorrect: false },
+      { text: '飲みたい', isCorrect: false },
+      { text: '飲まない', isCorrect: false },
     ],
   },
   {
     section: 'CHOKAI',
-    questionText:
-      'スクリプトを読んで、しつもんに こたえてください。\n女：「すみません、図書館はどこですか。」\n男：「あそこの建物の隣にあります。」\n\nQ: 図書館はどこにありますか？',
-    explanation: '「隣」(となり) = next to.',
+    questionText: '音声を聞いて、もっとも よい 答えを えらんでください。',
+    explanation: 'Contoh soal CHOKAI — isi audioUrl saat admin upload.',
     options: [
-      { text: '建物の中', isCorrect: false },
-      { text: '建物の隣', isCorrect: true },
-      { text: '建物の前', isCorrect: false },
-      { text: '建物の後ろ', isCorrect: false },
+      { text: 'A', isCorrect: false },
+      { text: 'B', isCorrect: true },
+      { text: 'C', isCorrect: false },
+      { text: 'D', isCorrect: false },
     ],
   },
   {
     section: 'CHOKAI',
-    questionText:
-      'スクリプトを読んで、もっとも よいものを えらんでください。\nA：「明日、一緒に買い物しませんか。」\nB：「すみません、明日はちょっと…。」\n\nQ: Bさんは明日どうしますか？',
-    explanation: '「ちょっと…」は丁寧な断り方。Bさんは断っています。',
+    questionText: '音声を聞いて、もっとも よい 答えを えらんでください。（2）',
+    explanation: 'Contoh soal CHOKAI kedua.',
     options: [
-      { text: '買い物に行く', isCorrect: false },
-      { text: '断る（行けない）', isCorrect: true },
-      { text: '一緒に行く', isCorrect: false },
-      { text: '後で連絡する', isCorrect: false },
+      { text: 'A', isCorrect: true },
+      { text: 'B', isCorrect: false },
+      { text: 'C', isCorrect: false },
+      { text: 'D', isCorrect: false },
     ],
   },
 ];
@@ -131,39 +128,47 @@ const SESSIONS = [
     code: 'fase-1',
     title: 'Simulasi JLPT — Fase 1',
     phaseLabel: 'Fase 1',
+    level: 'N5' as const,
     description: 'Sesi simulasi perdana — cocok untuk pemanasan dan mengukur baseline.',
     sortOrder: 1,
     isActive: true,
+    priceIdr: 0,
   },
   {
     code: 'fase-2',
-    title: 'Simulasi JLPT — Fase 2',
+    title: 'Simulasi JLPT N4 — Fase 2',
     phaseLabel: 'Fase 2',
+    level: 'N4' as const,
     description: 'Sesi lanjutan dengan distribusi soal lebih menantang.',
     sortOrder: 2,
     isActive: true,
+    priceIdr: 0,
   },
   {
     code: 'fase-3',
-    title: 'Simulasi JLPT — Fase 3',
+    title: 'Simulasi JLPT N3 — Fase 3',
     phaseLabel: 'Fase 3',
+    level: 'N3' as const,
     description: 'Simulasi intensif menjelang ujian resmi.',
     sortOrder: 3,
     isActive: false,
+    priceIdr: 0,
   },
   {
     code: 'fase-4',
-    title: 'Simulasi JLPT — Fase 4',
+    title: 'Simulasi JLPT N2 — Fase 4',
     phaseLabel: 'Fase 4',
+    level: 'N2' as const,
     description: 'Final drill — kondisi ujian penuh.',
     sortOrder: 4,
     isActive: false,
+    priceIdr: 0,
   },
 ] as const;
 
 async function seedFase1N5Questions(prisma: PrismaClient, sessionId: string): Promise<void> {
   const existingCount = await prisma.question.count({
-    where: { tryoutSessionId: sessionId, tryoutLevel: 'N5', type: 'TRYOUT' },
+    where: { tryoutSessionId: sessionId, type: 'TRYOUT' },
   });
 
   if (existingCount === 0) {
@@ -179,7 +184,6 @@ async function seedFase1N5Questions(prisma: PrismaClient, sessionId: string): Pr
         data: {
           type: 'TRYOUT',
           tryoutSessionId: sessionId,
-          tryoutLevel: 'N5',
           tryoutSection: q.section,
           sortOrder: counters[q.section],
           questionText: q.questionText,
@@ -196,7 +200,7 @@ async function seedFase1N5Questions(prisma: PrismaClient, sessionId: string): Pr
     }
   }
 
-  await renumberTryoutQuestionsForLevel(sessionId, 'N5', prisma);
+  await renumberTryoutQuestionsForSession(sessionId, prisma);
 }
 
 export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
@@ -207,18 +211,22 @@ export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
         code: session.code,
         title: session.title,
         phaseLabel: session.phaseLabel,
+        level: session.level,
         description: session.description,
         sortOrder: session.sortOrder,
         isActive: session.isActive,
+        priceIdr: session.priceIdr,
         timeLimitMinutes: 120,
         scheduledAt: new Date(),
       },
       update: {
         title: session.title,
         phaseLabel: session.phaseLabel,
+        level: session.level,
         description: session.description,
         sortOrder: session.sortOrder,
         isActive: session.isActive,
+        priceIdr: session.priceIdr,
       },
     });
 

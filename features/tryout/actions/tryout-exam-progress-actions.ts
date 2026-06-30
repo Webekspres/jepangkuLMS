@@ -1,6 +1,5 @@
 'use server';
 
-import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 
@@ -25,13 +24,12 @@ function parseProgressJson(raw: string): TryoutExamProgressState {
 
 export async function getOrCreateTryoutExamProgress(
     sessionId: string,
-    level: LevelJLPT,
 ): Promise<{ id: string; state: TryoutExamProgressState }> {
     const userId = await requireAuthUserWithAnchor();
 
     const existing = await prisma.tryoutExamProgress.findUnique({
         where: {
-            userId_tryoutSessionId_tryoutLevel: { userId, tryoutSessionId: sessionId, tryoutLevel: level },
+            userId_tryoutSessionId: { userId, tryoutSessionId: sessionId },
         },
     });
 
@@ -43,7 +41,6 @@ export async function getOrCreateTryoutExamProgress(
         data: {
             userId,
             tryoutSessionId: sessionId,
-            tryoutLevel: level,
             answersJson: JSON.stringify({ answers: {}, playedAudioKeys: [] } satisfies TryoutExamProgressState),
         },
     });
@@ -95,13 +92,12 @@ export async function markTryoutAudioPlayed(
 
 export async function loadTryoutExamProgressForSession(
     sessionId: string,
-    level: LevelJLPT,
 ): Promise<{ id: string; state: TryoutExamProgressState } | null> {
     const userId = await requireAuthUserWithAnchor();
 
     const row = await prisma.tryoutExamProgress.findUnique({
         where: {
-            userId_tryoutSessionId_tryoutLevel: { userId, tryoutSessionId: sessionId, tryoutLevel: level },
+            userId_tryoutSessionId: { userId, tryoutSessionId: sessionId },
         },
     });
 
@@ -109,9 +105,9 @@ export async function loadTryoutExamProgressForSession(
     return { id: row.id, state: parseProgressJson(row.answersJson) };
 }
 
-export async function clearTryoutExamProgress(sessionId: string, level: LevelJLPT): Promise<void> {
+export async function clearTryoutExamProgress(sessionId: string): Promise<void> {
     const userId = await requireAuthUserWithAnchor();
     await prisma.tryoutExamProgress.deleteMany({
-        where: { userId, tryoutSessionId: sessionId, tryoutLevel: level },
+        where: { userId, tryoutSessionId: sessionId },
     });
 }

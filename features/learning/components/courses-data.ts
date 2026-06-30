@@ -31,7 +31,7 @@ export type CatalogCourse = {
   thumb: string;
   accent: JlptAccent;
   badge: string;
-  tags: Exclude<CourseCategory, 'Semua'>[];
+  tags: string[];
   featured: boolean;
 };
 

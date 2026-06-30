@@ -6,7 +6,6 @@ import { prisma } from '@/lib/prisma';
 export type AdminTryoutQuestionRow = {
   id: string;
   sortOrder: number;
-  tryoutLevel: LevelJLPT;
   tryoutSection: string;
   questionText: string;
   explanation: string | null;
@@ -20,6 +19,7 @@ export type AdminTryoutSessionDetail = {
   code: string;
   title: string;
   phaseLabel: string;
+  level: LevelJLPT;
   timeLimitMinutes: number;
   isActive: boolean;
 };
@@ -34,6 +34,7 @@ export const loadAdminTryoutSessionDetail = cache(async function loadAdminTryout
       code: true,
       title: true,
       phaseLabel: true,
+      level: true,
       timeLimitMinutes: true,
       isActive: true,
     },
@@ -43,10 +44,9 @@ export const loadAdminTryoutSessionDetail = cache(async function loadAdminTryout
 
 export async function loadAdminTryoutQuestions(
   sessionId: string,
-  level: LevelJLPT,
 ): Promise<AdminTryoutQuestionRow[]> {
   const rows = await prisma.question.findMany({
-    where: { tryoutSessionId: sessionId, tryoutLevel: level, type: 'TRYOUT' },
+    where: { tryoutSessionId: sessionId, type: 'TRYOUT' },
     orderBy: [{ sortOrder: 'asc' }],
     include: { options: { orderBy: { id: 'asc' } } },
   });
@@ -61,32 +61,23 @@ export async function loadAdminTryoutQuestions(
       return a.sortOrder - b.sortOrder;
     })
     .map((row) => ({
-    id: row.id,
-    sortOrder: row.sortOrder,
-    tryoutLevel: row.tryoutLevel!,
-    tryoutSection: row.tryoutSection ?? 'MOJI_GOI',
-    questionText: row.questionText,
-    explanation: row.explanation,
-    audioUrl: row.audioUrl,
-    audioGroupId: row.audioGroupId,
-    options: row.options.map((opt) => ({
-      id: opt.id,
-      text: opt.text,
-      isCorrect: opt.isCorrect,
-    })),
-  }));
+      id: row.id,
+      sortOrder: row.sortOrder,
+      tryoutSection: row.tryoutSection ?? 'MOJI_GOI',
+      questionText: row.questionText,
+      explanation: row.explanation,
+      audioUrl: row.audioUrl,
+      audioGroupId: row.audioGroupId,
+      options: row.options.map((opt) => ({
+        id: opt.id,
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+      })),
+    }));
 }
 
-export async function loadAdminTryoutQuestionCounts(sessionId: string) {
-  const rows = await prisma.question.groupBy({
-    by: ['tryoutLevel'],
+export async function loadAdminTryoutQuestionCount(sessionId: string): Promise<number> {
+  return prisma.question.count({
     where: { tryoutSessionId: sessionId, type: 'TRYOUT' },
-    _count: { _all: true },
   });
-
-  const counts: Record<LevelJLPT, number> = { N5: 0, N4: 0, N3: 0, N2: 0, N1: 0 };
-  for (const row of rows) {
-    if (row.tryoutLevel) counts[row.tryoutLevel] = row._count._all;
-  }
-  return counts;
 }

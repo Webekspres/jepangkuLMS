@@ -264,6 +264,7 @@ export async function importTryoutWorkbook(
                 code: session.code,
                 title: session.title,
                 phaseLabel: session.phaseLabel,
+                level: session.level,
                 description: session.description,
                 scheduledAt: session.scheduledAt,
                 timeLimitMinutes: session.timeLimitMinutes,
@@ -273,6 +274,7 @@ export async function importTryoutWorkbook(
             update: {
                 title: session.title,
                 phaseLabel: session.phaseLabel,
+                level: session.level,
                 description: session.description,
                 scheduledAt: session.scheduledAt,
                 timeLimitMinutes: session.timeLimitMinutes,
@@ -284,7 +286,6 @@ export async function importTryoutWorkbook(
         await tx.question.deleteMany({
             where: {
                 tryoutSessionId: upserted.id,
-                tryoutLevel: session.level,
                 type: 'TRYOUT',
             },
         });

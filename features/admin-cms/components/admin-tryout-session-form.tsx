@@ -16,14 +16,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RupiahInput } from '@/components/ui/rupiah-input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { generateSlug, sanitizeSlugWhileTyping } from '@/lib/string-helpers';
+import type { LevelJLPT } from '@prisma/client';
 import { toast } from 'sonner';
+
+const LEVELS: LevelJLPT[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 type TryoutFormData = {
   id?: string;
   code: string;
   title: string;
   phaseLabel: string;
+  level: LevelJLPT;
   description: string | null;
   scheduledAt: string;
   timeLimitMinutes: number;
@@ -42,6 +53,7 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
 
   const [title, setTitle] = useState(session?.title ?? '');
   const [code, setCode] = useState(session?.code ?? '');
+  const [level, setLevel] = useState<LevelJLPT>(session?.level ?? 'N5');
   // Saat edit (kode sudah ada), jangan timpa kode otomatis dari judul.
   const [isSlugTouched, setIsSlugTouched] = useState(Boolean(session?.code));
 
@@ -80,7 +92,7 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
     <AdminPageShell
       label="Program"
       title={isEdit ? 'Edit Sesi Tryout' : 'Sesi Tryout Baru'}
-      subtitle="Kode sesi dipakai di URL tryout siswa (?session=…&level=N5)."
+      subtitle="Setiap sesi terkunci ke satu level JLPT. Kode sesi dipakai di URL tryout siswa."
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.tryoutSessions}>
@@ -132,6 +144,29 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="level">
+              Level JLPT <span className="text-brand-red">*</span>
+            </Label>
+            <Select
+              value={level}
+              onValueChange={(value) => setLevel(value as LevelJLPT)}
+              required
+            >
+              <SelectTrigger id="level">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEVELS.map((lv) => (
+                  <SelectItem key={lv} value={lv}>
+                    {lv}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="level" value={level} />
           </div>
 
           <div className="space-y-2">

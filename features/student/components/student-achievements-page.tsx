@@ -43,6 +43,7 @@ import {
 import { STUDENT_ROUTES } from './student-routes';
 import { equipStudentBadge } from '@/features/student/actions/profile-actions';
 import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
+import { BadgeShareModal } from './badge-share-modal';
 
 const FILTER_OPTIONS: { id: BadgeFilter; label: string }[] = [
   { id: 'all', label: 'Semua' },
@@ -745,18 +746,36 @@ export function StudentAchievementsPage({
         </aside>
       </div>
 
-      <BadgeDetailModal
-        badge={selectedBadge}
-        isEquipping={isEquipping}
-        onClose={() => setSelectedBadge(null)}
-        onEquip={(badgeId) => {
-          startEquipTransition(async () => {
-            await equipStudentBadge(badgeId);
-            window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
-            setSelectedBadge(null);
-          });
-        }}
-      />
+      {selectedBadge && selectedBadge.unlocked ? (
+        <BadgeShareModal
+          badge={selectedBadge}
+          onClose={() => setSelectedBadge(null)}
+          userDisplayName={displayName}
+          userAvatarUrl={core.avatarUrl}
+          userLevel={core.level}
+          isEquipping={isEquipping}
+          onEquip={(badgeId) => {
+            startEquipTransition(async () => {
+              await equipStudentBadge(badgeId);
+              window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+              setSelectedBadge(null);
+            });
+          }}
+        />
+      ) : (
+        <BadgeDetailModal
+          badge={selectedBadge}
+          isEquipping={isEquipping}
+          onClose={() => setSelectedBadge(null)}
+          onEquip={(badgeId) => {
+            startEquipTransition(async () => {
+              await equipStudentBadge(badgeId);
+              window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+              setSelectedBadge(null);
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

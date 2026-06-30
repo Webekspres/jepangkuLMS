@@ -2,73 +2,92 @@
 // SETUP PUSAT
 // ====================================================================
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    // URL dikelola via prisma.config.ts demi kepatuhan versi terbaru
+  provider = "postgresql"
+  // URL dikelola via prisma.config.ts demi kepatuhan versi terbaru
 }
 
 // ====================================================================
 // ENUMS (Tipe Data Konstan)
 // ====================================================================
 enum LevelJLPT {
-    N5
-    N4
-    N3
-    N2
-    N1
+  N5
+  N4
+  N3
+  N2
+  N1
 }
 
 enum EnrollmentStatus {
-    PENDING
-    ACTIVE
+  PENDING
+  ACTIVE
 }
 
 enum EnrollmentType {
-    COURSE
-    LIVE_CLASS
-    TRYOUT
+  COURSE
+  LIVE_CLASS
+  TRYOUT
 }
 
 enum QuestionType {
-    QUIZ
-    TRYOUT
+  QUIZ
+  TRYOUT
 }
 
 enum CategoryType {
-    KANJI
-    KOSAKATA
-    TATA_BAHASA
+  KANJI
+  KOSAKATA
+  TATA_BAHASA
+}
+
+/// Tipe program kursus di katalog LMS (bukan kategori materi flashcard/kuis).
+enum CourseCategoryType {
+  KURSUS_UTAMA
+  KURSUS_GRATIS
+  KURSUS_TAMBAHAN
 }
 
 enum LmsRole {
-    LMS_STUDENT
-    LMS_ADMIN
+  LMS_STUDENT
+  LMS_ADMIN
 }
 
 enum LmsBadgeUnlockRule {
-    MANUAL
-    FIRST_LESSON
-    FIRST_QUIZ
-    TRYOUT_PASS
+  MANUAL
+  FIRST_LESSON
+  FIRST_QUIZ
+  TRYOUT_PASS
+  QUIZ_SCORE_THRESHOLD
+  CATEGORY_COMPLETE
+  TRYOUT_SCORE_THRESHOLD
+  SPECIFIC_COURSE_COMPLETE
+}
+
+/// Status sinkronisasi XP ke Core (outbox). PENDING = perlu retry, SYNCED = sukses,
+/// SKIPPED = Core sengaja tidak dikonfigurasi (dev) — tidak akan di-retry.
+enum LmsCoreSyncStatus {
+  PENDING
+  SYNCED
+  SKIPPED
 }
 
 enum LmsBadgeRarity {
-    COMMON
-    RARE
-    EPIC
-    LEGENDARY
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
 }
 
 enum LmsNotificationType {
-    ENROLLMENT_PENDING
-    ENROLLMENT_APPROVED
-    ENROLLMENT_REJECTED
-    BADGE_UNLOCKED
-    XP_EARNED
-    COURSE_GRANTED
+  ENROLLMENT_PENDING
+  ENROLLMENT_APPROVED
+  ENROLLMENT_REJECTED
+  BADGE_UNLOCKED
+  XP_EARNED
+  COURSE_GRANTED
 }
 
 // ====================================================================
@@ -76,465 +95,486 @@ enum LmsNotificationType {
 // XP & level global → Core. Poin LMS, badge, display name → DB LMS. Lihat docs/ECOSYSTEM.md
 // ====================================================================
 model User {
-    id                 String    @id // Clerk User ID — tanpa @default(uuid())
-    /// Nama tampilan di LMS — dipilih user (bisa beda dari SSO)
-    displayName        String?   @db.VarChar(32)
-    /// Nama dari SSO Clerk (Google, dll.) — fallback leaderboard & UI sebelum setup
-    ssoDisplayName     String?   @db.VarChar(64)
-    /// Setelah user konfirmasi nama di onboarding / edit profil
-    displayNameSetupAt DateTime?
-    /// Bio singkat profil belajar
-    bio                String?   @db.VarChar(280)
-    /// Foto profil LMS — override Clerk jika di-set
-    avatarUrl          String?
-    role               LmsRole   @default(LMS_STUDENT)
-    equippedBadgeId    String?
-    createdAt          DateTime  @default(now())
-    updatedAt          DateTime  @updatedAt
+  id                 String    @id // Clerk User ID — tanpa @default(uuid())
+  /// Nama tampilan di LMS — dipilih user (bisa beda dari SSO)
+  displayName        String?   @db.VarChar(32)
+  /// Nama dari SSO Clerk (Google, dll.) — fallback leaderboard & UI sebelum setup
+  ssoDisplayName     String?   @db.VarChar(64)
+  /// Setelah user konfirmasi nama di onboarding / edit profil
+  displayNameSetupAt DateTime?
+  /// Bio singkat profil belajar
+  bio                String?   @db.VarChar(280)
+  /// Foto profil LMS — override Clerk jika di-set
+  avatarUrl          String?
+  role               LmsRole   @default(LMS_STUDENT)
+  equippedBadgeId    String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-    equippedBadge  LmsBadge?            @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
-    enrollments    Enrollment[]
-    progress       UserProgress[]
-    attempts       QuizAttempt[]
-    tryoutProgress TryoutExamProgress[]
-    lmsStats       UserLmsStats?
-    pointEvents    LmsPointEvent[]
-    xpEvents       LmsXpEvent[]
-    badges         UserBadge[]
-    notifications  LmsNotification[]
-    lessonComments LessonComment[]
-    commentReplies LessonCommentReply[]
+  equippedBadge  LmsBadge?            @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
+  enrollments    Enrollment[]
+  progress       UserProgress[]
+  attempts       QuizAttempt[]
+  lmsStats       UserLmsStats?
+  pointEvents    LmsPointEvent[]
+  xpEvents       LmsXpEvent[]
+  badges         UserBadge[]
+  notifications  LmsNotification[]
+  lessonComments LessonComment[]
+  commentReplies LessonCommentReply[]
+  tryoutProgress TryoutExamProgress[]
 }
 
 // ====================================================================
 // 1b. GAMIFIKASI LMS (poin leaderboard & badge — bukan di Core)
 // ====================================================================
 model UserLmsStats {
-    userId    String   @id
-    lmsPoints Int      @default(0)
-    updatedAt DateTime @updatedAt
+  userId    String   @id
+  lmsPoints Int      @default(0)
+  updatedAt DateTime @updatedAt
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([lmsPoints(sort: Desc), updatedAt(sort: Asc)])
+  @@index([lmsPoints(sort: Desc), updatedAt(sort: Asc)])
 }
 
 model LmsPointEvent {
-    id           String   @id @default(uuid())
-    userId       String
-    pointsGained Int
-    /// Idempotency — mis. "lesson:{lessonId}" atau "quiz:{attemptId}"
-    sourceKey    String   @unique
-    sourceType   String
-    sourceId     String?
-    createdAt    DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String
+  pointsGained Int
+  /// Idempotency — mis. "lesson:{lessonId}" atau "quiz:{attemptId}"
+  sourceKey    String   @unique
+  sourceType   String
+  sourceId     String?
+  createdAt    DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
-/// Log XP lokal untuk grafik mingguan — mirror award Core (atau dev fallback).
+/// Log XP lokal untuk grafik mingguan + OUTBOX sinkronisasi XP ke Core.
+/// Setiap baris adalah satu unit XP yang harus tercermin di Core (level global).
 model LmsXpEvent {
-    id         String   @id @default(uuid())
-    userId     String
-    xpGained   Int
-    sourceKey  String   @unique
-    sourceType String
-    sourceId   String?
-    createdAt  DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  xpGained   Int
+  sourceKey  String   @unique
+  sourceType String
+  sourceId   String?
+  createdAt  DateTime @default(now())
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // --- Outbox sinkronisasi Core ---
+  /// LmsActivityKind (mis. "lesson_complete") untuk re-dispatch saat retry.
+  coreKind           String?
+  /// Idempotency key persis yang dikirim ke Core (replay-safe).
+  coreIdempotencyKey String?
+  /// Default SYNCED agar baris historis (pra-outbox) tidak ikut di-retry.
+  coreStatus         LmsCoreSyncStatus @default(SYNCED)
+  coreSyncedAt       DateTime?
+  coreAttempts       Int               @default(0)
+  coreLastError      String?
 
-    @@index([userId, createdAt(sort: Desc)])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([coreStatus, createdAt(sort: Asc)])
 }
 
 model LmsNotification {
-    id        String              @id @default(uuid())
-    userId    String
-    type      LmsNotificationType
-    title     String
-    body      String?
-    href      String?
-    dedupeKey String?
-    readAt    DateTime?
-    createdAt DateTime            @default(now())
+  id        String              @id @default(uuid())
+  userId    String
+  type      LmsNotificationType
+  title     String
+  body      String?
+  href      String?
+  dedupeKey String?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, dedupeKey])
-    @@index([userId, readAt, createdAt(sort: Desc)])
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt(sort: Desc)])
 }
 
 model LmsBadge {
-    id              String             @id @default(uuid())
-    code            String             @unique
-    title           String
-    description     String?            @db.Text
-    imageUrl        String?
-    sortOrder       Int                @default(0)
-    rarity          LmsBadgeRarity     @default(COMMON)
-    unlockRule      LmsBadgeUnlockRule @default(MANUAL)
-    /// Nilai tambahan — mis. skor minimum untuk TRYOUT_PASS
-    unlockValue     Int?
-    xpBonus         Int                @default(25)
-    requirementText String?
-    createdAt       DateTime           @default(now())
+  id              String             @id @default(uuid())
+  code            String             @unique
+  title           String
+  description     String?            @db.Text
+  imageUrl        String?
+  sortOrder       Int                @default(0)
+  rarity          LmsBadgeRarity     @default(COMMON)
+  unlockRule      LmsBadgeUnlockRule @default(MANUAL)
+  /// Nilai tambahan — mis. skor minimum untuk TRYOUT_PASS
+  unlockValue     Int?
+  xpBonus         Int                @default(25)
+  requirementText String?
+  createdAt       DateTime           @default(now())
 
-    userBadges      UserBadge[]
-    equippedByUsers User[]      @relation("EquippedBadge")
+  targetLevel     LevelJLPT?
+  targetCategory  CategoryType?
+  targetCourseId  String?
+  targetCourse    Course?            @relation(fields: [targetCourseId], references: [id], onDelete: SetNull)
+
+  userBadges      UserBadge[]
+  equippedByUsers User[]      @relation("EquippedBadge")
 }
 
 model UserBadge {
-    id             String   @id @default(uuid())
-    userId         String
-    badgeId        String
-    unlockedAt     DateTime @default(now())
-    xpBonusAwarded Boolean  @default(false)
+  id             String   @id @default(uuid())
+  userId         String
+  badgeId        String
+  unlockedAt     DateTime @default(now())
+  xpBonusAwarded Boolean  @default(false)
 
-    user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, badgeId])
-    @@index([userId])
+  @@unique([userId, badgeId])
+  @@index([userId])
 }
 
 // ====================================================================
 // 2. HIRARKI KURSUS & PEMBAYARAN (CMS)
 // ====================================================================
 model Course {
-    id          String    @id @default(uuid())
-    title       String
-    slug        String    @unique
-    description String?   @db.Text
-    level       LevelJLPT @default(N5)
-    /// Kategori tampilan katalog (Kosa Kata, Tata Bahasa, Kanji, …)
-    category    String    @default("Kosa Kata")
-    /// Harga dalam Rupiah (0 = gratis)
-    priceIdr    Int       @default(0)
-    isPublished Boolean   @default(false)
-    isFeatured  Boolean   @default(false)
-    createdAt   DateTime  @default(now())
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  description String?   @db.Text
+  /// Poin "Yang akan kamu pelajari" — dikelola admin, bukan diturunkan dari Module.
+  outcomes    String[]
+  level       LevelJLPT @default(N5)
+  /// Tipe program kursus (Utama / Gratis / Tambahan).
+  category    CourseCategoryType @default(KURSUS_UTAMA)
+  /// Harga dalam Rupiah (0 = gratis)
+  priceIdr    Int       @default(0)
+  isPublished Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
 
-    modules     Module[]
-    enrollments Enrollment[]
+  modules     Module[]
+  enrollments Enrollment[]
+  badges      LmsBadge[]
 }
 
 model Module {
-    id          String   @id @default(uuid())
-    courseId    String
-    title       String
-    slug        String
-    order       Int
-    description String?  @db.Text
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  slug        String
+  order       Int
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-    course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    lessons Lesson[]
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
 
-    @@unique([courseId, slug])
-    @@unique([courseId, order])
-    @@index([courseId])
+  @@unique([courseId, slug])
+  @@unique([courseId, order])
+  @@index([courseId])
 }
 
 model Enrollment {
-    id              String           @id @default(uuid())
-    userId          String
-    type            EnrollmentType   @default(COURSE)
-    /// Salah satu dari ketiga FK berikut terisi sesuai `type` (polymorphic).
-    courseId        String?
-    liveClassId     String?
-    tryoutSessionId String?
-    status          EnrollmentStatus @default(PENDING)
-    createdAt       DateTime         @default(now())
+  id              String           @id @default(uuid())
+  userId          String
+  type            EnrollmentType   @default(COURSE)
+  /// Salah satu dari ketiga FK berikut terisi sesuai `type` (polymorphic).
+  courseId        String?
+  liveClassId     String?
+  tryoutSessionId String?
+  status          EnrollmentStatus @default(PENDING)
+  createdAt       DateTime         @default(now())
 
-    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    course        Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    liveClass     LiveClass?     @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
-    tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  liveClass     LiveClass?     @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, courseId])
-    @@unique([userId, liveClassId])
-    @@unique([userId, tryoutSessionId])
-    @@index([userId, type])
+  @@unique([userId, courseId])
+  @@unique([userId, liveClassId])
+  @@unique([userId, tryoutSessionId])
+  @@index([userId, type])
 }
 
 model Lesson {
-    id       String  @id @default(uuid())
-    moduleId String
-    title    String
-    slug     String  @unique
-    order    Int
-    content  String? @db.Text
-    videoUrl String?
+  id       String  @id @default(uuid())
+  moduleId String
+  title    String
+  slug     String  @unique
+  order    Int
+  content  String? @db.Text
+  videoUrl String?
 
-    module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-    kanjis      MaterialKanji[]
-    kosakatas   MaterialKosakata[]
-    tataBahasas MaterialTataBahasa[]
+  kanjis      MaterialKanji[]
+  kosakatas   MaterialKosakata[]
+  tataBahasas MaterialTataBahasa[]
 
-    questions Question[]
-    progress  UserProgress[]
-    attempts  QuizAttempt[]
-    comments  LessonComment[]
+  questions Question[]
+  progress  UserProgress[]
+  attempts  QuizAttempt[]
+  comments  LessonComment[]
 
-    @@unique([moduleId, slug])
-    @@index([moduleId])
+  @@unique([moduleId, slug])
+  @@index([moduleId])
 }
 
 model LessonComment {
-    id        String   @id @default(uuid())
-    lessonId  String
-    userId    String
-    content   String   @db.Text
-    likes     Int      @default(0)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String   @id @default(uuid())
+  lessonId  String
+  userId    String
+  content   String   @db.Text
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    lesson  Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-    replies LessonCommentReply[]
+  lesson  Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies LessonCommentReply[]
 
-    @@index([lessonId, createdAt(sort: Desc)])
+  @@index([lessonId, createdAt(sort: Desc)])
 }
 
 model LessonCommentReply {
-    id           String   @id @default(uuid())
-    commentId    String
-    userId       String
-    content      String   @db.Text
-    likes        Int      @default(0)
-    isInstructor Boolean  @default(false)
-    createdAt    DateTime @default(now())
+  id           String   @id @default(uuid())
+  commentId    String
+  userId       String
+  content      String   @db.Text
+  likes        Int      @default(0)
+  isInstructor Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
-    comment LessonComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-    user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment LessonComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([commentId, createdAt(sort: Asc)])
+  @@index([commentId, createdAt(sort: Asc)])
 }
 
 // ====================================================================
 // 4. MASTER DATA KATEGORI (NORMALISASI 3NF)
 // ====================================================================
 model Category {
-    id   String       @id @default(uuid())
-    name String
-    type CategoryType
+  id   String       @id @default(uuid())
+  name String
+  type CategoryType
 
-    kanjis      MaterialKanji[]
-    kosakatas   MaterialKosakata[]
-    tataBahasas MaterialTataBahasa[]
+  kanjis      MaterialKanji[]
+  kosakatas   MaterialKosakata[]
+  tataBahasas MaterialTataBahasa[]
 
-    @@unique([name, type])
+  @@unique([name, type])
 }
 
 // ====================================================================
 // 5. MATERI PEMBELAJARAN
 // ====================================================================
 model MaterialKanji {
-    id            String  @id @default(uuid())
-    lessonId      String
-    categoryId    String?
-    huruf         String
-    furigana      String?
-    romaji        String?
-    arti          String
-    onyomi        String?
-    contohOnyomi  String?
-    artiOnyomi    String?
-    kunyomi       String?
-    contohKunyomi String?
-    artiKunyomi   String?
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String?
+  huruf         String
+  furigana      String?
+  romaji        String?
+  arti          String
+  onyomi        String?
+  contohOnyomi  String?
+  artiOnyomi    String?
+  kunyomi       String?
+  contohKunyomi String?
+  artiKunyomi   String?
 
-    lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }
 
 model MaterialKosakata {
-    id            String  @id @default(uuid())
-    lessonId      String
-    categoryId    String?
-    kosakata      String
-    furigana      String?
-    romaji        String?
-    arti          String
-    contohKalimat String? @db.Text
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String?
+  kosakata      String
+  furigana      String?
+  romaji        String?
+  arti          String
+  contohKalimat String? @db.Text
 
-    lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }
 
 model MaterialTataBahasa {
-    id            String  @id @default(uuid())
-    lessonId      String
-    categoryId    String?
-    tataBahasa    String
-    arti          String
-    contohKalimat String? @db.Text
+  id            String  @id @default(uuid())
+  lessonId      String
+  categoryId    String?
+  tataBahasa    String
+  arti          String
+  contohKalimat String? @db.Text
 
-    lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }
 
 // ====================================================================
 // 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
 // ====================================================================
 model TryoutSession {
-    id                String    @id @default(uuid())
-    code              String    @unique
-    title             String
-    phaseLabel        String
-    description       String?   @db.Text
-    /// Harga dalam Rupiah (0 = gratis); siap untuk bundling e-commerce.
-    priceIdr          Int       @default(0)
-    /// true = event terjadwal ketat (time-gated); false = open practice (akses kapan saja).
-    isStrictTimeBound Boolean   @default(true)
-    scheduledAt       DateTime?
-    isActive          Boolean   @default(true)
-    sortOrder         Int       @default(0)
-    timeLimitMinutes  Int       @default(120)
-    createdAt         DateTime  @default(now())
+  id                String    @id @default(uuid())
+  code              String    @unique
+  title             String
+  phaseLabel        String
+  description       String?   @db.Text
+  /// JLPT level for this session — one session = one level exam event.
+  level             LevelJLPT @default(N5)
+  /// Harga dalam Rupiah (0 = gratis); siap untuk bundling e-commerce.
+  priceIdr          Int       @default(0)
+  /// true = event terjadwal ketat (time-gated); false = open practice (akses kapan saja).
+  isStrictTimeBound Boolean   @default(true)
+  scheduledAt       DateTime?
+  isActive          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  timeLimitMinutes  Int       @default(120)
+  createdAt         DateTime  @default(now())
 
-    questions    Question[]
-    attempts     QuizAttempt[]
-    examProgress TryoutExamProgress[]
-    enrollments  Enrollment[]
+  questions    Question[]
+  attempts     QuizAttempt[]
+  examProgress TryoutExamProgress[]
+  enrollments  Enrollment[]
 }
 
 model LiveClass {
-    id          String    @id @default(uuid())
-    title       String
-    description String    @db.Text
-    senseiName  String
-    senseiLevel String?
-    category    String
-    level       LevelJLPT
-    /// Harga dalam Rupiah (0 = gratis); program/batch dapat dijual sebagai paket.
-    priceIdr    Int       @default(0)
-    maxSlots    Int       @default(30)
-    filledSlots Int       @default(0)
-    thumbUrl    String?
-    isPublished Boolean   @default(true)
-    createdAt   DateTime  @default(now())
+  id          String    @id @default(uuid())
+  title       String
+  description String    @db.Text
+  senseiName  String
+  senseiLevel String?
+  category    String
+  level       LevelJLPT
+  /// Harga dalam Rupiah (0 = gratis); program/batch dapat dijual sebagai paket.
+  priceIdr    Int       @default(0)
+  maxSlots    Int       @default(30)
+  filledSlots Int       @default(0)
+  thumbUrl    String?
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now())
 
-    enrollments Enrollment[]
-    sessions    LiveClassSession[]
+  enrollments Enrollment[]
+  sessions    LiveClassSession[]
 
-    @@index([isPublished])
+  @@index([isPublished])
 }
 
 model LiveClassSession {
-    id           String   @id @default(uuid())
-    liveClassId  String
-    /// Mis. "Pertemuan 1"
-    title        String
-    scheduledAt  DateTime
-    endsAt       DateTime
-    meetingUrl   String?
-    /// VOD pasca-kelas
-    recordingUrl String?
-    createdAt    DateTime @default(now())
+  id           String   @id @default(uuid())
+  liveClassId  String
+  /// Mis. "Pertemuan 1"
+  title        String
+  scheduledAt  DateTime
+  endsAt       DateTime
+  meetingUrl   String?
+  /// VOD pasca-kelas
+  recordingUrl String?
+  createdAt    DateTime @default(now())
 
-    liveClass LiveClass @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  liveClass LiveClass @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
 
-    @@index([liveClassId, scheduledAt])
+  @@index([liveClassId, scheduledAt])
 }
 
 model Question {
-    id              String       @id @default(uuid())
-    lessonId        String? // Optional: kosong jika ini soal Tryout
-    tryoutSessionId String?
-    tryoutLevel     LevelJLPT?
-    /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
-    tryoutSection   String?
-    sortOrder       Int          @default(0)
-    type            QuestionType @default(QUIZ)
-    questionText    String       @db.Text
-    explanation     String?      @db.Text
-    xpReward        Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
+  id              String       @id @default(uuid())
+  lessonId        String? // Optional: kosong jika ini soal Tryout
+  tryoutSessionId String?
+  /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
+  tryoutSection   String?
+  sortOrder       Int          @default(0)
+  type            QuestionType @default(QUIZ)
+  questionText    String       @db.Text
+  explanation     String?      @db.Text
+  xpReward        Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
-    /// CHOKAI — URL absolut audio clip di R2 (.mp3)
-    audioUrl         String?
-    /// CHOKAI — kode grup: beberapa soal pakai satu pemutar audio global
-    audioGroupId     String?
-    /// CHOKAI — ilustrasi stem (opsional, tipe jawaban Teks)
-    imageUrl         String?
-    /// CHOKAI — TEXT | IMAGE (bentuk opsi jawaban)
-    answerOptionKind String?
+  /// CHOKAI — URL absolut audio clip di R2 (.mp3)
+  audioUrl         String?
+  /// CHOKAI — kode grup: beberapa soal pakai satu pemutar audio global
+  audioGroupId     String?
+  /// CHOKAI — ilustrasi stem (opsional, tipe jawaban Teks)
+  imageUrl         String?
+  /// CHOKAI — TEXT | IMAGE (bentuk opsi jawaban)
+  answerOptionKind String?
 
-    lesson        Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    tryoutSession TryoutSession?   @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
-    options       QuestionOption[]
+  lesson        Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tryoutSession TryoutSession?   @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+  options       QuestionOption[]
 
-    @@index([tryoutSessionId, tryoutLevel, sortOrder])
-    @@index([audioGroupId])
+  @@index([tryoutSessionId, sortOrder])
+  @@index([audioGroupId])
 }
 
 model QuestionOption {
-    id         String  @id @default(uuid())
-    questionId String
-    text       String
-    /// CHOKAI gambar opsi — URL R2; text = alt/fallback
-    imageUrl   String?
-    isCorrect  Boolean @default(false)
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  /// CHOKAI gambar opsi — URL R2; text = alt/fallback
+  imageUrl   String?
+  isCorrect  Boolean @default(false)
 
-    question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 /// Progress ujian tryout in-progress (jawaban + audio sudah diputar).
 model TryoutExamProgress {
-    id              String    @id @default(uuid())
-    userId          String
-    tryoutSessionId String
-    tryoutLevel     LevelJLPT
-    /// JSON: { answers: Record<questionId, optionId>, playedAudioKeys: string[] }
-    answersJson     String    @db.Text
-    startedAt       DateTime  @default(now())
-    updatedAt       DateTime  @updatedAt
+  id              String   @id @default(uuid())
+  userId          String
+  tryoutSessionId String
+  /// JSON: { answers: Record<questionId, optionId>, playedAudioKeys: string[] }
+  answersJson     String   @db.Text
+  startedAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-    user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-    tryoutSession TryoutSession @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tryoutSession TryoutSession @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, tryoutSessionId, tryoutLevel])
-    @@index([tryoutSessionId, tryoutLevel])
+  @@unique([userId, tryoutSessionId])
+  @@index([tryoutSessionId])
 }
 
 // ====================================================================
 // 7. TRACKING PROGRESS SISWA
 // ====================================================================
 model UserProgress {
-    id          String   @id @default(uuid())
-    userId      String
-    lessonId    String
-    isCompleted Boolean  @default(true)
-    completedAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String
+  lessonId    String
+  isCompleted Boolean  @default(true)
+  completedAt DateTime @default(now())
 
-    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, lessonId])
+  @@unique([userId, lessonId])
 }
 
 model QuizAttempt {
-    id              String       @id @default(uuid())
-    userId          String
-    lessonId        String? // Optional: Kosong jika ini percobaan Tryout
-    type            QuestionType @default(QUIZ)
-    score           Int
-    /// Tryout — sesi & level (null untuk kuis pelajaran)
-    tryoutSessionId String?
-    tryoutLevel     LevelJLPT?
-    correctCount    Int?
-    totalQuestions  Int?
-    /// JSON: { [questionId]: selectedOptionId }
-    answersJson     String?      @db.Text
-    createdAt       DateTime     @default(now())
+  id              String       @id @default(uuid())
+  userId          String
+  lessonId        String? // Optional: Kosong jika ini percobaan Tryout
+  type            QuestionType @default(QUIZ)
+  score           Int
+  /// Tryout — sesi & level (null untuk kuis pelajaran)
+  tryoutSessionId String?
+  tryoutLevel     LevelJLPT?
+  correctCount    Int?
+  totalQuestions  Int?
+  /// JSON: { [questionId]: selectedOptionId }
+  answersJson     String?      @db.Text
+  createdAt       DateTime     @default(now())
 
-    user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-    lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-    tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: SetNull)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: SetNull)
 
-    @@index([userId, tryoutSessionId, createdAt(sort: Desc)])
+  @@index([userId, tryoutSessionId, createdAt(sort: Desc)])
 }

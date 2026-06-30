@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-import type { LevelJLPT } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
 import { importChokaiZip, previewChokaiZipImport } from '@/features/admin-cms/lib/import-chokai-zip';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
-
-const LEVELS: LevelJLPT[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 export async function POST(request: Request) {
     try {
@@ -22,14 +19,13 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const file = formData.get('file');
         const sessionId = String(formData.get('sessionId') ?? '').trim();
-        const level = String(formData.get('level') ?? 'N5').trim() as LevelJLPT;
 
         if (!(file instanceof File) || file.size === 0) {
             return NextResponse.json({ ok: false, message: 'File ZIP wajib diunggah.' }, { status: 400 });
         }
 
-        if (!sessionId || !LEVELS.includes(level)) {
-            return NextResponse.json({ ok: false, message: 'sessionId dan level wajib.' }, { status: 400 });
+        if (!sessionId) {
+            return NextResponse.json({ ok: false, message: 'sessionId wajib.' }, { status: 400 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
@@ -51,7 +47,6 @@ export async function POST(request: Request) {
         const result = await importChokaiZip(prisma, {
             sessionId,
             sessionCode: session.code,
-            level,
             buffer,
         });
 
@@ -61,7 +56,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             ok: true,
-            message: `${result.imported} soal Chokai berhasil diimpor (mengganti Chokai level ${level}).`,
+            message: `${result.imported} soal Chokai berhasil diimpor (mengganti semua soal CHOKAI sesi ${session.level}).`,
             imported: result.imported,
         });
     } catch (error) {

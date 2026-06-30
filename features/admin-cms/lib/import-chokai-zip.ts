@@ -1,4 +1,4 @@
-import type { LevelJLPT, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import JSZip from 'jszip';
 import {
     CHOKAI_DEFAULT_IMAGE_QUESTION_HINT,
@@ -351,7 +351,6 @@ export async function importChokaiZip(
     input: {
         sessionId: string;
         sessionCode: string;
-        level: LevelJLPT;
         buffer: Buffer;
     },
 ): Promise<{ imported: number }> {
@@ -381,7 +380,6 @@ export async function importChokaiZip(
     await db.question.deleteMany({
         where: {
             tryoutSessionId: input.sessionId,
-            tryoutLevel: input.level,
             tryoutSection: 'CHOKAI',
             type: 'TRYOUT',
         },
@@ -442,7 +440,6 @@ export async function importChokaiZip(
             data: {
                 type: 'TRYOUT',
                 tryoutSessionId: input.sessionId,
-                tryoutLevel: input.level,
                 tryoutSection: 'CHOKAI',
                 sortOrder,
                 questionText: row.questionText,

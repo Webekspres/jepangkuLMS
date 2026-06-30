@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import type { LevelJLPT } from '@prisma/client';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
 import {
     importTryoutQuestions,
@@ -9,8 +8,6 @@ import { importTryoutWorkbook, previewTryoutWorkbookImport } from '@/features/ad
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-
-const LEVELS: LevelJLPT[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 export async function POST(request: Request) {
     try {
@@ -26,7 +23,6 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const file = formData.get('file');
         const sessionId = String(formData.get('sessionId') ?? '').trim();
-        const level = String(formData.get('level') ?? 'N5').trim() as LevelJLPT;
 
         if (!(file instanceof File) || file.size === 0) {
             return NextResponse.json({ ok: false, message: 'File wajib diunggah.' }, { status: 400 });
@@ -63,8 +59,9 @@ export async function POST(request: Request) {
             });
         }
 
-        if (!LEVELS.includes(level)) {
-            return NextResponse.json({ ok: false, message: 'Level JLPT tidak valid.' }, { status: 400 });
+        const session = await prisma.tryoutSession.findUnique({ where: { id: sessionId } });
+        if (!session) {
+            return NextResponse.json({ ok: false, message: 'Sesi tryout tidak ditemukan.' }, { status: 404 });
         }
 
         const preview = parseTryoutImportBuffer(buffer, file.name);
@@ -84,7 +81,7 @@ export async function POST(request: Request) {
 
         const result = await importTryoutQuestions(prisma, {
             sessionId,
-            level,
+            level: session.level,
             rows: preview.validRows,
         });
 
@@ -94,7 +91,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             ok: true,
-            message: `${result.imported} soal berhasil ditambahkan.`,
+            message: `${result.imported} soal berhasil ditambahkan (level ${session.level}).`,
             imported: result.imported,
             sectionCounts: preview.sectionCounts,
             errors: [],
