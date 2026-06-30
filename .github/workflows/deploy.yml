@@ -48,6 +48,7 @@ jobs:
 
   build:
     needs: test
+    if: github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: ${{ (github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')) && 'production' || 'staging' }}
     permissions:
@@ -139,7 +140,8 @@ jobs:
     needs: build
     if: >
       needs.build.outputs.version_tag == 'staging' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      ((github.ref == 'refs/heads/staging' && github.event_name == 'push') ||
+       (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'))
     runs-on: ubuntu-latest
     environment: staging
     env:
