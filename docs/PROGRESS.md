@@ -114,16 +114,17 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 ### 2.4 Admin
 
-| Route                                      | Status | Catatan                                                                                                           |
-| :----------------------------------------- | :----: | :---------------------------------------------------------------------------------------------------------------- |
-| `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                                                          |
-| `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                                                            |
-| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian (MOJI GOI / BUNPOU DOKKAI / CHOKAI) + impor CSV/XLSX + upload audio R2 + grup audio |
-| `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                                                         |
-| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                                                                |
-| `/admin/kursus/import`                     |   ✅   | CSV kursus                                                                                                        |
-| `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md))                                  |
-| `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                                                             |
+| Route                                      | Status | Catatan                                                                          |
+| :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
+| `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
+| `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                           |
+| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian + impor Excel workbook + audio R2 Chokai           |
+| `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
+| `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                        |
+| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                               |
+| `/admin/kursus/import`                     |   ✅   | Impor kursus formulir Excel multi-tab (ganti CSV)                                |
+| `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md)) |
+| `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                            |
 
 ---
 
@@ -194,6 +195,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | 2026-06-26 | Hapus rate limiting middleware di `proxy.ts` — memblokir staging (shared IP + RSC request volume)                                                                                                                                                               |
 | 2026-06-26 | Refactor profile photo cropping modal to be fully theme-adaptive; replace custom RPG loading screens with the standard JepangKu splash loading interface and enforce production fail-gate restrictions on core connection errors                                |
 | 2026-06-26 | Implement deferred avatar upload flow to Cloudflare R2 on form save with client-side react-easy-crop editor, local object URL preview, memory leak cleanup, and z-index toaster layer adjustment                                                                |
+| 2026-06-29 | Impor kursus & tryout: formulir Excel berwarna multi-tab, hapus CSV kursus, `/admin/tryout/import` workbook mandiri (sesi + MOJI/BUNPOU)                                                                                                                        |
 | 2026-06-26 | Overhaul Jalur JLPT Saya stepper to an RPG-inspired adventure journey map with winding paths, Kamon-themed emblem nodes, radial progress rings, and a character dashboard stat sheet                                                                            |
 | 2026-06-26 | Refactor copywriting halaman marketing & student dashboard, hapus Sesi Simulasi Mendatang di tryout, tambah avatar di welcome card, dan visual polish Live Class & Leaderboard                                                                                  |
 | 2026-06-26 | Implementasi rate limiting di middleware (proxy.ts) dan Redis-ready client; fix bun:test type declarations error                                                                                                                                                |

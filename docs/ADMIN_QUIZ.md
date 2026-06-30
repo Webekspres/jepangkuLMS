@@ -1,18 +1,18 @@
 # Admin Bank Soal — Keputusan Arsitektur
 
-| Meta | Nilai |
-| :--- | :--- |
-| **Status** | ✅ Keputusan final MVP |
-| **Terakhir diperbarui** | 2026-06-19 |
+| Meta                    | Nilai                  |
+| :---------------------- | :--------------------- |
+| **Status**              | ✅ Keputusan final MVP |
+| **Terakhir diperbarui** | 2026-06-19             |
 
 ## Ringkasan
 
 Route sitemap `/admin/quiz` dan `/admin/quiz/import` **tidak** mengimplementasikan CMS bank soal terpusat dan **dihapus dari sidebar admin** (Juni 2026).
 
-| Jenis soal | Lokasi CMS |
-| :--- | :--- |
-| **Kuis per pelajaran** | `/admin/kursus → modul → pelajaran → tab Bank Soal` (lesson workspace) |
-| **Tryout JLPT** | `/admin/tryout → [sesi] → Soal` — filter level N5–N1 + bagian MOJI_GOI / BUNPOU_DOKKAI / CHOKAI |
+| Jenis soal             | Lokasi CMS                                                                                      |
+| :--------------------- | :---------------------------------------------------------------------------------------------- |
+| **Kuis per pelajaran** | `/admin/kursus → modul → pelajaran → tab Bank Soal` (lesson workspace)                          |
+| **Tryout JLPT**        | `/admin/tryout → [sesi] → Soal` — filter level N5–N1 + bagian MOJI_GOI / BUNPOU_DOKKAI / CHOKAI |
 
 ## Alasan
 
@@ -24,6 +24,6 @@ Route sitemap `/admin/quiz` dan `/admin/quiz/import` **tidak** mengimplementasik
 
 Halaman informasi + redirect ke Kelola Kursus — **tidak** muncul di sidebar.
 
-## Import CSV
+## Import Excel
 
-Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (kolom `quiz_*`).
+Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (tab **6. Kuis** di formulir Excel).
