@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
         if (!sessionId) {
             if (dryRun) {
-                const preview = previewTryoutWorkbookImport(buffer);
+                const preview = await previewTryoutWorkbookImport(buffer);
                 return NextResponse.json({
                     ok: preview.ok,
                     preview,
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: 'Sesi tryout tidak ditemukan.' }, { status: 404 });
         }
 
-        const preview = parseTryoutImportBuffer(buffer, file.name);
+        const preview = await parseTryoutImportBuffer(buffer, file.name);
 
         if (!preview.ok) {
             return NextResponse.json(

@@ -91,12 +91,14 @@ jobs:
             echo "app_url=https://kursus.jepangku.com" >> "$GITHUB_OUTPUT"
             echo "sign_in_url=https://kursus.jepangku.com/sign-in" >> "$GITHUB_OUTPUT"
             echo "sign_up_url=https://kursus.jepangku.com/sign-up" >> "$GITHUB_OUTPUT"
+            echo "core_integration_ui=false" >> "$GITHUB_OUTPUT"
           else
             echo "version_tag=staging" >> "$GITHUB_OUTPUT"
             echo "migrate_tag=migrate-staging" >> "$GITHUB_OUTPUT"
             echo "app_url=https://dev.kursus.jepangku.com" >> "$GITHUB_OUTPUT"
             echo "sign_in_url=https://dev.kursus.jepangku.com/sign-in" >> "$GITHUB_OUTPUT"
             echo "sign_up_url=https://dev.kursus.jepangku.com/sign-up" >> "$GITHUB_OUTPUT"
+            echo "core_integration_ui=true" >> "$GITHUB_OUTPUT"
           fi
           echo "migrate_sha_tag=migrate-sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
@@ -118,6 +120,7 @@ jobs:
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ steps.meta.outputs.sign_in_url }}
             NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ steps.meta.outputs.sign_up_url }}
+            NEXT_PUBLIC_CORE_INTEGRATION_UI=${{ steps.meta.outputs.core_integration_ui }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version_tag }}
             ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
@@ -191,6 +194,12 @@ jobs:
           set -a
           source .env
           set +a
+
+          if [ -f deploy/scripts/vps-sync-client-env-from-core.py ]; then
+            python3 deploy/scripts/vps-sync-client-env-from-core.py \
+              --core-env "\$DEPLOY_PATH/.env" --client lms \
+              --client-env "\$DEPLOY_PATH/lms/.env"
+          fi
 
           docker pull "\$MIGRATE_IMAGE"
           docker run --rm \

@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import * as fs from 'node:fs/promises';
 
 export const XLSX_COLORS = {
     guideBg: 'FFFEF3C7',
@@ -26,15 +27,50 @@ export function stripSheetPrefix(name: string): string {
     return name.replace(/^\d+\.\s*/, '').trim();
 }
 
-export function readXlsxBuffer(buffer: Buffer): XLSX.WorkBook {
-    return XLSX.read(buffer, { type: 'buffer' });
+export async function readXlsxFile(filePath: string): Promise<ExcelJS.Workbook> {
+    const buffer = await fs.readFile(filePath);
+    return readXlsxBuffer(buffer);
 }
 
-export function resolveSheetName(workbook: XLSX.WorkBook, aliases: string[]): string | null {
+/** First row = column headers (seed / legacy sheets). */
+export function sheetFirstRowToRecords(
+    workbook: ExcelJS.Workbook,
+    sheetName: string,
+): Record<string, string | number>[] {
+    const worksheet = workbook.getWorksheet(sheetName);
+    if (!worksheet) return [];
+
+    const rows = worksheetToRows(worksheet);
+    if (rows.length < 2) return [];
+
+    const headers = (rows[0] ?? []).map((cell) => String(cell ?? '').trim());
+    const records: Record<string, string | number>[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i] ?? [];
+        const record: Record<string, string | number> = {};
+        headers.forEach((header, colIdx) => {
+            if (!header) return;
+            const val = row[colIdx];
+            record[header] = val === undefined || val === null ? '' : (val as string | number);
+        });
+        records.push(record);
+    }
+
+    return records;
+}
+
+export async function readXlsxBuffer(buffer: Buffer): Promise<ExcelJS.Workbook> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    return workbook;
+}
+
+export function resolveSheetName(workbook: ExcelJS.Workbook, aliases: string[]): string | null {
     const normalizedAliases = new Set(aliases.map((a) => normalizeHeaderKey(stripSheetPrefix(a))));
-    for (const name of workbook.SheetNames) {
-        const key = normalizeHeaderKey(stripSheetPrefix(name));
-        if (normalizedAliases.has(key)) return name;
+    for (const sheet of workbook.worksheets) {
+        const key = normalizeHeaderKey(stripSheetPrefix(sheet.name));
+        if (normalizedAliases.has(key)) return sheet.name;
     }
     return null;
 }
@@ -62,8 +98,23 @@ function findHeaderRowIndex(rows: unknown[][], headerKeys: string[]): number {
     return -1;
 }
 
+function worksheetToRows(worksheet: ExcelJS.Worksheet): unknown[][] {
+    const rows: unknown[][] = [];
+    worksheet.eachRow({ includeEmpty: true }, (row) => {
+        const values: unknown[] = [];
+        // row.values is 1-indexed, index 0 is undefined
+        for (let i = 1; i <= row.cellCount; i++) {
+            const cell = row.getCell(i);
+            // Use text representation to match xlsx raw:false behavior
+            values.push(cell.text ?? '');
+        }
+        rows.push(values);
+    });
+    return rows;
+}
+
 export function sheetToRecords(
-    workbook: XLSX.WorkBook,
+    workbook: ExcelJS.Workbook,
     sheetAliases: string[],
     requiredHeaderKeys: string[],
 ): { records: Record<string, string>[]; headerRow: number } | { error: string } {
@@ -72,14 +123,10 @@ export function sheetToRecords(
         return { error: `Tab "${sheetAliases[0]}" tidak ditemukan.` };
     }
 
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) return { error: `Tab "${sheetName}" kosong.` };
+    const worksheet = workbook.getWorksheet(sheetName);
+    if (!worksheet) return { error: `Tab "${sheetName}" kosong.` };
 
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-        header: 1,
-        defval: '',
-        raw: false,
-    }) as unknown[][];
+    const rows = worksheetToRows(worksheet);
 
     const headerIdx = findHeaderRowIndex(rows, requiredHeaderKeys);
     if (headerIdx < 0) {

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         if (dryRun) {
-            const preview = previewCourseXlsxImport(buffer);
+            const preview = await previewCourseXlsxImport(buffer);
             return NextResponse.json({ ok: preview.ok, preview });
         }
 

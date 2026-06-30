@@ -1,3 +1,4 @@
+import type ExcelJS from 'exceljs';
 import type { LevelJLPT, PrismaClient } from '@prisma/client';
 import { levelJlptSchema } from '@/lib/validations/shared';
 import type { TryoutImportRow, TryoutImportPreview } from '@/features/admin-cms/lib/import-tryout-questions';
@@ -97,17 +98,17 @@ function parseSessionRow(
     };
 }
 
-function isWorkbookMode(workbook: ReturnType<typeof readXlsxBuffer>): boolean {
+function isWorkbookMode(workbook: ExcelJS.Workbook): boolean {
     return Boolean(
         resolveSheetName(workbook, ['info sesi', '1. info sesi', 'sesi']),
     );
 }
 
-export function previewTryoutWorkbookImport(buffer: Buffer): TryoutWorkbookPreview {
+export async function previewTryoutWorkbookImport(buffer: Buffer): Promise<TryoutWorkbookPreview> {
     const warnings: string[] = [];
-    let workbook: ReturnType<typeof readXlsxBuffer>;
+    let workbook: ExcelJS.Workbook;
     try {
-        workbook = readXlsxBuffer(buffer);
+        workbook = await readXlsxBuffer(buffer);
     } catch {
         return {
             ok: false,
@@ -248,7 +249,7 @@ export async function importTryoutWorkbook(
     db: PrismaClient,
     buffer: Buffer,
 ): Promise<{ ok: boolean; message: string; sessionId?: string; imported: number }> {
-    const preview = previewTryoutWorkbookImport(buffer);
+    const preview = await previewTryoutWorkbookImport(buffer);
     if (!preview.ok || !preview.session) {
         const first = preview.questionPreview.errors[0]?.message ?? 'Validasi gagal.';
         return { ok: false, message: first, imported: 0 };

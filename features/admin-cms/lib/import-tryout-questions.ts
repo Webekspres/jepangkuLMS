@@ -57,15 +57,15 @@ function toPreview(
 }
 
 /** Legacy flat sheet (satu tab + kolom Section) — untuk tambah soal di sesi existing. */
-export function parseTryoutImportBuffer(buffer: Buffer, filename: string): TryoutImportPreview {
+export async function parseTryoutImportBuffer(buffer: Buffer, filename: string): Promise<TryoutImportPreview> {
     const lower = filename.toLowerCase();
     if (!lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
         return emptyPreview([{ row: 0, message: 'Format harus .xlsx. Unduh formulir Excel.' }]);
     }
 
-    let workbook: ReturnType<typeof readXlsxBuffer>;
+    let workbook: Awaited<ReturnType<typeof readXlsxBuffer>>;
     try {
-        workbook = readXlsxBuffer(buffer);
+        workbook = await readXlsxBuffer(buffer);
     } catch {
         return emptyPreview([{ row: 0, message: 'File Excel tidak bisa dibaca.' }]);
     }
@@ -80,7 +80,7 @@ export function parseTryoutImportBuffer(buffer: Buffer, filename: string): Tryou
         ]);
     }
 
-    const sheetName = workbook.SheetNames[0];
+    const sheetName = workbook.worksheets[0]?.name;
     if (!sheetName) {
         return emptyPreview([{ row: 0, message: 'File Excel kosong.' }]);
     }
@@ -94,7 +94,7 @@ export function parseTryoutImportBuffer(buffer: Buffer, filename: string): Tryou
     return toPreview(validRows, errors.map((e) => ({ ...e, message: e.message })));
 }
 
-export function parseTryoutLegacyFlatXlsx(buffer: Buffer): TryoutImportPreview {
+export async function parseTryoutLegacyFlatXlsx(buffer: Buffer): Promise<TryoutImportPreview> {
     return parseTryoutImportBuffer(buffer, 'legacy.xlsx');
 }
 
