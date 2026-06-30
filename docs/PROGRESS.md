@@ -118,7 +118,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
 | `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
 | `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                           |
-| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian + impor Excel workbook + audio R2 Chokai           |
+| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian + impor Excel MOJI/BUNPOU + impor ZIP Chokai       |
 | `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
 | `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                        |
 | `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                               |
@@ -183,6 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |
 | 2026-06-30 | Refactor monetisasi & metadata: `CourseCategoryType` (Utama/Gratis/Tambahan) + dropdown CMS + kolom Excel outcomes; `TryoutSession.level` (satu sesi = satu JLPT), hapus `Question.tryoutLevel`, bank soal tanpa tab level, enrollment gate tryout by session id, `logLmsXpEvent` upsert anti-P2002 |
 | 2026-06-29 | Fitur "Bagikan Pencapaian" (Share Achievement) pada halaman koleksi badge siswa: modal interaktif berdesain glassmorphism premium dengan pulsing glow sesuai rarity, integrasi Web Share API dan link sharing sosial media (WhatsApp, X/Twitter, Threads, Facebook), serta fitur "Simpan Kartu" (Unduh Gambar) 1080x1920 berbasis html-to-image |
 | 2026-06-29 | Dukungan otomatisasi penyelesaian tingkat kursus (SPECIFIC_COURSE_COMPLETE) pada sistem badge: penambahan relasi targetCourseId/targetCourse pada skema Prisma LmsBadge, form input Dropdown dinamis memilih Course di admin panel, validasi Zod targetCourseId, dan format label syarat siswa dinamis |

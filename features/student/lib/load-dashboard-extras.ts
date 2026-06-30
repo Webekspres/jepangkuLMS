@@ -228,7 +228,9 @@ export type TryoutExamQuestion = {
   explanation: string | null;
   audioUrl: string | null;
   audioGroupId: string | null;
-  options: { id: string; text: string }[];
+  imageUrl: string | null;
+  answerOptionKind: 'TEXT' | 'IMAGE' | null;
+  options: { id: string; text: string; imageUrl: string | null }[];
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -284,7 +286,18 @@ export async function loadTryoutExam(sessionCode: string, userId: string) {
           explanation: q.explanation,
           audioUrl: display.audioUrl,
           audioGroupId: display.audioGroupId,
-          options: q.options.map((o) => ({ id: o.id, text: o.text })),
+          imageUrl: q.imageUrl,
+          answerOptionKind:
+            q.answerOptionKind === 'IMAGE'
+              ? 'IMAGE'
+              : q.answerOptionKind === 'TEXT'
+                ? 'TEXT'
+                : null,
+          options: q.options.map((o) => ({
+            id: o.id,
+            text: o.text,
+            imageUrl: o.imageUrl,
+          })),
         };
       }),
     ),
@@ -293,7 +306,7 @@ export async function loadTryoutExam(sessionCode: string, userId: string) {
   return {
     session,
     empty: false as const,
-    questions: ordered,
+    questions: ordered as TryoutExamQuestion[],
   };
 }
 

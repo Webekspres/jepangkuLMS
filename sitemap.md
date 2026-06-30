@@ -119,8 +119,8 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via **formulir Exc
 │   └── … modul / pelajaran / workspace
 │
 ├── /tryout                      → CMS JLPT Tryout
-│   ├── /import                  → Impor sesi + soal (workbook Excel, tanpa Chokai)
-│   └── /[sessionId]/soal        → Kelola soal per sesi
+│   ├── /import                  → Impor sesi + soal MOJI/BUNPOU (workbook Excel)
+│   └── /[sessionId]/soal        → Kelola soal per sesi · tab CHOKAI: impor ZIP
 │
 └── /quiz                        → Info bank soal (kelola per pelajaran di lesson workspace)
 ```

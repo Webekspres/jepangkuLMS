@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { TryoutExamWorkspace } from '@/features/tryout/components/tryout-exam-workspace';
+import { getOrCreateTryoutExamProgress } from '@/features/tryout/actions/tryout-exam-progress-actions';
 import { loadTryoutExam } from '@/features/student/lib/load-dashboard-extras';
 import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
@@ -77,6 +78,7 @@ export default async function TryoutExamRoutePage({ params }: PageProps) {
       level={exam.session.level}
       timeLimitMinutes={exam.session.timeLimitMinutes}
       questions={exam.questions}
+      examProgress={await getOrCreateTryoutExamProgress(exam.session.id)}
     />
   );
 }
