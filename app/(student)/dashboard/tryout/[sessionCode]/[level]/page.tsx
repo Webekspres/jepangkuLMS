@@ -68,10 +68,9 @@ export default async function TryoutExamRoutePage({ params }: PageProps) {
     }
 
     return (
-        <TryoutExamWorkspace
-            sessionCode={exam.session.code}
-            sessionId={exam.session.id}
-            sessionTitle={exam.session.title}
+    <TryoutExamWorkspace
+      sessionCode={exam.session.code}
+      sessionTitle={exam.session.title}
             level={level}
             timeLimitMinutes={exam.session.timeLimitMinutes}
             questions={exam.questions}

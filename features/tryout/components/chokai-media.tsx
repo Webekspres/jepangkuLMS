@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { markTryoutAudioPlayed } from '@/features/tryout/actions/tryout-exam-progress-actions';
@@ -25,11 +25,8 @@ export function ChokaiAudioPlayer({
     onPlayed,
 }: ChokaiAudioPlayerProps) {
     const audioRef = useRef<HTMLAudioElement>(null);
-    const [phase, setPhase] = useState<'idle' | 'playing' | 'done'>(alreadyPlayed ? 'done' : 'idle');
-
-    useEffect(() => {
-        if (alreadyPlayed) setPhase('done');
-    }, [alreadyPlayed]);
+  const [sessionPhase, setSessionPhase] = useState<'idle' | 'playing' | 'done'>('idle');
+  const phase = alreadyPlayed ? 'done' : sessionPhase;
 
     const resolvedUrl = resolveMediaUrl(audioUrl);
 
@@ -41,12 +38,12 @@ export function ChokaiAudioPlayer({
 
         onPlayed?.(playKey);
 
-        setPhase('playing');
-        try {
-            await audioRef.current.play();
-        } catch {
-            setPhase('done');
-        }
+    setSessionPhase('playing');
+    try {
+      await audioRef.current.play();
+    } catch {
+      setSessionPhase('done');
+    }
     }
 
     return (
@@ -57,7 +54,7 @@ export function ChokaiAudioPlayer({
                     preload="auto"
                     src={resolvedUrl}
                     className="hidden"
-                    onEnded={() => setPhase('done')}
+                    onEnded={() => setSessionPhase('done')}
                 >
                     <track kind="captions" />
                 </audio>

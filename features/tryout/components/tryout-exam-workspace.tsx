@@ -47,9 +47,8 @@ const SECTION_COLORS: Record<string, string> = {
 };
 
 type TryoutExamWorkspaceProps = {
-    sessionCode: string;
-    sessionId: string;
-    sessionTitle: string;
+  sessionCode: string;
+  sessionTitle: string;
     level: string;
     timeLimitMinutes: number;
     questions: TryoutExamQuestion[];
@@ -155,10 +154,9 @@ function SectionNavigator({
 }
 
 export function TryoutExamWorkspace({
-    sessionCode,
-    sessionId,
-    sessionTitle,
-    level,
+  sessionCode,
+  sessionTitle,
+  level,
     timeLimitMinutes,
     questions,
     examProgress,

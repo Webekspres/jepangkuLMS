@@ -63,9 +63,8 @@ function formatRowError(row: number, message: string) {
 }
 
 function resolveCorrectIndex(
-    raw: string,
-    optionCount: number,
-    rowNumber: number,
+  raw: string,
+  optionCount: number,
 ): { index: number } | { error: string } {
     const trimmed = raw.trim();
     if (!trimmed) return { error: 'Jawaban wajib diisi.' };
@@ -247,7 +246,7 @@ export function parseChokaiExcelRecords(
 
         const jawabanRaw = pickField(record, ['jawaban', 'jawaban_benar']);
         const resolved =
-            options.length >= 2 ? resolveCorrectIndex(jawabanRaw, options.length, rowNumber) : { error: 'Opsi tidak lengkap.' };
+            options.length >= 2 ? resolveCorrectIndex(jawabanRaw, options.length) : { error: 'Opsi tidak lengkap.' };
         if ('error' in resolved) rowErrors.push(resolved.error);
 
         const questionText =
