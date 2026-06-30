@@ -201,7 +201,6 @@ export function TryoutExamWorkspace({
     startTransition(async () => {
       const response = await submitTryoutAttempt({
         sessionCode,
-        level: level as 'N5' | 'N4' | 'N3' | 'N2' | 'N1',
         answers: answersRef.current,
       });
       setSubmitting(false);
@@ -211,7 +210,7 @@ export function TryoutExamWorkspace({
       }
       router.push(STUDENT_ROUTES.tryoutResult(response.attemptId));
     });
-  }, [sessionCode, level, router]);
+  }, [sessionCode, router]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {

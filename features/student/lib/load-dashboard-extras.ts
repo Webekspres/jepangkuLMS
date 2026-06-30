@@ -11,6 +11,7 @@ import {
   type LiveSessionStatus,
 } from '@/features/live-class/lib/session-access';
 import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
+import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
 
@@ -165,6 +166,7 @@ export type TryoutSessionView = {
   code: string;
   title: string;
   phaseLabel: string;
+  level: LevelJLPT;
   description: string | null;
   scheduledAt: string | null;
   timeLimitMinutes: number;
@@ -203,6 +205,7 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
       code: session.code,
       title: session.title,
       phaseLabel: session.phaseLabel,
+      level: session.level,
       description: session.description,
       scheduledAt: session.scheduledAt?.toISOString() ?? null,
       timeLimitMinutes: session.timeLimitMinutes,
@@ -234,18 +237,27 @@ const SECTION_LABELS: Record<string, string> = {
   CHOKAI: 'CHOKAI',
 };
 
-export async function loadTryoutExam(sessionCode: string, level: LevelJLPT) {
+export async function loadTryoutExam(sessionCode: string, userId: string) {
   const session = await prisma.tryoutSession.findUnique({
     where: { code: sessionCode, isActive: true },
   });
 
   if (!session) return null;
 
+  const enrollment = await ensureTryoutEnrollmentAccess(userId, session);
+  if (!enrollment.ok) {
+    return {
+      session,
+      questions: [],
+      empty: true as const,
+      enrollmentBlocked: enrollment.message,
+    };
+  }
+
   const questions = await prisma.question.findMany({
     where: {
       type: 'TRYOUT',
       tryoutSessionId: session.id,
-      tryoutLevel: level,
     },
     include: { options: { orderBy: { id: 'asc' } } },
     orderBy: { sortOrder: 'asc' },

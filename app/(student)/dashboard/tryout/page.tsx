@@ -13,14 +13,13 @@ type PageProps = {
   searchParams: Promise<{ session?: string; level?: string }>;
 };
 
-/** Legacy query URL → path-based exam route */
+/** Legacy query URL → path-based exam route (level ignored; session carries level). */
 export default async function DashboardTryoutRoutePage({ searchParams }: PageProps) {
   const params = await searchParams;
   const sessionCode = params.session?.trim();
-  const level = params.level?.trim();
 
-  if (sessionCode && level) {
-    redirect(STUDENT_ROUTES.tryoutExam(sessionCode, level));
+  if (sessionCode) {
+    redirect(STUDENT_ROUTES.tryoutExam(sessionCode));
   }
 
   const sessions = await loadTryoutSessions();

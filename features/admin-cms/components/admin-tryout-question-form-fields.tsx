@@ -134,13 +134,11 @@ export function TryoutQuestionFormFields({
 
 export function buildTryoutQuestionPayload(
   sessionId: string,
-  level: LevelJLPT,
   section: TryoutSectionValue,
   form: TryoutQuestionFormState,
 ) {
   return {
     tryoutSessionId: sessionId,
-    tryoutLevel: level,
     tryoutSection: section,
     questionText: form.questionText,
     explanation: form.explanation,
