@@ -1,6 +1,11 @@
+import type { LmsCoreSyncStatus } from '@prisma/client';
 import type { LmsActivityKind } from '@/lib/core/activity-map';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
-import { awardLmsXp, isCoreAwardConfigured } from '@/lib/core/gamification';
+import {
+  awardLmsXp,
+  coreResultToSyncStatus,
+  isCoreAwardConfigured,
+} from '@/lib/core/gamification';
 import { awardLmsPoints, type LmsPointSourceType } from '@/lib/lms/points';
 import { logLmsXpEvent } from '@/lib/lms/xp-events';
 
@@ -72,25 +77,34 @@ export async function awardLmsActivity(input: AwardLmsActivityInput): Promise<{
   let coreAwarded = false;
 
   if (xpAmount > 0) {
+    const coreIdempotencyKey =
+      input.idempotencyKey ??
+      buildLmsIdempotencyKey(coreKind, userId, sourceId ?? pointsSourceKey);
+
+    // Attempt Core FIRST so the local outbox row records the real sync status.
+    let coreStatus: LmsCoreSyncStatus = 'SKIPPED';
     if (isCoreAwardConfigured()) {
       const coreResult = await awardLmsXp({
         userId,
         kind: coreKind,
         xpGained: xpAmount,
         sourceRefId: sourceId,
-        idempotencyKey:
-          input.idempotencyKey ??
-          buildLmsIdempotencyKey(coreKind, userId, sourceId ?? pointsSourceKey),
+        idempotencyKey: coreIdempotencyKey,
       });
-      coreAwarded = coreResult != null;
+      coreStatus = coreResultToSyncStatus(coreResult);
+      coreAwarded = coreStatus === 'SYNCED';
     }
 
+    // Outbox: PENDING rows are re-dispatched by retryPendingCoreXp().
     await logLmsXpEvent({
       userId,
       xpGained: xpAmount,
       sourceKey: xpSourceKey,
       sourceType: pointsSourceType,
       sourceId,
+      coreKind,
+      coreIdempotencyKey,
+      coreStatus,
     });
   }
 
@@ -127,6 +141,7 @@ export async function awardLmsSplitActivity(input: AwardLmsSplitActivityInput): 
 
   let coreAwarded = false;
   if (xpAmount > 0) {
+    let coreStatus: LmsCoreSyncStatus = 'SKIPPED';
     if (isCoreAwardConfigured()) {
       const coreResult = await awardLmsXp({
         userId,
@@ -135,7 +150,8 @@ export async function awardLmsSplitActivity(input: AwardLmsSplitActivityInput): 
         sourceRefId: sourceId,
         idempotencyKey,
       });
-      coreAwarded = coreResult != null;
+      coreStatus = coreResultToSyncStatus(coreResult);
+      coreAwarded = coreStatus === 'SYNCED';
     }
 
     await logLmsXpEvent({
@@ -144,6 +160,9 @@ export async function awardLmsSplitActivity(input: AwardLmsSplitActivityInput): 
       sourceKey: `xp:${idempotencyKey}`,
       sourceType: xpSourceType,
       sourceId,
+      coreKind,
+      coreIdempotencyKey: idempotencyKey,
+      coreStatus,
     });
   }
 

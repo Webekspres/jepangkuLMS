@@ -5,7 +5,6 @@ import {
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
-import type { ModuleRow } from '@/features/learning/lib/course-tree';
 import { formatIdr } from '@/lib/lms/format-price';
 
 const DEFAULT_THUMB = '/assets/bg-courses.webp';
@@ -18,12 +17,6 @@ export function estimateCourseDuration(lessonCount: number): string {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
   return remainder > 0 ? `~${hours} jam ${remainder} menit` : `~${hours} jam`;
-}
-
-export function buildWhatYouLearnFromModules(modules: ModuleRow[]): string[] {
-  return modules
-    .map((mod) => mod.description?.trim() || mod.title.trim())
-    .filter(Boolean);
 }
 
 /** Gabung data kursus dari DB — tanpa overlay katalog statis. */

@@ -189,6 +189,7 @@ export function getCachedCourseWithLessons(slug: string) {
           isFeatured: course.isFeatured,
         }),
         dbId: course.id,
+        outcomes: course.outcomes,
         modules,
         lessons: lessons.map((lesson) => ({
           id: lesson.id,

@@ -22,11 +22,22 @@ export type CmsActionResult = {
   fieldErrors?: Record<string, string[]>;
 };
 
+/** Textarea satu-outcome-per-baris → array bersih (tanpa baris kosong). */
+function parseOutcomesField(raw: FormDataEntryValue | null): string[] {
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 function parseCourseCreateForm(formData: FormData) {
   return courseCreateFormSchema.safeParse({
     title: formData.get('title'),
     slug: formData.get('slug') ?? '',
     description: formData.get('description') ?? '',
+    outcomes: parseOutcomesField(formData.get('outcomes')),
     level: formData.get('level'),
     priceIdr: formData.get('priceIdr') ?? '0',
     isPublished: formData.get('isPublished') === 'on',
@@ -38,6 +49,7 @@ function parseCourseUpdateForm(formData: FormData) {
     title: formData.get('title'),
     slug: formData.get('slug'),
     description: formData.get('description') ?? '',
+    outcomes: parseOutcomesField(formData.get('outcomes')),
     level: formData.get('level'),
     priceIdr: formData.get('priceIdr') ?? '0',
     isPublished: formData.get('isPublished') === 'on',
@@ -61,6 +73,7 @@ export async function createCourseAction(formData: FormData): Promise<CmsActionR
         title: data.title,
         slug,
         description: data.description || null,
+        outcomes: data.outcomes,
         level: data.level,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,
@@ -95,6 +108,7 @@ export async function updateCourseAction(
         title: data.title,
         slug: data.slug,
         description: data.description || null,
+        outcomes: data.outcomes,
         level: data.level,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,

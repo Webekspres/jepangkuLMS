@@ -6,6 +6,7 @@ import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsActivity, awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
+import { retryPendingCoreXp } from '@/lib/lms/core-xp-retry';
 import {
   calculateQuizPoints,
   lmsFlashcardVisitSourceKey,
@@ -159,6 +160,11 @@ export async function markLessonComplete(
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_LESSON' });
   }
 
+  // Self-healing: re-dispatch any of this user's XP that failed to reach Core.
+  await retryPendingCoreXp({ userId, limit: 10 }).catch((error) => {
+    learningLog.warn({ userId, error }, 'Core XP outbox drain skipped');
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/belajar');
@@ -266,6 +272,10 @@ export async function submitQuizAnswers(input: {
   if (priorQuizAttempts === 0) {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_QUIZ' });
   }
+
+  await retryPendingCoreXp({ userId, limit: 10 }).catch((error) => {
+    learningLog.warn({ userId, error }, 'Core XP outbox drain skipped');
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
