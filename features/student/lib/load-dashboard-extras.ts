@@ -306,7 +306,7 @@ export async function loadTryoutExam(sessionCode: string, userId: string) {
   return {
     session,
     empty: false as const,
-    questions: ordered,
+    questions: ordered as TryoutExamQuestion[],
   };
 }
 
