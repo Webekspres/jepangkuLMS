@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppProviders } from "@/components/providers";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { AnalyticsPageViewTracker } from "@/components/analytics/analytics-page-view-tracker";
+import { getClerkPublishableKey } from "@/lib/auth/clerk-config";
 import { getGscVerificationToken } from "@/lib/analytics/config";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clerkPublishableKey = getClerkPublishableKey();
+
   return (
     <html
       lang="en"
@@ -41,7 +44,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <GoogleAnalytics />
-        <AppProviders>
+        <AppProviders clerkPublishableKey={clerkPublishableKey}>
           <Suspense fallback={null}>
             <AnalyticsPageViewTracker />
           </Suspense>

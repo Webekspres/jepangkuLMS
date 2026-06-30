@@ -19,7 +19,13 @@ function resolveIsDark(resolvedTheme: string | undefined): boolean {
 }
 
 /** ClerkProvider di dalam ThemeProvider — appearance ikut light/dark. */
-export function ClerkProviderThemed({ children }: { children: React.ReactNode }) {
+export function ClerkProviderThemed({
+    children,
+    publishableKey,
+}: {
+    children: React.ReactNode;
+    publishableKey: string;
+}) {
   const { resolvedTheme } = useTheme();
   const isDark = resolveIsDark(resolvedTheme);
 
@@ -27,6 +33,7 @@ export function ClerkProviderThemed({ children }: { children: React.ReactNode })
 
   return (
     <ClerkProvider
+      publishableKey={publishableKey}
       localization={idID}
       ui={ui}
       signInUrl={getClerkSignInUrl()}
