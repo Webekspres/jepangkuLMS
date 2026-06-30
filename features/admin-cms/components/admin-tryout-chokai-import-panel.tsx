@@ -113,9 +113,10 @@ export function AdminTryoutChokaiImportPanel({
         <Card className="border-emerald-500/20">
             <CardHeader className="pb-3">
                 <CardTitle className="text-base">Impor Chokai (ZIP)</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                    Mengganti semua soal CHOKAI level {level}. Paket: chokai.xlsx + folder assets/.
-                </p>
+        <p className="text-xs text-muted-foreground">
+          Mengganti semua soal CHOKAI level {level}. Paket berisi chokai.xlsx + folder
+          assets/ (lihat PANDUAN-IMPOR-CHOKAI.txt di template).
+        </p>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Button type="button" variant="outline" size="sm" className="w-full" asChild>
