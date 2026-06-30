@@ -62,7 +62,43 @@ async function resolveClerkAnchorProfile(
   };
 }
 
-/** Upsert baris User jangkar LMS (FK) setelah login — simpan nama SSO untuk fallback. */
+async function findCanonicalSsoSibling(
+  userId: string,
+  ssoDisplayName: string,
+) {
+  const siblings = await prisma.user.findMany({
+    where: { ssoDisplayName, id: { not: userId } },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      displayName: true,
+      displayNameSetupAt: true,
+      avatarUrl: true,
+      bio: true,
+      role: true,
+    },
+  });
+
+  const adminSibling = siblings.find(
+    (row) => row.role === 'LMS_ADMIN' && row.displayNameSetupAt,
+  );
+  if (adminSibling) return adminSibling;
+
+  return siblings.find((row) => row.displayNameSetupAt) ?? null;
+}
+
+function inheritedAnchorFields(
+  inherited: NonNullable<Awaited<ReturnType<typeof findCanonicalSsoSibling>>>,
+  profile?: ClerkAnchorProfile | null,
+): Pick<Prisma.UserUpdateInput, 'displayName' | 'displayNameSetupAt' | 'avatarUrl' | 'bio' | 'role'> {
+  return {
+    displayName: inherited.displayName,
+    displayNameSetupAt: inherited.displayNameSetupAt,
+    avatarUrl: inherited.avatarUrl ?? profile?.avatarUrl ?? undefined,
+    bio: inherited.bio ?? undefined,
+    ...(inherited.role === 'LMS_ADMIN' ? { role: 'LMS_ADMIN' as const } : {}),
+  };
+}
+
 export async function syncUserAnchor(
   userId: string,
   clerkProfile?: ClerkAnchorProfile,
@@ -76,21 +112,57 @@ export async function syncUserAnchor(
     try {
       const existing = await prisma.user.findUnique({
         where: { id: userId },
-        select: { ssoDisplayName: true },
+        select: { ssoDisplayName: true, displayNameSetupAt: true, displayName: true, role: true },
       });
 
       if (!existing) {
+        const inherited = ssoDisplayName
+          ? await findCanonicalSsoSibling(userId, ssoDisplayName)
+          : null;
+
         await prisma.user.create({
           data: userAnchorCreateData(userId, {
             ssoDisplayName: ssoDisplayName ?? undefined,
-            avatarUrl: profile?.avatarUrl ?? undefined,
+            avatarUrl: inherited?.avatarUrl ?? profile?.avatarUrl ?? undefined,
+            displayName: inherited?.displayName ?? undefined,
+            displayNameSetupAt: inherited?.displayNameSetupAt ?? undefined,
+            bio: inherited?.bio ?? undefined,
+            ...(inherited?.role === 'LMS_ADMIN' ? { role: 'LMS_ADMIN' as const } : {}),
           }),
         });
-      } else if (ssoDisplayName && !existing.ssoDisplayName?.trim()) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { ssoDisplayName },
-        });
+
+        if (inherited) {
+          authLog.info(
+            { userId, inheritedFrom: 'ssoDisplayName', role: inherited.role },
+            'Reused LMS profile from prior SSO identity',
+          );
+        }
+      } else {
+        if (ssoDisplayName && !existing.ssoDisplayName?.trim()) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { ssoDisplayName },
+          });
+        }
+
+        if (ssoDisplayName) {
+          const inherited = await findCanonicalSsoSibling(userId, ssoDisplayName);
+          const shouldReconcile =
+            inherited &&
+            (!existing.displayNameSetupAt ||
+              (inherited.role === 'LMS_ADMIN' && existing.role !== 'LMS_ADMIN'));
+
+          if (shouldReconcile && inherited) {
+            await prisma.user.update({
+              where: { id: userId },
+              data: inheritedAnchorFields(inherited, profile),
+            });
+            authLog.info(
+              { userId, inheritedFrom: 'ssoDisplayName', role: inherited.role },
+              'Reconciled LMS profile from prior SSO identity',
+            );
+          }
+        }
       }
 
       authLog.info({ userId, attempt }, 'User anchor synced to LMS database');
