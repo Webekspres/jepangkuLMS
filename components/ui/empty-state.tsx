@@ -23,7 +23,7 @@ export function EmptyState({
   title,
   description,
   action,
-  imageSrc = '/assets/not-found.webp',
+  imageSrc = '/assets/no-data-found.png',
   className,
 }: EmptyStateProps) {
   return (
