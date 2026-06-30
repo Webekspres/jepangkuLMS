@@ -23,7 +23,7 @@ const COURSE_CATALOG = [
     isPublished: true,
     priceIdr: 0,
     isFeatured: true,
-    category: 'Kosa Kata',
+    category: 'KURSUS_GRATIS' as const,
   },
   {
     slug: 'n4-tata-bahasa-intensif',
@@ -33,7 +33,7 @@ const COURSE_CATALOG = [
     isPublished: false,
     priceIdr: 299_000,
     isFeatured: false,
-    category: 'Tata Bahasa',
+    category: 'KURSUS_UTAMA' as const,
   },
   {
     slug: 'kanji-n5-n4-master',
@@ -43,7 +43,7 @@ const COURSE_CATALOG = [
     isPublished: false,
     priceIdr: 0,
     isFeatured: false,
-    category: 'Kanji',
+    category: 'KURSUS_GRATIS' as const,
   },
   {
     slug: 'kosakata-n4-1500-kata',
@@ -53,7 +53,7 @@ const COURSE_CATALOG = [
     isPublished: false,
     priceIdr: 0,
     isFeatured: false,
-    category: 'Kosa Kata',
+    category: 'KURSUS_GRATIS' as const,
   },
   {
     slug: 'jlpt-n3-kursus-menengah',
@@ -63,7 +63,7 @@ const COURSE_CATALOG = [
     isPublished: false,
     priceIdr: 0,
     isFeatured: false,
-    category: 'Tata Bahasa',
+    category: 'KURSUS_UTAMA' as const,
   },
   {
     slug: 'japanese-speaking-listening-n4',
@@ -73,7 +73,7 @@ const COURSE_CATALOG = [
     isPublished: false,
     priceIdr: 0,
     isFeatured: false,
-    category: 'Speaking',
+    category: 'KURSUS_TAMBAHAN' as const,
   },
 ] as const;
 

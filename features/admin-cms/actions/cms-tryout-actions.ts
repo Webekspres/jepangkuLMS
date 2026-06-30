@@ -1,10 +1,12 @@
 'use server';
 
+import type { LevelJLPT } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { generateSlug } from '@/lib/string-helpers';
+import { levelJlptSchema } from '@/lib/validations/shared';
 
 export type CmsTryoutActionResult =
   | { ok: true; id?: string }
@@ -21,6 +23,9 @@ function parseTryoutForm(formData: FormData) {
   const isActive = formData.get('isActive') === 'on';
   const isStrictTimeBound = formData.get('isStrictTimeBound') === 'on';
   const priceIdr = Math.max(0, Math.trunc(Number(formData.get('priceIdr') ?? 0) || 0));
+  const levelRaw = String(formData.get('level') ?? 'N5').trim();
+  const levelParsed = levelJlptSchema.safeParse(levelRaw);
+  const level: LevelJLPT = levelParsed.success ? levelParsed.data : 'N5';
   const code = generateSlug(codeRaw || title);
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
 
@@ -35,6 +40,7 @@ function parseTryoutForm(formData: FormData) {
     isActive,
     isStrictTimeBound,
     priceIdr,
+    level,
   };
 }
 
@@ -43,6 +49,7 @@ function validateTryout(data: ReturnType<typeof parseTryoutForm>): string | null
   if (!data.code) return 'Kode sesi tidak valid.';
   if (!data.phaseLabel) return 'Label fase wajib diisi.';
   if (data.timeLimitMinutes < 10) return 'Durasi minimal 10 menit.';
+  if (!levelJlptSchema.safeParse(data.level).success) return 'Level JLPT wajib dipilih.';
   return null;
 }
 
@@ -67,6 +74,7 @@ export async function createTryoutSessionAction(formData: FormData): Promise<Cms
       isActive: data.isActive,
       isStrictTimeBound: data.isStrictTimeBound,
       priceIdr: data.priceIdr,
+      level: data.level,
     },
   });
 
@@ -105,6 +113,7 @@ export async function updateTryoutSessionAction(
       isActive: data.isActive,
       isStrictTimeBound: data.isStrictTimeBound,
       priceIdr: data.priceIdr,
+      level: data.level,
     },
   });
 
@@ -119,7 +128,8 @@ export async function deleteTryoutSessionAction(id: string): Promise<CmsTryoutAc
   if (questionCount > 0) {
     return {
       ok: false,
-      message: `Sesi masih memiliki ${questionCount} soal. Hapus atau pindahkan soal terlebih dahulu.`,
+      message:
+        'Tidak dapat menghapus Tryout! Sesi ini masih memiliki soal aktif. Hapus semua soal terlebih dahulu.',
     };
   }
   await prisma.tryoutSession.delete({ where: { id } });

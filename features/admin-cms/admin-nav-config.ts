@@ -76,7 +76,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
             {
                 id: 'import',
                 href: ADMIN_ROUTES.kursusImport,
-                label: 'Impor Excel',
+                label: 'Import Kursus',
                 icon: FileUp,
             },
         ],
@@ -102,7 +102,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
             {
                 id: 'tryout-import',
                 href: ADMIN_ROUTES.tryoutImport,
-                label: 'Impor Tryout',
+                label: 'Import Tryout',
                 icon: FileUp,
             },
         ],
@@ -132,12 +132,12 @@ export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
     modul: 'Modul',
     lesson: 'Pelajaran',
     quiz: 'Bank Soal',
-    import: 'Impor Excel',
+    import: 'Import Kursus',
     badges: 'Badge',
     'live-class': 'Live Class',
     tryout: 'JLPT Tryout',
     soal: 'Bank Soal Tryout',
-    'tryout/import': 'Impor Tryout',
+    'tryout/import': 'Import Tryout',
     'kursus/import': 'Import Kursus',
 };
 

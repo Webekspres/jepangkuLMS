@@ -43,6 +43,13 @@ enum CategoryType {
   TATA_BAHASA
 }
 
+/// Tipe program kursus di katalog LMS (bukan kategori materi flashcard/kuis).
+enum CourseCategoryType {
+  KURSUS_UTAMA
+  KURSUS_GRATIS
+  KURSUS_TAMBAHAN
+}
+
 enum LmsRole {
   LMS_STUDENT
   LMS_ADMIN
@@ -239,8 +246,8 @@ model Course {
   /// Poin "Yang akan kamu pelajari" — dikelola admin, bukan diturunkan dari Module.
   outcomes    String[]
   level       LevelJLPT @default(N5)
-  /// Kategori tampilan katalog (Kosa Kata, Tata Bahasa, Kanji, …)
-  category    String    @default("Kosa Kata")
+  /// Tipe program kursus (Utama / Gratis / Tambahan).
+  category    CourseCategoryType @default(KURSUS_UTAMA)
   /// Harga dalam Rupiah (0 = gratis)
   priceIdr    Int       @default(0)
   isPublished Boolean   @default(false)
@@ -419,6 +426,8 @@ model TryoutSession {
   title             String
   phaseLabel        String
   description       String?   @db.Text
+  /// JLPT level for this session — one session = one level exam event.
+  level             LevelJLPT @default(N5)
   /// Harga dalam Rupiah (0 = gratis); siap untuk bundling e-commerce.
   priceIdr          Int       @default(0)
   /// true = event terjadwal ketat (time-gated); false = open practice (akses kapan saja).
@@ -477,7 +486,6 @@ model Question {
   id              String       @id @default(uuid())
   lessonId        String? // Optional: kosong jika ini soal Tryout
   tryoutSessionId String?
-  tryoutLevel     LevelJLPT?
   /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
   tryoutSection   String?
   sortOrder       Int          @default(0)
@@ -495,7 +503,7 @@ model Question {
   tryoutSession TryoutSession?   @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
   options       QuestionOption[]
 
-  @@index([tryoutSessionId, tryoutLevel, sortOrder])
+  @@index([tryoutSessionId, sortOrder])
   @@index([audioGroupId])
 }
 

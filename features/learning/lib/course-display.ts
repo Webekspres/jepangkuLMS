@@ -1,10 +1,11 @@
+import type { CourseCategoryType } from '@prisma/client';
 import {
   LEVEL_ACCENT,
   type CatalogCourse,
-  type CourseCategory,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
+import { courseCategoryTypeLabel } from '@/lib/lms/course-category';
 import { formatIdr } from '@/lib/lms/format-price';
 
 const DEFAULT_THUMB = '/assets/bg-courses.webp';
@@ -29,14 +30,14 @@ export function mergeCourseDisplay(
     isPublished: boolean;
     lessonCount: number;
     priceIdr?: number;
-    category?: string | null;
+    category?: CourseCategoryType | null;
     isFeatured?: boolean;
   },
 ): CatalogCourse & { isPublished: boolean; lessonCount: number; priceIdr: number } {
   const level = db.level as Exclude<CourseLevel, 'Semua'>;
   const accent: JlptAccent = LEVEL_ACCENT[level] ?? 'emerald';
   const priceIdr = db.priceIdr ?? 0;
-  const category = (db.category?.trim() || 'Kosa Kata') as Exclude<CourseCategory, 'Semua'>;
+  const categoryLabel = courseCategoryTypeLabel(db.category ?? 'KURSUS_UTAMA');
 
   return {
     slug: db.slug,
@@ -51,7 +52,7 @@ export function mergeCourseDisplay(
     thumb: DEFAULT_THUMB,
     accent,
     badge: level,
-    tags: [category],
+    tags: [categoryLabel],
     featured: db.isFeatured ?? false,
     isPublished: db.isPublished,
     lessonCount: db.lessonCount,

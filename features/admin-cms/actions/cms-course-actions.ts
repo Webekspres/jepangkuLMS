@@ -39,6 +39,7 @@ function parseCourseCreateForm(formData: FormData) {
     description: formData.get('description') ?? '',
     outcomes: parseOutcomesField(formData.get('outcomes')),
     level: formData.get('level'),
+    category: formData.get('category'),
     priceIdr: formData.get('priceIdr') ?? '0',
     isPublished: formData.get('isPublished') === 'on',
   });
@@ -51,6 +52,7 @@ function parseCourseUpdateForm(formData: FormData) {
     description: formData.get('description') ?? '',
     outcomes: parseOutcomesField(formData.get('outcomes')),
     level: formData.get('level'),
+    category: formData.get('category'),
     priceIdr: formData.get('priceIdr') ?? '0',
     isPublished: formData.get('isPublished') === 'on',
   });
@@ -75,6 +77,7 @@ export async function createCourseAction(formData: FormData): Promise<CmsActionR
         description: data.description || null,
         outcomes: data.outcomes,
         level: data.level,
+        category: data.category,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,
       },
@@ -110,6 +113,7 @@ export async function updateCourseAction(
         description: data.description || null,
         outcomes: data.outcomes,
         level: data.level,
+        category: data.category,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,
       },

@@ -30,6 +30,7 @@ export default async function AdminKursusFormPage({ searchParams }: AdminKursusF
         description: course.description ?? '',
         outcomes: course.outcomes,
         level: course.level,
+        category: course.category,
         priceIdr: course.priceIdr,
         isPublished: course.isPublished,
       }}

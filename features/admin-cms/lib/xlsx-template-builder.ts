@@ -109,8 +109,17 @@ export async function buildCourseImportTemplateBuffer(): Promise<Buffer> {
             { header: 'Tingkat JLPT', key: 'level', width: 14, required: true },
             { header: 'Deskripsi', key: 'deskripsi', width: 36 },
             { header: 'Tampilkan di Katalog (Ya/Tidak)', key: 'publik', width: 26 },
-            { header: 'Kategori', key: 'kategori', width: 16 },
+            {
+                header: 'Kategori Kursus (Kursus Utama/Kursus Gratis/Kursus Tambahan)',
+                key: 'kategori',
+                width: 42,
+            },
             { header: 'Harga (Rp)', key: 'harga', width: 12 },
+            {
+                header: 'Yang Akan Kamu Pelajari (Pisahkan dengan tanda koma)',
+                key: 'outcomes',
+                width: 44,
+            },
         ],
         {
             no: 1,
@@ -118,8 +127,9 @@ export async function buildCourseImportTemplateBuffer(): Promise<Buffer> {
             level: 'N5',
             deskripsi: 'Pengenalan aksara Jepang',
             publik: 'Tidak',
-            kategori: 'Kosa Kata',
+            kategori: 'Kursus Utama',
             harga: 0,
+            outcomes: 'Membaca Hiragana & Katakana, Pengenalan kanji dasar N5',
         },
     );
 

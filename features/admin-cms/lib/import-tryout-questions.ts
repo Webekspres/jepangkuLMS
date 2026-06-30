@@ -101,13 +101,11 @@ export function parseTryoutLegacyFlatXlsx(buffer: Buffer): TryoutImportPreview {
 async function nextSortOrderForSection(
     db: PrismaClient,
     sessionId: string,
-    level: LevelJLPT,
     section: TryoutSectionValue,
 ): Promise<number> {
     const agg = await db.question.aggregate({
         where: {
             tryoutSessionId: sessionId,
-            tryoutLevel: level,
             tryoutSection: section,
             type: 'TRYOUT',
         },
@@ -120,7 +118,8 @@ export async function importTryoutQuestions(
     db: PrismaClient,
     input: {
         sessionId: string;
-        level: LevelJLPT;
+        /** @deprecated Level is read from TryoutSession; kept for workbook import compat. */
+        level?: LevelJLPT;
         rows: TryoutImportRow[];
         replaceExisting?: boolean;
     },
@@ -132,16 +131,15 @@ export async function importTryoutQuestions(
         await db.question.deleteMany({
             where: {
                 tryoutSessionId: input.sessionId,
-                tryoutLevel: input.level,
                 type: 'TRYOUT',
             },
         });
     }
 
     const counters: Record<TryoutSectionValue, number> = {
-        MOJI_GOI: await nextSortOrderForSection(db, input.sessionId, input.level, 'MOJI_GOI'),
-        BUNPOU_DOKKAI: await nextSortOrderForSection(db, input.sessionId, input.level, 'BUNPOU_DOKKAI'),
-        CHOKAI: await nextSortOrderForSection(db, input.sessionId, input.level, 'CHOKAI'),
+        MOJI_GOI: await nextSortOrderForSection(db, input.sessionId, 'MOJI_GOI'),
+        BUNPOU_DOKKAI: await nextSortOrderForSection(db, input.sessionId, 'BUNPOU_DOKKAI'),
+        CHOKAI: await nextSortOrderForSection(db, input.sessionId, 'CHOKAI'),
     };
 
     await db.$transaction(async (tx) => {
@@ -155,7 +153,6 @@ export async function importTryoutQuestions(
                 data: {
                     type: 'TRYOUT',
                     tryoutSessionId: input.sessionId,
-                    tryoutLevel: input.level,
                     tryoutSection: row.section,
                     sortOrder,
                     questionText: row.questionText,

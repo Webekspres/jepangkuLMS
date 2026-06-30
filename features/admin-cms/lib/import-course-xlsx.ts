@@ -1,7 +1,11 @@
 import * as XLSX from 'xlsx';
-import type { PrismaClient } from '@prisma/client';
+import type { CourseCategoryType, PrismaClient } from '@prisma/client';
 import { levelJlptSchema } from '@/lib/validations/shared';
 import { dedupeSlugInSet, slugBaseFromTitle } from '@/lib/lms/slug';
+import {
+    parseCourseCategoryType,
+    parseOutcomesFromCommaList,
+} from '@/lib/lms/course-category';
 import {
     importCourseSyllabusTree,
     type CourseSyllabusTree,
@@ -52,7 +56,8 @@ type CourseMeta = {
     level: string;
     description?: string;
     isPublished: boolean;
-    category: string;
+    category: CourseCategoryType;
+    outcomes: string[];
     priceIdr: number;
     slug: string;
 };
@@ -202,7 +207,20 @@ function buildTreesFromWorkbook(
             level,
             description: pickField(record, ['deskripsi']) || undefined,
             isPublished: parseYesNo(pickField(record, ['tampilkan_di_katalog_ya_tidak', 'publik'])),
-            category: pickField(record, ['kategori']) || 'Kosa Kata',
+            category: parseCourseCategoryType(
+                pickField(record, [
+                    'kategori_kursus_kursus_utamakursus_gratis_kursus_tambahan',
+                    'kategori_kursus',
+                    'kategori',
+                ]),
+            ),
+            outcomes: parseOutcomesFromCommaList(
+                pickField(record, [
+                    'yang_akan_kamu_pelajari_pisahkan_dengan_tanda_koma',
+                    'outcomes',
+                    'pelajari',
+                ]),
+            ),
             priceIdr: parsePositiveInt(pickField(record, ['harga_rp', 'harga']), 0) ?? 0,
             slug,
         });
@@ -617,7 +635,7 @@ export async function importCoursesFromXlsxBuffer(
         if (meta) {
             await prisma.course.update({
                 where: { id: result.courseId },
-                data: { category: meta.category, priceIdr: meta.priceIdr },
+                data: { category: meta.category, outcomes: meta.outcomes, priceIdr: meta.priceIdr },
             });
         }
         imported.push(result);
