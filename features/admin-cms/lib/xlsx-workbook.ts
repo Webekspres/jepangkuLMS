@@ -62,7 +62,8 @@ export function sheetFirstRowToRecords(
 
 export async function readXlsxBuffer(buffer: Buffer): Promise<ExcelJS.Workbook> {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    // ponytail: exceljs typings target DOM Buffer, not Node Buffer
+    await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
     return workbook;
 }
 
