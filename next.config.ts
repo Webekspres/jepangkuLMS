@@ -1,5 +1,22 @@
 import type { NextConfig } from "next";
 
+/** Clerk script/frame origins — pk_test uses *.clerk.accounts.dev; prod custom domain uses clerk.jepangku.com */
+const CLERK_CSP_ORIGINS = [
+    "https://clerk.jepangku.com",
+    "https://*.clerk.accounts.dev",
+    "https://challenges.cloudflare.com",
+].join(" ");
+
+const CONTENT_SECURITY_POLICY = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${CLERK_CSP_ORIGINS}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https:",
+    `frame-src 'self' ${CLERK_CSP_ORIGINS} https://accounts.google.com`,
+].join("; ");
+
 const nextConfig: NextConfig = {
     output: "standalone",
     serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
@@ -62,8 +79,7 @@ const nextConfig: NextConfig = {
                 headers: [
                     {
                         key: 'Content-Security-Policy',
-                        value:
-                            "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.jepangku.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://clerk.jepangku.com;",
+                        value: CONTENT_SECURITY_POLICY,
                     },
                     { key: 'X-Frame-Options', value: 'DENY' },
                     { key: 'X-Content-Type-Options', value: 'nosniff' },
