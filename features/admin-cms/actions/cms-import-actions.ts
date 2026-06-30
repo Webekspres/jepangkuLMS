@@ -19,7 +19,7 @@ export type CmsImportPreviewResult = {
 export async function previewCourseXlsxAction(base64: string): Promise<CmsImportPreviewResult> {
     await requireAdminAction();
     const buffer = Buffer.from(base64, 'base64');
-    const preview = previewCourseXlsxImport(buffer);
+    const preview = await previewCourseXlsxImport(buffer);
     return { ok: preview.ok, preview };
 }
 

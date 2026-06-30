@@ -63,8 +63,8 @@ function formatRowError(row: number, message: string) {
 }
 
 function resolveCorrectIndex(
-  raw: string,
-  optionCount: number,
+    raw: string,
+    optionCount: number,
 ): { index: number } | { error: string } {
     const trimmed = raw.trim();
     if (!trimmed) return { error: 'Jawaban wajib diisi.' };
@@ -141,17 +141,17 @@ function resolveStemImage(assets: ZipAssets, folder: string): { filename: string
     return null;
 }
 
-export function parseChokaiExcelRecords(
+export async function parseChokaiExcelRecords(
     xlsx: Buffer,
     assets: ZipAssets,
-): { validRows: ChokaiImportRow[]; previewRows: ChokaiImportPreviewRow[]; errors: { row: number; message: string }[] } {
+): Promise<{ validRows: ChokaiImportRow[]; previewRows: ChokaiImportPreviewRow[]; errors: { row: number; message: string }[] }> {
     const errors: { row: number; message: string }[] = [];
     const validRows: ChokaiImportRow[] = [];
     const previewRows: ChokaiImportPreviewRow[] = [];
 
-    let workbook: ReturnType<typeof readXlsxBuffer>;
+    let workbook: Awaited<ReturnType<typeof readXlsxBuffer>>;
     try {
-        workbook = readXlsxBuffer(xlsx);
+        workbook = await readXlsxBuffer(xlsx);
     } catch {
         return {
             validRows: [],
@@ -160,7 +160,11 @@ export function parseChokaiExcelRecords(
         };
     }
 
-    const sheet = sheetToRecords(workbook, workbook.SheetNames, ['folder', 'tipe_jawaban']);
+    const sheet = sheetToRecords(
+        workbook,
+        workbook.worksheets.map((w) => w.name),
+        ['folder', 'tipe_jawaban'],
+    );
     if ('error' in sheet) {
         return { validRows: [], previewRows: [], errors: [formatRowError(0, sheet.error)] };
     }
@@ -306,7 +310,7 @@ export async function previewChokaiZipImport(buffer: Buffer): Promise<ChokaiImpo
         return { ok: false, rowCount: 0, rows: [], errors: [formatRowError(0, extracted.error)] };
     }
 
-    const { validRows, previewRows, errors } = parseChokaiExcelRecords(extracted.xlsx, extracted.assets);
+    const { validRows, previewRows, errors } = await parseChokaiExcelRecords(extracted.xlsx, extracted.assets);
     return {
         ok: errors.length === 0 && validRows.length > 0,
         rowCount: validRows.length,
@@ -358,7 +362,7 @@ export async function importChokaiZip(
     if (!extracted.ok) throw new Error(extracted.error);
 
     const { xlsx, assets } = extracted;
-    const { validRows, errors } = parseChokaiExcelRecords(xlsx, assets);
+    const { validRows, errors } = await parseChokaiExcelRecords(xlsx, assets);
     if (errors.length > 0 || validRows.length === 0) {
         throw new Error(errors[0]?.message ?? 'Tidak ada baris valid.');
     }
