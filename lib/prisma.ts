@@ -6,16 +6,16 @@ import { loggers } from '@/lib/logger';
 const dbLog = loggers.db;
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = globalThis.process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
 
   const pool = new Pool({
     connectionString,
-    max: Number(process.env.PG_POOL_MAX ?? 10),
+    max: Number(globalThis.process.env.PG_POOL_MAX ?? 10),
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS ?? 10_000),
+    connectionTimeoutMillis: Number(globalThis.process.env.PG_CONNECTION_TIMEOUT_MS ?? 10_000),
     keepAlive: true,
   });
 
