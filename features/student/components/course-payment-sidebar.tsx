@@ -17,9 +17,10 @@ import { Progress } from '@/components/ui/progress';
 import { requestCourseEnrollment } from '@/features/learning/actions/learning-actions';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
-import { PAYMENT_SETTINGS } from '@/lib/payment/settings';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from './student-routes';
+
+type PaymentSettings = { bankName: string; accountName: string; accountNumber: string };
 
 type CoursePaymentSidebarProps = {
   courseSlug: string;
@@ -31,19 +32,21 @@ type CoursePaymentSidebarProps = {
   progressPercent?: number;
   continueLessonSlug?: string | null;
   firstLessonSlug?: string;
+  paymentSettings: PaymentSettings;
 };
 
 function buildPaymentConfirmMessage(input: {
   courseTitle: string;
   priceLabel: string;
   studentName: string | null;
+  paymentSettings: PaymentSettings;
 }) {
   const name = input.studentName?.trim() || '[nama Anda]';
   return [
     `Halo, saya ingin konfirmasi pembayaran untuk kursus "${input.courseTitle}" (${input.priceLabel}).`,
     '',
     `Nama: ${name}`,
-    `No. Rekening tujuan: ${PAYMENT_SETTINGS.bankName} ${PAYMENT_SETTINGS.accountNumber} a/n ${PAYMENT_SETTINGS.accountName}`,
+    `No. Rekening tujuan: ${input.paymentSettings.bankName} ${input.paymentSettings.accountNumber} a/n ${input.paymentSettings.accountName}`,
     '',
     'Mohon konfirmasi. Terima kasih!',
   ].join('\n');
@@ -63,6 +66,7 @@ export function CoursePaymentSidebar({
   progressPercent = 0,
   continueLessonSlug,
   firstLessonSlug,
+  paymentSettings,
 }: CoursePaymentSidebarProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -74,7 +78,7 @@ export function CoursePaymentSidebar({
   const isPending = enrollmentStatus === 'PENDING';
 
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText(PAYMENT_SETTINGS.accountNumber).catch(() => {});
+    navigator.clipboard.writeText(paymentSettings.accountNumber).catch(() => {});
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
@@ -93,7 +97,7 @@ export function CoursePaymentSidebar({
   };
 
   const waConfirmUrl = buildWhatsAppUrl(
-    buildPaymentConfirmMessage({ courseTitle, priceLabel, studentName: studentDisplayName }),
+    buildPaymentConfirmMessage({ courseTitle, priceLabel, studentName: studentDisplayName, paymentSettings }),
   );
   const waConsultUrl = buildWhatsAppUrl(buildConsultMessage(courseTitle));
 
@@ -179,20 +183,20 @@ export function CoursePaymentSidebar({
 
                   <div>
                     <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Transfer via {PAYMENT_SETTINGS.bankName}
+                      Transfer via {paymentSettings.bankName}
                     </p>
                     <div className="space-y-2 rounded-xl bg-muted/60 p-3.5">
                       <div>
                         <p className="text-xs text-muted-foreground">Nama Rekening</p>
                         <p className="text-sm font-semibold text-foreground">
-                          {PAYMENT_SETTINGS.accountName}
+                          {paymentSettings.accountName}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Nomor Rekening</p>
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-base font-bold tracking-widest text-foreground">
-                            {PAYMENT_SETTINGS.accountNumber}
+                            {paymentSettings.accountNumber}
                           </p>
                           <Button
                             type="button"
