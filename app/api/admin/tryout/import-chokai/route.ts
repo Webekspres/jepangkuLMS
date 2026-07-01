@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
-import { importChokaiZip, previewChokaiZipImport } from '@/features/admin-cms/lib/import-chokai-zip';
+import { importUnifiedTryoutZip, previewUnifiedTryoutZip } from '@/features/admin-cms/lib/import-unified-tryout';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * @deprecated Use POST /api/admin/tryout/import instead
+ * This endpoint now delegates to the unified import handler for backward compatibility
+ */
 export async function POST(request: Request) {
     try {
         await requireAdminAccess();
@@ -13,6 +17,10 @@ export async function POST(request: Request) {
     }
 
     try {
+        console.warn(
+            '[Deprecation] POST /api/admin/tryout/import-chokai is deprecated. Use POST /api/admin/tryout/import instead.',
+        );
+
         const url = new URL(request.url);
         const dryRun = url.searchParams.get('dryRun') === '1';
 
@@ -31,7 +39,7 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         if (dryRun) {
-            const preview = await previewChokaiZipImport(buffer);
+            const preview = await previewUnifiedTryoutZip(buffer);
             return NextResponse.json({
                 ok: preview.ok,
                 preview,
@@ -44,7 +52,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: 'Sesi tidak ditemukan.' }, { status: 404 });
         }
 
-        const result = await importChokaiZip(prisma, {
+        const result = await importUnifiedTryoutZip(prisma, {
             sessionId,
             sessionCode: session.code,
             buffer,
@@ -56,8 +64,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             ok: true,
-            message: `${result.imported} soal Chokai berhasil diimpor (mengganti semua soal CHOKAI sesi ${session.level}).`,
-            imported: result.imported,
+            message: `${result.chokai.imported} soal Chokai berhasil diimpor (mengganti semua soal CHOKAI sesi ${session.level}).`,
+            imported: result.chokai.imported,
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Impor Chokai gagal.';
