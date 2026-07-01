@@ -9,15 +9,22 @@
 
 ## 📋 Ringkasan Eksekutif — Status Remediasi
 
-| Severitas | Total | ✅ Fixed | 🟡 In Progress | ⬜ Not Started |
+| Severitas | Total | ✅ Fixed | 🟡 Transitive Deps | ⬜ Not Started |
 | :--- | :---: | :---: | :---: | :---: |
-| 🟠 High | 5 | 5 | 0 | 0 |
-| 🟡 Medium | 15 | 15 | 0 | 0 |
-| 🔵 Low | 4 | 4 | 0 | 0 |
+| 🟠 High (Code) | 4 | 4 | 0 | 0 |
+| 🟠 High (Deps) | 1 | 0 | 1 | 0 |
+| 🟡 Medium (Code) | 8 | 8 | 0 | 0 |
+| 🟡 Medium (Deps) | 7 | 0 | 7 | 0 |
+| 🔵 Low (Code) | 3 | 3 | 0 | 0 |
+| 🔵 Low (Deps) | 1 | 0 | 1 | 0 |
 | ⚪ Info | 5 | 5 | 0 | 0 |
-| **Total** | **29** | **29 (100%)** | **0** | **0** |
+| **Total** | **29** | **20** | **9** | **0** |
 
-**Progres global remediasi:** ██████████ **100% — SELESAI** ✅
+**Progres global remediasi (code):** ██████████ **100%** ✅
+**Progres global remediasi (deps):** ██░░░░░░░░ **0%** — 9 transitive dep vulns dari dev-only tools (Prisma CLI, shadcn CLI)
+
+> **⚠️ Catatan dependency:** 9 CVE terdeteksi di `hono` (4.12.23), `uuid` (8.3.2), `postcss` (8.5.15), `esbuild` (0.28.0), `@hono/node-server` (1.19.x).
+> **Semua adalah dependensi TRANSITIF** dari `@prisma/dev` (Prisma CLI) dan `@modelcontextprotocol/sdk` (shadcn CLI) — keduanya **dev-only tools**, bukan runtime aplikasi. Tidak ada eksploitasi runtime. Tunggu patch dari upstream.
 
 ---
 
@@ -74,21 +81,26 @@
 
 ---
 
-## 📊 Detail Dependency Updates
+## 📊 Detail Dependency Status (Transitive — Not Fixable Yet)
 
-| Package | CVE | Severity | Status |
-| :--- | :--- | :---: | :---: |
-| hono | GHSA-88fw-hqm2-52qc | 🟠 High | ✅ Updated |
-| hono | GHSA-wwfh-h76j-fc44 | 🟡 Medium | ✅ Updated |
-| hono | GHSA-j6c9-x7qj-28xf | 🟡 Medium | ✅ Updated |
-| hono | GHSA-rv63-4mwf-qqc2 | 🟡 Medium | ✅ Updated |
-| hono | GHSA-wgpf-jwjq-8h8p | 🟡 Medium | ✅ Updated |
-| @hono/node-server | GHSA-92pp-h63x-v22m | 🟡 Medium | ✅ Updated |
-| uuid | GHSA-w5hq-g745-h8pq | 🟡 Medium | ✅ Updated |
-| postcss | GHSA-qx2v-qp2m-jg93 | 🟡 Medium | ✅ Updated |
-| esbuild | GHSA-g7r4-m6w7-qqqr | 🔵 Low | ✅ Updated |
+| Package | CVE | Severity | Version | Origin | Exploitable Runtime? |
+| :--- | :--- | :---: | :---: | :--- | :---: |
+| hono | GHSA-88fw-hqm2-52qc | 🟠 High | 4.12.23 | `@prisma/dev` → `@hono/node-server` | ❌ Dev CLI only |
+| hono | GHSA-wwfh-h76j-fc44 | 🟡 Medium | 4.12.23 | `@prisma/dev` | ❌ Dev CLI only |
+| hono | GHSA-j6c9-x7qj-28xf | 🟡 Medium | 4.12.23 | `@prisma/dev` | ❌ Dev CLI only |
+| hono | GHSA-rv63-4mwf-qqc2 | 🟡 Medium | 4.12.23 | `@prisma/dev` | ❌ Dev CLI only |
+| hono | GHSA-wgpf-jwjq-8h8p | 🟡 Medium | 4.12.23 | `@prisma/dev` | ❌ Dev CLI only |
+| @hono/node-server | GHSA-92pp-h63x-v22m | 🟡 Medium | 1.19.x | `@prisma/dev` + `@modelcontextprotocol/sdk` | ❌ Dev CLI only |
+| uuid | GHSA-w5hq-g745-h8pq | 🟡 Medium | 8.3.2 | Transitive (via multiple pkgs) | ❌ Low risk (tidak di direkt code) |
+| postcss | GHSA-qx2v-qp2m-jg93 | 🟡 Medium | 8.5.15 | Tailwind CSS v4 (devDependency) | ❌ Build-time only |
+| esbuild | GHSA-g7r4-m6w7-qqqr | 🔵 Low | 0.28.0 | Transitive (via multiple pkgs) | ❌ Dev/build only |
 
-Override `@clerk/shared` telah dihapus — tidak lagi diperlukan setelah `bun update`.
+> **Semua CVE berasal dari dev-only tools.** `bun update` sudah dijalankan — versi saat ini adalah yang terbaru yang kompatibel dengan versi Prisma & shadcn yang terinstall. Tidak bisa dipatch sendiri tanpa merusak dependensi. Tunggu update dari:
+> - `@prisma/dev` → perlu update versi Prisma yang bundle hono >= patch
+> - `@modelcontextprotocol/sdk` → perlu update shadcn yang bundle SDK baru
+> - Tailwind CSS / postcss
+
+Override `@clerk/shared` telah dihapus — tidak lagi diperlukan.
 
 ---
 
