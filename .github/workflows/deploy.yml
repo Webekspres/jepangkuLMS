@@ -37,6 +37,7 @@ jobs:
       - run: bun run lint
       - run: bun test
       - run: bun run build
+        if: github.ref == 'refs/heads/dev-sultan' && github.event_name != 'workflow_dispatch'
         env:
           DATABASE_URL: postgresql://build:build@localhost:5432/build
           JEPANGKU_CORE_API_URL: http://localhost:8080
