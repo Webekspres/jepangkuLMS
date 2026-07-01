@@ -61,6 +61,8 @@ COPY --from=builder /app/node_modules/postgres-interval ./node_modules/postgres-
 COPY --from=builder /app/node_modules/split2 ./node_modules/split2
 COPY --from=builder /app/node_modules/xtend ./node_modules/xtend
 # pino transport worker deps (serverExternalPackages — not in standalone trace)
+# real-require diperlukan oleh pino-abstract-transport untuk worker threads
+COPY --from=builder /app/node_modules/real-require ./node_modules/real-require
 COPY --from=builder /app/node_modules/pino ./node_modules/pino
 COPY --from=builder /app/node_modules/pino-abstract-transport ./node_modules/pino-abstract-transport
 COPY --from=builder /app/node_modules/thread-stream ./node_modules/thread-stream
