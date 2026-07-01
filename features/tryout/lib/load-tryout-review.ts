@@ -63,7 +63,9 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     },
   });
 
-  if (!attempt?.tryoutSession || !attempt.tryoutLevel) return null;
+  if (!attempt?.tryoutSession) return null;
+
+  const attemptLevel = attempt.tryoutLevel ?? attempt.tryoutSession.level;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -83,7 +85,6 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     where: {
       type: 'TRYOUT',
       tryoutSessionId: attempt.tryoutSessionId!,
-      tryoutLevel: attempt.tryoutLevel,
     },
     include: { options: { orderBy: { id: 'asc' } } },
   });
@@ -145,7 +146,7 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     sessionTitle: attempt.tryoutSession.title,
     sessionCode: attempt.tryoutSession.code,
     phaseLabel: attempt.tryoutSession.phaseLabel,
-    level: attempt.tryoutLevel,
+    level: attemptLevel,
     score: attempt.score,
     correct: attempt.correctCount ?? questions.filter((q) => q.isCorrect).length,
     total: attempt.totalQuestions ?? questions.length,

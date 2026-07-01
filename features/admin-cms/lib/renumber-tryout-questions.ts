@@ -1,12 +1,11 @@
-import type { LevelJLPT, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 import { prisma as defaultPrisma } from '@/lib/prisma';
 
 const TRYOUT_SECTIONS = ['MOJI_GOI', 'BUNPOU_DOKKAI', 'CHOKAI'] as const;
 
 /** Renumber sortOrder 1..n per JLPT section (safe during RSC load — no revalidatePath). */
-export async function renumberTryoutQuestionsForLevel(
+export async function renumberTryoutQuestionsForSession(
   sessionId: string,
-  level: LevelJLPT,
   db: PrismaClient = defaultPrisma,
 ): Promise<number> {
   const updates: ReturnType<PrismaClient['question']['update']>[] = [];
@@ -15,7 +14,6 @@ export async function renumberTryoutQuestionsForLevel(
     const rows = await db.question.findMany({
       where: {
         tryoutSessionId: sessionId,
-        tryoutLevel: level,
         tryoutSection: section,
         type: 'TRYOUT',
       },
@@ -42,3 +40,6 @@ export async function renumberTryoutQuestionsForLevel(
 
   return updates.length;
 }
+
+/** @deprecated Use renumberTryoutQuestionsForSession */
+export const renumberTryoutQuestionsForLevel = renumberTryoutQuestionsForSession;

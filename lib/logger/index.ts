@@ -43,45 +43,59 @@ function createRootLogger(logFile: string | null): Logger {
     env: process.env.NODE_ENV ?? 'development',
   };
 
-  const targets: TransportTargetOptions[] = [];
-
   if (isDev) {
-    targets.push({
-      target: 'pino-pretty',
+    const targets: TransportTargetOptions[] = [
+      {
+        target: 'pino-pretty',
+        level: logLevel,
+        options: {
+          colorize: true,
+          levelFirst: true,
+          translateTime: 'HH:MM:ss.l',
+          singleLine: true,
+          ignore: PRETTY_IGNORE,
+          messageFormat: '{module} | {msg}',
+          customPrettifiers: prettyPrettifiersPath,
+          customColors: 'trace:gray,debug:cyan,info:blue,warn:yellow,error:red,fatal:bgRed',
+          destination: 1,
+        },
+      }
+    ];
+
+    if (logFile) {
+      targets.push({
+        target: 'pino/file',
+        level: logLevel,
+        options: { destination: logFile, mkdir: true },
+      });
+    }
+
+    return pino({
       level: logLevel,
-      options: {
-        colorize: true,
-        levelFirst: true,
-        translateTime: 'HH:MM:ss.l',
-        singleLine: true,
-        ignore: PRETTY_IGNORE,
-        messageFormat: '{module} | {msg}',
-        customPrettifiers: prettyPrettifiersPath,
-        customColors: 'trace:gray,debug:cyan,info:blue,warn:yellow,error:red,fatal:bgRed',
-        destination: 1,
-      },
+      base,
+      transport: { targets },
     });
   } else {
-    targets.push({
-      target: 'pino/file',
-      level: logLevel,
-      options: { destination: 1 },
-    });
-  }
+    // Production: Use streams instead of transport (worker threads) to prevent standalone mode crashes.
+    const streams = [
+      { level: logLevel, stream: pino.destination(1) } // stdout
+    ];
 
-  if (logFile) {
-    targets.push({
-      target: 'pino/file',
-      level: logLevel,
-      options: { destination: logFile, mkdir: true },
-    });
-  }
+    if (logFile) {
+      streams.push({
+        level: logLevel,
+        stream: pino.destination({ dest: logFile, mkdir: true, sync: false })
+      });
+    }
 
-  return pino({
-    level: logLevel,
-    base,
-    transport: { targets },
-  });
+    return pino(
+      {
+        level: logLevel,
+        base,
+      },
+      pino.multistream(streams)
+    );
+  }
 }
 
 const globalForLogger = globalThis as unknown as {

@@ -28,6 +28,16 @@ export function MarketingPageHero({
       className={cn('bg-brand-hero-navy relative overflow-hidden', className)}
       style={{ borderRadius: '0 0 50% 50% / 0 0 5rem 5rem' }}
     >
+      {/* Photographic backdrop (bg-hero.webp) — same as landing hero */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-hero.webp')] bg-cover bg-center opacity-35"
+        aria-hidden
+      />
+      {/* Dark gradient overlay — keeps light text readable */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand-hero-navy/85 via-brand-hero-navy/70 to-brand-hero-navy/95"
+        aria-hidden
+      />
       {/* Seigaiha pattern overlay */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.07]"

@@ -8,7 +8,7 @@ import {
   saveBadgeToPublicDir,
 } from '@/lib/media/local-badge-storage';
 import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@/lib/r2';
-import type { LmsBadgeUnlockRule } from '@prisma/client';
+import type { LmsBadgeUnlockRule, LevelJLPT, CategoryType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseLmsBadgeRarity } from '@/lib/lms/badge-rarity';
 
@@ -27,11 +27,48 @@ function slugifyCode(input: string): string {
 function parseBadgeMeta(formData: FormData) {
   const unlockRule = String(formData.get('unlockRule') ?? 'MANUAL');
   const unlockValueRaw = String(formData.get('unlockValue') ?? '').trim();
-  const unlockValue = unlockValueRaw ? Number(unlockValueRaw) : null;
-  const xpBonus = Number(formData.get('xpBonus') ?? 25) || 25;
+  const unlockValue =
+    (unlockRule === 'QUIZ_SCORE_THRESHOLD' ||
+      unlockRule === 'TRYOUT_SCORE_THRESHOLD' ||
+      unlockRule === 'TRYOUT_PASS') &&
+    unlockValueRaw
+      ? Number(unlockValueRaw)
+      : null;
+  const xpBonus = Number(formData.get('xpBonus') ?? 10) || 10;
   const requirementText = String(formData.get('requirementText') ?? '').trim() || null;
   const rarity = parseLmsBadgeRarity(String(formData.get('rarity') ?? 'COMMON'));
-  return { unlockRule, unlockValue, xpBonus, requirementText, rarity };
+
+  const targetLevelRaw = String(formData.get('targetLevel') ?? '').trim();
+  const targetLevel =
+    (unlockRule === 'QUIZ_SCORE_THRESHOLD' ||
+      unlockRule === 'TRYOUT_SCORE_THRESHOLD' ||
+      unlockRule === 'CATEGORY_COMPLETE') &&
+    targetLevelRaw
+      ? (targetLevelRaw as LevelJLPT)
+      : null;
+
+  const targetCategoryRaw = String(formData.get('targetCategory') ?? '').trim();
+  const targetCategory =
+    unlockRule === 'CATEGORY_COMPLETE' && targetCategoryRaw
+      ? (targetCategoryRaw as CategoryType)
+      : null;
+
+  const targetCourseIdRaw = String(formData.get('targetCourseId') ?? '').trim();
+  const targetCourseId =
+    unlockRule === 'SPECIFIC_COURSE_COMPLETE' && targetCourseIdRaw
+      ? targetCourseIdRaw
+      : null;
+
+  return {
+    unlockRule,
+    unlockValue,
+    xpBonus,
+    requirementText,
+    rarity,
+    targetLevel,
+    targetCategory,
+    targetCourseId,
+  };
 }
 
 async function parseBadgeImage(formData: FormData): Promise<{ buffer: Buffer; mime: string; ext: string } | null> {
@@ -113,6 +150,9 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,
       requirementText: meta.requirementText,
+      targetLevel: meta.targetLevel,
+      targetCategory: meta.targetCategory,
+      targetCourseId: meta.targetCourseId,
     },
   });
 
@@ -169,6 +209,9 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
       unlockValue: meta.unlockValue,
       xpBonus: meta.xpBonus,
       requirementText: meta.requirementText,
+      targetLevel: meta.targetLevel,
+      targetCategory: meta.targetCategory,
+      targetCourseId: meta.targetCourseId,
     },
   });
 

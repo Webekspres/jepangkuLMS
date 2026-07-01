@@ -37,7 +37,9 @@ export const loadAdminDashboardStats = cache(async function loadAdminDashboardSt
     prisma.enrollment.count({ where: { status: 'ACTIVE' } }),
     prisma.enrollment.count(),
     prisma.liveClass.count({ where: { isPublished: true } }),
-    prisma.liveClass.count({ where: { isPublished: true, scheduledAt: { gte: now } } }),
+    prisma.liveClassSession.count({
+      where: { scheduledAt: { gte: now }, liveClass: { isPublished: true } },
+    }),
     prisma.tryoutSession.count({ where: { isActive: true } }),
     prisma.quizAttempt.count({ where: { createdAt: { gte: weekAgo } } }),
     prisma.enrollment.findMany({

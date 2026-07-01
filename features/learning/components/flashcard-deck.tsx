@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CheckCircle2,
@@ -43,14 +43,24 @@ function FlashcardDeckInner({
   deckKey,
   onReshuffle,
 }: FlashcardDeckProps & { deckKey: string; onReshuffle: () => void }) {
-  const [deck] = useState<FlashcardItem[]>(() =>
-    shuffle ? shuffleArray(items) : [...items],
-  );
+  // Start with the deterministic order so SSR and the first client render match.
+  const [deck, setDeck] = useState<FlashcardItem[]>(() => [...items]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [unknown, setUnknown] = useState<Set<number>>(new Set());
   void deckKey;
+
+  // Shuffle only after mount (client-only) to avoid a hydration mismatch.
+  useEffect(() => {
+    if (!shuffle) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setDeck((current) => shuffleArray(current));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [shuffle]);
 
   if (deck.length === 0) {
     return (

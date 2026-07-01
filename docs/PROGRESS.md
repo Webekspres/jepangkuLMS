@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-06-26                                                  |
+| **Terakhir diperbarui**   | 2026-06-30                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **90%** (63 item terlacak)                                  |
 
@@ -114,16 +114,17 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 ### 2.4 Admin
 
-| Route                                      | Status | Catatan                                                                                                           |
-| :----------------------------------------- | :----: | :---------------------------------------------------------------------------------------------------------------- |
-| `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                                                          |
-| `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                                                            |
-| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian (MOJI GOI / BUNPOU DOKKAI / CHOKAI) + impor CSV/XLSX + upload audio R2 + grup audio |
-| `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                                                         |
-| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                                                                |
-| `/admin/kursus/import`                     |   ✅   | CSV kursus                                                                                                        |
-| `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md))                                  |
-| `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                                                             |
+| Route                                      | Status | Catatan                                                                          |
+| :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
+| `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
+| `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                           |
+| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian + impor Excel MOJI/BUNPOU + impor ZIP Chokai       |
+| `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
+| `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                        |
+| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                               |
+| `/admin/kursus/import`                     |   ✅   | Impor kursus formulir Excel multi-tab (ganti CSV)                                |
+| `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md)) |
+| `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                            |
 
 ---
 
@@ -182,9 +183,21 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |
+| 2026-06-30 | Refactor monetisasi & metadata: `CourseCategoryType` (Utama/Gratis/Tambahan) + dropdown CMS + kolom Excel outcomes; `TryoutSession.level` (satu sesi = satu JLPT), hapus `Question.tryoutLevel`, bank soal tanpa tab level, enrollment gate tryout by session id, `logLmsXpEvent` upsert anti-P2002 |
+| 2026-06-29 | Fitur "Bagikan Pencapaian" (Share Achievement) pada halaman koleksi badge siswa: modal interaktif berdesain glassmorphism premium dengan pulsing glow sesuai rarity, integrasi Web Share API dan link sharing sosial media (WhatsApp, X/Twitter, Threads, Facebook), serta fitur "Simpan Kartu" (Unduh Gambar) 1080x1920 berbasis html-to-image |
+| 2026-06-29 | Dukungan otomatisasi penyelesaian tingkat kursus (SPECIFIC_COURSE_COMPLETE) pada sistem badge: penambahan relasi targetCourseId/targetCourse pada skema Prisma LmsBadge, form input Dropdown dinamis memilih Course di admin panel, validasi Zod targetCourseId, dan format label syarat siswa dinamis |
+| 2026-06-29 | Penguatan form admin badge: kondisional fields gating (reactive form) berdasarkan unlock rule, validasi Zod klien & pesan error presisi, tooltip & deskripsi economy standard, serta penambahan kolom targetLevel dan targetCategory ke skema Prisma LmsBadge |
+| 2026-06-29 | Sinkronisasi XP→Core anti-hilang: `awardLmsXp` tidak lagi throw + status eksplisit (synced/skipped/failed); `LmsXpEvent` jadi outbox (`coreStatus`/`coreKind`/`coreIdempotencyKey`/`coreAttempts`, migrasi `add_xp_core_sync_outbox`); drain `retryPendingCoreXp` (oportunistik per-user + endpoint `POST /api/core/retry-xp` ber-`LMS_CRON_SECRET`) |
+| 2026-06-29 | Field baru `Course.outcomes String[]` (migrasi `add_course_outcomes`) sebagai sumber "Yang akan kamu pelajari"; form CMS kursus dapat input outcomes (textarea per-baris); detail kursus student & marketing render `course.outcomes`, berhenti menurunkan dari `Module.description` |
+| 2026-06-29 | Rebalance ekonomi XP/Poin: SSOT `features/student/lib/gamification-rewards.ts` (XP flat & kecil sesuai kurva Core 50 XP/level, Poin ≈10× boleh skala performa); XP kuis/tryout di-decouple dari jumlah benar (anti lompat-level); bonus XP badge per-rarity (5/10/20/25); daily-login award XP                                  |
+| 2026-06-29 | Halaman detail Live Class `/dashboard/live-class/[id]` (hero + status enrollment + timeline sesi real-time: Rekaman/Gabung Zoom/terjadwal); server action `requestLiveClassEnrollment` (gratis→ACTIVE, berbayar→PENDING + notif admin)                          |
+| 2026-06-29 | Hybrid slug UX: util `generateSlug`/`sanitizeSlugWhileTyping`, auto-fill Judul→Kode di form tryout (editable, sanitasi onChange), sanitasi field slug lanjutan (course/module)                                                                                  |
+| 2026-06-29 | Admin CMS polymorphic enrollment (pilih tipe produk Course/Live Class/Tryout + badge tipe di tabel); form tryout dapat harga (`priceIdr`) & toggle `isStrictTimeBound`; util `RupiahInput` auto-format ribuan untuk tryout & live class                          |
 | 2026-06-26 | Hapus rate limiting middleware di `proxy.ts` — memblokir staging (shared IP + RSC request volume)                                                                                                                                                               |
 | 2026-06-26 | Refactor profile photo cropping modal to be fully theme-adaptive; replace custom RPG loading screens with the standard JepangKu splash loading interface and enforce production fail-gate restrictions on core connection errors                                |
 | 2026-06-26 | Implement deferred avatar upload flow to Cloudflare R2 on form save with client-side react-easy-crop editor, local object URL preview, memory leak cleanup, and z-index toaster layer adjustment                                                                |
+| 2026-06-29 | Impor kursus & tryout: formulir Excel berwarna multi-tab, hapus CSV kursus, `/admin/tryout/import` workbook mandiri (sesi + MOJI/BUNPOU)                                                                                                                        |
 | 2026-06-26 | Overhaul Jalur JLPT Saya stepper to an RPG-inspired adventure journey map with winding paths, Kamon-themed emblem nodes, radial progress rings, and a character dashboard stat sheet                                                                            |
 | 2026-06-26 | Refactor copywriting halaman marketing & student dashboard, hapus Sesi Simulasi Mendatang di tryout, tambah avatar di welcome card, dan visual polish Live Class & Leaderboard                                                                                  |
 | 2026-06-26 | Implementasi rate limiting di middleware (proxy.ts) dan Redis-ready client; fix bun:test type declarations error                                                                                                                                                |

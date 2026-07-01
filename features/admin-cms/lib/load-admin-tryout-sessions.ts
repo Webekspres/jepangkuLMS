@@ -1,3 +1,4 @@
+import type { LevelJLPT } from '@prisma/client';
 import { cache } from 'react';
 import { prisma } from '@/lib/prisma';
 
@@ -6,6 +7,7 @@ export type AdminTryoutSessionRow = {
   code: string;
   title: string;
   phaseLabel: string;
+  level: LevelJLPT;
   scheduledAt: string | null;
   timeLimitMinutes: number;
   isActive: boolean;
@@ -26,6 +28,7 @@ export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessi
     code: row.code,
     title: row.title,
     phaseLabel: row.phaseLabel,
+    level: row.level,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
     timeLimitMinutes: row.timeLimitMinutes,
     isActive: row.isActive,
@@ -42,10 +45,13 @@ export async function loadAdminTryoutSessionById(id: string) {
     code: row.code,
     title: row.title,
     phaseLabel: row.phaseLabel,
+    level: row.level,
     description: row.description,
     scheduledAt: row.scheduledAt?.toISOString().slice(0, 16) ?? '',
     timeLimitMinutes: row.timeLimitMinutes,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
+    priceIdr: row.priceIdr,
+    isStrictTimeBound: row.isStrictTimeBound,
   };
 }

@@ -1,19 +1,30 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
+import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import {
   calculateTryoutPoints,
   lmsTryoutCompletedSourceKey,
   lmsTryoutCorrectSourceKey,
 } from '@/lib/lms/point-rules';
+import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
+import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import {
+  resolveTryoutXp,
+  TRYOUT_PASS_SCORE_PERCENT,
+} from '@/features/student/lib/gamification-rewards';
 import { sortTryoutExamQuestions } from '@/features/admin-cms/lib/tryout-sections';
+import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
+import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
+import { clearTryoutExamProgress } from '@/features/tryout/actions/tryout-exam-progress-actions';
 
 const tryoutLog = loggers.learning.child({ module: 'tryout' });
 
@@ -29,9 +40,55 @@ export type TryoutSubmitResult =
     }
   | { ok: false; message: string };
 
+/** Request enrollment for a paid tryout session (PENDING) or instant ACTIVE when free. */
+export async function requestTryoutEnrollment(sessionCode: string) {
+  const userId = await requireAuthUserWithAnchor();
+
+  const session = await prisma.tryoutSession.findUnique({
+    where: { code: sessionCode, isActive: true },
+  });
+  if (!session) throw new Error('Sesi tryout tidak ditemukan');
+
+  const existing = await prisma.enrollment.findUnique({
+    where: { userId_tryoutSessionId: { userId, tryoutSessionId: session.id } },
+  });
+
+  if (existing?.status === 'ACTIVE') {
+    return { enrollmentId: existing.id, sessionCode, status: existing.status };
+  }
+
+  const status = session.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: { userId_tryoutSessionId: { userId, tryoutSessionId: session.id } },
+    create: {
+      userId,
+      tryoutSessionId: session.id,
+      type: 'TRYOUT',
+      status,
+    },
+    update: { status, type: 'TRYOUT' },
+  });
+
+  if (status === 'PENDING' && existing?.status !== 'PENDING') {
+    const studentName = (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
+    await notifyEnrollmentPending({
+      enrollmentId: enrollment.id,
+      studentUserId: userId,
+      studentName,
+      courseTitle: `${session.title} (${session.level})`,
+    });
+  }
+
+  revalidatePath('/admin/pembayaran');
+  revalidatePath('/dashboard/tryout');
+  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+
+  return { enrollmentId: enrollment.id, sessionCode, status: enrollment.status };
+}
+
 export async function submitTryoutAttempt(input: {
   sessionCode: string;
-  level: LevelJLPT;
   answers: Record<string, string>;
 }): Promise<TryoutSubmitResult> {
   const userId = await requireAuthUserWithAnchor();
@@ -44,11 +101,26 @@ export async function submitTryoutAttempt(input: {
     return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
   }
 
+  const enrollment = await ensureTryoutEnrollmentAccess(userId, session);
+  if (!enrollment.ok) {
+    return { ok: false, message: enrollment.message };
+  }
+
+  const access = evaluateTryoutAccess({
+    isStrictTimeBound: session.isStrictTimeBound,
+    scheduledAt: session.scheduledAt,
+    timeLimitMinutes: session.timeLimitMinutes,
+  });
+  if (!access.ok) {
+    return { ok: false, message: access.message };
+  }
+
+  const level: LevelJLPT = session.level;
+
   const rows = await prisma.question.findMany({
     where: {
       type: 'TRYOUT',
       tryoutSessionId: session.id,
-      tryoutLevel: input.level,
     },
     include: { options: true },
   });
@@ -73,6 +145,7 @@ export async function submitTryoutAttempt(input: {
 
   const score = Math.round((correct / questions.length) * 100);
   const scored = calculateTryoutPoints(correct);
+  const tryoutXp = resolveTryoutXp(score);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
@@ -81,7 +154,7 @@ export async function submitTryoutAttempt(input: {
       score,
       type: 'TRYOUT',
       tryoutSessionId: session.id,
-      tryoutLevel: input.level,
+      tryoutLevel: level,
       correctCount: correct,
       totalQuestions: questions.length,
       answersJson: JSON.stringify(input.answers),
@@ -91,18 +164,18 @@ export async function submitTryoutAttempt(input: {
   await awardLmsSplitActivity({
     userId,
     coreKind: 'tryout_complete',
-    xpAmount: scored.total,
+    xpAmount: tryoutXp,
     sourceId: attempt.id,
     idempotencyKey: buildLmsIdempotencyKey(
       'tryout_complete',
       userId,
-      `${session.code}:${input.level}`,
+      `${session.code}:${level}`,
     ),
     xpSourceType: 'TRYOUT',
     pointEvents: [
       {
         amount: scored.base,
-        pointsSourceKey: lmsTryoutCompletedSourceKey(session.code, input.level, userId),
+        pointsSourceKey: lmsTryoutCompletedSourceKey(session.code, level, userId),
         pointsSourceType: 'TRYOUT',
         sourceId: attempt.id,
       },
@@ -110,7 +183,7 @@ export async function submitTryoutAttempt(input: {
         ? [
             {
               amount: scored.bonus,
-              pointsSourceKey: lmsTryoutCorrectSourceKey(session.code, input.level, userId),
+              pointsSourceKey: lmsTryoutCorrectSourceKey(session.code, level, userId),
               pointsSourceType: 'TRYOUT_CORRECT' as const,
               sourceId: attempt.id,
             },
@@ -121,13 +194,15 @@ export async function submitTryoutAttempt(input: {
 
   await evaluateBadgeUnlocks(userId, { type: 'TRYOUT_PASS', score });
 
+  await clearTryoutExamProgress(session.id);
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/tryout');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/pencapaian');
 
   tryoutLog.info(
-    { userId, sessionCode: session.code, level: input.level, score, correct },
+    { userId, sessionCode: session.code, level, score, correct },
     'Tryout submitted',
   );
 
@@ -138,6 +213,6 @@ export async function submitTryoutAttempt(input: {
     correct,
     total: questions.length,
     pointsReward: scored.total,
-    pass: score >= 60,
+    pass: score >= TRYOUT_PASS_SCORE_PERCENT,
   };
 }

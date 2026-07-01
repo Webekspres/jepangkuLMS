@@ -1,15 +1,14 @@
+import type { CourseCategoryType } from '@prisma/client';
 import {
   LEVEL_ACCENT,
   type CatalogCourse,
-  type CourseCategory,
   type CourseLevel,
 } from '@/features/learning/components/courses-data';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
-import type { ModuleRow } from '@/features/learning/lib/course-tree';
+import { courseCategoryTypeLabel } from '@/lib/lms/course-category';
 import { formatIdr } from '@/lib/lms/format-price';
 
-const DEFAULT_THUMB =
-  'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
+const DEFAULT_THUMB = '/assets/bg-courses.webp';
 
 /** Estimasi durasi dari jumlah pelajaran (~20 menit per pelajaran). */
 export function estimateCourseDuration(lessonCount: number): string {
@@ -19,12 +18,6 @@ export function estimateCourseDuration(lessonCount: number): string {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
   return remainder > 0 ? `~${hours} jam ${remainder} menit` : `~${hours} jam`;
-}
-
-export function buildWhatYouLearnFromModules(modules: ModuleRow[]): string[] {
-  return modules
-    .map((mod) => mod.description?.trim() || mod.title.trim())
-    .filter(Boolean);
 }
 
 /** Gabung data kursus dari DB — tanpa overlay katalog statis. */
@@ -37,14 +30,14 @@ export function mergeCourseDisplay(
     isPublished: boolean;
     lessonCount: number;
     priceIdr?: number;
-    category?: string | null;
+    category?: CourseCategoryType | null;
     isFeatured?: boolean;
   },
 ): CatalogCourse & { isPublished: boolean; lessonCount: number; priceIdr: number } {
   const level = db.level as Exclude<CourseLevel, 'Semua'>;
   const accent: JlptAccent = LEVEL_ACCENT[level] ?? 'emerald';
   const priceIdr = db.priceIdr ?? 0;
-  const category = (db.category?.trim() || 'Kosa Kata') as Exclude<CourseCategory, 'Semua'>;
+  const categoryLabel = courseCategoryTypeLabel(db.category ?? 'KURSUS_UTAMA');
 
   return {
     slug: db.slug,
@@ -59,7 +52,7 @@ export function mergeCourseDisplay(
     thumb: DEFAULT_THUMB,
     accent,
     badge: level,
-    tags: [category],
+    tags: [categoryLabel],
     featured: db.isFeatured ?? false,
     isPublished: db.isPublished,
     lessonCount: db.lessonCount,

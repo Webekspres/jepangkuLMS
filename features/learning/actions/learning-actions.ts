@@ -6,9 +6,9 @@ import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsActivity, awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
+import { retryPendingCoreXp } from '@/lib/lms/core-xp-retry';
 import {
   calculateQuizPoints,
-  LMS_POINTS,
   lmsFlashcardVisitSourceKey,
   lmsLessonCompleteSourceKey,
   lmsQuizCompletedSourceKey,
@@ -16,6 +16,10 @@ import {
 } from '@/lib/lms/point-rules';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import {
+  GAMIFICATION_REWARDS,
+  resolveQuizXp,
+} from '@/features/student/lib/gamification-rewards';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -31,7 +35,7 @@ export async function requestEnrollment(courseId: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId } },
-    create: { userId, courseId, status: 'PENDING' },
+    create: { userId, courseId, type: 'COURSE', status: 'PENDING' },
     update: {},
   });
 
@@ -64,7 +68,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, status },
+    create: { userId, courseId: course.id, type: 'COURSE', status },
     update: { status },
   });
 
@@ -102,7 +106,7 @@ export async function enrollInCourse(courseSlug: string) {
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, status: 'ACTIVE' },
+    create: { userId, courseId: course.id, type: 'COURSE', status: 'ACTIVE' },
     update: { status: 'ACTIVE' },
   });
 
@@ -116,7 +120,10 @@ export async function enrollInCourse(courseSlug: string) {
 }
 
 /** Mark lesson complete locally + award XP/points via Core + LMS. */
-export async function markLessonComplete(lessonId: string, xpReward = LMS_POINTS.LESSON_COMPLETE) {
+export async function markLessonComplete(
+  lessonId: string,
+  xpReward = GAMIFICATION_REWARDS.LESSON_COMPLETED.xp,
+) {
   const userId = await requireUserId();
 
   const existing = await prisma.userProgress.findUnique({
@@ -140,7 +147,7 @@ export async function markLessonComplete(lessonId: string, xpReward = LMS_POINTS
 
   await awardLmsActivity({
     userId,
-    amount: LMS_POINTS.LESSON_COMPLETE,
+    amount: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
     xpAmount: xpReward,
     coreKind: 'lesson_complete',
     pointsSourceKey: lmsLessonCompleteSourceKey(lessonId, userId),
@@ -152,6 +159,11 @@ export async function markLessonComplete(lessonId: string, xpReward = LMS_POINTS
   if (completedCount === 1) {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_LESSON' });
   }
+
+  // Self-healing: re-dispatch any of this user's XP that failed to reach Core.
+  await retryPendingCoreXp({ userId, limit: 10 }).catch((error) => {
+    learningLog.warn({ userId, error }, 'Core XP outbox drain skipped');
+  });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
@@ -170,7 +182,8 @@ export async function recordFlashcardVisit(lessonId: string) {
 
   const result = await awardLmsActivity({
     userId,
-    amount: LMS_POINTS.FLASHCARD_VISIT,
+    amount: GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.points,
+    xpAmount: GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.xp,
     coreKind: 'flashcard_visit',
     pointsSourceKey: lmsFlashcardVisitSourceKey(lessonId, userId),
     pointsSourceType: 'FLASHCARD_VISIT',
@@ -213,6 +226,8 @@ export async function submitQuizAnswers(input: {
 
   const score = Math.round((correct / questions.length) * 100);
   const scored = calculateQuizPoints(correct);
+  // XP flat (+ bonus skor sempurna); poin tetap skala dengan jawaban benar.
+  const quizXp = resolveQuizXp(score);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
@@ -230,7 +245,7 @@ export async function submitQuizAnswers(input: {
   await awardLmsSplitActivity({
     userId,
     coreKind: 'quiz_complete',
-    xpAmount: scored.total,
+    xpAmount: quizXp,
     sourceId: attempt.id,
     idempotencyKey: buildLmsIdempotencyKey('quiz_complete', userId, input.lessonId),
     xpSourceType: 'QUIZ_PASS',
@@ -258,6 +273,10 @@ export async function submitQuizAnswers(input: {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_QUIZ' });
   }
 
+  await retryPendingCoreXp({ userId, limit: 10 }).catch((error) => {
+    learningLog.warn({ userId, error }, 'Core XP outbox drain skipped');
+  });
+
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
@@ -273,7 +292,8 @@ export async function submitQuizAnswers(input: {
       correct,
       total: questions.length,
       type: attemptType,
-      xpReward: scored.total,
+      xpReward: quizXp,
+      pointsReward: scored.total,
     },
     'Quiz submitted',
   );
@@ -282,7 +302,8 @@ export async function submitQuizAnswers(input: {
     score,
     correct,
     total: questions.length,
-    xpReward: scored.total,
+    xpReward: quizXp,
+    pointsReward: scored.total,
   };
 }
 
@@ -310,7 +331,7 @@ export async function submitQuizAttempt(input: {
     await awardLmsSplitActivity({
       userId,
       coreKind: 'quiz_complete',
-      xpAmount: input.xpReward ?? scored.total,
+      xpAmount: input.xpReward ?? resolveQuizXp(input.score),
       sourceId: attempt.id,
       idempotencyKey: buildLmsIdempotencyKey('quiz_complete', userId, input.lessonId),
       xpSourceType: 'QUIZ_PASS',
@@ -324,16 +345,25 @@ export async function submitQuizAttempt(input: {
       ],
     });
   } else {
-    const xpReward = input.xpReward ?? LMS_POINTS.QUIZ_BASE;
+    const isTryout = input.type === 'TRYOUT';
+    const xpReward =
+      input.xpReward ??
+      (isTryout
+        ? GAMIFICATION_REWARDS.TRYOUT_COMPLETED.xp
+        : GAMIFICATION_REWARDS.QUIZ_COMPLETED.xp);
+    const pointsReward = isTryout
+      ? GAMIFICATION_REWARDS.TRYOUT_COMPLETED.points
+      : GAMIFICATION_REWARDS.QUIZ_COMPLETED.points;
     await awardLmsActivity({
       userId,
-      amount: xpReward,
-      coreKind: input.type === 'TRYOUT' ? 'tryout_complete' : 'quiz_complete',
+      amount: pointsReward,
+      xpAmount: xpReward,
+      coreKind: isTryout ? 'tryout_complete' : 'quiz_complete',
       pointsSourceKey: `quiz:${attempt.id}:${userId}`,
-      pointsSourceType: input.type === 'TRYOUT' ? 'TRYOUT' : 'QUIZ_PASS',
+      pointsSourceType: isTryout ? 'TRYOUT' : 'QUIZ_PASS',
       sourceId: attempt.id,
       idempotencyKey: buildLmsIdempotencyKey(
-        input.type === 'TRYOUT' ? 'tryout_complete' : 'quiz_complete',
+        isTryout ? 'tryout_complete' : 'quiz_complete',
         userId,
         attempt.id,
       ),

@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
+import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import type { TryoutSessionView } from '@/features/student/lib/load-dashboard-extras';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
-
-const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
 
 type TryoutSelectionPageProps = {
   sessions: TryoutSessionView[];
@@ -20,14 +18,15 @@ type TryoutSelectionPageProps = {
 export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
   const router = useRouter();
   const [selectedSession, setSelectedSession] = useState(sessions[0]?.code ?? '');
-  const [selectedLevel, setSelectedLevel] = useState<(typeof LEVELS)[number]>('N5');
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.code === selectedSession),
     [sessions, selectedSession],
   );
 
-  const canStart = Boolean(activeSession && activeSession.questionCount > 0);
+  const canStart = Boolean(
+    activeSession && activeSession.questionCount > 0 && activeSession.isAccessible,
+  );
 
   return (
     <div className="space-y-8 pb-10">
@@ -45,8 +44,8 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
             Simulasi Ujian JLPT
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/70">
-            Pilih sesi dan level ujian. Setiap bagian (MOJI GOI, BUNPOU DOKKAI, CHOKAI) dikerjakan
-            terpisah dengan petunjuk — seperti simulasi JLPT untuk belajar.
+            Pilih sesi simulasi. Setiap sesi terkunci ke satu level JLPT. Bagian MOJI GOI, BUNPOU
+            DOKKAI, dan CHOKAI dikerjakan terpisah — seperti ujian resmi.
           </p>
         </div>
       </section>
@@ -71,6 +70,7 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {sessions.map((session) => {
             const active = selectedSession === session.code;
+            const accent = JLPT_ACCENT[LEVEL_ACCENT[session.level]];
             return (
               <button
                 key={session.id}
@@ -83,44 +83,49 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
                     : 'border-border hover:border-primary/30',
                 )}
               >
-                <p className="text-sm font-bold text-foreground">{session.phaseLabel}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-foreground">{session.phaseLabel}</p>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white',
+                      accent.badge,
+                    )}
+                  >
+                    {session.level}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                      session.isStrictTimeBound
+                        ? 'bg-amber-500/15 text-amber-600'
+                        : 'bg-emerald-500/15 text-emerald-600',
+                    )}
+                  >
+                    {session.isStrictTimeBound ? 'Terjadwal' : 'Latihan'}
+                  </span>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {session.scheduledAt
-                    ? new Date(session.scheduledAt).toLocaleDateString('id-ID')
+                  {session.isStrictTimeBound && session.scheduledAt
+                    ? new Date(session.scheduledAt).toLocaleString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
                     : 'Tersedia sekarang'}
                 </p>
                 <p className="mt-2 text-[10px] font-medium text-muted-foreground">
                   {session.questionCount > 0
                     ? `${session.questionCount} soal`
                     : 'Soal menyusul'}
+                  {session.priceIdr > 0
+                    ? ` · Rp${session.priceIdr.toLocaleString('id-ID')}`
+                    : session.priceIdr === 0
+                      ? ' · Gratis'
+                      : ''}
                 </p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-        <h2 className="mb-4 text-sm font-bold tracking-wide text-muted-foreground uppercase">
-          Pilih Level
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          {LEVELS.map((level) => {
-            const accent = JLPT_ACCENT[LEVEL_ACCENT[level]];
-            const active = selectedLevel === level;
-            return (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setSelectedLevel(level)}
-                className={cn(
-                  'flex size-14 items-center justify-center rounded-full border-2 text-sm font-extrabold transition-all',
-                  active
-                    ? cn(accent.badge, 'border-transparent text-white shadow-md')
-                    : 'border-border bg-muted text-muted-foreground hover:border-primary/30',
-                )}
-              >
-                {level}
               </button>
             );
           })}
@@ -149,20 +154,24 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
           className="h-12 min-w-[220px] gap-2 px-8 text-base font-bold"
           onClick={() => {
             if (!canStart) return;
-            router.push(STUDENT_ROUTES.tryoutExam(selectedSession, selectedLevel));
+            router.push(STUDENT_ROUTES.tryoutExam(selectedSession));
           }}
         >
           Masuk Ujian
           <ChevronRight className="size-4" />
         </Button>
-        {!canStart ? (
+        {activeSession && !activeSession.isAccessible ? (
+          <p className="text-xs font-medium text-amber-600">
+            {activeSession.accessMessage ?? 'Tryout belum dapat diakses saat ini.'}
+          </p>
+        ) : !canStart ? (
           <p className="text-xs text-muted-foreground">
-            Soal untuk sesi/level ini belum tersedia. Coba Fase 1 + N5.
+            Soal untuk sesi ini belum tersedia. Coba sesi Fase 1 N5.
           </p>
         ) : (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="size-3.5" />
-            Batas waktu {activeSession?.timeLimitMinutes ?? 120} menit
+            {activeSession?.level} · Batas waktu {activeSession?.timeLimitMinutes ?? 120} menit
           </p>
         )}
         <Button asChild variant="outline" size="sm" className="mt-2">

@@ -14,26 +14,58 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RupiahInput } from '@/components/ui/rupiah-input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { generateSlug, sanitizeSlugWhileTyping } from '@/lib/string-helpers';
+import type { LevelJLPT } from '@prisma/client';
 import { toast } from 'sonner';
+
+const LEVELS: LevelJLPT[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 type TryoutFormData = {
   id?: string;
   code: string;
   title: string;
   phaseLabel: string;
+  level: LevelJLPT;
   description: string | null;
   scheduledAt: string;
   timeLimitMinutes: number;
   isActive: boolean;
   sortOrder: number;
+  priceIdr: number;
+  isStrictTimeBound: boolean;
 };
 
 export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormData }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isStrict, setIsStrict] = useState(session?.isStrictTimeBound ?? true);
   const isEdit = Boolean(session?.id);
+
+  const [title, setTitle] = useState(session?.title ?? '');
+  const [code, setCode] = useState(session?.code ?? '');
+  const [level, setLevel] = useState<LevelJLPT>(session?.level ?? 'N5');
+  // Saat edit (kode sudah ada), jangan timpa kode otomatis dari judul.
+  const [isSlugTouched, setIsSlugTouched] = useState(Boolean(session?.code));
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (!isSlugTouched) setCode(generateSlug(value));
+  };
+
+  const handleCodeChange = (value: string) => {
+    setIsSlugTouched(true);
+    setCode(sanitizeSlugWhileTyping(value));
+  };
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,7 +92,7 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
     <AdminPageShell
       label="Program"
       title={isEdit ? 'Edit Sesi Tryout' : 'Sesi Tryout Baru'}
-      subtitle="Kode sesi dipakai di URL tryout siswa (?session=…&level=N5)."
+      subtitle="Setiap sesi terkunci ke satu level JLPT. Kode sesi dipakai di URL tryout siswa."
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.tryoutSessions}>
@@ -74,7 +106,14 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Judul Sesi</Label>
-            <Input id="title" name="title" defaultValue={session?.title ?? ''} required />
+            <Input
+              id="title"
+              name="title"
+              value={title}
+              onChange={(event) => handleTitleChange(event.target.value)}
+              placeholder="Simulasi JLPT — Fase 1"
+              required
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -84,9 +123,16 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
                 id="code"
                 name="code"
                 placeholder="fase-1-2026"
-                defaultValue={session?.code ?? ''}
+                value={code}
+                onChange={(event) => handleCodeChange(event.target.value)}
+                onBlur={(event) => setCode(generateSlug(event.target.value))}
+                spellCheck={false}
+                autoComplete="off"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Otomatis dari judul. Bisa diubah manual; spasi & simbol dirapikan sendiri.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phaseLabel">Label Fase</Label>
@@ -101,6 +147,29 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="level">
+              Level JLPT <span className="text-brand-red">*</span>
+            </Label>
+            <Select
+              value={level}
+              onValueChange={(value) => setLevel(value as LevelJLPT)}
+              required
+            >
+              <SelectTrigger id="level">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEVELS.map((lv) => (
+                  <SelectItem key={lv} value={lv}>
+                    {lv}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="level" value={level} />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Deskripsi (opsional)</Label>
             <Textarea
               id="description"
@@ -110,16 +179,54 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="scheduledAt">Jadwal (opsional)</Label>
-              <Input
-                id="scheduledAt"
-                name="scheduledAt"
-                type="datetime-local"
-                defaultValue={session?.scheduledAt ?? ''}
-              />
+          <div className="space-y-2">
+            <Label>Mode Akses</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setIsStrict(false)}
+                className={
+                  'rounded-lg border-2 p-3 text-left transition-all ' +
+                  (!isStrict
+                    ? 'border-emerald-500 bg-emerald-500/5'
+                    : 'border-border hover:border-emerald-500/40')
+                }
+              >
+                <p className="text-sm font-semibold text-foreground">Latihan Bebas</p>
+                <p className="text-xs text-muted-foreground">Akses kapan saja untuk siswa.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsStrict(true)}
+                className={
+                  'rounded-lg border-2 p-3 text-left transition-all ' +
+                  (isStrict
+                    ? 'border-amber-500 bg-amber-500/5'
+                    : 'border-border hover:border-amber-500/40')
+                }
+              >
+                <p className="text-sm font-semibold text-foreground">Jadwal Ketat</p>
+                <p className="text-xs text-muted-foreground">Wajib sesuai jam terjadwal.</p>
+              </button>
             </div>
+            {isStrict ? <input type="hidden" name="isStrictTimeBound" value="on" /> : null}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {isStrict ? (
+              <div className="space-y-2">
+                <Label htmlFor="scheduledAt">Jadwal Mulai</Label>
+                <Input
+                  id="scheduledAt"
+                  name="scheduledAt"
+                  type="datetime-local"
+                  defaultValue={session?.scheduledAt ?? ''}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tryout hanya bisa dikerjakan pada rentang jadwal ini.
+                </p>
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="timeLimitMinutes">Durasi (menit)</Label>
               <Input
@@ -132,14 +239,21 @@ export function AdminTryoutSessionFormPage({ session }: { session?: TryoutFormDa
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="sortOrder">Urutan tampil</Label>
-            <Input
-              id="sortOrder"
-              name="sortOrder"
-              type="number"
-              defaultValue={session?.sortOrder ?? 0}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="priceIdr">Harga (Rp)</Label>
+              <RupiahInput id="priceIdr" name="priceIdr" defaultValue={session?.priceIdr ?? 0} />
+              <p className="text-xs text-muted-foreground">Kosongkan / 0 untuk tryout gratis (mis. N5).</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Urutan tampil</Label>
+              <Input
+                id="sortOrder"
+                name="sortOrder"
+                type="number"
+                defaultValue={session?.sortOrder ?? 0}
+              />
+            </div>
           </div>
 
           <label className="flex items-center gap-2 text-sm">

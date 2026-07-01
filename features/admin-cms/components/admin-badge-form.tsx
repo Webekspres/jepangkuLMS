@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { LMS_BADGE_RARITY_OPTIONS } from '@/lib/lms/badge-rarity';
+import { z } from 'zod';
 
 type BadgeFormData = {
   id?: string;
@@ -38,21 +39,98 @@ type BadgeFormData = {
   unlockValue: number | null;
   xpBonus: number;
   requirementText: string | null;
+  targetLevel?: string | null;
+  targetCategory?: string | null;
+  targetCourseId?: string | null;
 };
+
+// Zod schema for client-side form validation
+const badgeFormSchema = z
+  .object({
+    title: z.string().min(1, 'Judul badge wajib diisi.'),
+    code: z.string().optional(),
+    description: z.string().nullable().optional(),
+    rarity: z.string(),
+    sortOrder: z.coerce.number().min(0, 'Urutan tampil tidak boleh negatif.'),
+    unlockRule: z.string(),
+    unlockValue: z.preprocess((val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    }, z.number().int('Nilai harus berupa angka bulat.').nullable()),
+    xpBonus: z.coerce.number().min(0, 'Bonus XP tidak boleh negatif.'),
+    requirementText: z.string().nullable().optional(),
+    imageUrl: z.string().nullable().optional(),
+    targetLevel: z.string().nullable().optional(),
+    targetCategory: z.string().nullable().optional(),
+    targetCourseId: z.string().nullable().optional(),
+  })
+  .refine(
+    (data) => {
+      const needsScore = [
+        'QUIZ_SCORE_THRESHOLD',
+        'TRYOUT_SCORE_THRESHOLD',
+        'TRYOUT_PASS',
+      ].includes(data.unlockRule);
+      if (needsScore) {
+        return data.unlockValue !== null;
+      }
+      return true;
+    },
+    {
+      message: 'Nilai skor minimum wajib diisi untuk kriteria ini.',
+      path: ['unlockValue'],
+    },
+  )
+  .refine(
+    (data) => {
+      const needsScore = [
+        'QUIZ_SCORE_THRESHOLD',
+        'TRYOUT_SCORE_THRESHOLD',
+        'TRYOUT_PASS',
+      ].includes(data.unlockRule);
+      if (needsScore && data.unlockValue !== null) {
+        return data.unlockValue >= 0 && data.unlockValue <= 100;
+      }
+      return true;
+    },
+    {
+      message: 'Nilai skor harus di antara 0 dan 100.',
+      path: ['unlockValue'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_COURSE_COMPLETE') {
+        return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Target Kursus Spesifik wajib dipilih untuk kriteria ini.',
+      path: ['targetCourseId'],
+    },
+  );
 
 export function AdminBadgeFormPage({
   badge,
   r2Configured,
+  courses = [],
 }: {
   badge?: BadgeFormData;
   r2Configured: boolean;
+  courses?: { id: string; title: string }[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [removeImage, setRemoveImage] = useState(false);
   const [unlockRule, setUnlockRule] = useState(badge?.unlockRule ?? 'MANUAL');
   const [rarity, setRarity] = useState(badge?.rarity ?? 'COMMON');
+  const [targetLevel, setTargetLevel] = useState<string>(badge?.targetLevel ?? '');
+  const [targetCategory, setTargetCategory] = useState<string>(badge?.targetCategory ?? '');
+  const [targetCourseId, setTargetCourseId] = useState<string>(badge?.targetCourseId ?? '');
   const [imagePreview, setImagePreview] = useState<string | null>(
     badge?.imageUrl && !removeImage ? badge.imageUrl : null,
   );
@@ -116,11 +194,43 @@ export function AdminBadgeFormPage({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setValidationErrors({});
+
     const form = event.currentTarget;
     const formData = new FormData(form);
     if (removeImage) formData.set('removeImage', 'true');
     if (optimizedFileRef.current) {
       formData.set('image', optimizedFileRef.current);
+    }
+
+    // Prepare data for validation
+    const rawData = {
+      title: formData.get('title'),
+      code: formData.get('code'),
+      description: formData.get('description'),
+      rarity: rarity,
+      sortOrder: formData.get('sortOrder'),
+      unlockRule: unlockRule,
+      unlockValue: formData.get('unlockValue'),
+      xpBonus: formData.get('xpBonus'),
+      requirementText: formData.get('requirementText'),
+      imageUrl: formData.get('imageUrl'),
+      targetLevel: targetLevel || null,
+      targetCategory: targetCategory || null,
+      targetCourseId: targetCourseId || null,
+    };
+
+    const validation = badgeFormSchema.safeParse(rawData);
+    if (!validation.success) {
+      const fieldErrors: Record<string, string> = {};
+      validation.error.issues.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(fieldErrors);
+      setError('Harap periksa kembali isian form Anda.');
+      return;
     }
 
     startTransition(async () => {
@@ -163,9 +273,22 @@ export function AdminBadgeFormPage({
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="unlockRule" value={unlockRule} />
           <input type="hidden" name="rarity" value={rarity} />
+          <input type="hidden" name="targetLevel" value={targetLevel} />
+          <input type="hidden" name="targetCategory" value={targetCategory} />
+          <input type="hidden" name="targetCourseId" value={targetCourseId} />
+
           <div className="space-y-2">
             <Label htmlFor="title">Judul</Label>
-            <Input id="title" name="title" defaultValue={badge?.title ?? ''} required />
+            <Input
+              id="title"
+              name="title"
+              defaultValue={badge?.title ?? ''}
+              className={validationErrors.title ? 'border-destructive' : ''}
+              required
+            />
+            {validationErrors.title && (
+              <p className="text-xs text-destructive">{validationErrors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -177,8 +300,11 @@ export function AdminBadgeFormPage({
               placeholder="first-lesson"
               disabled={isEdit}
               required={!isEdit}
+              className={validationErrors.code ? 'border-destructive' : ''}
             />
-            {isEdit ? (
+            {validationErrors.code ? (
+              <p className="text-xs text-destructive">{validationErrors.code}</p>
+            ) : isEdit ? (
               <p className="text-xs text-muted-foreground">Kode tidak bisa diubah setelah dibuat.</p>
             ) : null}
           </div>
@@ -220,10 +346,25 @@ export function AdminBadgeFormPage({
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Aturan Unlock Section */}
+          <div className="space-y-4 rounded-xl border border-border bg-muted/25 p-4">
             <div className="space-y-2">
               <Label htmlFor="unlockRule">Aturan unlock</Label>
-              <Select value={unlockRule} onValueChange={setUnlockRule}>
+              <Select
+                value={unlockRule}
+                onValueChange={(val) => {
+                  setUnlockRule(val);
+                  // Clear validation errors for these fields when rule changes
+                  setValidationErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.unlockValue;
+                    delete copy.targetLevel;
+                    delete copy.targetCategory;
+                    delete copy.targetCourseId;
+                    return copy;
+                  });
+                }}
+              >
                 <SelectTrigger id="unlockRule">
                   <SelectValue placeholder="Pilih aturan" />
                 </SelectTrigger>
@@ -231,7 +372,11 @@ export function AdminBadgeFormPage({
                   <SelectItem value="MANUAL">Manual (admin grant)</SelectItem>
                   <SelectItem value="FIRST_LESSON">Lesson pertama selesai</SelectItem>
                   <SelectItem value="FIRST_QUIZ">Quiz pertama selesai</SelectItem>
-                  <SelectItem value="TRYOUT_PASS">Tryout lulus</SelectItem>
+                  <SelectItem value="QUIZ_SCORE_THRESHOLD">Skor kuis minimum</SelectItem>
+                  <SelectItem value="CATEGORY_COMPLETE">Selesaikan kategori materi</SelectItem>
+                  <SelectItem value="TRYOUT_SCORE_THRESHOLD">Skor tryout minimum</SelectItem>
+                  <SelectItem value="SPECIFIC_COURSE_COMPLETE">Selesaikan kursus spesifik</SelectItem>
+                  <SelectItem value="TRYOUT_PASS">Tryout lulus (Legacy)</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -239,20 +384,119 @@ export function AdminBadgeFormPage({
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="unlockValue">Nilai unlock (opsional)</Label>
-              <Input
-                id="unlockValue"
-                name="unlockValue"
-                type="number"
-                min={0}
-                placeholder="60 untuk skor tryout min."
-                defaultValue={badge?.unlockValue ?? ''}
-              />
-              <p className="text-xs text-muted-foreground">
-                Hanya untuk TRYOUT_PASS — skor minimum (%).
-              </p>
-            </div>
+            {/* Conditional Fields Container */}
+            {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS', 'SPECIFIC_COURSE_COMPLETE'].includes(
+              unlockRule,
+            ) && (
+              <div className="grid gap-4 pt-4 sm:grid-cols-2 border-t border-border/50">
+                {/* Nilai Unlock (Skor Min %) */}
+                {['QUIZ_SCORE_THRESHOLD', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS'].includes(
+                  unlockRule,
+                ) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="unlockValue" className="flex items-center gap-1">
+                      Nilai unlock (skor min %) <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="unlockValue"
+                      name="unlockValue"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="e.g. 80"
+                      defaultValue={badge?.unlockValue ?? ''}
+                      className={validationErrors.unlockValue ? 'border-destructive' : ''}
+                    />
+                    {validationErrors.unlockValue ? (
+                      <p className="text-xs text-destructive">{validationErrors.unlockValue}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {unlockRule === 'QUIZ_SCORE_THRESHOLD'
+                          ? 'Masukkan nilai 0-100 (misal: 100 untuk Perfect Master, 75 untuk High Performer).'
+                          : 'Masukkan nilai minimum kelulusan tryout dalam persen (misal: 70 untuk N4 Daily Conversation).'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Target Level (JLPT) */}
+                {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS'].includes(
+                  unlockRule,
+                ) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="targetLevel">Target Level (JLPT)</Label>
+                    <Select value={targetLevel} onValueChange={setTargetLevel}>
+                      <SelectTrigger id="targetLevel">
+                        <SelectValue placeholder="Semua Level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=" ">Semua Level</SelectItem>
+                        <SelectItem value="N5">N5</SelectItem>
+                        <SelectItem value="N4">N4</SelectItem>
+                        <SelectItem value="N3">N3</SelectItem>
+                        <SelectItem value="N2">N2</SelectItem>
+                        <SelectItem value="N1">N1</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Batasi aturan ini pada level JLPT tertentu.
+                    </p>
+                  </div>
+                )}
+
+                {/* Target Kategori (Materi) */}
+                {unlockRule === 'CATEGORY_COMPLETE' && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="targetCategory">Target Kategori (Materi)</Label>
+                    <Select value={targetCategory} onValueChange={setTargetCategory}>
+                      <SelectTrigger id="targetCategory">
+                        <SelectValue placeholder="Semua Kategori" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value=" ">Semua Kategori</SelectItem>
+                        <SelectItem value="KANJI">Kanji (漢字)</SelectItem>
+                        <SelectItem value="KOSAKATA">Kosakata (語彙)</SelectItem>
+                        <SelectItem value="TATA_BAHASA">Tata Bahasa (文法)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Tentukan skill track spesifik yang memicu badge.
+                    </p>
+                  </div>
+                )}
+
+                {/* Target Kursus Spesifik */}
+                {unlockRule === 'SPECIFIC_COURSE_COMPLETE' && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="targetCourseId">
+                      Target Kursus Spesifik <span className="text-destructive">*</span>
+                    </Label>
+                    <Select value={targetCourseId} onValueChange={setTargetCourseId}>
+                      <SelectTrigger
+                        id="targetCourseId"
+                        className={validationErrors.targetCourseId ? 'border-destructive' : ''}
+                      >
+                        <SelectValue placeholder="Pilih Kursus" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {validationErrors.targetCourseId ? (
+                      <p className="text-xs text-destructive">{validationErrors.targetCourseId}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Pilih kursus yang harus diselesaikan siswa untuk membuka badge ini.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -263,8 +507,17 @@ export function AdminBadgeFormPage({
                 name="xpBonus"
                 type="number"
                 min={0}
+                placeholder="25 (standar)"
                 defaultValue={badge?.xpBonus ?? 25}
+                className={validationErrors.xpBonus ? 'border-destructive' : ''}
               />
+              {validationErrors.xpBonus ? (
+                <p className="text-xs text-destructive">{validationErrors.xpBonus}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Rekomendasi: 10 untuk Common, 25 untuk Rare/Epic, 50 untuk Legendary.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -22,12 +22,18 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { CourseCategoryType } from '@prisma/client';
+import {
+  COURSE_CATEGORY_TYPE_OPTIONS,
+} from '@/lib/lms/course-category';
 
 type CourseFormValues = {
   title: string;
   slug: string;
   description: string;
+  outcomes: string[];
   level: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
+  category: CourseCategoryType;
   priceIdr: number;
   isPublished: boolean;
 };
@@ -50,10 +56,17 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       title: '',
       slug: '',
       description: '',
+      outcomes: [],
       level: 'N5',
+      category: 'KURSUS_UTAMA',
       priceIdr: 0,
       isPublished: false,
     },
+  );
+  // Raw textarea buffer (one outcome per line) — split into an array only on submit
+  // so admins can type freely, including transient blank lines.
+  const [outcomesText, setOutcomesText] = useState<string>(
+    (initial?.outcomes ?? []).join('\n'),
   );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -67,7 +80,9 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       formData.set('slug', values.slug);
     }
     formData.set('description', values.description);
+    formData.set('outcomes', outcomesText);
     formData.set('level', values.level);
+    formData.set('category', values.category);
     formData.set('priceIdr', String(values.priceIdr));
     if (values.isPublished) formData.set('isPublished', 'on');
 
@@ -140,6 +155,35 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
+                <Label>
+                  Kategori Kursus <span className="text-brand-red">*</span>
+                </Label>
+                <Select
+                  value={values.category}
+                  onValueChange={(value) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      category: value as CourseCategoryType,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_CATEGORY_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.category?.[0] ? (
+                  <p className="text-xs text-destructive">{fieldErrors.category[0]}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
                 <Label>Level JLPT</Label>
                 <Select
                   value={values.level}
@@ -207,6 +251,25 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
                 rows={5}
                 placeholder="Ringkasan singkat kursus untuk katalog..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="outcomes">Yang akan kamu pelajari</Label>
+              <Textarea
+                id="outcomes"
+                value={outcomesText}
+                onChange={(event) => setOutcomesText(event.target.value)}
+                rows={6}
+                placeholder={'Satu poin per baris, mis.\nMembaca dan menulis Hiragana & Katakana\n80 Kanji dasar N5\nPola tata bahasa N5'}
+              />
+              {fieldErrors.outcomes?.[0] ? (
+                <p className="text-xs text-destructive">{fieldErrors.outcomes[0]}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Tulis satu poin pembelajaran per baris. Ditampilkan di halaman detail kursus
+                  (maks. 20 poin).
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 border-t border-border pt-6">

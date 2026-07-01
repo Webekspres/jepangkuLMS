@@ -30,10 +30,17 @@ export function hasLmsAdminAccess(roles: string[]): boolean {
 
 /** Local dev only — never set in production. See .env.example LMS_DEV_ADMIN_BYPASS. */
 export function isDevAdminBypassEnabled(): boolean {
-  return (
-    process.env.NODE_ENV === 'development' &&
-    process.env.LMS_DEV_ADMIN_BYPASS === 'true'
-  );
+  // Hard fail-safe: jangan pernah bypass di luar development
+  if (process.env.NODE_ENV !== 'development') {
+    if (process.env.LMS_DEV_ADMIN_BYPASS === 'true') {
+      throw new Error(
+        'LMS_DEV_ADMIN_BYPASS=true is FORBIDDEN outside NODE_ENV=development. ' +
+        'Unset LMS_DEV_ADMIN_BYPASS in staging/production .env immediately.',
+      );
+    }
+    return false;
+  }
+  return process.env.LMS_DEV_ADMIN_BYPASS === 'true';
 }
 
 /** Gate `/admin/*` — Core admin role atau dev bypass. */

@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import type { LmsBadgeRarity, LmsBadgeUnlockRule, PrismaClient } from '@prisma/client';
+import { BADGE_XP_BONUS_BY_RARITY } from '@/features/student/lib/gamification-rewards';
 
 /**
  * Starter badges — gambar dari `public/badges/*.png`.
@@ -17,7 +18,7 @@ type BadgeSeed = {
   sortOrder: number;
   unlockRule: LmsBadgeUnlockRule;
   unlockValue?: number;
-  xpBonus: number;
+  /** Bonus XP diturunkan dari rarity (lihat BADGE_XP_BONUS_BY_RARITY), bukan literal. */
   requirementText: string;
   rarity: LmsBadgeRarity;
 };
@@ -30,7 +31,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge kosakata N5 — langkah pertama memperluas 語彙.',
     sortOrder: 1,
     unlockRule: 'FIRST_LESSON',
-    xpBonus: 25,
     requirementText: 'Selesaikan pelajaran pertamamu',
     rarity: 'COMMON',
   },
@@ -41,7 +41,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge tata bahasa N5 — memulai pemahaman 文法.',
     sortOrder: 2,
     unlockRule: 'FIRST_QUIZ',
-    xpBonus: 30,
     requirementText: 'Selesaikan kuis pertama',
     rarity: 'COMMON',
   },
@@ -52,7 +51,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge kanji N5 — mengenal 漢字 dasar.',
     sortOrder: 3,
     unlockRule: 'MANUAL',
-    xpBonus: 20,
     requirementText: 'Selesaikan modul kanji N5 (grant admin / milestone)',
     rarity: 'COMMON',
   },
@@ -63,7 +61,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge level N5 — menyelesaikan materi dasar hiragana, katakana, dan kosakata.',
     sortOrder: 4,
     unlockRule: 'MANUAL',
-    xpBonus: 35,
     requirementText: 'Selesaikan kurikulum N5 (milestone)',
     rarity: 'COMMON',
   },
@@ -74,7 +71,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Quiz N5 — skor di bawah 50%; terus latihan dan coba lagi.',
     sortOrder: 5,
     unlockRule: 'MANUAL',
-    xpBonus: 15,
     requirementText: 'Kuis N5 dengan skor < 50% (grant manual / fase 2)',
     rarity: 'COMMON',
   },
@@ -85,7 +81,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Quiz N5 — skor 50–74%; progress yang solid.',
     sortOrder: 6,
     unlockRule: 'MANUAL',
-    xpBonus: 40,
     requirementText: 'Kuis N5 skor 50–74% (grant manual / fase 2)',
     rarity: 'RARE',
   },
@@ -97,7 +92,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     sortOrder: 7,
     unlockRule: 'TRYOUT_PASS',
     unlockValue: 75,
-    xpBonus: 50,
     requirementText: 'Lulus simulasi JLPT N5 dengan skor ≥ 75%',
     rarity: 'EPIC',
   },
@@ -109,7 +103,6 @@ const BADGE_CATALOG: BadgeSeed[] = [
     sortOrder: 8,
     unlockRule: 'TRYOUT_PASS',
     unlockValue: 100,
-    xpBonus: 75,
     requirementText: 'Skor sempurna 100% pada simulasi JLPT N5',
     rarity: 'LEGENDARY',
   },
@@ -138,6 +131,8 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
     const imageUrl = hasFile ? badgePublicUrl(badge.file) : null;
     if (!hasFile) missing += 1;
 
+    const xpBonus = BADGE_XP_BONUS_BY_RARITY[badge.rarity];
+
     await prisma.lmsBadge.upsert({
       where: { code: badge.code },
       create: {
@@ -149,7 +144,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
-        xpBonus: badge.xpBonus,
+        xpBonus,
         requirementText: badge.requirementText,
       },
       update: {
@@ -160,7 +155,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
-        xpBonus: badge.xpBonus,
+        xpBonus,
         requirementText: badge.requirementText,
       },
     });

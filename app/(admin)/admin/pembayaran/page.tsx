@@ -9,6 +9,8 @@ export default async function AdminPembayaranPage() {
       enrollments={data.enrollments}
       pendingCount={data.pendingCount}
       courses={data.courses}
+      liveClasses={data.liveClasses}
+      tryoutSessions={data.tryoutSessions}
     />
   );
 }

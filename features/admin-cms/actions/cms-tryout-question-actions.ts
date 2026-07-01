@@ -1,11 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { LevelJLPT } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { renumberTryoutQuestionsForLevel } from '@/features/admin-cms/lib/renumber-tryout-questions';
+import { renumberTryoutQuestionsForSession } from '@/features/admin-cms/lib/renumber-tryout-questions';
 import { type TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
 import { tryoutQuestionSchema, type TryoutQuestionInput } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
@@ -24,13 +23,11 @@ async function assertTryoutSession(sessionId: string) {
 
 async function nextSortOrder(
   sessionId: string,
-  level: LevelJLPT,
   section: TryoutSectionValue,
 ): Promise<number> {
   const agg = await prisma.question.aggregate({
     where: {
       tryoutSessionId: sessionId,
-      tryoutLevel: level,
       tryoutSection: section,
       type: 'TRYOUT',
     },
@@ -68,18 +65,13 @@ export async function createTryoutQuestionAction(
     return { ok: false, message: 'Pilih tepat satu jawaban benar.' };
   }
 
-  const sortOrder = await nextSortOrder(
-    data.tryoutSessionId,
-    data.tryoutLevel,
-    data.tryoutSection,
-  );
+  const sortOrder = await nextSortOrder(data.tryoutSessionId, data.tryoutSection);
   const audio = resolveChokaiAudioFields(data);
 
   const row = await prisma.question.create({
     data: {
       type: 'TRYOUT',
       tryoutSessionId: data.tryoutSessionId,
-      tryoutLevel: data.tryoutLevel,
       tryoutSection: data.tryoutSection,
       sortOrder,
       questionText: data.questionText,
@@ -130,7 +122,6 @@ export async function updateTryoutQuestionAction(
     prisma.question.update({
       where: { id: questionId },
       data: {
-        tryoutLevel: data.tryoutLevel,
         tryoutSection: data.tryoutSection,
         questionText: data.questionText,
         explanation: data.explanation || null,
@@ -152,7 +143,6 @@ export async function updateTryoutQuestionAction(
 
 export async function reorderTryoutQuestionsAction(
   sessionId: string,
-  level: LevelJLPT,
   section: TryoutSectionValue,
   orderedIds: string[],
 ): Promise<CmsActionResult> {
@@ -162,7 +152,6 @@ export async function reorderTryoutQuestionsAction(
   const rows = await prisma.question.findMany({
     where: {
       tryoutSessionId: sessionId,
-      tryoutLevel: level,
       tryoutSection: section,
       type: 'TRYOUT',
     },
@@ -192,12 +181,11 @@ export async function reorderTryoutQuestionsAction(
 /** Renumber sortOrder 1..n per section — fixes legacy global numbering. */
 export async function normalizeTryoutQuestionSortOrdersAction(
   sessionId: string,
-  level: LevelJLPT,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await assertTryoutSession(sessionId);
 
-  const updated = await renumberTryoutQuestionsForLevel(sessionId, level);
+  const updated = await renumberTryoutQuestionsForSession(sessionId);
   if (updated > 0) {
     revalidateTryout(sessionId);
   }
@@ -217,10 +205,8 @@ export async function deleteTryoutQuestionAction(
   });
   if (!existing) return { ok: false, message: 'Soal tryout tidak ditemukan.' };
 
-  const level = existing.tryoutLevel!;
-
   await prisma.question.delete({ where: { id: questionId } });
-  await renumberTryoutQuestionsForLevel(sessionId, level);
+  await renumberTryoutQuestionsForSession(sessionId);
 
   revalidateTryout(sessionId);
   return { ok: true };

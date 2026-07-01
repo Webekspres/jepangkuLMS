@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+
 import { AdminTryoutImportPanel } from '@/features/admin-cms/components/admin-tryout-import-panel';
 import { AdminTryoutQuestionList } from '@/features/admin-cms/components/admin-tryout-question-list';
 import {
@@ -28,24 +29,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
-type Level = (typeof LEVELS)[number];
-
 type AdminTryoutQuestionsPageProps = {
   session: AdminTryoutSessionDetail;
-  initialLevel: Level;
   questions: AdminTryoutQuestionRow[];
-  levelCounts: Record<Level, number>;
 };
 
-export function AdminTryoutQuestionsPage({
-  session,
-  initialLevel,
-  questions,
-  levelCounts,
-}: AdminTryoutQuestionsPageProps) {
+export function AdminTryoutQuestionsPage({ session, questions }: AdminTryoutQuestionsPageProps) {
   const router = useRouter();
-  const [level, setLevel] = useState<Level>(initialLevel);
   const [activeSection, setActiveSection] = useState<TryoutSectionValue>('MOJI_GOI');
   const [isPending, startTransition] = useTransition();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -74,17 +64,11 @@ export function AdminTryoutQuestionsPage({
     setCreateForm(emptyTryoutQuestionForm());
   }
 
-  function handleLevelChange(next: Level) {
-    setLevel(next);
-    resetCreateForm();
-    router.push(`${ADMIN_ROUTES.tryoutSessionQuestions(session.id)}?level=${next}`);
-  }
-
   return (
     <AdminPageShell
       label="Program"
       title={`Soal Tryout — ${session.title}`}
-      subtitle={`${session.phaseLabel} · ${session.code} · ${session.timeLimitMinutes} menit · 3 bagian JLPT`}
+      subtitle={`${session.phaseLabel} · ${session.code} · ${session.level} · ${session.timeLimitMinutes} menit · 3 bagian JLPT`}
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.tryoutSessions}>
@@ -94,25 +78,6 @@ export function AdminTryoutQuestionsPage({
         </Button>
       }
     >
-      <div className="mb-6 flex flex-wrap gap-2">
-        {LEVELS.map((lv) => (
-          <button
-            key={lv}
-            type="button"
-            onClick={() => handleLevelChange(lv)}
-            className={cn(
-              'rounded-xl border px-3 py-1.5 text-sm font-semibold transition-colors',
-              level === lv
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:bg-muted/50',
-            )}
-          >
-            {lv}
-            <span className="ml-1.5 text-xs opacity-70">({levelCounts[lv]})</span>
-          </button>
-        ))}
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
         <div className="min-w-0">
           <Tabs
@@ -156,14 +121,14 @@ export function AdminTryoutQuestionsPage({
                   <Card className="border-border">
                     <CardHeader>
                       <CardTitle className="text-base">
-                        Soal Baru — {section.labelRomaji} · {level}
+                        Soal Baru — {section.labelRomaji} · {session.level}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <TryoutQuestionFormFields
                         form={createForm}
                         section={section.value}
-                        level={level}
+                        level={session.level}
                         disabled={isPending}
                         onChange={setCreateForm}
                       />
@@ -174,7 +139,6 @@ export function AdminTryoutQuestionsPage({
                             startTransition(async () => {
                               const payload = buildTryoutQuestionPayload(
                                 session.id,
-                                level,
                                 section.value,
                                 createForm,
                               );
@@ -200,9 +164,9 @@ export function AdminTryoutQuestionsPage({
                 ) : null}
 
                 <AdminTryoutQuestionList
-                  key={`${level}-${section.value}-${sectionQuestions.map((q) => `${q.id}:${q.sortOrder}`).join('|')}`}
+                  key={`${section.value}-${sectionQuestions.map((q) => `${q.id}:${q.sortOrder}`).join('|')}`}
                   sessionId={session.id}
-                  level={level}
+                  sessionLevel={session.level}
                   section={section.value}
                   questions={sectionQuestions}
                 />
@@ -214,7 +178,7 @@ export function AdminTryoutQuestionsPage({
         <aside className="xl:sticky xl:top-24 xl:self-start">
           <AdminTryoutImportPanel
             sessionId={session.id}
-            level={level}
+            level={session.level}
             onImported={() => router.refresh()}
           />
         </aside>

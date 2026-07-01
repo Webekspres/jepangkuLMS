@@ -67,6 +67,9 @@ docs/urgent_quest/
 # clerk configuration (can include secrets)
 /.clerk/
 
+# ngrok tunnel config — berisi URL tunnel statis, jangan terekspos
+/ngrok.yml
+
 # Badge uploads via admin CMS (dynamic) — starter PNG di-track untuk seed production
 /public/badges/*
 !/public/badges/.gitkeep

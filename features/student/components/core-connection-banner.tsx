@@ -18,7 +18,7 @@ export function CoreConnectionBanner() {
   const [retrying, setRetrying] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  if (core.status === 'loading' || core.coreConnected) {
+  if (core.status === 'loading' || core.coreConnected || !core.coreSyncWarning) {
     return null;
   }
 

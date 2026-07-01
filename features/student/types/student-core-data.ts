@@ -58,6 +58,8 @@ export type StudentCoreDataStatus = 'loading' | 'ready';
 export type StudentCoreDataContextValue = StudentCoreData & {
   /** `loading` = fetch pertama / revalidasi; jangan tampilkan banner gagal koneksi. */
   status: StudentCoreDataStatus;
+  /** True setelah retry sync Core gagal — tampilkan banner peringatan (bukan hard block). */
+  coreSyncWarning: boolean;
 };
 
 export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
@@ -89,6 +91,7 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
 export function toStudentCoreDataContextValue(
   data: StudentCoreData,
   status: StudentCoreDataStatus,
+  coreSyncWarning = false,
 ): StudentCoreDataContextValue {
-  return { ...data, status };
+  return { ...data, status, coreSyncWarning };
 }

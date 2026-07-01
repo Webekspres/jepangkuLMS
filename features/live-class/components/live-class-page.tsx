@@ -2,18 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
-  Calendar,
+  ArrowRight,
+  CalendarClock,
   ChevronRight,
-  Clock,
-  ExternalLink,
   Filter,
   Search,
   User,
+  Users,
   Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
@@ -21,6 +23,12 @@ import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = ['Semua', 'Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
+
+function scheduleSummary(cls: LiveClassView): string {
+  if (cls.sessionCount === 0) return 'Jadwal segera diumumkan';
+  if (cls.nextSessionLabel) return cls.nextSessionLabel;
+  return `${cls.sessionCount} pertemuan`;
+}
 
 type LiveClassPageProps = {
   classes: LiveClassView[];
@@ -116,63 +124,60 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
           const fillPct = Math.round((cls.filledSlots / cls.maxSlots) * 100);
 
           return (
-            <motion.article
+            <motion.div
               key={cls.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
             >
-              <div className="relative h-40">
-                <Image
-                  src={cls.thumbUrl ?? 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600'}
-                  alt={cls.title}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute top-3 left-3 flex gap-1.5">
-                  <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>
-                    {cls.level}
-                  </span>
-                  <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                    {cls.category}
-                  </span>
+              <Link
+                href={`/dashboard/live-class/${cls.id}`}
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-secondary/50 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+              >
+                <div className="relative h-40 overflow-hidden">
+                  <Image
+                    src={cls.thumbUrl ?? 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600'}
+                    alt={cls.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute top-3 left-3 flex gap-1.5">
+                    <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>
+                      {cls.level}
+                    </span>
+                    <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                      {cls.category}
+                    </span>
+                  </div>
+                  {cls.isFull ? (
+                    <span className="absolute top-3 right-3 rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-white">
+                      Penuh
+                    </span>
+                  ) : null}
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs font-medium text-white">
+                    <User className="size-3.5" />
+                    {cls.senseiName}
+                  </div>
                 </div>
-                {cls.isFull ? (
-                  <span className="absolute top-3 right-3 rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-white">
-                    Penuh
-                  </span>
-                ) : null}
-                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs font-medium text-white">
-                  <User className="size-3.5" />
-                  {cls.senseiName}
-                </div>
-              </div>
 
-              <div className="p-4">
-                <h3 className="text-sm font-bold text-foreground">{cls.title}</h3>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                  {cls.description}
-                </p>
-                <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
-                  <p className="flex items-center gap-2">
-                    <Calendar className="size-3.5 text-blue-500" />
-                    {cls.dateLabel}
+                <div className="flex flex-1 flex-col p-4">
+                  <h3 className="line-clamp-1 text-sm font-bold text-foreground">{cls.title}</h3>
+                  <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">
+                    {cls.description}
                   </p>
-                  <p className="flex items-center gap-2">
-                    <Clock className="size-3.5 text-emerald-500" />
-                    {cls.timeLabel}
-                  </p>
-                </div>
-                <div className="mt-3">
-                  <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                    <span>
+
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Users className="size-3.5 text-blue-500" />
                       {cls.filledSlots}/{cls.maxSlots} peserta
                     </span>
-                    <span>{fillPct}%</span>
+                    <span className="font-semibold text-foreground">
+                      {cls.priceIdr > 0 ? `Rp${cls.priceIdr.toLocaleString('id-ID')}` : 'Gratis'}
+                    </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
                       className={cn(
                         'h-full rounded-full',
@@ -181,30 +186,29 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
                       style={{ width: `${fillPct}%` }}
                     />
                   </div>
+
+                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-4">
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                      <CalendarClock className="size-3.5 shrink-0 text-emerald-500" />
+                      <span className="truncate">{scheduleSummary(cls)}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-secondary">
+                      Lihat detail
+                      <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
                 </div>
-                {cls.meetingUrl && !cls.isFull ? (
-                  <Button asChild className="mt-4 h-10 w-full gap-2 bg-secondary hover:bg-secondary/90">
-                    <a href={cls.meetingUrl} target="_blank" rel="noopener noreferrer">
-                      <Video className="size-4" />
-                      Gabung via Zoom
-                      <ExternalLink className="size-3 opacity-70" />
-                    </a>
-                  </Button>
-                ) : (
-                  <Button disabled className="mt-4 h-10 w-full">
-                    {cls.isFull ? 'Kelas Penuh' : 'Link belum tersedia'}
-                  </Button>
-                )}
-              </div>
-            </motion.article>
+              </Link>
+            </motion.div>
           );
         })}
       </div>
 
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">
-          Tidak ada kelas untuk filter ini.
-        </div>
+        <EmptyState
+          title="Belum ada kelas untuk filter ini"
+          description="Coba pilih kategori atau level lain. Kelas baru ditambahkan secara berkala."
+        />
       ) : null}
 
       <section className="rounded-2xl border border-border bg-muted/30 px-6 py-10 text-center">

@@ -15,11 +15,17 @@ import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
  * Bundel provider client global (Query, Clerk, dll.).
  * ThemeProvider di luar Clerk agar appearance Clerk ikut light/dark.
  */
-export default function AppProviders({ children }: { children: React.ReactNode }) {
+export default function AppProviders({
+  children,
+  clerkPublishableKey,
+}: {
+  children: React.ReactNode;
+  clerkPublishableKey: string;
+}) {
   return (
     <ThemeProvider>
       <AppTopLoader />
-      <ClerkProviderThemed>
+      <ClerkProviderThemed publishableKey={clerkPublishableKey}>
         <QueryProvider>
           <TooltipProvider delayDuration={0}>
             <AppSplash>

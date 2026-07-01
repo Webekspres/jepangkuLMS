@@ -6,10 +6,14 @@ export { slugifyTitle } from '@/lib/lms/slug';
 /** Empty or omitted — server auto-generates on create. */
 export const optionalSlugField = z.string().trim().optional().or(z.literal(''));
 
+const courseCategoryTypeSchema = z.enum(['KURSUS_UTAMA', 'KURSUS_GRATIS', 'KURSUS_TAMBAHAN']);
+
 const courseFields = {
   title: z.string().trim().min(1, 'Judul wajib diisi').max(200),
   description: z.string().trim().max(5000).optional().or(z.literal('')),
+  outcomes: z.array(z.string().trim().min(1).max(200)).max(20).default([]),
   level: levelJlptSchema,
+  category: courseCategoryTypeSchema,
   priceIdr: z.coerce.number().int().min(0, 'Harga tidak boleh negatif').max(99_999_999),
   isPublished: z.coerce.boolean(),
 };
@@ -139,7 +143,6 @@ export type LessonQuestionInput = z.infer<typeof lessonQuestionSchema>;
 
 export const tryoutQuestionSchema = z.object({
   tryoutSessionId: uuidSchema,
-  tryoutLevel: levelJlptSchema,
   tryoutSection: z.enum(['MOJI_GOI', 'BUNPOU_DOKKAI', 'CHOKAI']),
   questionText: z.string().trim().min(1, 'Pertanyaan wajib diisi'),
   explanation: z.string().trim().max(5000).optional().or(z.literal('')),

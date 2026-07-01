@@ -42,7 +42,7 @@ import { toast } from 'sonner';
 
 type AdminTryoutQuestionListProps = {
   sessionId: string;
-  level: LevelJLPT;
+  sessionLevel: LevelJLPT;
   section: TryoutSectionValue;
   questions: AdminTryoutQuestionRow[];
 };
@@ -67,7 +67,7 @@ function questionToForm(question: AdminTryoutQuestionRow): TryoutQuestionFormSta
 
 export function AdminTryoutQuestionList({
   sessionId,
-  level,
+  sessionLevel,
   section,
   questions,
 }: AdminTryoutQuestionListProps) {
@@ -101,7 +101,7 @@ export function AdminTryoutQuestionList({
     setItems(next);
 
     startTransition(async () => {
-      const result = await reorderTryoutQuestionsAction(sessionId, level, section, orderedIds);
+      const result = await reorderTryoutQuestionsAction(sessionId, section, orderedIds);
       if (!result.ok) {
         setItems(previous);
         toast.error(result.message ?? 'Gagal mengubah urutan.');
@@ -233,7 +233,7 @@ export function AdminTryoutQuestionList({
           <TryoutQuestionFormFields
             form={editForm}
             section={section}
-            level={level}
+            level={sessionLevel}
             disabled={isPending}
             onChange={setEditForm}
           />
@@ -246,7 +246,7 @@ export function AdminTryoutQuestionList({
               onClick={() => {
                 if (!editQuestion) return;
                 startTransition(async () => {
-                  const payload = buildTryoutQuestionPayload(sessionId, level, section, editForm);
+                  const payload = buildTryoutQuestionPayload(sessionId, section, editForm);
                   const result = await updateTryoutQuestionAction(editQuestion.id, payload);
                   if (!result.ok) {
                     toast.error(result.message ?? 'Gagal menyimpan soal.');
