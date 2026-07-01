@@ -77,7 +77,7 @@ function createRootLogger(logFile: string | null): Logger {
     });
   } else {
     // Production: Use streams instead of transport (worker threads) to prevent standalone mode crashes.
-    const streams: { level: string; stream: any }[] = [
+    const streams = [
       { level: logLevel, stream: pino.destination(1) } // stdout
     ];
 
