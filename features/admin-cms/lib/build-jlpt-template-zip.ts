@@ -67,23 +67,23 @@ Butuh bantuan? Hubungi tim JepangKu.
 
 const MOJI_COLUMNS = [
     { header: 'No', key: 'no', width: 6 },
-    { header: 'Pertanyaan', key: 'pertanyaan', width: 36, required: true },
+    { header: 'Pertanyaan', key: 'pertanyaan', width: 30, required: true },
     { header: 'Pilihan A', key: 'pilihan_a', width: 16, required: true },
     { header: 'Pilihan B', key: 'pilihan_b', width: 16, required: true },
     { header: 'Pilihan C', key: 'pilihan_c', width: 16 },
     { header: 'Pilihan D', key: 'pilihan_d', width: 16 },
     { header: 'Jawaban Benar', key: 'jawaban_benar', width: 14, required: true },
     { header: 'Penjelasan', key: 'penjelasan', width: 28 },
-    { header: 'Audio Group', key: 'audio_group', width: 14 },
+
 ];
 
 const BUNPOU_COLUMNS = [
     { header: 'No', key: 'no', width: 6 },
-    { header: 'Pertanyaan', key: 'pertanyaan', width: 48, required: true },
+    { header: 'Pertanyaan', key: 'pertanyaan', width: 30, required: true },
     { header: 'Options (newline-separated)', key: 'options', width: 32, required: true },
     { header: 'Jawaban Benar', key: 'jawaban_benar', width: 14, required: true },
     { header: 'Penjelasan', key: 'penjelasan', width: 28 },
-    { header: 'Audio Group', key: 'audio_group', width: 14 },
+
 ];
 
 const CHOKAI_COLUMNS = [
@@ -94,7 +94,7 @@ const CHOKAI_COLUMNS = [
     { header: 'Mulai (mm:ss)', key: 'mulai', width: 14 },
     { header: 'Selesai (mm:ss)', key: 'selesai', width: 14 },
     { header: 'Grup Audio', key: 'audio_group', width: 14 },
-    { header: 'Pertanyaan', key: 'pertanyaan', width: 36 },
+    { header: 'Pertanyaan', key: 'pertanyaan', width: 28 },
     { header: 'A', key: 'a', width: 14 },
     { header: 'B', key: 'b', width: 14 },
     { header: 'C', key: 'c', width: 14 },
@@ -284,10 +284,10 @@ async function buildChokaiSheet(): Promise<ExcelJS.Worksheet> {
 }
 
 async function buildJlptExcel(): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
+    // const workbook = new ExcelJS.Workbook(); // unused, removed
 
     // Add sheets
-    const mojiWb = new ExcelJS.Workbook();
+    // const mojiWb = new ExcelJS.Workbook(); // unused, removed
     const mojiSheet = mojiWb.addWorksheet('MOJI_GOI', {
         properties: { tabColor: { argb: 'FF7C3AED' } },
         views: [{ state: 'frozen', ySplit: 2 }],
@@ -315,7 +315,7 @@ async function buildJlptExcel(): Promise<Buffer> {
     });
 
     const example1 = mojiSheet.getRow(3);
-    example1.values = [1, '猫は毎日ねる。', '飼う', '飼える', '飼われる', '飼わせる', 'A', '正しい使い方の例です。', null];
+    example1.values = [1, '猫は毎日ねる。', '飼う', '飼える', '飼われる', '飼わせる', 'A', '正しい使い方の例です。'];
     MOJI_COLUMNS.forEach((_, idx) => {
         example1.getCell(idx + 1).fill = {
             type: 'pattern',
@@ -410,8 +410,18 @@ async function buildJlptExcel(): Promise<Buffer> {
 
     // Create final workbook with all sheets
     const finalWb = new ExcelJS.Workbook();
-    finalWb.addWorksheet('MOJI_GOI', { properties: mojiSheet.properties });
-    finalWb.worksheets[0] = mojiSheet;
+    const fMoji = finalWb.addWorksheet('MOJI_GOI', { properties: mojiSheet.properties });
+    mojiSheet.eachRow((row) => {
+        fMoji.getRow(row.number).values = row.values;
+        row.eachCell((cell) => {
+            fMoji.getCell(cell.address).font = cell.font;
+            fMoji.getCell(cell.address).fill = cell.fill;
+            fMoji.getCell(cell.address).alignment = cell.alignment;
+        });
+    });
+    mojiSheet.columns.forEach((col, idx) => {
+        fMoji.getColumn(idx + 1).width = col.width;
+    });
 
     // Add other sheets to final workbook
     const fBunpou = finalWb.addWorksheet('BUNPOU_DOKKAI', { properties: bunpouSheet.properties });
