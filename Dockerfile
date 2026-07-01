@@ -71,8 +71,6 @@ COPY --from=builder /app/node_modules/pino-abstract-transport ./node_modules/pin
 COPY --from=builder /app/node_modules/thread-stream ./node_modules/thread-stream
 COPY --from=builder /app/node_modules/sonic-boom ./node_modules/sonic-boom
 COPY --from=builder /app/node_modules/on-exit-leak-free ./node_modules/on-exit-leak-free
-# Buat direktori logs dengan permission untuk nextjs user
-RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
