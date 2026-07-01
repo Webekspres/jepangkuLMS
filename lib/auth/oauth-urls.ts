@@ -27,8 +27,17 @@ export function resolvePostAuthRedirect(): string {
 
   const params = new URLSearchParams(window.location.search);
   const redirect = params.get('redirect_url');
-  if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
-    return redirect;
+  if (redirect) {
+    try {
+      // Validasi ketat: hanya path absolut (tanpa host) untuk cegah open redirect
+      // URL constructor memvalidasi apakah string adalah valid absolute/relative path
+      const parsed = new URL(redirect, window.location.origin);
+      if (parsed.pathname === redirect || parsed.pathname + parsed.search === redirect) {
+        return redirect;
+      }
+    } catch {
+      // URL tidak valid — fallback ke dashboard
+    }
   }
 
   return AUTH_ROUTES.dashboard;

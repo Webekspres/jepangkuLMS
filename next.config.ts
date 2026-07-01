@@ -9,6 +9,12 @@ const CLERK_CSP_ORIGINS = [
 
 const CONTENT_SECURITY_POLICY = [
     "default-src 'self'",
+    /*
+     * 'unsafe-eval' dan 'unsafe-inline' diperlukan oleh Next.js dan Clerk.
+     * 'strict-dynamic' TIDAK bisa ditambahkan tanpa dukungan nonce penuh —
+     * browser modern akan mengabaikan 'unsafe-inline' dan memblokir semua script.
+     * Lihat SECURITY_AUDIT.md H-01 untuk rencana migrasi ke nonce-based CSP.
+     */
     `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${CLERK_CSP_ORIGINS}`,
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
