@@ -11,6 +11,10 @@ function createPrismaClient(): PrismaClient {
     throw new Error('DATABASE_URL environment variable is not set');
   }
 
+  // Sanitasi password untuk logging aman
+  const sanitizedUrl = connectionString.replace(/:([^:@]+)@/, ':****@');
+  console.log(`[PRISMA DB URL] Connecting with: ${sanitizedUrl}`);
+
   const pool = new Pool({
     connectionString,
     max: Number(globalThis.process.env.PG_POOL_MAX ?? 10),
