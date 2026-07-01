@@ -25,12 +25,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: 'File wajib diunggah.' }, { status: 400 });
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
+        // Security: batasi ukuran file (ZIP maks 50MB, XLSX maks 10MB)
         const filename = file.name.toLowerCase();
-
-        // Check if file is ZIP or XLSX
         const isZip = filename.endsWith('.zip');
         const isXlsx = filename.endsWith('.xlsx') || filename.endsWith('.xls');
+        const maxBytes = isZip ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    message: isZip
+                        ? 'Ukuran file ZIP maksimal 50 MB.'
+                        : 'Ukuran file XLSX maksimal 10 MB.',
+                    imported: 0,
+                },
+                { status: 400 },
+            );
+        }
+
+        const buffer = Buffer.from(await file.arrayBuffer());
 
         // If sessionId is provided, expect ZIP format (unified import)
         if (sessionId) {

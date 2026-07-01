@@ -15,7 +15,7 @@ describe('lms-roles', () => {
     const prevBypass = process.env.LMS_DEV_ADMIN_BYPASS;
     (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     process.env.LMS_DEV_ADMIN_BYPASS = 'true';
-    expect(isDevAdminBypassEnabled()).toBe(false);
+    expect(() => isDevAdminBypassEnabled()).toThrow();
     (process.env as Record<string, string | undefined>).NODE_ENV = prevNodeEnv;
     process.env.LMS_DEV_ADMIN_BYPASS = prevBypass;
   });

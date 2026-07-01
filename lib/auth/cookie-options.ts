@@ -10,8 +10,11 @@ export function getCoreJwtCookieOptions() {
     httpOnly: true,
     secure,
     sameSite: 'lax' as const,
-    // Path dibatasi ke /api agar cookie tidak dikirim ke halaman statis/marketing
-    path: '/api',
+    // Path '/' diperlukan agar cookie dikirim ke semua halaman SSR (dashboard, admin, etc.).
+    // Browser hanya mengirim cookie ke path yang match — path '/api' akan mematahkan
+    // proxy.ts (admin guard) dan getCoreSession() di Server Components.
+    // Lihat SECURITY_AUDIT.md M-11 untuk diskusi risiko vs fungsionalitas.
+    path: '/',
     maxAge: CORE_JWT_COOKIE_MAX_AGE,
   };
 }
