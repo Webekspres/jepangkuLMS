@@ -287,7 +287,7 @@ async function buildJlptExcel(): Promise<Buffer> {
     // const workbook = new ExcelJS.Workbook(); // unused, removed
 
     // Add sheets
-    // const mojiWb = new ExcelJS.Workbook(); // unused, removed
+    const mojiWb = new ExcelJS.Workbook();
     const mojiSheet = mojiWb.addWorksheet('MOJI_GOI', {
         properties: { tabColor: { argb: 'FF7C3AED' } },
         views: [{ state: 'frozen', ySplit: 2 }],
