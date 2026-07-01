@@ -93,6 +93,7 @@ jobs:
             echo "sign_in_url=https://kursus.jepangku.com/sign-in" >> "$GITHUB_OUTPUT"
             echo "sign_up_url=https://kursus.jepangku.com/sign-up" >> "$GITHUB_OUTPUT"
             echo "core_integration_ui=false" >> "$GITHUB_OUTPUT"
+            echo "core_api_url=http://jepangku-core:8080" >> "$GITHUB_OUTPUT"
           else
             echo "version_tag=staging" >> "$GITHUB_OUTPUT"
             echo "migrate_tag=migrate-staging" >> "$GITHUB_OUTPUT"
@@ -100,6 +101,7 @@ jobs:
             echo "sign_in_url=https://dev.kursus.jepangku.com/sign-in" >> "$GITHUB_OUTPUT"
             echo "sign_up_url=https://dev.kursus.jepangku.com/sign-up" >> "$GITHUB_OUTPUT"
             echo "core_integration_ui=true" >> "$GITHUB_OUTPUT"
+            echo "core_api_url=http://jepangku_staging_core:8081" >> "$GITHUB_OUTPUT"
           fi
           echo "migrate_sha_tag=migrate-sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
@@ -122,6 +124,7 @@ jobs:
             NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ steps.meta.outputs.sign_in_url }}
             NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ steps.meta.outputs.sign_up_url }}
             NEXT_PUBLIC_CORE_INTEGRATION_UI=${{ steps.meta.outputs.core_integration_ui }}
+            JEPANGKU_CORE_API_URL=${{ steps.meta.outputs.core_api_url }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version_tag }}
             ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
@@ -202,6 +205,14 @@ jobs:
               --client-env "\$DEPLOY_PATH/lms/.env"
           fi
 
+          # Override Core API URL — sync script mungkin mengambil nilai production
+          # staging → jepangku_staging_core:8081, production → jepangku-core:8080
+          if grep -q "^JEPANGKU_CORE_API_URL=" "\$DEPLOY_PATH/lms/.env"; then
+            sed -i "s|^JEPANGKU_CORE_API_URL=.*|JEPANGKU_CORE_API_URL=http://jepangku_staging_core:8081|" "\$DEPLOY_PATH/lms/.env"
+          else
+            echo "JEPANGKU_CORE_API_URL=http://jepangku_staging_core:8081" >> "\$DEPLOY_PATH/lms/.env"
+          fi
+
           docker pull "\$MIGRATE_IMAGE"
           docker run --rm \
             --network jepangku_staging_net \
@@ -216,6 +227,7 @@ jobs:
             prisma migrate status
 
           docker compose pull lms
+          # JEPANGKU_CORE_API_URL sudah di-override di lms/.env lewat sed di atas
           docker compose up -d --force-recreate lms
 
           for i in \$(seq 1 30); do
@@ -301,6 +313,14 @@ jobs:
             python3 deploy/scripts/vps-sync-client-env-from-core.py --client lms
           fi
 
+          # Override Core API URL — sync script mungkin mengambil nilai staging
+          # production → jepangku-core:8080
+          if grep -q "^JEPANGKU_CORE_API_URL=" "\$DEPLOY_PATH/lms/.env"; then
+            sed -i "s|^JEPANGKU_CORE_API_URL=.*|JEPANGKU_CORE_API_URL=http://jepangku-core:8080|" "\$DEPLOY_PATH/lms/.env"
+          else
+            echo "JEPANGKU_CORE_API_URL=http://jepangku-core:8080" >> "\$DEPLOY_PATH/lms/.env"
+          fi
+
           docker pull "\$MIGRATE_IMAGE"
           docker run --rm \
             --network jepangku_net \
@@ -315,6 +335,7 @@ jobs:
             prisma migrate status
 
           docker compose pull lms
+          # JEPANGKU_CORE_API_URL sudah di-override di lms/.env lewat sed di atas
           docker compose up -d --force-recreate lms
 
           for i in \$(seq 1 30); do
