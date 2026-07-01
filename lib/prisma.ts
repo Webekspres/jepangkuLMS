@@ -1,29 +1,24 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { Pool } from 'pg';
 import { loggers } from '@/lib/logger';
 
 const dbLog = loggers.db;
 
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = globalThis.process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
 
-  const pool = new Pool({
-    connectionString,
-    max: Number(process.env.PG_POOL_MAX ?? 10),
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS ?? 10_000),
-    keepAlive: true,
-  });
+  // Sanitasi password untuk logging aman
+  const sanitizedUrl = connectionString.replace(/:([^:@]+)@/, ':****@');
+  console.log(`[PRISMA DB URL] Connecting with: ${sanitizedUrl}`);
 
-  pool.on('error', (err) => {
-    dbLog.error({ err }, 'PostgreSQL idle client error on connection pool');
-  });
-
-  const adapter = new PrismaPg(pool);
+  // Gunakan connection string langsung, bukan Pool instance.
+  // Hindari dual-pg instanceof issue: adapter-pg punya pg@8.21.0 di nested
+  // node_modules, sementara app pakai pg@8.22.0 di root. instanceof Pool
+  // dari dua versi pg berbeda selalu false.
+  const adapter = new PrismaPg(connectionString);
 
   return new PrismaClient({
     adapter,

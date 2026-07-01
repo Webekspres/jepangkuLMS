@@ -24,6 +24,7 @@ import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
+import { clearTryoutExamProgress } from '@/features/tryout/actions/tryout-exam-progress-actions';
 
 const tryoutLog = loggers.learning.child({ module: 'tryout' });
 
@@ -192,6 +193,8 @@ export async function submitTryoutAttempt(input: {
   });
 
   await evaluateBadgeUnlocks(userId, { type: 'TRYOUT_PASS', score });
+
+  await clearTryoutExamProgress(session.id);
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/tryout');

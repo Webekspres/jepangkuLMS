@@ -8,7 +8,7 @@ import {
 } from '@/features/student/types/student-core-data';
 
 const StudentCoreDataContext = createContext<StudentCoreDataContextValue>(
-  toStudentCoreDataContextValue(EMPTY_STUDENT_CORE_DATA, 'loading'),
+  toStudentCoreDataContextValue(EMPTY_STUDENT_CORE_DATA, 'loading', false),
 );
 
 export function StudentCoreDataProvider({

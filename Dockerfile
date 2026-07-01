@@ -5,7 +5,12 @@ COPY package.json bun.lock ./
 # postinstall runs `prisma generate` — schema + config must exist before install
 COPY prisma/schema.prisma prisma/schema.prisma
 COPY prisma.config.ts ./
-RUN bun install --frozen-lockfile
+RUN set -eux; \
+    for i in 1 2 3; do \
+      bun install --frozen-lockfile && break; \
+      echo "bun install failed (attempt $i), retrying..."; \
+      sleep 3; \
+    done
 
 FROM oven/bun:1 AS builder
 WORKDIR /app
@@ -15,13 +20,16 @@ ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
+ARG NEXT_PUBLIC_CORE_INTEGRATION_UI=false
+ARG JEPANGKU_CORE_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
+ENV NEXT_PUBLIC_CORE_INTEGRATION_UI=$NEXT_PUBLIC_CORE_INTEGRATION_UI
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
-ENV JEPANGKU_CORE_API_URL=http://localhost:8080
+ENV JEPANGKU_CORE_API_URL=$JEPANGKU_CORE_API_URL
 RUN bunx prisma generate
 RUN bun run build
 
@@ -33,7 +41,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S -u 1001 -G nodejs nextjs
+    adduser -S -u 1001 -G nodejs nextjs && \
+    mkdir -p /app/logs && \
+    chown -R nextjs:nodejs /app/logs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -54,6 +64,8 @@ COPY --from=builder /app/node_modules/postgres-interval ./node_modules/postgres-
 COPY --from=builder /app/node_modules/split2 ./node_modules/split2
 COPY --from=builder /app/node_modules/xtend ./node_modules/xtend
 # pino transport worker deps (serverExternalPackages — not in standalone trace)
+# real-require diperlukan oleh pino-abstract-transport untuk worker threads
+COPY --from=builder /app/node_modules/real-require ./node_modules/real-require
 COPY --from=builder /app/node_modules/pino ./node_modules/pino
 COPY --from=builder /app/node_modules/pino-abstract-transport ./node_modules/pino-abstract-transport
 COPY --from=builder /app/node_modules/thread-stream ./node_modules/thread-stream

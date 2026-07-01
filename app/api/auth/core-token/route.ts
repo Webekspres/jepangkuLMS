@@ -6,9 +6,21 @@ import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
 import { createRequestId, jsonApiError, logApiError } from '@/lib/errors/api-error';
 import { CoreTokenExchangeError } from '@/lib/core/exchange-token';
 import { exchangeClerkSessionForCoreJwtWithRetry } from '@/lib/core/exchange-token-with-retry';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { loggers, formatErrorSummary, formatUpstreamSummary, serializeError } from '@/lib/logger';
 
 const apiLog = loggers.api.child({ route: 'POST /api/auth/core-token' });
+
+const AUTH_RATE_LIMIT = 15; // requests
+const AUTH_RATE_WINDOW_MS = 60_000; // per minute
+
+/** Extract client IP from request headers — respects proxies (ngrok, Cloudflare, VPS). */
+function getClientIp(request?: Request): string {
+    if (!request) return 'unknown';
+    const forwarded = request.headers.get('x-forwarded-for');
+    if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown';
+    return request.headers.get('cf-connecting-ip') || 'unknown';
+}
 
 function mapExchangeError(error: CoreTokenExchangeError) {
     if (error.code === 'USER_NOT_FOUND') {
@@ -73,6 +85,23 @@ function mapExchangeError(error: CoreTokenExchangeError) {
 export async function POST() {
     const requestId = createRequestId();
     const { userId, getToken } = await auth();
+
+    // Rate limit by userId (authenticated) or IP (unauthenticated)
+    // Tidak pakai requestId karena UUID berubah setiap request — tidak efektif
+    const clientIp = getClientIp();
+    const rateLimitKey = userId
+        ? `auth:core-token:${userId}`
+        : `auth:core-token:ip:${clientIp}`;
+    const rateCheck = await checkRateLimit(rateLimitKey, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS);
+    if (!rateCheck.success) {
+        apiLog.warn({ requestId, userId }, 'Core token exchange rate limited');
+        return jsonApiError(
+            'RATE_LIMITED',
+            'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+            429,
+            { requestId, details: { retryAfter: Math.ceil((rateCheck.reset - Date.now()) / 1000) } },
+        );
+    }
 
     if (!userId) {
         apiLog.warn({ requestId }, 'Core token exchange rejected — no Clerk session');

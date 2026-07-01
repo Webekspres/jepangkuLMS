@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import type ExcelJS from 'exceljs';
 import type { CourseCategoryType, PrismaClient } from '@prisma/client';
 import { levelJlptSchema } from '@/lib/validations/shared';
 import { dedupeSlugInSet, slugBaseFromTitle } from '@/lib/lms/slug';
@@ -141,7 +141,7 @@ function resolveQuizAnswer(
 }
 
 function buildTreesFromWorkbook(
-    workbook: ReturnType<typeof readXlsxBuffer>,
+    workbook: ExcelJS.Workbook,
 ): { trees: CourseSyllabusTree[]; publishedBySlug: Record<string, boolean>; courseMetaBySlug: Record<string, CourseMeta> } | { errors: CourseImportRowError[] } {
     const errors: CourseImportRowError[] = [];
 
@@ -568,14 +568,14 @@ function countPreview(trees: CourseSyllabusTree[], rowCount: number): CourseImpo
     };
 }
 
-export function previewCourseXlsxImport(buffer: Buffer): CourseImportPreview {
+export async function previewCourseXlsxImport(buffer: Buffer): Promise<CourseImportPreview> {
     if (buffer.byteLength > MAX_IMPORT_BYTES) {
         return { ok: false, ...emptyPreview(), errors: [{ row: 0, message: 'File terlalu besar (maks. 5 MB).' }] };
     }
 
-    let workbook: ReturnType<typeof readXlsxBuffer>;
+    let workbook: Awaited<ReturnType<typeof readXlsxBuffer>>;
     try {
-        workbook = readXlsxBuffer(buffer);
+        workbook = await readXlsxBuffer(buffer);
     } catch {
         return {
             ok: false,
@@ -589,10 +589,8 @@ export function previewCourseXlsxImport(buffer: Buffer): CourseImportPreview {
         return { ok: false, ...emptyPreview(), errors: built.errors };
     }
 
-    const rowCount = workbook.SheetNames.reduce((sum, name) => {
-        const sheet = workbook.Sheets[name];
-        if (!sheet) return sum;
-        return sum + (XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][]).length;
+    const rowCount = workbook.worksheets.reduce((sum, worksheet) => {
+        return sum + worksheet.rowCount;
     }, 0);
 
     if (rowCount > MAX_IMPORT_ROWS) {
@@ -610,12 +608,12 @@ export async function importCoursesFromXlsxBuffer(
     prisma: PrismaClient,
     buffer: Buffer,
 ): Promise<CourseImportResult> {
-    const preview = previewCourseXlsxImport(buffer);
+    const preview = await previewCourseXlsxImport(buffer);
     if (!preview.ok) {
         return { ok: false, preview, imported: [], errors: preview.errors };
     }
 
-    const workbook = readXlsxBuffer(buffer);
+    const workbook = await readXlsxBuffer(buffer);
     const built = buildTreesFromWorkbook(workbook);
     if ('errors' in built) {
         return {

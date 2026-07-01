@@ -5,7 +5,7 @@ import { buildTryoutImportTemplateBuffer } from '@/features/admin-cms/lib/xlsx-t
 describe('tryout-workbook-import', () => {
     test('preview accepts styled tryout template', async () => {
         const buffer = await buildTryoutImportTemplateBuffer();
-        const preview = previewTryoutWorkbookImport(buffer);
+        const preview = await previewTryoutWorkbookImport(buffer);
         expect(preview.ok).toBe(true);
         expect(preview.session?.code).toBe('n5-fase-1');
         expect(preview.questionPreview.sectionCounts.MOJI_GOI).toBe(1);

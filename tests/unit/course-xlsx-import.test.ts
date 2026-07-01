@@ -5,7 +5,7 @@ import { buildCourseImportTemplateBuffer } from '@/features/admin-cms/lib/xlsx-t
 describe('course-xlsx-import', () => {
     test('preview accepts styled template workbook', async () => {
         const buffer = await buildCourseImportTemplateBuffer();
-        const preview = previewCourseXlsxImport(buffer);
+        const preview = await previewCourseXlsxImport(buffer);
         expect(preview.ok).toBe(true);
         expect(preview.courseCount).toBe(1);
         expect(preview.lessonCount).toBe(1);
@@ -13,8 +13,8 @@ describe('course-xlsx-import', () => {
         expect(preview.questionCount).toBe(1);
     });
 
-    test('preview rejects empty buffer', () => {
-        const preview = previewCourseXlsxImport(Buffer.from('not-excel'));
+    test('preview rejects empty buffer', async () => {
+        const preview = await previewCourseXlsxImport(Buffer.from('not-excel'));
         expect(preview.ok).toBe(false);
     });
 });

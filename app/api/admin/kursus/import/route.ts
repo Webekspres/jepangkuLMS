@@ -26,10 +26,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: 'File wajib diunggah.' }, { status: 400 });
         }
 
+        // Security: batasi ukuran file XLSX maksimal 10MB
+        if (file.size > 10 * 1024 * 1024) {
+            return NextResponse.json(
+                { ok: false, message: 'Ukuran file XLSX maksimal 10 MB.' },
+                { status: 400 },
+            );
+        }
+
         const buffer = Buffer.from(await file.arrayBuffer());
 
         if (dryRun) {
-            const preview = previewCourseXlsxImport(buffer);
+            const preview = await previewCourseXlsxImport(buffer);
             return NextResponse.json({ ok: preview.ok, preview });
         }
 
