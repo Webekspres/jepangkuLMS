@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
+import JSZip from 'jszip';
 import { importTryoutWorkbook, previewTryoutWorkbookImport } from '@/features/admin-cms/lib/import-tryout-workbook';
 import { importUnifiedTryoutZip, previewUnifiedTryoutZip } from '@/features/admin-cms/lib/import-unified-tryout';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -96,12 +97,36 @@ export async function POST(request: Request) {
             });
         }
 
-        // No sessionId: expect XLSX (workbook import to create new session)
-        if (!isXlsx) {
+        // No sessionId: expect ZIP or XLSX (workbook import to create new session)
+        let workbookBuffer = buffer;
+
+        if (isZip) {
+            // Extract jlpt.xlsx from ZIP
+            let zip: JSZip;
+            try {
+                zip = await JSZip.loadAsync(buffer);
+            } catch {
+                return NextResponse.json({ ok: false, message: 'File ZIP tidak bisa dibaca.', imported: 0 }, { status: 400 });
+            }
+
+            let xlsxFound = false;
+            for (const [path, entry] of Object.entries(zip.files)) {
+                if (entry.dir) continue;
+                if (/^jlpt\.xlsx$/i.test(path.replace(/\\/g, '/').replace(/^\.\//, ''))) {
+                    workbookBuffer = Buffer.from(await entry.async('arraybuffer'));
+                    xlsxFound = true;
+                    break;
+                }
+            }
+
+            if (!xlsxFound) {
+                return NextResponse.json({ ok: false, message: 'jlpt.xlsx tidak ditemukan di akar ZIP.', imported: 0 }, { status: 400 });
+            }
+        } else if (!isXlsx) {
             return NextResponse.json(
                 {
                     ok: false,
-                    message: 'Format file harus .xlsx. Untuk impor ke sesi yang ada, gunakan format ZIP.',
+                    message: 'Format file harus .zip atau .xlsx.',
                     imported: 0,
                 },
                 { status: 400 },
@@ -109,7 +134,7 @@ export async function POST(request: Request) {
         }
 
         if (dryRun) {
-            const preview = await previewTryoutWorkbookImport(buffer);
+            const preview = await previewTryoutWorkbookImport(workbookBuffer);
             return NextResponse.json({
                 ok: preview.ok,
                 preview,
@@ -117,7 +142,7 @@ export async function POST(request: Request) {
             });
         }
 
-        const result = await importTryoutWorkbook(prisma, buffer);
+        const result = await importTryoutWorkbook(prisma, workbookBuffer);
         if (!result.ok) {
             return NextResponse.json({ ok: false, message: result.message, imported: 0 }, { status: 422 });
         }

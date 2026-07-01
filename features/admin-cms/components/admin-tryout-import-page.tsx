@@ -47,8 +47,8 @@ export function AdminTryoutImportPage() {
 
             if (dryRun) {
                 setPreview(json.preview as WorkbookPreview);
-                if (json.ok) toast.success('Formulir valid — siap diimpor.');
-                else toast.error('Formulir perlu diperbaiki.');
+                if (json.ok) toast.success('Paket ZIP valid — siap diimpor.');
+                else toast.error('Paket ZIP perlu diperbaiki.');
                 return;
             }
 
@@ -69,8 +69,8 @@ export function AdminTryoutImportPage() {
 
     function handleFile(next: File | null) {
         if (!next) return;
-        if (!next.name.toLowerCase().endsWith('.xlsx')) {
-            toast.error('Format harus .xlsx');
+        if (!next.name.toLowerCase().endsWith('.zip')) {
+            toast.error('Format harus .zip');
             return;
         }
         setFile(next);
@@ -82,13 +82,13 @@ export function AdminTryoutImportPage() {
         <AdminPageShell
             label="Program"
             title="Impor Tryout JLPT"
-            subtitle="Satu formulir Excel = info sesi + soal Kosakata & Kanji + Tata Bahasa & Membaca."
+            subtitle="Satu paket ZIP berisi jlpt.xlsx + folder assets/ (info sesi, soal, & media audio)."
             backHref={ADMIN_ROUTES.tryoutSessions}
             action={
                 <Button type="button" variant="outline" asChild>
                     <a href="/api/admin/tryout/template">
                         <Download className="size-4" />
-                        Unduh Formulir Excel
+                        Unduh Template ZIP
                     </a>
                 </Button>
             }
@@ -98,7 +98,7 @@ export function AdminTryoutImportPage() {
                     <input
                         ref={inputRef}
                         type="file"
-                        accept=".xlsx"
+                        accept=".zip"
                         className="hidden"
                         onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
                     />
@@ -125,7 +125,7 @@ export function AdminTryoutImportPage() {
                         )}
                     >
                         {pending ? <Loader2 className="size-8 animate-spin text-primary" /> : <FileUp className="size-8 text-muted-foreground" />}
-                        <p className="text-sm font-medium">{file?.name ?? 'Seret formulir .xlsx atau klik untuk memilih'}</p>
+                        <p className="text-sm font-medium">{file?.name ?? 'Seret file .zip atau klik untuk memilih'}</p>
                     </div>
 
                     <Button
@@ -140,14 +140,15 @@ export function AdminTryoutImportPage() {
                 </Card>
 
                 <Card className="h-fit border-border p-5">
-                    <h2 className="mb-2 text-sm font-semibold">Isi formulir</h2>
+                    <h2 className="mb-2 text-sm font-semibold">Isi paket ZIP</h2>
                     <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+                        <li>File <code>jlpt.xlsx</code> di akar ZIP</li>
                         <li>Tab Info Sesi — satu baris</li>
                         <li>Tab Kosakata & Kanji</li>
                         <li>Tab Tata Bahasa & Membaca</li>
                     </ol>
                     <p className="mt-3 text-xs text-muted-foreground">
-                        Bagian mendengarkan (Chokai) tidak termasuk — kelola terpisah di CMS.
+                        Folder <code>assets/</code> untuk media Chokai (opsional — kelola audio terpisah di CMS).
                     </p>
                 </Card>
             </div>
