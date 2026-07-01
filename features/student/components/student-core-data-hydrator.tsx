@@ -107,7 +107,12 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         void tryCoreSyncThenLoad();
 
         const onRefresh = () => {
-            void load(false);
+            void (async () => {
+                if (isCoreIntegrationEnabled()) {
+                    await syncCoreSessionSilent();
+                }
+                await load(false);
+            })();
         };
         window.addEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
 
