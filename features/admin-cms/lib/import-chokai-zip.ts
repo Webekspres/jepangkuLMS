@@ -94,7 +94,7 @@ async function extractChokaiZip(buffer: Buffer): Promise<
         if (entry.dir) continue;
         const normalized = path.replace(/\\/g, '/').replace(/^\.\//, '');
 
-        if (/^chokai\.xlsx$/i.test(normalized)) {
+        if (/^(chokai|jlpt)\.xlsx$/i.test(normalized)) {
             xlsx = Buffer.from(await entry.async('arraybuffer'));
             continue;
         }
@@ -109,7 +109,7 @@ async function extractChokaiZip(buffer: Buffer): Promise<
     }
 
     if (!xlsx) {
-        return { ok: false, error: 'chokai.xlsx tidak ditemukan di akar ZIP.' };
+        return { ok: false, error: 'File Excel (jlpt.xlsx atau chokai.xlsx) tidak ditemukan di akar ZIP.' };
     }
 
     return { ok: true, xlsx, assets };
