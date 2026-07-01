@@ -8,12 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+type UnifiedImportPreview = {
+    ok: boolean;
+    sections: Record<string, { ok: boolean; rowCount: number; errors: { row: number; message: string }[] }>;
+    totalRows: number;
+    errors: { row: number; message: string; section?: string }[];
+};
+
 type ImportResult = {
     ok: boolean;
     message: string;
     imported?: number;
     errors?: { row: number; message: string }[];
     sectionCounts?: Record<string, number>;
+    preview?: UnifiedImportPreview;
 };
 
 type AdminTryoutImportPanelProps = {
@@ -69,8 +77,9 @@ export function AdminTryoutImportPanel({
     function handleFiles(files: FileList | null) {
         const file = files?.[0];
         if (!file) return;
-        if (!file.name.toLowerCase().endsWith('.xlsx')) {
-            toast.error('Format harus .xlsx');
+        const isZip = file.name.toLowerCase().endsWith('.zip');
+        if (!isZip) {
+            toast.error('Format harus .zip');
             return;
         }
         void runImport(file);
@@ -79,20 +88,17 @@ export function AdminTryoutImportPanel({
     return (
         <Card className="border-border">
             <CardHeader className="pb-3">
-                <CardTitle className="text-base">Tambah Soal dari Excel</CardTitle>
+                <CardTitle className="text-base">Tambah Soal dari ZIP JLPT</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                    Satu tab dengan kolom Bagian (MOJI_GOI / BUNPOU_DOKKAI). Untuk sesi baru lengkap, pakai{' '}
-                    <a href="/admin/tryout/import" className="font-medium text-brand-red hover:underline">
-                        Impor Tryout
-                    </a>
-                    .
+                    File ZIP berisi jlpt.xlsx (multi-sheet: MOJI_GOI, BUNPOU_DOKKAI, CHOKAI) dan folder assets/ untuk media CHOKAI.
+                    Format lama (.xlsx) tidak lagi didukung.
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Button type="button" variant="outline" size="sm" className="w-full" asChild>
                     <a href="/api/admin/tryout/template">
                         <Download className="size-4" />
-                        Unduh Formulir (sesi lengkap)
+                        Unduh Template ZIP (MOJI, BUNPOU, CHOKAI)
                     </a>
                 </Button>
 
@@ -123,7 +129,7 @@ export function AdminTryoutImportPanel({
                         <FileUp className="size-8 text-muted-foreground" />
                     )}
                     <p className="text-sm font-medium text-foreground">
-                        {pending ? 'Mengimpor…' : 'Seret file .xlsx atau klik'}
+                        {pending ? 'Mengimpor…' : 'Seret file .zip atau klik'}
                     </p>
                     <p className="text-xs text-muted-foreground">Level {level}</p>
                     {fileName ? <p className="text-xs font-medium text-primary">{fileName}</p> : null}
@@ -132,7 +138,7 @@ export function AdminTryoutImportPanel({
                 <input
                     ref={inputRef}
                     type="file"
-                    accept=".xlsx"
+                    accept=".zip"
                     className="hidden"
                     onChange={(e) => handleFiles(e.target.files)}
                 />
@@ -147,7 +153,19 @@ export function AdminTryoutImportPanel({
                         )}
                     >
                         <p className="font-medium">{result.message}</p>
-                        {result.sectionCounts ? (
+                        {result.preview?.sections ? (
+                            <div className="mt-1 space-y-1 text-xs opacity-80">
+                                {result.preview.sections.moji && (
+                                    <p>MOJI_GOI: {result.preview.sections.moji.rowCount}</p>
+                                )}
+                                {result.preview.sections.bunpou && (
+                                    <p>BUNPOU: {result.preview.sections.bunpou.rowCount}</p>
+                                )}
+                                {result.preview.sections.chokai && (
+                                    <p>CHOKAI: {result.preview.sections.chokai.rowCount}</p>
+                                )}
+                            </div>
+                        ) : result.sectionCounts ? (
                             <p className="mt-1 text-xs opacity-80">
                                 MOJI_GOI: {result.sectionCounts.MOJI_GOI ?? 0} · BUNPOU:{' '}
                                 {result.sectionCounts.BUNPOU_DOKKAI ?? 0}
