@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
-import { AdminTryoutChokaiImportPanel } from '@/features/admin-cms/components/admin-tryout-chokai-import-panel';
+
 import { AdminTryoutImportPanel } from '@/features/admin-cms/components/admin-tryout-import-panel';
 import { AdminTryoutQuestionList } from '@/features/admin-cms/components/admin-tryout-question-list';
 import {
@@ -176,19 +176,11 @@ export function AdminTryoutQuestionsPage({ session, questions }: AdminTryoutQues
         </div>
 
         <aside className="xl:sticky xl:top-24 xl:self-start">
-          {activeSection === 'CHOKAI' ? (
-            <AdminTryoutChokaiImportPanel
-              sessionId={session.id}
-              sessionLevel={session.level}
-              onImported={() => router.refresh()}
-            />
-          ) : (
-            <AdminTryoutImportPanel
-              sessionId={session.id}
-              level={session.level}
-              onImported={() => router.refresh()}
-            />
-          )}
+          <AdminTryoutImportPanel
+            sessionId={session.id}
+            level={session.level}
+            onImported={() => router.refresh()}
+          />
         </aside>
       </div>
     </AdminPageShell>

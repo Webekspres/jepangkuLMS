@@ -10,7 +10,8 @@ export function getCoreJwtCookieOptions() {
     httpOnly: true,
     secure,
     sameSite: 'lax' as const,
-    path: '/',
+    // Path dibatasi ke /api agar cookie tidak dikirim ke halaman statis/marketing
+    path: '/api',
     maxAge: CORE_JWT_COOKIE_MAX_AGE,
   };
 }

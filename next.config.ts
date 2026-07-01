@@ -9,7 +9,9 @@ const CLERK_CSP_ORIGINS = [
 
 const CONTENT_SECURITY_POLICY = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${CLERK_CSP_ORIGINS}`,
+    // 'strict-dynamic' membuat 'unsafe-inline'/'unsafe-eval' diabaikan browser modern
+    // (tetap ada sebagai fallback untuk browser lawas). Clerk & Next.js require inline scripts.
+    `script-src 'self' 'strict-dynamic' 'unsafe-eval' 'unsafe-inline' ${CLERK_CSP_ORIGINS}`,
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",

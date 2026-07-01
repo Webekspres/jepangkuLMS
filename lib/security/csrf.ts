@@ -1,6 +1,13 @@
-/** Reject cross-site POST when Origin/Referer does not match the app (production). */
+/** Reject cross-site POST when Origin/Referer does not match the app. */
 export function assertSameOriginPost(request: Request): Response | null {
-    if (process.env.NODE_ENV !== 'production') return null;
+    const host = request.headers.get('host') || '';
+    // Skip CSRF check only for pure localhost dev (127.0.0.1 or localhost)
+    const isPlainLocalhost =
+        host === 'localhost:3000' ||
+        host === '127.0.0.1:3000' ||
+        host === 'localhost' ||
+        host === '127.0.0.1';
+    if (isPlainLocalhost) return null;
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
     if (!appUrl) return null;
