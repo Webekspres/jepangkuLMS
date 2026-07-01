@@ -410,11 +410,11 @@ async function buildJlptExcel(): Promise<Buffer> {
 
     // Create final workbook with all sheets
     const finalWb = new ExcelJS.Workbook();
-    finalWb.addWorksheet('MOJI_GOI', mojiSheet.getProperties());
+    finalWb.addWorksheet('MOJI_GOI', { properties: mojiSheet.properties });
     finalWb.worksheets[0] = mojiSheet;
 
     // Add other sheets to final workbook
-    const fBunpou = finalWb.addWorksheet('BUNPOU_DOKKAI', bunpouSheet.getProperties());
+    const fBunpou = finalWb.addWorksheet('BUNPOU_DOKKAI', { properties: bunpouSheet.properties });
     bunpouSheet.eachRow((row) => {
         fBunpou.getRow(row.number).values = row.values;
         row.eachCell((cell) => {
@@ -427,7 +427,7 @@ async function buildJlptExcel(): Promise<Buffer> {
         fBunpou.getColumn(idx + 1).width = col.width;
     });
 
-    const fChokai = finalWb.addWorksheet('CHOKAI', chokaiSheet.getProperties());
+    const fChokai = finalWb.addWorksheet('CHOKAI', { properties: chokaiSheet.properties });
     chokaiSheet.eachRow((row) => {
         fChokai.getRow(row.number).values = row.values;
         row.eachCell((cell) => {
