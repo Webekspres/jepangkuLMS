@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
-import { buildTryoutImportTemplateBuffer } from '@/features/admin-cms/lib/xlsx-template-builder';
+import { buildJlptTemplateZipBuffer } from '@/features/admin-cms/lib/build-jlpt-template-zip';
 
 export async function GET() {
     try {
@@ -9,11 +9,11 @@ export async function GET() {
         return NextResponse.json({ ok: false, message: 'Forbidden' }, { status: 403 });
     }
 
-    const buffer = await buildTryoutImportTemplateBuffer();
+    const buffer = await buildJlptTemplateZipBuffer();
     return new NextResponse(new Uint8Array(buffer), {
         headers: {
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': 'attachment; filename="formulir-impor-tryout.xlsx"',
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="template-jlpt-import.zip"',
         },
     });
 }
