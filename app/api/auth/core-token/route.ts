@@ -99,7 +99,7 @@ export async function POST() {
             'RATE_LIMITED',
             'Terlalu banyak permintaan. Silakan coba lagi nanti.',
             429,
-            { requestId, retryAfter: Math.ceil((rateCheck.reset - Date.now()) / 1000) },
+            { requestId, details: { retryAfter: Math.ceil((rateCheck.reset - Date.now()) / 1000) } },
         );
     }
 

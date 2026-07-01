@@ -82,9 +82,6 @@
     "tsx": "^4.22.4",
     "typescript": "^5.9.3"
   },
-  "overrides": {
-    "@clerk/shared": "^4.15.0"
-  },
   "ignoreScripts": [
     "sharp",
     "unrs-resolver"
