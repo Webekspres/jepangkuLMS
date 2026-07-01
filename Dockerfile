@@ -40,7 +40,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S -u 1001 -G nodejs nextjs
+    adduser -S -u 1001 -G nodejs nextjs && \
+    mkdir -p /app/logs && \
+    chown -R nextjs:nodejs /app/logs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -68,6 +70,8 @@ COPY --from=builder /app/node_modules/pino-abstract-transport ./node_modules/pin
 COPY --from=builder /app/node_modules/thread-stream ./node_modules/thread-stream
 COPY --from=builder /app/node_modules/sonic-boom ./node_modules/sonic-boom
 COPY --from=builder /app/node_modules/on-exit-leak-free ./node_modules/on-exit-leak-free
+# Buat direktori logs dengan permission untuk nextjs user
+RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
