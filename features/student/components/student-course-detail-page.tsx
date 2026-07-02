@@ -60,6 +60,7 @@ export type StudentCourseDetailPageProps = {
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
+  paymentSettings: { bankName: string; accountName: string; accountNumber: string };
 };
 
 export function StudentCourseDetailPage({
@@ -73,6 +74,7 @@ export function StudentCourseDetailPage({
   isEnrolled,
   progressPercent,
   continueLessonSlug,
+  paymentSettings,
 }: StudentCourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
   const fullDesc = course.desc;
@@ -209,6 +211,7 @@ export function StudentCourseDetailPage({
               progressPercent={progressPercent}
               continueLessonSlug={continueLessonSlug}
               firstLessonSlug={course.lessons[0]?.slug}
+              paymentSettings={paymentSettings}
             />
           ) : (
             <Card>

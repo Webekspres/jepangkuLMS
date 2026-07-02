@@ -43,6 +43,7 @@ import type { LessonCommentView } from '@/features/learning/actions/lesson-qa-ac
 import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 import { cn } from '@/lib/utils';
 
 type MaterialKanji = {
