@@ -22,6 +22,7 @@ export type FlashcardItem = {
   badge?: string;
   accentColor?: string;
   trackColorClass?: string;
+  mediaUrl?: string | null;
 };
 
 type FlashcardDeckProps = {
@@ -198,6 +199,12 @@ function FlashcardDeckInner({
                 style={{ background: `${cardAccent}15` }}
               >
                 <p className="whitespace-pre-line text-sm text-muted-foreground">{card.example}</p>
+              </div>
+            )}
+            {card.mediaUrl && (
+              <div className="mt-4 flex justify-center w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={card.mediaUrl} alt={card.front} className="max-h-24 w-auto rounded-lg object-contain" />
               </div>
             )}
           </div>
