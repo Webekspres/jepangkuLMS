@@ -20,7 +20,7 @@ export async function seedN4CourseStructure(
 
     await prisma.module.updateMany({
         where: { courseId },
-        data: { order: { increment: 10000 } },
+        data: { order: { increment: 1000000 } },
     });
 
     for (const mod of N4_MODULE_DEFINITIONS) {
