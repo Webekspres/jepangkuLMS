@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { StudentCourseDetailPage } from '@/features/student/components/student-course-detail-page';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { loadStudentCourseDetail } from '@/features/student/lib/load-student-course-detail';
+import { getPaymentSettings } from '@/lib/payment/settings';
 
 interface CourseDetailRouteProps {
   params: Promise<{ courseSlug: string }>;
@@ -12,6 +13,7 @@ interface CourseDetailRouteProps {
 export default async function DashboardCourseDetailRoute({ params }: CourseDetailRouteProps) {
   const { courseSlug } = await params;
   const data = await loadStudentCourseDetail(courseSlug);
+  const paymentSettings = getPaymentSettings();
 
   if (!data) {
     return (
@@ -51,6 +53,7 @@ export default async function DashboardCourseDetailRoute({ params }: CourseDetai
       isEnrolled={data.isEnrolled}
       progressPercent={data.enrollment?.progress.percent ?? 0}
       continueLessonSlug={data.enrollment?.progress.continueLessonSlug ?? null}
+      paymentSettings={paymentSettings}
     />
   );
 }

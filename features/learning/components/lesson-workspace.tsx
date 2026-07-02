@@ -41,6 +41,7 @@ import type { LessonCommentView } from '@/features/learning/actions/lesson-qa-ac
 import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 import { cn } from '@/lib/utils';
 
 type MaterialKanji = {
@@ -342,6 +343,7 @@ export function LessonWorkspace({
     if (resolvedInitialTab === 'flashcard') {
       startTransition(async () => {
         await recordFlashcardVisit(lesson.id);
+        requestStudentCoreDataRefresh();
       });
     }
   }, [lesson.id, resolvedInitialTab, startTransition]);
@@ -381,6 +383,7 @@ export function LessonWorkspace({
       if ('success' in result || result.alreadyCompleted) {
         setCompleted(true);
         router.refresh();
+        requestStudentCoreDataRefresh();
       }
     });
   }
@@ -392,6 +395,7 @@ export function LessonWorkspace({
       startTransition(async () => {
         await recordFlashcardVisit(lesson.id);
         router.refresh();
+        requestStudentCoreDataRefresh();
       });
     }
   }
@@ -554,6 +558,8 @@ export function LessonWorkspace({
                     questions={questions}
                     onSubmitted={(score) => {
                       if (score >= 70) setQuizPassed(true);
+                      router.refresh();
+                      requestStudentCoreDataRefresh();
                     }}
                   />
                 ) : (

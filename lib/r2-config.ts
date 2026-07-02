@@ -9,7 +9,10 @@ export function getR2Config() {
       '',
     bucket:
       process.env.R2_BUCKET?.trim() ?? process.env.R2_BUCKET_NAME?.trim() ?? '',
-    publicUrl: process.env.R2_PUBLIC_URL?.trim() ?? '',
+    publicUrl:
+      process.env.R2_PUBLIC_URL?.trim() ??
+      process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim() ??
+      '',
   };
 }
 

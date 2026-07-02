@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Download, FileUp, Loader2, Upload } from 'lucide-react';
 import {
     importCoursesXlsxAction,
@@ -34,6 +35,7 @@ async function fileToBase64(file: File): Promise<string> {
 }
 
 export function AdminCourseImportPage() {
+    const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [file, setFile] = useState<File | null>(null);
     const [previewResult, setPreviewResult] = useState<CmsImportPreviewResult | null>(null);
@@ -88,8 +90,13 @@ export function AdminCourseImportPage() {
             const base64 = await fileToBase64(file);
             const result = await importCoursesXlsxAction(base64);
             if (result.ok) {
-                setMessage({ type: 'success', text: result.message });
-                setPreviewResult({ ok: true, preview: result.preview });
+                // Redirect to the modul page if single course, otherwise kursus list.
+                const imported = result.imported ?? [];
+                if (imported.length === 1) {
+                    router.push(ADMIN_ROUTES.kursusModules(imported[0]!.courseId));
+                } else {
+                    router.push(ADMIN_ROUTES.kursus);
+                }
             } else {
                 setMessage({ type: 'error', text: result.message });
                 setPreviewResult({ ok: false, preview: result.preview });

@@ -1,6 +1,6 @@
 import {
-  EMPTY_STUDENT_CORE_DATA,
-  type StudentCoreData,
+    EMPTY_STUDENT_CORE_DATA,
+    type StudentCoreData,
 } from '@/features/student/types/student-core-data';
 
 const STORAGE_KEY = 'jepangku-student-core-data-v1';
@@ -8,54 +8,63 @@ const STORAGE_KEY = 'jepangku-student-core-data-v1';
 let memoryCache: StudentCoreData | null = null;
 
 function isBrowser(): boolean {
-  return typeof window !== 'undefined';
+    return typeof window !== 'undefined';
 }
 
 /** Snapshot terakhir yang sukses — dipakai agar navigasi dashboard tidak flash banner. */
-export function readCachedStudentCoreData(): StudentCoreData | null {
-  if (memoryCache?.coreConnected) return memoryCache;
+export function readCachedStudentCoreData(
+    expectedUserId?: string | null,
+): StudentCoreData | null {
+    const pick = (data: StudentCoreData | null): StudentCoreData | null => {
+        if (!data?.coreConnected) return null;
+        if (expectedUserId && data.userId !== expectedUserId) return null;
+        return data;
+    };
 
-  if (!isBrowser()) return memoryCache;
+    const fromMemory = pick(memoryCache);
+    if (fromMemory) return fromMemory;
 
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return memoryCache;
-    const parsed = JSON.parse(raw) as StudentCoreData;
-    if (parsed.coreConnected) {
-      memoryCache = parsed;
-      return parsed;
+    if (!isBrowser()) return null;
+
+    try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = pick(JSON.parse(raw) as StudentCoreData);
+        if (parsed) {
+            memoryCache = parsed;
+            return parsed;
+        }
+    } catch {
+        // corrupt cache — abaikan
     }
-  } catch {
-    // corrupt cache — abaikan
-  }
 
-  return memoryCache;
+    return null;
 }
 
 export function writeCachedStudentCoreData(data: StudentCoreData): void {
-  if (!data.coreConnected) return;
+    if (!data.coreConnected) return;
 
-  memoryCache = data;
+    memoryCache = data;
 
-  if (!isBrowser()) return;
+    if (!isBrowser()) return;
 
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // quota / private mode
-  }
+    try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+        // quota / private mode
+    }
 }
 
 export function clearCachedStudentCoreData(): void {
-  memoryCache = null;
-  if (!isBrowser()) return;
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+    memoryCache = null;
+    if (!isBrowser()) return;
+    try {
+        sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+        // ignore
+    }
 }
 
 export function getInitialStudentCoreData(): StudentCoreData {
-  return readCachedStudentCoreData() ?? EMPTY_STUDENT_CORE_DATA;
+    return readCachedStudentCoreData() ?? EMPTY_STUDENT_CORE_DATA;
 }
