@@ -80,7 +80,7 @@ const MOJI_COLUMNS = [
 const BUNPOU_COLUMNS = [
     { header: 'No', key: 'no', width: 6 },
     { header: 'Pertanyaan', key: 'pertanyaan', width: 30, required: true },
-    { header: 'Options (newline-separated)', key: 'options', width: 32, required: true },
+    { header: 'Options', key: 'options', width: 32, required: true },
     { header: 'Jawaban Benar', key: 'jawaban_benar', width: 14, required: true },
     { header: 'Penjelasan', key: 'penjelasan', width: 28 },
 
@@ -103,89 +103,120 @@ const CHOKAI_COLUMNS = [
     { header: 'Penjelasan', key: 'penjelasan', width: 28 },
 ];
 
+const INFO_SESI_COLUMNS = [
+    { header: 'Judul Sesi', key: 'judul_sesi', width: 30, required: true },
+    { header: 'Kode Sesi', key: 'kode_sesi', width: 20, required: true },
+    { header: 'Nama Fase', key: 'nama_fase', width: 20, required: true },
+    { header: 'Tingkat JLPT', key: 'tingkat_jlpt', width: 15, required: true },
+    { header: 'Durasi Menit', key: 'durasi_menit', width: 15, required: true },
+    { header: 'Urutan Tampil', key: 'urutan_tampil', width: 15 },
+    { header: 'Aktif (Ya/Tidak)', key: 'aktif', width: 15 },
+    { header: 'Deskripsi', key: 'deskripsi', width: 40 },
+];
+
 async function buildJlptExcel(): Promise<Buffer> {
     const finalWb = new ExcelJS.Workbook();
 
-    // 1. MOJI_GOI Sheet
-    const mojiSheet = finalWb.addWorksheet('MOJI_GOI', {
-        properties: { tabColor: { argb: 'FF7C3AED' } },
+    // 0. Info Sesi Sheet
+    const infoSheet = finalWb.addWorksheet('1. Info Sesi', {
+        properties: { tabColor: { argb: 'FF3B82F6' } },
         views: [{ state: 'frozen', ySplit: 2 }],
     });
-    mojiSheet.mergeCells(1, 1, 1, MOJI_COLUMNS.length);
-    const guide1 = mojiSheet.getRow(1);
-    guide1.values = ['Soal kosakata & kanji — bacaan, makna, penggunaan. Text-only, tidak perlu media.'];
-    guide1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.guideBg } };
+    infoSheet.mergeCells(1, 1, 1, INFO_SESI_COLUMNS.length);
+    const guide0 = infoSheet.getRow(1);
+    guide0.values = ['Isi detail sesi tryout jika Anda mengimpor ini sebagai sesi baru. Jika diimpor ke sesi yang sudah ada, tab ini akan diabaikan.'];
+    guide0.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.guideBg } };
 
-    const header1 = mojiSheet.getRow(2);
-    MOJI_COLUMNS.forEach((col, idx) => {
-        const cell = header1.getCell(idx + 1);
+    const header0 = infoSheet.getRow(2);
+    INFO_SESI_COLUMNS.forEach((col, idx) => {
+        const cell = header0.getCell(idx + 1);
         cell.value = col.header;
         cell.font = { bold: true, color: { argb: col.required ? XLSX_COLORS.requiredHeaderText : 'FF334155' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.required ? XLSX_COLORS.requiredHeaderBg : XLSX_COLORS.optionalHeaderBg } };
-        mojiSheet.getColumn(idx + 1).width = col.width;
+        infoSheet.getColumn(idx + 1).width = col.width;
     });
 
-    const example1 = mojiSheet.getRow(3);
-    example1.values = [1, '猫は毎日ねる。', '飼う', '飼える', '飼われる', '飼わせる', 'A', '正しい使い方の例です。'];
-    MOJI_COLUMNS.forEach((_, idx) => {
-        example1.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
+    const example0 = infoSheet.getRow(3);
+    example0.values = ['Simulasi N4', 'simulasi-n4-01', 'Fase 1', 'N4', 120, 1, 'Ya', 'Simulasi persiapan JLPT N4 lengkap.'];
+    INFO_SESI_COLUMNS.forEach((_, idx) => {
+        example0.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
     });
+
+    // ponytail: extract repetitive sheet creation logic
+    function createJlptSheet(
+        wb: ExcelJS.Workbook,
+        name: string,
+        tabColor: string,
+        guideText: string,
+        columns: { header: string; key: string; width: number; required?: boolean }[],
+        exampleValues: Array<string | number | null>,
+        hasSecondExample: boolean = false,
+        secondExampleValues?: Array<string | number | null>,
+    ) {
+        const sheet = wb.addWorksheet(name, {
+            properties: { tabColor: { argb: tabColor } },
+            views: [{ state: 'frozen', ySplit: 2 }],
+        });
+        sheet.mergeCells(1, 1, 1, columns.length);
+        const guideRow = sheet.getRow(1);
+        guideRow.values = [guideText];
+        guideRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.guideBg } };
+
+        const headerRow = sheet.getRow(2);
+        columns.forEach((col, idx) => {
+            const cell = headerRow.getCell(idx + 1);
+            cell.value = col.header;
+            cell.font = { bold: true, color: { argb: col.required ? XLSX_COLORS.requiredHeaderText : 'FF334155' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.required ? XLSX_COLORS.requiredHeaderBg : XLSX_COLORS.optionalHeaderBg } };
+            sheet.getColumn(idx + 1).width = col.width;
+        });
+
+        const exampleRow = sheet.getRow(3);
+        exampleRow.values = exampleValues;
+        columns.forEach((_, idx) => {
+            exampleRow.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
+        });
+
+        if (hasSecondExample && secondExampleValues) {
+            const exampleRow2 = sheet.getRow(4);
+            exampleRow2.values = secondExampleValues;
+            columns.forEach((_, idx) => {
+                exampleRow2.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
+            });
+        }
+    }
+
+    // 1. MOJI_GOI Sheet
+    createJlptSheet(
+        finalWb,
+        'MOJI_GOI',
+        'FF7C3AED',
+        'Soal kosakata & kanji — bacaan, makna, penggunaan. Text-only, tidak perlu media.',
+        MOJI_COLUMNS,
+        [1, '猫は毎日ねる。', '飼う', '飼える', '飼われる', '飼わせる', 'A', '正しい使い方の例です。']
+    );
 
     // 2. BUNPOU_DOKKAI Sheet
-    const bunpouSheet = finalWb.addWorksheet('BUNPOU_DOKKAI', {
-        properties: { tabColor: { argb: 'FF06B6D4' } },
-        views: [{ state: 'frozen', ySplit: 2 }],
-    });
-    bunpouSheet.mergeCells(1, 1, 1, BUNPOU_COLUMNS.length);
-    const guide2 = bunpouSheet.getRow(1);
-    guide2.values = ['Soal tata bahasa & pemahaman bacaan. Opsi diisi di kolom Options (pisahkan dengan newline atau A. B. C. D. format).'];
-    guide2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.guideBg } };
-
-    const header2 = bunpouSheet.getRow(2);
-    BUNPOU_COLUMNS.forEach((col, idx) => {
-        const cell = header2.getCell(idx + 1);
-        cell.value = col.header;
-        cell.font = { bold: true, color: { argb: col.required ? XLSX_COLORS.requiredHeaderText : 'FF334155' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.required ? XLSX_COLORS.requiredHeaderBg : XLSX_COLORS.optionalHeaderBg } };
-        bunpouSheet.getColumn(idx + 1).width = col.width;
-    });
-
-    const example2 = bunpouSheet.getRow(3);
-    example2.values = [1, '私は毎日何時に起きますか。', 'A. 7時に\nB. 7時を\nC. 7時で\nD. 7時から', 'A', '時間を表すときは「に」を使います。'];
-    BUNPOU_COLUMNS.forEach((_, idx) => {
-        example2.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
-    });
+    createJlptSheet(
+        finalWb,
+        'BUNPOU_DOKKAI',
+        'FF06B6D4',
+        'Soal tata bahasa & pemahaman bacaan. Opsi diisi di kolom Options, pisahkan baris dengan Enter.',
+        BUNPOU_COLUMNS,
+        [1, '私は毎日何時に起きますか。', 'A. 7時に\nB. 7時を\nC. 7時で\nD. 7時から', 'A', '時間を表すときは「に」を使います。']
+    );
 
     // 3. CHOKAI Sheet
-    const chokaiSheet = finalWb.addWorksheet('CHOKAI', {
-        properties: { tabColor: { argb: 'FF059669' } },
-        views: [{ state: 'frozen', ySplit: 2 }],
-    });
-    chokaiSheet.mergeCells(1, 1, 1, CHOKAI_COLUMNS.length);
-    const guide3 = chokaiSheet.getRow(1);
-    guide3.values = ['Soal mendengarkan — diperlukan audio di assets/[folder]/audio.mp3. Tipe Jawaban "Gambar" memerlukan file a.png–d.png.'];
-    guide3.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.guideBg } };
-
-    const header3 = chokaiSheet.getRow(2);
-    CHOKAI_COLUMNS.forEach((col, idx) => {
-        const cell = header3.getCell(idx + 1);
-        cell.value = col.header;
-        cell.font = { bold: true, color: { argb: col.required ? XLSX_COLORS.requiredHeaderText : 'FF334155' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.required ? XLSX_COLORS.requiredHeaderBg : XLSX_COLORS.optionalHeaderBg } };
-        chokaiSheet.getColumn(idx + 1).width = col.width;
-    });
-
-    const example3a = chokaiSheet.getRow(3);
-    example3a.values = [1, TEMPLATE_CHOKAI_FOLDER_TEXT, 'Teks', 'audio_01', null, null, null, '（　）に なにを いれますか。', 'を', 'が', 'に', 'で', 'B', 'Contoh: jawaban teks dari pilihan di Excel.'];
-    CHOKAI_COLUMNS.forEach((_, idx) => {
-        example3a.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
-    });
-
-    const example3b = chokaiSheet.getRow(4);
-    example3b.values = [2, TEMPLATE_CHOKAI_FOLDER_IMAGE, 'Gambar', 'audio_02', null, null, null, null, '図書館', '駅', '公園', '病院', 'C', 'Contoh: jawaban gambar (a–d.png). Ganti file real sebelum impor.'];
-    CHOKAI_COLUMNS.forEach((_, idx) => {
-        example3b.getCell(idx + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
-    });
+    createJlptSheet(
+        finalWb,
+        'CHOKAI',
+        'FF059669',
+        'Soal mendengarkan — diperlukan audio di assets/[folder]/audio.mp3. Tipe Jawaban "Gambar" memerlukan file a.png–d.png.',
+        CHOKAI_COLUMNS,
+        [1, TEMPLATE_CHOKAI_FOLDER_TEXT, 'Teks', 'audio_01', null, null, null, '（　）に なにを いれますか。', 'を', 'が', 'に', 'で', 'B', 'Contoh: jawaban teks dari pilihan di Excel.'],
+        true,
+        [2, TEMPLATE_CHOKAI_FOLDER_IMAGE, 'Gambar', 'audio_02', null, null, null, null, '図書館', '駅', '公園', '病院', 'C', 'Contoh: jawaban gambar (a–d.png). Ganti file real sebelum impor.']
+    );
 
     const buf = await finalWb.xlsx.writeBuffer();
     return Buffer.from(buf);

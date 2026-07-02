@@ -26,7 +26,7 @@ Halaman informasi + redirect ke Kelola Kursus — **tidak** muncul di sidebar.
 
 ## Import Excel
 
-Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (tab **6. Kuis** di formulir Excel).
+Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (sheet Quiz / Try Out di workbook sensei N4/N5).
 
 ---
 
@@ -36,13 +36,13 @@ Soal kuis lesson dapat diimpor lewat `/admin/kursus/import` (tab **6. Kuis** di 
 
 ### Perubahan Dari Format Lama
 
-| Aspek | Lama | Baru |
-|-------|------|------|
-| Format file | Flat `.xlsx` per section | Single `.zip` dengan multi-sheet Excel |
-| MOJI_GOI / BUNPOU | `.xlsx` upload | `jlpt.xlsx` sheet di ZIP |
-| CHOKAI | Separate `.zip` upload | `jlpt.xlsx` sheet + `assets/` di ZIP |
-| Endpoint | `/import` + `/import-chokai` | Single unified `/import` |
-| API detection | Implicit (section column) | Sheet name auto-detection |
+| Aspek             | Lama                         | Baru                                   |
+| ----------------- | ---------------------------- | -------------------------------------- |
+| Format file       | Flat `.xlsx` per section     | Single `.zip` dengan multi-sheet Excel |
+| MOJI_GOI / BUNPOU | `.xlsx` upload               | `jlpt.xlsx` sheet di ZIP               |
+| CHOKAI            | Separate `.zip` upload       | `jlpt.xlsx` sheet + `assets/` di ZIP   |
+| Endpoint          | `/import` + `/import-chokai` | Single unified `/import`               |
+| API detection     | Implicit (section column)    | Sheet name auto-detection              |
 
 ### ZIP Structure
 
@@ -62,15 +62,18 @@ jlpt-import.zip
 ### Sheet Columns
 
 **MOJI_GOI** (kosakata & kanji):
+
 - Pertanyaan, Pilihan A–D, Jawaban Benar, Penjelasan, Audio Group (optional)
 - Text-only, no media needed
 
 **BUNPOU_DOKKAI** (tata bahasa):
+
 - Pertanyaan, Options, Jawaban Benar, Penjelasan, Audio Group (optional)
 - Options: bisa newline-separated atau pilar A. B. C. D.
 - Text-only, no media needed
 
 **CHOKAI** (mendengarkan):
+
 - Folder, Tipe Jawaban (Teks/Gambar), ID Audio, Mulai, Selesai, Pertanyaan, A–D, Jawaban Benar, Penjelasan
 - Tipe Teks: isi pertanyaan + pilihan di Excel, audio.mp3 di folder
 - Tipe Gambar: a.png–d.png di folder untuk pilihan gambar, label di Excel adalah deskripsi singkat
@@ -78,13 +81,13 @@ jlpt-import.zip
 ### Langkah Impor
 
 1. **Download template** → `/admin/tryout → Impor Soal → Unduh Template ZIP`
-	- Dapatkan `template-jlpt-import.zip` dengan struktur contoh
+   - Dapatkan `template-jlpt-import.zip` dengan struktur contoh
 2. **Edit jlpt.xlsx**
-	- Tambah/ubah baris soal di sheet yang sesuai
-	- Untuk CHOKAI: buat folder di `assets/` dengan nama yang sama di Excel
+   - Tambah/ubah baris soal di sheet yang sesuai
+   - Untuk CHOKAI: buat folder di `assets/` dengan nama yang sama di Excel
 3. **Tambah media** (jika CHOKAI)
-	- Setiap folder CHOKAI **wajib** ada `audio.mp3`
-	- Tipe Gambar: tambah `a.png`, `b.png`, `c.png`, `d.png`
+   - Setiap folder CHOKAI **wajib** ada `audio.mp3`
+   - Tipe Gambar: tambah `a.png`, `b.png`, `c.png`, `d.png`
 4. **Kompres** → `jlpt.xlsx` + `assets/` jadi `.zip`
 5. **Upload** → Pilih ZIP → Preview → Impor
 
