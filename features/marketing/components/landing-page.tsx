@@ -12,8 +12,7 @@ import {
   GraduationCap,
   Menu,
   MessageCircle,
-  Play,
-  Sparkles,
+  Play,  
   Target,
   Video,
   Wifi,
@@ -44,9 +43,9 @@ import {
 } from './landing-data';
 
 const PLATFORM_HIGHLIGHTS = [
-  { icon: GraduationCap, value: 'N5 → N1', label: '5 Jalur JLPT' },
-  { icon: Video, value: '100+', label: 'Video Lesson' },
-  { icon: Target, value: '4 Fase', label: 'Try Out JLPT' },
+  { icon: GraduationCap, value: 'N5 → N1', label: '5 level JLPT' },
+  { icon: Video, value: '10+', label: 'Video Lesson' },
+  { icon: Target, value: '5 Level', label: 'Try Out JLPT' },
   { icon: Wifi, value: 'Live', label: 'Kelas Interaktif' },
 ] as const;
 
@@ -223,7 +222,6 @@ export function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <Sparkles className="size-4 text-brand-yellow" />
               <span className="text-sm font-medium text-white/80">
                 Powered by JepangKu
               </span>
@@ -286,7 +284,7 @@ export function LandingPage() {
 
             <div className="mt-6 inline-flex items-center gap-2 text-sm text-white/60">
               <CheckCircle2 className="size-4 shrink-0 text-brand-yellow" />
-              <span>Modul N5 dibuka lebih dulu — level lain menyusul</span>
+              <span>Segera belajar sekarang</span>
             </div>
           </motion.div>
 
@@ -370,7 +368,8 @@ export function LandingPage() {
             <p className="mt-5 text-center text-sm text-white/60">
               Bagian dari ekosistem{" "}
               <Link
-                href="/tentang"
+                href="https://jepangku.com/"
+                target='_blank'
                 className="font-semibold text-white underline-offset-4 hover:underline"
               >
                 JepangKu
@@ -654,8 +653,7 @@ export function LandingPage() {
               </span>
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Fokus pada nilai platform — tanpa angka yang belum bisa kami
-              buktikan
+              Satu platform untuk pembelajaran bahasa Jepang yang terstruktur, interaktif, dan menyenangkan.
             </p>
           </motion.div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
