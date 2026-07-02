@@ -4,6 +4,7 @@ import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-actio
 import JSZip from 'jszip';
 import { importTryoutWorkbook, previewTryoutWorkbookImport } from '@/features/admin-cms/lib/import-tryout-workbook';
 import { importUnifiedTryoutZip, previewUnifiedTryoutZip } from '@/features/admin-cms/lib/import-unified-tryout';
+import { previewChokaiZipImport, importChokaiZip } from '@/features/admin-cms/lib/import-chokai-zip';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
                         : 'Ukuran file XLSX maksimal 10 MB.',
                     imported: 0,
                 },
-                { status: 400 },
+                { status: 400 }
             );
         }
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
                         message: 'Format file harus .zip. Untuk impor ke sesi, gunakan format ZIP dengan jlpt.xlsx di dalamnya.',
                         imported: 0,
                     },
-                    { status: 400 },
+                    { status: 400 }
                 );
             }
 
@@ -109,19 +110,14 @@ export async function POST(request: Request) {
                 return NextResponse.json({ ok: false, message: 'File ZIP tidak bisa dibaca.', imported: 0 }, { status: 400 });
             }
 
-            let xlsxFound = false;
-            for (const [path, entry] of Object.entries(zip.files)) {
-                if (entry.dir) continue;
-                if (/^jlpt\.xlsx$/i.test(path.replace(/\\/g, '/').replace(/^\.\//, ''))) {
-                    workbookBuffer = Buffer.from(await entry.async('arraybuffer'));
-                    xlsxFound = true;
-                    break;
-                }
-            }
-
-            if (!xlsxFound) {
+            // ponytail: use JSZip's built-in filtering instead of manual iteration
+            const jlptFiles = zip.file(/^jlpt\.xlsx$/i);
+            if (jlptFiles.length === 0) {
                 return NextResponse.json({ ok: false, message: 'jlpt.xlsx tidak ditemukan di akar ZIP.', imported: 0 }, { status: 400 });
             }
+            // Take the first file (should be only one)
+            const jlptFile = jlptFiles[0];
+            workbookBuffer = Buffer.from(await jlptFile.async('arraybuffer'));
         } else if (!isXlsx) {
             return NextResponse.json(
                 {
@@ -129,12 +125,21 @@ export async function POST(request: Request) {
                     message: 'Format file harus .zip atau .xlsx.',
                     imported: 0,
                 },
-                { status: 400 },
+                { status: 400 }
             );
         }
 
         if (dryRun) {
             const preview = await previewTryoutWorkbookImport(workbookBuffer);
+            if (isZip) {
+                const chokaiPreview = await previewChokaiZipImport(buffer);
+                if (chokaiPreview.rowCount > 0) {
+                    preview.questionPreview.sectionCounts.CHOKAI = chokaiPreview.rowCount;
+                    preview.questionPreview.errors.push(...chokaiPreview.errors);
+                    preview.questionPreview.rowCount += chokaiPreview.rowCount;
+                    if (!chokaiPreview.ok) preview.ok = false;
+                }
+            }
             return NextResponse.json({
                 ok: preview.ok,
                 preview,
@@ -147,16 +152,39 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: result.message, imported: 0 }, { status: 422 });
         }
 
+        let chokaiImported = 0;
+        if (isZip && result.sessionId) {
+            const session = await prisma.tryoutSession.findUnique({ where: { id: result.sessionId } });
+            if (session) {
+                try {
+                    const chokaiResult = await importChokaiZip(prisma, {
+                        sessionId: session.id,
+                        sessionCode: session.code,
+                        buffer,
+                    });
+                    chokaiImported = chokaiResult.imported;
+                } catch (err) {
+                    // Ignore error if sheet doesn't exist, otherwise we should log it
+                    if (err instanceof Error && !err.message.includes('chokai.xlsx') && !err.message.includes('File Excel') && !err.message.includes('kosong')) {
+                        console.error('Failed to import chokai on new session:', err);
+                    }
+                }
+            }
+        }
+
         revalidatePath(ADMIN_ROUTES.tryoutSessions);
         if (result.sessionId) {
             revalidatePath(ADMIN_ROUTES.tryoutSessionQuestions(result.sessionId));
         }
         revalidatePath('/dashboard/tryout');
 
+        const totalImported = result.imported + chokaiImported;
+        const msgSuffix = chokaiImported > 0 ? ` Termasuk ${chokaiImported} soal Chokai.` : '';
+
         return NextResponse.json({
             ok: true,
-            message: result.message,
-            imported: result.imported,
+            message: result.message.replace(result.imported.toString(), totalImported.toString()) + msgSuffix,
+            imported: totalImported,
             sessionId: result.sessionId,
         });
     } catch (error) {

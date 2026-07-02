@@ -162,7 +162,7 @@ export async function parseChokaiExcelRecords(
 
     const sheet = sheetToRecords(
         workbook,
-        workbook.worksheets.map((w) => w.name),
+        ['chokai', 'choukai', 'listening'],
         ['folder', 'tipe_jawaban'],
     );
     if ('error' in sheet) {
