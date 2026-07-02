@@ -23,6 +23,4 @@ export function getPaymentSettings() {
   } as const;
 }
 
-// @codebuff: Backward-compatible constant for existing imports — prefer getPaymentSettings()
-/** @deprecated Use getPaymentSettings() instead — removes hardcoded fallback risk. */
-export const PAYMENT_SETTINGS = getPaymentSettings();
+

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { R2_OBJECT_CACHE_CONTROL } from '@/lib/media/constants';
 import { getR2Config, isR2EnvConfigured } from '@/lib/r2-config';
 
@@ -96,6 +96,18 @@ export function normalizeR2PublicUrl(url: string | null | undefined): string | n
 }
 
 export function extractR2KeyFromUrl(imageUrl: string | null | undefined): string | null {
+    const storageKey = extractR2StorageKeyFromUrl(imageUrl);
+    if (!storageKey) return null;
+
+    const prefix = 'lms/';
+    if (storageKey.startsWith(prefix)) {
+        return storageKey.slice(prefix.length);
+    }
+    return storageKey;
+}
+
+/** Full object key for S3/R2 API (always includes `lms/` segment). */
+export function extractR2StorageKeyFromUrl(imageUrl: string | null | undefined): string | null {
     const normalized = normalizeR2PublicUrl(imageUrl);
     if (!normalized) return null;
 
@@ -108,7 +120,7 @@ export function extractR2KeyFromUrl(imageUrl: string | null | undefined): string
     } else {
         try {
             const parsed = new URL(normalized);
-            if (parsed.hostname.endsWith('.r2.dev')) {
+            if (parsed.hostname.endsWith('.r2.dev') || parsed.hostname === 'assets.jepangku.com') {
                 key = parsed.pathname.replace(/^\//, '');
             }
         } catch {
@@ -116,12 +128,34 @@ export function extractR2KeyFromUrl(imageUrl: string | null | undefined): string
         }
     }
 
-    if (!key) return null;
+    if (!key || key.includes('..')) return null;
 
-    // Strip 'lms/' prefix if present to keep compatibility with downstream checks (e.g. key.startsWith('avatars/'))
     const prefix = 'lms/';
-    if (key.startsWith(prefix)) {
-        key = key.slice(prefix.length);
+    if (!key.startsWith(prefix)) {
+        key = `${prefix}${key}`;
     }
     return key;
+}
+
+export async function fetchR2Object(
+    storageKey: string,
+): Promise<{ body: Uint8Array; contentType: string } | null> {
+    if (!s3Client || !storageKey.startsWith('lms/') || storageKey.includes('..')) {
+        return null;
+    }
+
+    const config = getR2Config();
+    const response = await s3Client.send(
+        new GetObjectCommand({
+            Bucket: config.bucket,
+            Key: storageKey,
+        }),
+    );
+
+    if (!response.Body) return null;
+    const bytes = await response.Body.transformToByteArray();
+    return {
+        body: bytes,
+        contentType: response.ContentType ?? 'application/octet-stream',
+    };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useEffect, useRef, useState } from 'react';
 import { StudentCoreDataProvider } from '@/features/student/components/student-core-data-context';
 import {
@@ -33,6 +34,7 @@ async function fetchCoreData(): Promise<StudentCoreData> {
 
 /** Core gamification dimuat client-side agar halaman LMS tidak menunggu HTTP Core di SSR. */
 export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorProps) {
+    const { userId: clerkUserId } = useAuth();
     const [value, setValue] = useState<StudentCoreDataContextValue>(() => defaultContextValue());
     const syncAttempted = useRef(false);
 
@@ -40,7 +42,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         let cancelled = false;
 
         queueMicrotask(() => {
-            const cached = readCachedStudentCoreData();
+            const cached = readCachedStudentCoreData(clerkUserId);
             if (cached?.coreConnected && !cancelled) {
                 setValue(toStudentCoreDataContextValue(cached, 'ready', false));
             }
@@ -105,7 +107,12 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         void tryCoreSyncThenLoad();
 
         const onRefresh = () => {
-            void load(false);
+            void (async () => {
+                if (isCoreIntegrationEnabled()) {
+                    await syncCoreSessionSilent();
+                }
+                await load(false);
+            })();
         };
         window.addEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
 
@@ -113,7 +120,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
             cancelled = true;
             window.removeEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
         };
-    }, []);
+    }, [clerkUserId]);
 
     return <StudentCoreDataProvider value={value}>{children}</StudentCoreDataProvider>;
 }
