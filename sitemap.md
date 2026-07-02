@@ -106,7 +106,7 @@ Area pelacakan progres siswa berdasarkan poin pengalaman (XP) yang diperoleh dar
 
 ## 5. Admin Area & CMS `***` (Admin Only)
 
-Manajemen konten materi dan validasi pembayaran. Impor massal via **formulir Excel** multi-tab (kursus & tryout).
+Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel (kursus sensei N4/N5 & tryout).
 
 ```plaintext
 /admin ***
@@ -115,7 +115,7 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via **formulir Exc
 ├── /pembayaran                  → Manajemen Validasi Akses Manual
 │
 ├── /kursus                      → CMS: Manajemen Kursus
-│   ├── /import                  → Impor kursus dari formulir Excel (6 tab)
+│   ├── /import                  → Impor kursus dari workbook sensei N4/N5
 │   └── … modul / pelajaran / workspace
 │
 ├── /tryout                      → CMS JLPT Tryout

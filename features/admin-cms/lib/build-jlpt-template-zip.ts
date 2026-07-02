@@ -148,10 +148,10 @@ async function buildJlptExcel(): Promise<Buffer> {
         name: string,
         tabColor: string,
         guideText: string,
-        columns: { header: string; key: string; width: number; required: boolean }[],
-        exampleValues: (string | number)[],
+        columns: { header: string; key: string; width: number; required?: boolean }[],
+        exampleValues: Array<string | number | null>,
         hasSecondExample: boolean = false,
-        secondExampleValues?: (string | number)[],
+        secondExampleValues?: Array<string | number | null>,
     ) {
         const sheet = wb.addWorksheet(name, {
             properties: { tabColor: { argb: tabColor } },

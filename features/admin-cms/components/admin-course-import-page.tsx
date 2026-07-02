@@ -2,10 +2,10 @@
 
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Download, FileUp, Loader2, Upload } from 'lucide-react';
+import { FileUp, Loader2, Upload } from 'lucide-react';
 import {
-    importCoursesXlsxAction,
-    previewCourseXlsxAction,
+    importSenseiCourseAction,
+    previewSenseiCourseAction,
     type CmsImportPreviewResult,
 } from '@/features/admin-cms/actions/cms-import-actions';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
@@ -57,7 +57,7 @@ export function AdminCourseImportPage() {
     const handleFile = (next: File | null) => {
         if (!next) return;
         if (!next.name.toLowerCase().endsWith('.xlsx')) {
-            setMessage({ type: 'error', text: 'Format harus .xlsx. Unduh formulir Excel terlebih dahulu.' });
+            setMessage({ type: 'error', text: 'Format harus .xlsx (workbook sensei N4/N5).' });
             return;
         }
         setFile(next);
@@ -70,12 +70,12 @@ export function AdminCourseImportPage() {
         setMessage(null);
         startPreviewTransition(async () => {
             const base64 = await fileToBase64(file);
-            const result = await previewCourseXlsxAction(base64);
+            const result = await previewSenseiCourseAction(base64);
             setPreviewResult(result);
             if (!result.ok) {
                 setMessage({
                     type: 'error',
-                    text: 'Formulir belum valid. Periksa pesan di bawah sebelum mengimpor.',
+                    text: 'Workbook belum valid. Periksa pesan di bawah sebelum mengimpor.',
                 });
             }
         });
@@ -86,7 +86,7 @@ export function AdminCourseImportPage() {
         setMessage(null);
         startImportTransition(async () => {
             const base64 = await fileToBase64(file);
-            const result = await importCoursesXlsxAction(base64);
+            const result = await importSenseiCourseAction(base64);
             if (result.ok) {
                 setMessage({ type: 'success', text: result.message });
                 setPreviewResult({ ok: true, preview: result.preview });
@@ -104,16 +104,8 @@ export function AdminCourseImportPage() {
         <AdminPageShell
             label="Konten"
             title="Impor Kursus"
-            subtitle="Unduh formulir Excel, isi tab berurutan (Kursus → Modul → Pelajaran → …), lalu unggah kembali."
+            subtitle="Unggah workbook sensei N4/N5 untuk sinkronisasi materi kursus."
             backHref={ADMIN_ROUTES.kursus}
-            action={
-                <Button type="button" variant="outline" asChild>
-                    <a href="/api/admin/kursus/template">
-                        <Download className="size-4" />
-                        Unduh Formulir Excel
-                    </a>
-                </Button>
-            }
         >
             {message ? (
                 <p
@@ -159,9 +151,9 @@ export function AdminCourseImportPage() {
                         )}
                     >
                         <Upload className="size-8 text-muted-foreground" />
-                        <p className="text-sm font-medium">Seret formulir .xlsx atau klik untuk memilih</p>
+                        <p className="text-sm font-medium">Seret workbook sensei .xlsx atau klik untuk memilih</p>
                         {file ? <p className="text-xs font-medium text-primary">{file.name}</p> : null}
-                        <p className="text-xs text-muted-foreground">Maks. 5 MB</p>
+                        <p className="text-xs text-muted-foreground">Maks. 10 MB</p>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
@@ -182,15 +174,15 @@ export function AdminCourseImportPage() {
                 </Card>
 
                 <Card className="h-fit border-border p-5">
-                    <h2 className="mb-3 text-sm font-semibold text-foreground">Cara isi formulir</h2>
+                    <h2 className="mb-3 text-sm font-semibold text-foreground">Panduan impor</h2>
                     <ol className="list-decimal space-y-2 pl-4 text-xs leading-relaxed text-muted-foreground">
-                        <li>Baca tab <strong>0. Panduan</strong> di Excel.</li>
-                        <li>Isi <strong>1. Kursus</strong> lalu <strong>2. Modul</strong> dan <strong>3. Pelajaran</strong>.</li>
-                        <li>Tambahkan video, flashcard, dan kuis di tab 4–6 (opsional).</li>
-                        <li>Nomor antar tab harus cocok — lihat baris contoh hijau.</li>
+                        <li>Gunakan file workbook sensei <strong>N4.xlsx</strong> atau <strong>N5.xlsx</strong>.</li>
+                        <li>Sheet referensi (Percakapan/Kurikulum/Standar/Link) akan dilewati otomatis.</li>
+                        <li>Jika ada kategori baru dari sensei, sistem menampilkan warning saat pratinjau.</li>
+                        <li>Lanjut impor hanya setelah pratinjau valid.</li>
                     </ol>
                     <p className="mt-4 text-xs text-muted-foreground">
-                        Header kuning = wajib. Baris peringatan amber = petunjuk singkat.
+                        Mode strict-but-flexible: struktur inti dijaga, variasi kolom opsional tetap ditoleransi.
                     </p>
                 </Card>
             </div>
