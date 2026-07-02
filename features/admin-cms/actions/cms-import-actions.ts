@@ -7,19 +7,19 @@ import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import type { CourseImportPreview } from '@/features/admin-cms/lib/course-import-types';
 import {
-    importCoursesFromXlsxBuffer,
-    previewCourseXlsxImport,
-} from '@/features/admin-cms/lib/import-course-xlsx';
+    importSenseiCourseXlsx,
+    previewSenseiCourseImport,
+} from '@/features/admin-cms/lib/import-sensei-course-xlsx';
 
 export type CmsImportPreviewResult = {
     ok: boolean;
     preview: CourseImportPreview;
 };
 
-export async function previewCourseXlsxAction(base64: string): Promise<CmsImportPreviewResult> {
+export async function previewSenseiCourseAction(base64: string): Promise<CmsImportPreviewResult> {
     await requireAdminAction();
     const buffer = Buffer.from(base64, 'base64');
-    const preview = await previewCourseXlsxImport(buffer);
+    const preview = await previewSenseiCourseImport(buffer);
     return { ok: preview.ok, preview };
 }
 
@@ -31,10 +31,10 @@ export type CmsImportCommitResult = {
     errors?: Array<{ row: number; message: string }>;
 };
 
-export async function importCoursesXlsxAction(base64: string): Promise<CmsImportCommitResult> {
+export async function importSenseiCourseAction(base64: string): Promise<CmsImportCommitResult> {
     await requireAdminAction();
     const buffer = Buffer.from(base64, 'base64');
-    const result = await importCoursesFromXlsxBuffer(prisma, buffer);
+    const result = await importSenseiCourseXlsx(prisma, buffer);
 
     if (result.ok) {
         revalidateStudentLearningSurfaces();
@@ -63,7 +63,7 @@ export async function importCoursesXlsxAction(base64: string): Promise<CmsImport
 
     return {
         ok: false,
-        message: 'Impor gagal. Perbaiki error pada formulir Excel lalu coba lagi.',
+        message: 'Impor gagal. Perbaiki error pada workbook sensei lalu coba lagi.',
         preview: result.preview,
         errors: result.errors,
     };

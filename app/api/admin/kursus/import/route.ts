@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { MAX_IMPORT_BYTES } from '@/features/admin-cms/lib/course-import-types';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
 import {
-    importCoursesFromXlsxBuffer,
-    previewCourseXlsxImport,
-} from '@/features/admin-cms/lib/import-course-xlsx';
+    importSenseiCourseXlsx,
+    previewSenseiCourseImport,
+} from '@/features/admin-cms/lib/import-sensei-course-xlsx';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -26,10 +27,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: false, message: 'File wajib diunggah.' }, { status: 400 });
         }
 
-        // Security: batasi ukuran file XLSX maksimal 10MB
-        if (file.size > 10 * 1024 * 1024) {
+        if (file.size > MAX_IMPORT_BYTES) {
             return NextResponse.json(
-                { ok: false, message: 'Ukuran file XLSX maksimal 10 MB.' },
+                { ok: false, message: `Ukuran file XLSX maksimal ${MAX_IMPORT_BYTES / (1024 * 1024)} MB.` },
                 { status: 400 },
             );
         }
@@ -37,11 +37,11 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         if (dryRun) {
-            const preview = await previewCourseXlsxImport(buffer);
+            const preview = await previewSenseiCourseImport(buffer);
             return NextResponse.json({ ok: preview.ok, preview });
         }
 
-        const result = await importCoursesFromXlsxBuffer(prisma, buffer);
+        const result = await importSenseiCourseXlsx(prisma, buffer);
         if (!result.ok) {
             return NextResponse.json(
                 { ok: false, message: 'Validasi impor gagal.', preview: result.preview, errors: result.errors },
