@@ -139,9 +139,6 @@ export async function previewTryoutWorkbookImport(buffer: Buffer): Promise<Tryou
         };
     }
 
-    if (resolveSheetName(workbook, ['chokai', '4. chokai', 'mendengarkan'])) {
-        warnings.push('Tab Chokai (mendengarkan) diabaikan — kelola audio terpisah di admin.');
-    }
 
     const sesiSheet = sheetToRecords(workbook, ['info sesi', '1. info sesi', 'sesi'], [
         'judul_sesi',

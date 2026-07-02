@@ -116,7 +116,7 @@ export async function previewUnifiedTryoutZip(buffer: Buffer): Promise<UnifiedIm
     // Parse MOJI_GOI sheet
     const mojiSheet = resolveSheetName(workbook, ['moji_goi', 'mojigoi', 'moji-goi', 'moji goi']);
     if (mojiSheet) {
-        const parsed = sheetToRecords(workbook, [mojiSheet], ['pertanyaan', 'questiontext', 'soal']);
+        const parsed = sheetToRecords(workbook, [mojiSheet], ['pertanyaan']);
         if ('error' in parsed) {
             sections.moji = { ok: false, rowCount: 0, errors: [{ row: 0, message: parsed.error }] };
             allErrors.push({ row: 0, message: parsed.error, section: 'MOJI_GOI' });
@@ -145,7 +145,7 @@ export async function previewUnifiedTryoutZip(buffer: Buffer): Promise<UnifiedIm
     // Parse BUNPOU_DOKKAI sheet
     const bunpouSheet = resolveSheetName(workbook, ['bunpou_dokkai', 'bunpoudokkai', 'bunpou-dokkai', 'bunpou dokkai']);
     if (bunpouSheet) {
-        const parsed = sheetToRecords(workbook, [bunpouSheet], ['pertanyaan', 'questiontext', 'soal']);
+        const parsed = sheetToRecords(workbook, [bunpouSheet], ['pertanyaan']);
         if ('error' in parsed) {
             sections.bunpou = { ok: false, rowCount: 0, errors: [{ row: 0, message: parsed.error }] };
             allErrors.push({ row: 0, message: parsed.error, section: 'BUNPOU_DOKKAI' });

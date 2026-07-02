@@ -35,5 +35,5 @@ export type CourseImportResult = {
     errors?: CourseImportRowError[];
 };
 
-export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
-export const MAX_IMPORT_ROWS = 5000;
+export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+export const MAX_IMPORT_ROWS = 8000;
