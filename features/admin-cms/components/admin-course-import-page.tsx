@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FileUp, Loader2, Upload } from 'lucide-react';
 import {
     importSenseiCourseAction,
