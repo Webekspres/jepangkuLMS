@@ -21,7 +21,7 @@ export async function seedN5CourseStructure(
 
   await prisma.module.updateMany({
     where: { courseId },
-    data: { order: { increment: 10000 } },
+    data: { order: { increment: 1000000 } },
   });
 
   for (const mod of N5_MODULE_DEFINITIONS) {
