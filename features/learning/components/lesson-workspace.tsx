@@ -21,7 +21,7 @@ import {
     X,
     Zap,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
@@ -223,6 +223,8 @@ type LessonXpPanelProps = {
     xpTasks: LessonXpTask[];
     completed: boolean;
     isPending: boolean;
+    allContentEngaged: boolean;
+    onMarkComplete: () => void;
     compact?: boolean;
 };
 
@@ -230,6 +232,8 @@ function LessonXpPanel({
     xpTasks,
     completed,
     isPending,
+    allContentEngaged,
+    onMarkComplete,
     compact = false,
 }: LessonXpPanelProps) {
     return (
@@ -271,31 +275,27 @@ function LessonXpPanel({
                         </span>
                     </div>
                 ))}
-                <div
-                    className={cn(
-                        'mt-2 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-center text-xs font-semibold',
-                        completed
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-muted/60 text-muted-foreground',
-                    )}
-                >
-                    {completed ? (
-                        <>
-                            <CheckCircle2 className="size-4 shrink-0" />
-                            Pelajaran selesai
-                        </>
-                    ) : isPending ? (
-                        <>
-                            <Loader2 className="size-3.5 shrink-0 animate-spin" />
-                            Menyimpan progres…
-                        </>
-                    ) : (
-                        <>
-                            <Circle className="size-3.5 shrink-0" />
-                            Selesai otomatis saat semua materi dipelajari
-                        </>
-                    )}
-                </div>
+                {completed ? (
+                    <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 className="size-4 shrink-0" />
+                        Pelajaran selesai
+                    </div>
+                ) : (
+                    <Button
+                        type="button"
+                        size="sm"
+                        className="mt-2 w-full gap-1.5"
+                        disabled={!allContentEngaged || isPending}
+                        onClick={onMarkComplete}
+                    >
+                        {isPending ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="size-3.5" />
+                        )}
+                        {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
+                    </Button>
+                )}
             </CardContent>
         </Card>
     );
@@ -399,10 +399,8 @@ export function LessonWorkspace({
         );
     };
 
-    // A lesson auto-completes once the student has engaged every section it contains:
-    // material/video viewed, flashcards opened (if any), and quiz passed 70%+ (if any).
-    // Completion awards the lesson-read reward only — flashcard & quiz XP are granted
-    // by their own idempotent server actions (aggregating here would double-count).
+    // Gate flags — each content type that exists must be engaged before the
+    // "Tandai Selesai" button is enabled. Completion itself is explicit (button click).
     const contentSectionDone = hasVideo || lesson.content ? completed || contentViewed : true;
     const flashcardSectionDone = hasFlashcard ? flashcardVisited : true;
     const quizSectionDone = hasQuiz ? quizPassed : true;
@@ -410,31 +408,24 @@ export function LessonWorkspace({
     const allContentEngaged =
         hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
 
-    // `allContentEngaged` only flips false→true within a lesson and the `completed`
-    // guard stops re-entry, so this fires exactly once. markLessonComplete is also
-    // idempotent server-side (returns alreadyCompleted) as a safety net.
-    useEffect(() => {
-        if (completed || !allContentEngaged) return;
+    // Explicit mark-complete handler — only called when user clicks the button.
+    function handleMarkComplete() {
+        if (completed || isPending) return;
         startTransition(async () => {
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if (result && 'success' in result) {
                 setCompleted(true);
-                // Trigger confetti!
-                confetti({
-                  particleCount: 150,
-                  spread: 80,
-                  origin: { y: 0.6 }
+                toast.success('Pelajaran Selesai! 🎉', {
+                    description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
                 });
-                
-                // Dispatch event
                 const event = new CustomEvent('gamified-event', {
-                  detail: {
-                    type: 'REWARD_EARNED',
-                    xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
-                    pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
-                    title: 'Pelajaran Selesai! 🎉',
-                    description: `Kamu berhasil menyelesaikan pelajaran "${lesson.title}"`,
-                  }
+                    detail: {
+                        type: 'REWARD_EARNED',
+                        xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
+                        pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
+                        title: 'Pelajaran Selesai! 🎉',
+                        description: `Kamu berhasil menyelesaikan pelajaran "${lesson.title}"`,
+                    },
                 });
                 window.dispatchEvent(event);
                 requestStudentCoreDataRefresh();
@@ -444,7 +435,7 @@ export function LessonWorkspace({
                 router.refresh();
             }
         });
-    }, [allContentEngaged, completed, lesson.id, lesson.title, router]);
+    }
 
     function handleTabChange(tab: ContentTab) {
         setActiveTab(tab);
@@ -704,6 +695,8 @@ export function LessonWorkspace({
                                     xpTasks={xpTasks}
                                     completed={completed}
                                     isPending={isPending}
+                                    allContentEngaged={allContentEngaged}
+                                    onMarkComplete={handleMarkComplete}
                                     compact
                                 />
                             </div>
@@ -772,6 +765,8 @@ export function LessonWorkspace({
                         xpTasks={xpTasks}
                         completed={completed}
                         isPending={isPending}
+                        allContentEngaged={allContentEngaged}
+                        onMarkComplete={handleMarkComplete}
                     />
                 </aside>
             </div>
@@ -788,11 +783,26 @@ export function LessonWorkspace({
                         <List className="size-4 shrink-0" />
                         <span className="truncate">Daftar materi</span>
                     </Button>
-                    {completed && (
+                    {completed ? (
                         <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 sm:h-9">
                             <CheckCircle2 className="size-4" />
                             Selesai
                         </span>
+                    ) : (
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
+                            disabled={!allContentEngaged || isPending}
+                            onClick={handleMarkComplete}
+                        >
+                            {isPending ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                                <CheckCircle2 className="size-3.5" />
+                            )}
+                            Tandai Selesai
+                        </Button>
                     )}
                 </div>
             </div>
