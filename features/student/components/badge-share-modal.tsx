@@ -141,7 +141,7 @@ export function BadgeShareModal({
           >
             {/* Background Glow Effect */}
             <div className={cn(
-              "absolute -left-1/4 -top-1/4 -z-10 size-96 rounded-full bg-gradient-to-br blur-[90px] opacity-40 dark:opacity-35 animate-pulse",
+              "absolute -left-1/4 -top-1/4 -z-10 size-96 rounded-full bg-linear-to-br blur-[90px] opacity-40 dark:opacity-35 animate-pulse",
               glowClass
             )} />
 
@@ -343,27 +343,27 @@ export function BadgeShareModal({
           height: '1920px',
           display: 'flex',
         }}
-        className="z-[-50] flex-col items-center justify-between bg-[#1E1B57] p-16 text-white"
+        className="-z-50 flex-col items-center justify-between bg-brand-navy p-16 text-white"
       >
         {/* Abstract Background Accents */}
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_40%,rgba(236,29,36,0.15),transparent_50%)]" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_60%,rgba(248,231,28,0.08),transparent_50%)]" />
         
         {/* Subtle Diagonal Lines / Grid */}
-        <div className="absolute inset-0 -z-10 opacity-5 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="absolute inset-0 -z-10 opacity-5 bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-size-[60px_60px]" />
 
         {/* Top Section - Brand Header */}
         <div className="flex flex-col items-center gap-4 text-center mt-8">
           <div className="flex items-center gap-3">
             {/* Logo Watermark */}
             <span className="text-3xl font-black tracking-wider text-white">JEPANGKU</span>
-            <span className="rounded-lg bg-[#EC1D24] px-3 py-1 text-sm font-black uppercase tracking-widest text-white">LMS</span>
+            <span className="rounded-lg bg-brand-red px-3 py-1 text-sm font-black uppercase tracking-widest text-white">LMS</span>
           </div>
-          <div className="h-1.5 w-24 rounded-full bg-gradient-to-r from-[#EC1D24] via-[#FF4B2B] to-[#F8E71C]" />
+          <div className="h-1.5 w-24 rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow" />
         </div>
 
         {/* Middle Section - Badge Celebration */}
-        <div className="flex flex-col items-center gap-10 text-center max-w-[800px]">
+        <div className="flex flex-col items-center gap-10 text-center max-w-200">
           {/* Celebrating Label */}
           <span className="rounded-full bg-white/10 px-6 py-2 text-lg font-bold uppercase tracking-widest text-white/70 backdrop-blur-md border border-white/10">
             Pencapaian Baru Dibuka!
@@ -434,7 +434,7 @@ export function BadgeShareModal({
           {/* Call to Action */}
           <div className="text-right">
             <p className="text-xl font-bold text-white/90">Belajar Bahasa Jepang</p>
-            <p className="text-sm text-[#EC1D24] font-black tracking-widest uppercase">kursus.jepangku.com</p>
+            <p className="text-sm text-brand-red font-black tracking-widest uppercase">kursus.jepangku.com</p>
           </div>
         </div>
       </div>

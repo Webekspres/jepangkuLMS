@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  ExternalLink,
   Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -225,13 +224,6 @@ export function StudentCourseDetailPage({
               </CardContent>
             </Card>
           )}
-
-          <Button asChild variant="outline" className="mt-4 h-11 w-full gap-2">
-            <Link href={`/kursus/${course.slug}`}>
-              <ExternalLink className="size-4" />
-              Lihat halaman publik
-            </Link>
-          </Button>
         </aside>
       </div>
     </div>

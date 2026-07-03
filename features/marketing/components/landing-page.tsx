@@ -295,7 +295,7 @@ export function LandingPage() {
             transition={{ duration: 0.65, delay: 0.12 }}
             className="relative mx-auto w-full max-w-xl lg:mt-0 lg:max-w-none"
           >
-            <div className="origin-center transition-transform duration-500 transform-[perspective(1400px)_rotateY(-8deg)_rotateX(4deg)] hover:transform-[perspective(1400px)_rotateY(-5deg)_rotateX(2deg)]">
+            <div className="origin-center transition-transform duration-500 [transform:perspective(1400px)_rotateY(-8deg)_rotateX(4deg)] hover:[transform:perspective(1400px)_rotateY(-5deg)_rotateX(2deg)]">
               {/* Always light-mode colors for the mock UI (it's a decorative illustration on dark bg) */}
               <div className="overflow-hidden rounded-2xl border border-white/20 bg-white shadow-[0_28px_80px_-16px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3">

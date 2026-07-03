@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
-import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
@@ -55,6 +55,11 @@ export async function requestLiveClassEnrollment(
       studentUserId: userId,
       studentName,
       courseTitle: `Live Class — ${liveClass.title}`,
+    });
+    await notifyLiveClassRegistration({
+      studentUserId: userId,
+      liveClassTitle: liveClass.title,
+      priceIdr: liveClass.priceIdr,
     });
   }
 

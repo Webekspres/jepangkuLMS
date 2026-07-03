@@ -10,6 +10,7 @@ import {
   notifyCourseGranted,
   notifyEnrollmentApproved,
   notifyEnrollmentRejected,
+  notifyLiveClassApproval,
 } from '@/lib/lms/notifications';
 import { uuidSchema } from '@/lib/validations/shared';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
@@ -35,16 +36,33 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
     select: {
       id: true,
       userId: true,
+      type: true,
       course: { select: { title: true, slug: true } },
+      liveClass: { select: { title: true } },
+      tryoutSession: { select: { title: true } },
     },
   });
 
-  await notifyEnrollmentApproved({
-    enrollmentId: enrollment.id,
-    studentUserId: enrollment.userId,
-    courseTitle: enrollment.course?.title ?? 'Kursus',
-    courseSlug: enrollment.course?.slug ?? '',
-  });
+  if (enrollment.type === 'COURSE') {
+    await notifyEnrollmentApproved({
+      enrollmentId: enrollment.id,
+      studentUserId: enrollment.userId,
+      courseTitle: enrollment.course?.title ?? 'Kursus',
+      courseSlug: enrollment.course?.slug ?? '',
+    });
+  } else if (enrollment.type === 'LIVE_CLASS') {
+    await notifyLiveClassApproval({
+      studentUserId: enrollment.userId,
+      liveClassTitle: enrollment.liveClass?.title ?? 'Live Class',
+    });
+  } else if (enrollment.type === 'TRYOUT') {
+    await notifyEnrollmentApproved({
+      enrollmentId: enrollment.id,
+      studentUserId: enrollment.userId,
+      courseTitle: enrollment.tryoutSession?.title ?? 'Tryout',
+      courseSlug: '',
+    });
+  }
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });
   revalidatePath(ADMIN_ROUTES.pembayaran);
@@ -66,14 +84,24 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
     select: {
       id: true,
       userId: true,
+      type: true,
       course: { select: { title: true } },
+      liveClass: { select: { title: true } },
+      tryoutSession: { select: { title: true } },
     },
   });
+
+  const title =
+    enrollment.type === 'COURSE'
+      ? (enrollment.course?.title ?? 'Kursus')
+      : enrollment.type === 'LIVE_CLASS'
+      ? (enrollment.liveClass?.title ?? 'Live Class')
+      : (enrollment.tryoutSession?.title ?? 'Tryout');
 
   await notifyEnrollmentRejected({
     enrollmentId: enrollment.id,
     studentUserId: enrollment.userId,
-    courseTitle: enrollment.course?.title ?? 'Kursus',
+    courseTitle: title,
   });
 
   revalidateStudentLearningSurfaces({ userId: enrollment.userId });

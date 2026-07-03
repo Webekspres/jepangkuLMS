@@ -21,6 +21,8 @@ type LessonMaterials = {
         arti: string;
         mnemonik?: string | null;
         strokeGifUrl?: string | null;
+        onyomi?: string | null;
+        kunyomi?: string | null;
     }>;
     tataBahasas: Array<{
         tataBahasa: string;
@@ -57,6 +59,8 @@ export function buildLessonFlashcards(materials: LessonMaterials): FlashcardItem
             accentColor: style.accentColor,
             trackColorClass: style.trackColorClass,
             mediaUrl: item.strokeGifUrl || null,
+            onyomi: item.onyomi,
+            kunyomi: item.kunyomi,
         });
     }
 

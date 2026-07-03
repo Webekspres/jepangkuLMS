@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
@@ -43,7 +43,7 @@ export async function requestEnrollment(courseId: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, courseId, status: enrollment.status }, 'Enrollment requested');
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
@@ -88,7 +88,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     { userId, courseSlug, courseId: course.id, status: enrollment.status },
     'Course enrollment requested',
@@ -114,7 +114,7 @@ export async function enrollInCourse(courseSlug: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, courseSlug, courseId: course.id, status: enrollment.status }, 'Course enrollment activated');
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
 }
@@ -171,9 +171,13 @@ export async function markLessonComplete(
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidatePath('/dashboard/pencapaian');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
-  return { success: true as const };
+  return {
+    success: true as const,
+    xpReward,
+    pointsReward: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
+  };
 }
 
 /** Record flashcard tab visit — idempotent per lesson. */
@@ -196,7 +200,11 @@ export async function recordFlashcardVisit(lessonId: string) {
     revalidatePath('/dashboard/leaderboard');
   }
 
-  return { awarded: result.pointsTotal != null };
+  return {
+    awarded: result.pointsTotal != null,
+    xpReward: result.pointsTotal != null ? GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.xp : 0,
+    pointsReward: result.pointsTotal != null ? GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.points : 0,
+  };
 }
 
 /** Simpan jawaban kuis — skor dihitung server-side. */
@@ -282,7 +290,7 @@ export async function submitQuizAnswers(input: {
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidatePath('/dashboard/pencapaian');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     {
       userId,
@@ -374,6 +382,6 @@ export async function submitQuizAttempt(input: {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   return { attemptId: attempt.id, score: attempt.score };
 }

@@ -7,14 +7,14 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-06-30                                                  |
+| **Terakhir diperbarui**   | 2026-07-03                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **90%** (63 item terlacak)                                  |
+| **Progres global Fase 1** | **91%** (63 item terlacak)                                  |
 
 ### Progres global
 
 ```text
-[██████████████████░░] 90%
+[██████████████████░░] 91%
 ```
 
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
@@ -22,13 +22,13 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Infrastruktur & platform |      16 |     12 |     4 |     0 |     85% |
 | Halaman & routing        |      25 |     23 |     2 |     0 |     95% |
 | Domain `features/`       |       8 |      7 |     1 |     0 |     92% |
-| Data & integrasi         |       8 |      6 |     1 |     1 |     80% |
+| Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **63** | **53** | **9** | **1** | **90%** |
+| **Total**                |  **63** | **54** | **8** | **1** | **91%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(53 + 3.6) ÷ 63 ≈ 90%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(54 + 3.2) ÷ 63 ≈ 91%`.
 
 ---
 
@@ -50,7 +50,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Infrastruktur & platform |      12 |        4 |     0 |
 | Halaman & routing        |      23 |        2 |     0 |
 | Domain `features/`       |       7 |        1 |     0 |
-| Data & integrasi         |       6 |        1 |     1 |
+| Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       5 |        1 |     0 |
 
 ---
@@ -153,7 +153,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Seed N5 + materi XLSX + tryout N5 Fase 1 + live class + badge starter |   ✅   |
 | Marketing katalog dari Prisma                                         |   ✅   |
 | Server Actions write paths                                            |   ✅   |
-| Award XP ke Core                                                      |   🟡   | `verify:core-gamification` script; flashcard/tryout wired |
+| Award XP ke Core                                                      |   ✅   | `verify:core-gamification` script; flashcard/tryout/quiz fully wired and tested |
 | News → Partner API wiring                                             |   ⬜   |
 
 ---
@@ -183,6 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-03 | Overhaul flashcard (3D flip tanpa ghosting, Furigana & Shuffle toggle, Onyomi/Kunyomi split dengan `|`, "Sudah tahu" front face shortcut, mobile max-height), instant progress updates (confetti, custom events, core session refresh), bottom lesson navigation, dan fix pg-pool seed crash |
 | 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |
 | 2026-06-30 | Refactor monetisasi & metadata: `CourseCategoryType` (Utama/Gratis/Tambahan) + dropdown CMS + kolom Excel outcomes; `TryoutSession.level` (satu sesi = satu JLPT), hapus `Question.tryoutLevel`, bank soal tanpa tab level, enrollment gate tryout by session id, `logLmsXpEvent` upsert anti-P2002 |
 | 2026-06-29 | Fitur "Bagikan Pencapaian" (Share Achievement) pada halaman koleksi badge siswa: modal interaktif berdesain glassmorphism premium dengan pulsing glow sesuai rarity, integrasi Web Share API dan link sharing sosial media (WhatsApp, X/Twitter, Threads, Facebook), serta fitur "Simpan Kartu" (Unduh Gambar) 1080x1920 berbasis html-to-image |

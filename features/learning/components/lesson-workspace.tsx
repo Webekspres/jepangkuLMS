@@ -9,6 +9,7 @@ import {
     BookOpen,
     CheckCircle2,
     ChevronDown,
+    ChevronLeft,
     ChevronRight,
     Circle,
     HelpCircle,
@@ -20,6 +21,7 @@ import {
     X,
     Zap,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
@@ -315,6 +317,10 @@ export function LessonWorkspace({
     const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
     const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
 
+    const currentLessonIndex = syllabus.findIndex((item) => item.slug === lesson.slug);
+    const prevLesson = currentLessonIndex > 0 ? syllabus[currentLessonIndex - 1] : null;
+    const nextLesson = currentLessonIndex < syllabus.length - 1 ? syllabus[currentLessonIndex + 1] : null;
+
     const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
 
     // Content availability flags — drive both the tabs and the XP checklist.
@@ -411,12 +417,34 @@ export function LessonWorkspace({
         if (completed || !allContentEngaged) return;
         startTransition(async () => {
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
-            if ('success' in result || result.alreadyCompleted) {
+            if (result && 'success' in result) {
+                setCompleted(true);
+                // Trigger confetti!
+                confetti({
+                  particleCount: 150,
+                  spread: 80,
+                  origin: { y: 0.6 }
+                });
+                
+                // Dispatch event
+                const event = new CustomEvent('gamified-event', {
+                  detail: {
+                    type: 'REWARD_EARNED',
+                    xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
+                    pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
+                    title: 'Pelajaran Selesai! 🎉',
+                    description: `Kamu berhasil menyelesaikan pelajaran "${lesson.title}"`,
+                  }
+                });
+                window.dispatchEvent(event);
+                requestStudentCoreDataRefresh();
+                router.refresh();
+            } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
                 router.refresh();
             }
         });
-    }, [allContentEngaged, completed, lesson.id, router]);
+    }, [allContentEngaged, completed, lesson.id, lesson.title, router]);
 
     function handleTabChange(tab: ContentTab) {
         setActiveTab(tab);
@@ -426,7 +454,20 @@ export function LessonWorkspace({
         if (tab === 'flashcard') {
             setFlashcardVisited(true);
             startTransition(async () => {
-                await recordFlashcardVisit(lesson.id);
+                const result = await recordFlashcardVisit(lesson.id);
+                if (result && result.awarded) {
+                    const event = new CustomEvent('gamified-event', {
+                      detail: {
+                        type: 'REWARD_EARNED',
+                        xpGained: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
+                        pointsGained: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
+                        title: 'Materi Dijelajahi!',
+                        description: `Kamu menjelajahi flashcard pelajaran "${lesson.title}"`,
+                      }
+                    });
+                    window.dispatchEvent(event);
+                    requestStudentCoreDataRefresh();
+                }
                 router.refresh();
             });
         }
@@ -544,6 +585,21 @@ export function LessonWorkspace({
                         {contentTabs}
                     </div>
 
+                    {lesson.slug === 'tryout-n5-placement' && (
+                        <div className="rounded-2xl border-2 border-brand-yellow/30 bg-brand-yellow/10 p-4 sm:p-5 shadow-sm flex items-start gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-yellow/20 text-brand-yellow text-lg font-bold">
+                                📝
+                            </span>
+                            <div className="space-y-1">
+                                <h3 className="text-sm font-bold text-foreground">Informasi Diagnostic Placement Test N5</h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Ini adalah tes penempatan awal untuk mengukur pemahaman tata bahasa, kosakata, dan kanji dasar N5-mu. 
+                                    Disarankan untuk menyelesaikan tes ini secara jujur tanpa melihat kamus atau catatan agar visualisasi hasil belajar di dashboard-mu akurat.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── Priority 1 (TOP): Dynamic content area — active tab content ── */}
                     {hasVideo && (
                         <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
@@ -653,6 +709,42 @@ export function LessonWorkspace({
                             </div>
                         </div>
                     )}
+                    {/* Lesson Navigation Bar (Prev / Next Lesson) */}
+                    <div className="flex items-center justify-between border-y border-border/60 py-4 my-6 gap-4">
+                        {prevLesson ? (
+                            <Link
+                                href={STUDENT_ROUTES.belajar(course.slug, prevLesson.slug)}
+                                className="group flex flex-col items-start gap-1 max-w-[45%] text-left"
+                            >
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
+                                    <ChevronLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+                                    Sebelumnya
+                                </span>
+                                <span className="text-xs font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                    {prevLesson.title}
+                                </span>
+                            </Link>
+                        ) : (
+                            <div className="invisible" />
+                        )}
+
+                        {nextLesson ? (
+                            <Link
+                                href={STUDENT_ROUTES.belajar(course.slug, nextLesson.slug)}
+                                className="group flex flex-col items-end gap-1 max-w-[45%] text-right"
+                            >
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
+                                    Selanjutnya
+                                    <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                                </span>
+                                <span className="text-xs font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                    {nextLesson.title}
+                                </span>
+                            </Link>
+                        ) : (
+                            <div className="invisible" />
+                        )}
+                    </div>
 
                     {/* ── Priority 3 (BOTTOM): Q&A / discussion ── */}
                     {activeTab === firstAvailableTab && (

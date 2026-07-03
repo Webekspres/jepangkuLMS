@@ -1,7 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
@@ -82,7 +81,7 @@ export async function requestTryoutEnrollment(sessionCode: string) {
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard/tryout');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
 
   return { enrollmentId: enrollment.id, sessionCode, status: enrollment.status };
 }

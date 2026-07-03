@@ -261,10 +261,10 @@ export function DashboardPage({
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{lesson.duration}</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
                           <div
                             className={cn('h-full rounded-full', cat.bar)}
-                            style={{ width: `${lesson.progress}%` }}
+                            style={{ width: `${Math.max(5, lesson.progress)}%` }}
                           />
                         </div>
                         <span className="text-[10px] font-medium tabular-nums text-muted-foreground">

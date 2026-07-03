@@ -74,6 +74,7 @@ export async function loadAdminLiveClassById(id: string) {
     maxSlots: row.maxSlots,
     filledSlots: row.filledSlots,
     thumbUrl: row.thumbUrl,
+    paymentLink: row.paymentLink,
     isPublished: row.isPublished,
     sessions: row.sessions.map((session) => ({
       id: session.id,

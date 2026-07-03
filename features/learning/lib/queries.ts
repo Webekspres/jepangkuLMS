@@ -142,7 +142,7 @@ export async function getLessonWorkspace(
     hasQuiz: l.hasQuiz ?? false,
   }));
 
-  const { kanjis, kosakatas, tataBahasas, quizCount } = materialsBundle;
+  const { kanjis = [], kosakatas = [], tataBahasas = [], quizCount = 0 } = materialsBundle || {};
 
   const questions =
     quizCount > 0

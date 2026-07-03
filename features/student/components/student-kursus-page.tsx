@@ -42,14 +42,9 @@ export function StudentKursusPage({
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [search, setSearch] = useState('');
 
-  const unenrolledCourses = useMemo(() => {
-    const enrolledSlugs = new Set(enrolledCards.map((e) => e.course.slug));
-    return courses.filter((c) => !enrolledSlugs.has(c.slug));
-  }, [courses, enrolledCards]);
-
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return unenrolledCourses.filter((course) => {
+    return courses.filter((course) => {
       const levelMatch = activeLevel === 'Semua' || course.level === activeLevel;
       const searchMatch =
         !query ||
@@ -57,7 +52,7 @@ export function StudentKursusPage({
         course.desc.toLowerCase().includes(query);
       return levelMatch && searchMatch;
     });
-  }, [activeLevel, unenrolledCourses, search]);
+  }, [activeLevel, courses, search]);
 
   function getEnrollmentView(slug: string) {
     const enrollment = enrollmentBySlug[slug];
@@ -149,10 +144,10 @@ export function StudentKursusPage({
                         <span className="text-muted-foreground">Progress</span>
                         <span className="text-primary">{enrollment.progress}%</span>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
-                          style={{ width: `${enrollment.progress}%` }}
+                          style={{ width: `${Math.max(5, enrollment.progress)}%` }}
                         />
                       </div>
                     </div>
@@ -271,9 +266,17 @@ export function StudentKursusPage({
                       {course.duration}
                     </span>
                   </div>
-                  <Button asChild variant="outline" size="sm" className="mt-4 w-full gap-1.5">
-                    <Link href={STUDENT_ROUTES.kursusDetail(course.slug)}>
-                      Lihat detail
+                  <Button asChild variant={enrollment ? "default" : "outline"} size="sm" className="mt-4 w-full gap-1.5">
+                    <Link
+                      href={
+                        enrollment
+                          ? enrollment.continueLessonSlug
+                            ? STUDENT_ROUTES.belajar(course.slug, enrollment.continueLessonSlug)
+                            : STUDENT_ROUTES.kursusDetail(course.slug)
+                          : STUDENT_ROUTES.kursusDetail(course.slug)
+                      }
+                    >
+                      {enrollment ? 'Lanjutkan belajar' : 'Lihat detail'}
                       <ChevronRight className="size-3.5" />
                     </Link>
                   </Button>

@@ -9,6 +9,7 @@ import {
   getUserEnrollments,
   type StudentEnrollmentView,
 } from '@/features/learning/lib/queries';
+import { computeCourseProgressFromLessons } from '@/features/learning/lib/progress';
 import { prisma } from '@/lib/prisma';
 import type { CatalogCourse } from '@/features/learning/components/courses-data';
 
@@ -73,6 +74,48 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
     effectiveEnrollments = [...enrollments, ...syntheticEnrollments];
   }
 
+  // ── Compute fresh real progress directly from DB (bypass cache) ──────────
+  const enrolledCourseSlugs = effectiveEnrollments.map((e) => e.courseSlug);
+
+  const [enrolledCoursesWithLessons, completedProgressRows] = await Promise.all([
+    prisma.course.findMany({
+      where: { slug: { in: enrolledCourseSlugs } },
+      select: {
+        slug: true,
+        modules: {
+          orderBy: { order: 'asc' },
+          select: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              select: { id: true, slug: true, order: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.userProgress.findMany({
+      where: {
+        userId,
+        lesson: { module: { course: { slug: { in: enrolledCourseSlugs } } } },
+        isCompleted: true,
+      },
+      select: { lessonId: true },
+    }),
+  ]);
+
+  const completedLessonIds = new Set(completedProgressRows.map((p) => p.lessonId));
+
+  // Map of courseSlug → computed real progress
+  const freshProgressByCourseSlug = new Map<string, ReturnType<typeof computeCourseProgressFromLessons>>();
+  for (const c of enrolledCoursesWithLessons) {
+    const flatLessons = c.modules.flatMap((m) => m.lessons);
+    const completedSlugs = new Set(
+      flatLessons.filter((l) => completedLessonIds.has(l.id)).map((l) => l.slug),
+    );
+    freshProgressByCourseSlug.set(c.slug, computeCourseProgressFromLessons(flatLessons, completedSlugs));
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const enrollmentBySlug = Object.fromEntries(
     effectiveEnrollments.map((e) => [e.courseSlug, e]),
   );
@@ -81,14 +124,22 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
     .map((enrollment) => {
       const course = courses.find((c) => c.slug === enrollment.courseSlug);
       if (!course) return null;
+
+      // Prefer fresh DB-computed progress; fall back to cached enrollment progress
+      const freshProgress = freshProgressByCourseSlug.get(enrollment.courseSlug);
+      const progressPercent = freshProgress?.percent ?? enrollment.progress.percent;
+      const continueLessonSlug =
+        freshProgress?.continueLessonSlug ?? enrollment.progress.continueLessonSlug ?? '';
+      const progressStatus = freshProgress?.status ?? enrollment.progress.status;
+
       return {
         course,
         enrollment: {
           courseSlug: enrollment.courseSlug,
-          continueLessonSlug: enrollment.progress.continueLessonSlug ?? '',
-          progress: enrollment.progress.percent,
-          status: enrollment.progress.status,
-          lastAccessLabel: enrollment.progress.percent > 0 ? 'Baru-baru ini' : 'Belum dimulai',
+          continueLessonSlug,
+          progress: progressPercent,
+          status: progressStatus,
+          lastAccessLabel: progressPercent > 0 ? 'Baru-baru ini' : 'Belum dimulai',
         },
       };
     })
@@ -100,8 +151,8 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
     enrolledCards,
     stats: {
       enrolled: effectiveEnrollments.length,
-      active: effectiveEnrollments.filter((e) => e.progress.status === 'active').length,
-      completed: effectiveEnrollments.filter((e) => e.progress.status === 'completed').length,
+      active: enrolledCards.filter((c) => c.enrollment.status === 'active').length,
+      completed: enrolledCards.filter((c) => c.enrollment.status === 'completed').length,
     },
   };
 });
