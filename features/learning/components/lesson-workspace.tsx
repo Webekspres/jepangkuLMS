@@ -221,7 +221,6 @@ type LessonXpPanelProps = {
     xpTasks: LessonXpTask[];
     completed: boolean;
     isPending: boolean;
-    onComplete: () => void;
     compact?: boolean;
 };
 
@@ -229,7 +228,6 @@ function LessonXpPanel({
     xpTasks,
     completed,
     isPending,
-    onComplete,
     compact = false,
 }: LessonXpPanelProps) {
     return (
@@ -271,20 +269,31 @@ function LessonXpPanel({
                         </span>
                     </div>
                 ))}
-                <Button
-                    size="sm"
-                    className="mt-2 w-full"
-                    disabled={completed || isPending}
-                    onClick={onComplete}
-                >
-                    {isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
-                    ) : completed ? (
-                        'Pelajaran selesai'
-                    ) : (
-                        'Tandai selesai'
+                <div
+                    className={cn(
+                        'mt-2 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-center text-xs font-semibold',
+                        completed
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-muted/60 text-muted-foreground',
                     )}
-                </Button>
+                >
+                    {completed ? (
+                        <>
+                            <CheckCircle2 className="size-4 shrink-0" />
+                            Pelajaran selesai
+                        </>
+                    ) : isPending ? (
+                        <>
+                            <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                            Menyimpan progres…
+                        </>
+                    ) : (
+                        <>
+                            <Circle className="size-3.5 shrink-0" />
+                            Selesai otomatis saat semua materi dipelajari
+                        </>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
@@ -335,9 +344,16 @@ export function LessonWorkspace({
     const [activeTab, setActiveTab] = useState<ContentTab | null>(resolvedInitialTab);
     const [flashcardVisited, setFlashcardVisited] = useState(resolvedInitialTab === 'flashcard');
     const [quizPassed, setQuizPassed] = useState(false);
+    const [contentViewed, setContentViewed] = useState(resolvedInitialTab === firstAvailableTab);
 
+    // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
+        setCompleted(lesson.isCompleted);
+        setActiveTab(resolvedInitialTab);
+        setFlashcardVisited(resolvedInitialTab === 'flashcard');
+        setQuizPassed(false);
+        setContentViewed(resolvedInitialTab === firstAvailableTab);
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
@@ -377,21 +393,36 @@ export function LessonWorkspace({
         );
     };
 
-    function handleComplete() {
+    // A lesson auto-completes once the student has engaged every section it contains:
+    // material/video viewed, flashcards opened (if any), and quiz passed 70%+ (if any).
+    // Completion awards the lesson-read reward only — flashcard & quiz XP are granted
+    // by their own idempotent server actions (aggregating here would double-count).
+    const contentSectionDone = hasVideo || lesson.content ? completed || contentViewed : true;
+    const flashcardSectionDone = hasFlashcard ? flashcardVisited : true;
+    const quizSectionDone = hasQuiz ? quizPassed : true;
+    const hasAnyContent = hasVideo || Boolean(lesson.content) || hasFlashcard || hasQuiz;
+    const allContentEngaged =
+        hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
+
+    // `allContentEngaged` only flips false→true within a lesson and the `completed`
+    // guard stops re-entry, so this fires exactly once. markLessonComplete is also
+    // idempotent server-side (returns alreadyCompleted) as a safety net.
+    useEffect(() => {
+        if (completed || !allContentEngaged) return;
         startTransition(async () => {
-            // Completion only awards the lesson-read reward (LESSON_COMPLETED).
-            // Flashcard & quiz XP are granted by their own idempotent server actions,
-            // so they are intentionally NOT aggregated here (would double-count).
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if ('success' in result || result.alreadyCompleted) {
                 setCompleted(true);
                 router.refresh();
             }
         });
-    }
+    }, [allContentEngaged, completed, lesson.id, router]);
 
     function handleTabChange(tab: ContentTab) {
         setActiveTab(tab);
+        if (tab === 'video' || tab === firstAvailableTab) {
+            setContentViewed(true);
+        }
         if (tab === 'flashcard') {
             setFlashcardVisited(true);
             startTransition(async () => {
@@ -407,7 +438,7 @@ export function LessonWorkspace({
         xpTasks.push({
             label: 'Video / materi dibaca',
             xp: REWARDS.LESSON_COMPLETED.xp,
-            done: completed || Boolean(lesson.content),
+            done: completed || contentViewed,
         });
     }
     if (hasFlashcard) {
@@ -617,7 +648,6 @@ export function LessonWorkspace({
                                     xpTasks={xpTasks}
                                     completed={completed}
                                     isPending={isPending}
-                                    onComplete={handleComplete}
                                     compact
                                 />
                             </div>
@@ -650,7 +680,6 @@ export function LessonWorkspace({
                         xpTasks={xpTasks}
                         completed={completed}
                         isPending={isPending}
-                        onComplete={handleComplete}
                     />
                 </aside>
             </div>
@@ -667,24 +696,12 @@ export function LessonWorkspace({
                         <List className="size-4 shrink-0" />
                         <span className="truncate">Daftar materi</span>
                     </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="h-10 shrink-0 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm"
-                        disabled={completed || isPending}
-                        onClick={handleComplete}
-                    >
-                        {isPending ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : completed ? (
-                            'Selesai'
-                        ) : (
-                            <>
-                                <span className="sm:hidden">Tandai</span>
-                                <span className="hidden sm:inline">Tandai selesai</span>
-                            </>
-                        )}
-                    </Button>
+                    {completed && (
+                        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 sm:h-9">
+                            <CheckCircle2 className="size-4" />
+                            Selesai
+                        </span>
+                    )}
                 </div>
             </div>
 
