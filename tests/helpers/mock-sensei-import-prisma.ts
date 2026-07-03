@@ -47,6 +47,7 @@ export function createMockSenseiImportPrisma() {
         },
         module: {
             deleteMany: async () => ({ count: 0 }),
+            updateMany: async () => ({ count: 0 }),
             upsert: async ({ where }: { where: { courseId_slug: { slug: string } } }) => {
                 const slug = where.courseId_slug.slug;
                 const id = moduleIds.get(slug) ?? `module-${moduleCounter++}`;

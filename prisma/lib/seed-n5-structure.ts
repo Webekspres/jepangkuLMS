@@ -18,9 +18,12 @@ export async function seedN5CourseStructure(
   });
 
   const moduleIds: Record<string, string> = {};
-  const ORDER_OFFSET = 10_000;
 
-  // Two-phase order: avoid unique (courseId, order) collision when re-seeding.
+  await prisma.module.updateMany({
+    where: { courseId },
+    data: { order: { increment: 1000000 } },
+  });
+
   for (const mod of N5_MODULE_DEFINITIONS) {
     const row = await prisma.module.upsert({
       where: {
@@ -30,23 +33,16 @@ export async function seedN5CourseStructure(
         courseId,
         slug: mod.slug,
         title: mod.title,
-        order: mod.order + ORDER_OFFSET,
+        order: mod.order,
         description: mod.description,
       },
       update: {
         title: mod.title,
         description: mod.description,
-        order: mod.order + ORDER_OFFSET,
+        order: mod.order,
       },
     });
     moduleIds[mod.slug] = row.id;
-  }
-
-  for (const mod of N5_MODULE_DEFINITIONS) {
-    await prisma.module.update({
-      where: { courseId_slug: { courseId, slug: mod.slug } },
-      data: { order: mod.order },
-    });
   }
 
   const lessonIdsBySlug: Record<string, string> = {};

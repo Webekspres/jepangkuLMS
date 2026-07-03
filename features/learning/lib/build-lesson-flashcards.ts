@@ -48,17 +48,15 @@ export function buildLessonFlashcards(materials: LessonMaterials): FlashcardItem
 
     for (const item of materials.kanjis) {
         const style = KIND_STYLE.Kanji;
-        const details = [item.mnemonik, item.strokeGifUrl ? `GIF: ${item.strokeGifUrl}` : null]
-            .filter(Boolean)
-            .join('\n');
         cards.push({
             front: item.huruf,
             sub: [item.furigana, item.romaji].filter(Boolean).join(' · ') || null,
             back: item.arti,
-            example: details || null,
+            example: item.mnemonik || null,
             badge: 'Kanji',
             accentColor: style.accentColor,
             trackColorClass: style.trackColorClass,
+            mediaUrl: item.strokeGifUrl || null,
         });
     }
 
