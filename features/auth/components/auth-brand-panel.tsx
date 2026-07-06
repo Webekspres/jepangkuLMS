@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { BRAND_LOGO } from '@/lib/brand-logo';
+import { BRAND_LOGO, BRAND_LOGO_SRC } from '@/lib/brand-logo';
 import { motion } from 'motion/react';
 import {
   AUTH_STATS,
@@ -47,7 +47,7 @@ export function AuthBrandPanel({
       <div className="relative z-10 flex h-full flex-col justify-between py-10 px-16">
         <Link href="/" className="inline-block">
           <Image
-            src="/brand/logo.png"
+            src={BRAND_LOGO_SRC}
             alt="JepangKu"
             width={BRAND_LOGO.authPanel.width}
             height={BRAND_LOGO.authPanel.height}

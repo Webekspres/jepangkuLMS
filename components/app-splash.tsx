@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
+import { BRAND_LOGO_SRC } from '@/lib/brand-logo';
 import { STUDENT_CORE_DATA_READY_EVENT } from '@/features/student/lib/student-core-data-events';
 
 const MIN_SPLASH_MS = 700;
@@ -23,7 +24,7 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
   return (
     <div className="relative w-fit">
       <Image
-        src="/brand/logo.png"
+        src={BRAND_LOGO_SRC}
         alt=""
         width={280}
         height={80}
@@ -33,7 +34,7 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
       />
       <div className="absolute inset-0" style={{ clipPath: revealClip }}>
         <Image
-          src="/brand/logo.png"
+          src={BRAND_LOGO_SRC}
           alt="JepangKu"
           width={280}
           height={80}
