@@ -1,5 +1,5 @@
-import { ADMIN_WA_NUMBER } from '@/lib/admin-contact';
 import { buildN5MarketingSyllabus } from '@/features/learning/lib/n5-lesson-modules';
+import { getPaymentSettings } from '@/lib/payment/settings';
 import { CATALOG_COURSES, type CatalogCourse } from './courses-data';
 
 export type CourseSyllabusItem = {
@@ -21,13 +21,11 @@ export type CourseDetail = CatalogCourse & {
   includes: string[];
 };
 
-export const PAYMENT_BCA = {
-  bank: 'BCA',
-  accountName: 'PT Jepangku Indonesia',
-  accountNumber: '1234567890',
-} as const;
-
-export { ADMIN_WA_NUMBER };
+/** @deprecated Import `getPaymentSettings()` dari `@/lib/payment/settings` — dipakai marketing legacy. */
+export const PAYMENT_BCA = (() => {
+  const s = getPaymentSettings();
+  return { bank: s.bankName, accountName: s.accountName, accountNumber: s.accountNumber };
+})();
 
 type CourseDetailExtras = Omit<CourseDetail, keyof CatalogCourse>;
 

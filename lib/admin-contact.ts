@@ -1,7 +1,7 @@
-/** Placeholder — ganti dengan kontak resmi saat go-live. */
+/** Kontak admin resmi JepangKu LMS — sumber tunggal untuk WhatsApp & halaman kontak. */
 export const ADMIN_CONTACT = {
-  waNumber: '6281234567890',
-  waDisplay: '0812-3456-7890',
+  waNumber: '6285110551580',
+  waDisplay: '0851-1055-1580',
   email: 'admin@jepangku.com',
   hours: 'Senin–Jumat, 09.00–17.00 WIB',
   responseNote: 'Balasan dalam 1×24 jam kerja',

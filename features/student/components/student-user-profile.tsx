@@ -18,6 +18,7 @@ import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
+import { getCoreLevelProgress } from '@/features/student/lib/gamification-rewards';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
@@ -30,34 +31,6 @@ const MENU_ITEMS = [
   { href: STUDENT_ROUTES.tryout, label: 'JLPT Try Out', icon: Target },
   { href: STUDENT_ROUTES.achievements, label: 'Achievements', icon: Trophy },
 ] as const;
-
-function xpProgressPercent(totalXp: number, level: number): number {
-  if (totalXp <= 0) return 0;
-
-  const thresholds: Record<number, number> = {
-    1: 0,
-    2: 100,
-    3: 300,
-    4: 600,
-    5: 1000,
-  };
-
-  const getThreshold = (lvl: number): number => {
-    if (lvl <= 1) return 0;
-    if (lvl in thresholds) return thresholds[lvl];
-    return 1000 + (lvl - 5) * 500;
-  };
-
-  const currentThreshold = getThreshold(level);
-  const nextThreshold = getThreshold(level + 1);
-  const range = nextThreshold - currentThreshold;
-
-  if (range <= 0) return 99.9;
-
-  const xpInLevel = Math.max(0, totalXp - currentThreshold);
-  const pct = (xpInLevel / range) * 100;
-  return Math.min(99.9, Math.max(0, Math.round(pct * 10) / 10));
-}
 
 export function StudentUserProfile() {
   const { signOut } = useClerk();
@@ -72,7 +45,7 @@ export function StudentUserProfile() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const nextLevel = core.level + 1;
-  const xpPercent = xpProgressPercent(core.totalXp, core.level);
+  const levelProgress = getCoreLevelProgress(core.totalXp, core.level);
   const levelSubtitle = core.levelTitle
     ? `${core.levelTitle} • Lv.${core.level}`
     : `Pemula • Lv.${core.level}`;
@@ -151,19 +124,35 @@ export function StudentUserProfile() {
 
               <div>
                 <div className="mb-1.5 flex justify-between text-xs">
-                  <span className="text-muted-foreground">XP ke Lv.{nextLevel}</span>
-                  <span className="font-bold text-primary">{xpPercent}%</span>
+                  <span className="text-muted-foreground">
+                    {levelProgress.isMaxLevel ? 'Level maksimum' : `XP ke Lv.${nextLevel}`}
+                  </span>
+                  <span className="font-bold text-primary">{levelProgress.percent}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <motion.div
                     className="h-full rounded-full bg-linear-to-r from-primary to-brand-yellow"
                     initial={{ width: 0 }}
-                    animate={{ width: `${xpPercent}%` }}
+                    animate={{ width: `${levelProgress.percent}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </div>
                 <p className="mt-1.5 text-[10px] text-muted-foreground">
-                  {formatDisplayNumber(core.totalXp)} XP total
+                  {levelProgress.isMaxLevel ? (
+                    <>{formatDisplayNumber(core.totalXp)} XP total</>
+                  ) : (
+                    <>
+                      Sisa{' '}
+                      <span className="font-semibold text-foreground">
+                        {formatDisplayNumber(levelProgress.xpRemaining)} XP
+                      </span>{' '}
+                      menuju Lv.{nextLevel}
+                      <span className="text-muted-foreground/70">
+                        {' '}
+                        · {formatDisplayNumber(core.totalXp)} XP total
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
