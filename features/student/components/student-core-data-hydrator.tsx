@@ -7,8 +7,11 @@ import {
     readCachedStudentCoreData,
     writeCachedStudentCoreData,
 } from '@/features/student/lib/student-core-data-cache';
-import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
-import { syncCoreSessionSilent } from '@/features/auth/lib/sync-core-session';
+import {
+    notifyStudentCoreDataReady,
+    STUDENT_CORE_DATA_REFRESH_EVENT,
+} from '@/features/student/lib/student-core-data-events';
+import { ensureCoreSessionWithRetry } from '@/features/auth/lib/sync-core-session';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import {
     EMPTY_STUDENT_CORE_DATA,
@@ -20,8 +23,6 @@ import {
 type StudentCoreDataHydratorProps = {
     children: React.ReactNode;
 };
-
-const CORE_SYNC_RETRY_MS = [0, 2500, 6000, 12000];
 
 function defaultContextValue(): StudentCoreDataContextValue {
     return toStudentCoreDataContextValue(EMPTY_STUDENT_CORE_DATA, 'loading', false);
@@ -46,25 +47,28 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
             const cached = readCachedStudentCoreData(clerkUserId);
             if (cached?.coreConnected && !cancelled) {
                 setValue(toStudentCoreDataContextValue(cached, 'ready', false));
+                notifyStudentCoreDataReady();
             }
         });
 
-        const applyData = (json: StudentCoreData, coreSyncWarning: boolean) => {
+        const markReady = (json: StudentCoreData, coreSyncWarning: boolean) => {
             if (json.coreConnected) {
                 writeCachedStudentCoreData(json);
             }
             setValue(toStudentCoreDataContextValue(json, 'ready', coreSyncWarning));
+            notifyStudentCoreDataReady();
         };
 
         const load = async (coreSyncWarning = false) => {
             try {
                 const json = await fetchCoreData();
                 if (!cancelled) {
-                    applyData(json, coreSyncWarning);
+                    markReady(json, coreSyncWarning);
                 }
             } catch {
                 if (!cancelled) {
                     setValue((current) => ({ ...current, status: 'ready', coreSyncWarning }));
+                    notifyStudentCoreDataReady();
                 }
             }
         };
@@ -78,27 +82,10 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
 
             if (!syncAttempted.current) {
                 syncAttempted.current = true;
-                for (const delay of CORE_SYNC_RETRY_MS) {
-                    if (cancelled) return;
-                    if (delay > 0) {
-                        await new Promise((resolve) => setTimeout(resolve, delay));
-                    }
-                    const ok = await syncCoreSessionSilent();
-                    const json = await fetchCoreData();
-                    if (cancelled) return;
-                    if (json.coreConnected) {
-                        applyData(json, false);
-                        return;
-                    }
-                    if (ok) {
-                        applyData(json, false);
-                        return;
-                    }
-                }
-                const final = await fetchCoreData();
-                if (!cancelled) {
-                    applyData(final, !final.coreConnected);
-                }
+                const synced = await ensureCoreSessionWithRetry();
+                const json = await fetchCoreData();
+                if (cancelled) return;
+                markReady(json, !json.coreConnected && !synced);
                 return;
             }
 
@@ -110,7 +97,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         const onRefresh = () => {
             void (async () => {
                 if (isCoreIntegrationEnabled()) {
-                    await syncCoreSessionSilent();
+                    await ensureCoreSessionWithRetry();
                 }
                 await load(false);
             })();
