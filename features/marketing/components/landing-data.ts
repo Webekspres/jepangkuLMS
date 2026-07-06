@@ -260,33 +260,22 @@ export const PRICING_PLANS = [
     period: "",
     description:
       "Cocok untuk kamu yang baru mulai belajar huruf dan kosakata dasar Jepang.",
-    features: ["Akses video N5 gratis", "tes pelatihan JLPT N5"],
+    features: ["Akses video N5 gratis", "Tes pelatihan JLPT N5"],
     highlighted: false,
   },
   {
-    name: "N4 Intensif",
+    name: "N4–N1 Premium",
     price: "Segera",
     period: "",
     description:
-      "Paket untuk siswa yang serius naik level — konsultasi via admin.",
+      "Paket lengkap untuk siswa serius naik level hingga mahir — dari N4 menuju N1.",
     features: [
-      "Semua level hingga N4",
+      "Semua level N4 hingga N1",
       "Live class berkala",
+      "Materi & try out lengkap",
       "Analitik skor JLPT",
-    ],
-    highlighted: true,
-  },
-  {
-    name: "N1 Master",
-    price: "Konsultasi",
-    period: "",
-    description:
-      "Program premium menuju N1 — hubungi tim untuk rencana khusus.",
-    features: [
-      "Mentoring 1-on-1",
-      "Materi & try out N1",
       "Prioritas support admin",
     ],
-    highlighted: false,
+    highlighted: true,
   },
 ] as const;

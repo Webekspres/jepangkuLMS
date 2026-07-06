@@ -197,10 +197,10 @@ export function AboutPage() {
       <MarketingCtaBand>
         <p className="mb-3 font-mono text-sm tracking-[0.35em] text-muted-foreground">一緒に頑張ろう</p>
         <h2 className="mb-4 text-2xl font-extrabold text-foreground sm:text-3xl">
-          Mulai perjalanan Japanmu
+          Mulai Perjalananmu Menuju Jepang
         </h2>
         <p className="mx-auto mb-8 max-w-lg text-muted-foreground">
-          Jadilah bagian dari komunitas awal JepangKu — daftar gratis dan mulai dari modul N5.
+          Jadilah bagian dari JepangKu — daftar gratis dan mulai secepatnya.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild size="lg" className="h-12 w-full gap-2 px-8 sm:w-auto">

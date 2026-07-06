@@ -11,6 +11,24 @@ import {
 
 const FOOTER_WA_URL = buildWhatsAppUrl('Halo, saya ingin bertanya tentang JepangKu LMS.');
 
+const FOOTER_SOCIAL_LINKS = [
+  {
+    href: "https://www.instagram.com/jepangkunihongo/",
+    label: "Instagram",
+    icon: "instagram" as const,
+  },
+  {
+    href: "https://www.youtube.com/@jepangkuofficial",
+    label: "YouTube",
+    icon: "youtube" as const,
+  },
+  {
+    href: "https://www.tiktok.com/@jepangkuofficial",
+    label: "TikTok",
+    icon: "tiktok" as const,
+  },
+] as const;
+
 function InstagramIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg
@@ -31,6 +49,51 @@ function InstagramIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
     </svg>
   );
 }
+
+function YouTubeIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
+      <path d="m10 15 5-3-5-3z" />
+    </svg>
+  );
+}
+
+function TikTokIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
+
+const FOOTER_SOCIAL_ICONS = {
+  instagram: InstagramIcon,
+  youtube: YouTubeIcon,
+  tiktok: TikTokIcon,
+} as const;
 
 function FooterLinkGroup({
   title,
@@ -63,7 +126,7 @@ export function MarketingFooter() {
     <footer className="relative overflow-hidden bg-brand-hero-navy">
       {/* Footer backdrop (bg-footer.webp) + overlay to protect text contrast */}
       <div
-        className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-footer.webp')] bg-cover bg-right-bottom opacity-35"
+        className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-footer.webp')] bg-cover bg-bottom-right opacity-35"
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-brand-hero-navy/80" aria-hidden />
@@ -97,15 +160,24 @@ export function MarketingFooter() {
               <FooterLinkGroup title="Legal" links={MARKETING_FOOTER_LEGAL} />
               <div>
                 <h3 className="mb-4 text-sm font-bold tracking-wide text-white/90">Ikuti Kami</h3>
-                <a
-                  href="https://www.instagram.com/jepangkunihongo/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-white/55 transition-colors hover:text-white"
-                >
-                  <InstagramIcon className="size-4 text-brand-yellow" />
-                  Instagram
-                </a>
+                <ul className="space-y-2.5">
+                  {FOOTER_SOCIAL_LINKS.map((link) => {
+                    const Icon = FOOTER_SOCIAL_ICONS[link.icon];
+                    return (
+                      <li key={link.href}>
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-white/55 transition-colors hover:text-white"
+                        >
+                          <Icon className="size-4 text-brand-yellow" />
+                          {link.label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
           </div>
