@@ -13,10 +13,10 @@ import {
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import type { XpActivityRow } from '@/lib/lms/xp-activity-types';
-import { formatXpActivityTime } from '@/lib/lms/xp-activity-types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ProfileAvatar } from '@/features/student/components/profile-avatar';
+import { XpActivityRelativeTime } from '@/features/student/components/xp-activity-relative-time';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
@@ -297,7 +297,7 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
                 <div>
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatXpActivityTime(item.createdAt)}
+                    <XpActivityRelativeTime date={item.createdAt} />
                   </p>
                 </div>
                 <span className="shrink-0 text-sm font-bold text-primary">+{item.xpGained} XP</span>

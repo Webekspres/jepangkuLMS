@@ -31,14 +31,72 @@ const segments = [
   { path: "M 70 24.6 C 80 24.6, 80 67.7, 90 67.7" },
 ];
 
+/** Progress along segment leaving level at `segmentIndex` (toward next JLPT node). */
+function getSegmentFillPercent(jlptPath: JlptPathItem[], segmentIndex: number): number {
+  const from = jlptPath[segmentIndex];
+  if (!from) return 0;
+  if (from.status === 'done') return 100;
+  if (from.status === 'active') return from.progress ?? 0;
+  return 0;
+}
+
+function PathConnector({
+  d,
+  fillPercent,
+  variant = 'desktop',
+}: {
+  d: string;
+  fillPercent: number;
+  variant?: 'desktop' | 'mobile';
+}) {
+  const fill = Math.max(0, Math.min(100, fillPercent));
+  const strokeWidth = variant === 'desktop' ? 2.5 : 2.5;
+  const trackWidth = variant === 'desktop' ? 2 : 2;
+
+  return (
+    <>
+      <path
+        d={d}
+        fill="none"
+        stroke="currentColor"
+        className="text-muted-foreground/30 dark:text-muted-foreground/15"
+        strokeWidth={trackWidth}
+        strokeDasharray="6,6"
+        strokeLinecap="round"
+      />
+      {fill > 0 ? (
+        <>
+          {fill >= 100 && variant === 'desktop' ? (
+            <path
+              d={d}
+              fill="none"
+              stroke="url(#active-path-gradient)"
+              strokeWidth={6}
+              opacity="0.25"
+              filter="url(#glow-filter-shared)"
+            />
+          ) : null}
+          <path
+            d={d}
+            fill="none"
+            stroke="url(#active-path-gradient)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            pathLength={100}
+            strokeDasharray={`${fill} ${100 - fill}`}
+            className={fill >= 100 ? 'path-flow-animated' : undefined}
+          />
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function StageNode({ item }: { item: JlptPathItem }) {
   const meta = LEVEL_META[item.level];
   const done = item.status === 'done';
   const active = item.status === 'active';
   const locked = item.status === 'locked';
-
-  const progress = done ? 100 : active ? (item.progress ?? 0) : 0;
-  const circumference = 238.76; // 2 * PI * 38
 
   return (
     <div className="relative flex flex-col items-center">
@@ -60,37 +118,9 @@ function StageNode({ item }: { item: JlptPathItem }) {
 
       {/* Emblem Frame Container */}
       <div className="relative size-24 flex items-center justify-center">
-        {/* Pulsing Outer Glow Aura for Active Node */}
-        {active && (
+        {active ? (
           <div className="absolute inset-0 rounded-full animate-ping border-2 border-brand-red/40 opacity-75 pointer-events-none scale-105" />
-        )}
-
-        {/* Progress Ring (SVG) */}
-        <svg className="absolute inset-0 size-full -rotate-90 z-10" viewBox="0 0 96 96">
-          <circle
-            cx="48"
-            cy="48"
-            r="38"
-            fill="transparent"
-            className="stroke-muted/40 dark:stroke-muted/15"
-            strokeWidth="2.5"
-          />
-          {progress > 0 && (
-            <motion.circle
-              cx="48"
-              cy="48"
-              r="38"
-              fill="transparent"
-              stroke={done ? "#eab308" : "url(#active-ring-gradient)"}
-              strokeWidth="3.5"
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset: circumference * (1 - progress / 100) }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              strokeLinecap="round"
-            />
-          )}
-        </svg>
+        ) : null}
 
         {/* Central Emblem Crest */}
         <div
@@ -261,39 +291,12 @@ function MobileNode({ item }: { item: JlptPathItem }) {
   const done = item.status === 'done';
   const active = item.status === 'active';
   const locked = item.status === 'locked';
-  const progress = done ? 100 : active ? (item.progress ?? 0) : 0;
-  const circumference = 163.36; // 2 * PI * 26
 
   return (
     <div className="relative size-16 flex items-center justify-center shrink-0 z-20">
-      {active && (
+      {active ? (
         <div className="absolute inset-0 rounded-full animate-ping border border-brand-red/40 opacity-75 pointer-events-none scale-105" />
-      )}
-
-      {/* Progress Ring */}
-      <svg className="absolute inset-0 size-full -rotate-90 z-10" viewBox="0 0 64 64">
-        <circle
-          cx="32"
-          cy="32"
-          r="26"
-          fill="transparent"
-          className="stroke-muted/40 dark:stroke-muted/15"
-          strokeWidth="2"
-        />
-        {progress > 0 && (
-          <circle
-            cx="32"
-            cy="32"
-            r="26"
-            fill="transparent"
-            stroke={done ? "#eab308" : "url(#active-ring-gradient)"}
-            strokeWidth="3"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - progress / 100)}
-            strokeLinecap="round"
-          />
-        )}
-      </svg>
+      ) : null}
 
       {/* Central emblem — solid fills for all states */}
       <div
@@ -409,25 +412,18 @@ function MobileTrack({ jlptPath }: { jlptPath: JlptPathItem[] }) {
           {jlptPath.map((item, index) => {
             if (index === jlptPath.length - 1) return null;
             const isEven = index % 2 === 0;
-            const isUnlocked = jlptPath[index + 1]?.status !== 'locked';
-            // Node size 64px, gap 16px → vertical pitch = 80px, horizontal offset ±48px
-            const x1 = isEven ? 104 : 56; // right edge of even, left edge of odd
-            const y1 = index * 80 + 32;   // center of current node
-            const x2 = isEven ? 56  : 104;
-            const y2 = (index + 1) * 80 + 32; // center of next node
+            const fillPercent = getSegmentFillPercent(jlptPath, index);
+            const x1 = isEven ? 104 : 56;
+            const y1 = index * 80 + 32;
+            const x2 = isEven ? 56 : 104;
+            const y2 = (index + 1) * 80 + 32;
             const midY = (y1 + y2) / 2;
+            const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
 
             return (
-              <path
-                key={item.level}
-                d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
-                fill="none"
-                stroke={isUnlocked ? 'url(#active-path-gradient)' : 'currentColor'}
-                className={isUnlocked ? 'path-flow-animated' : 'text-muted-foreground/30'}
-                strokeWidth={isUnlocked ? '2.5' : '2'}
-                strokeDasharray={isUnlocked ? undefined : '5,5'}
-                strokeLinecap="round"
-              />
+              <g key={item.level}>
+                <PathConnector d={d} fillPercent={fillPercent} variant="mobile" />
+              </g>
             );
           })}
         </svg>
@@ -501,10 +497,6 @@ export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
             <stop offset="50%" stopColor="#FF4B2B" />
             <stop offset="100%" stopColor="#eab308" />
           </linearGradient>
-          <linearGradient id="active-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#EC1D24" />
-            <stop offset="100%" stopColor="#FF4B2B" />
-          </linearGradient>
           <filter id="glow-filter-shared" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="1.5" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -553,44 +545,13 @@ export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
             {/* Winding Adventure Path Connector Lines */}
             <svg className="absolute inset-0 size-full z-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
               {segments.map((seg, idx) => {
-                const targetItem = jlptPath[idx + 1];
-                const isUnlocked = targetItem && targetItem.status !== 'locked';
+                const fillPercent = getSegmentFillPercent(jlptPath, idx);
 
-                if (isUnlocked) {
-                  return (
-                    <Fragment key={idx}>
-                      <path
-                        d={seg.path}
-                        fill="none"
-                        stroke="url(#active-path-gradient)"
-                        strokeWidth="6"
-                        opacity="0.25"
-                        filter="url(#glow-filter-shared)"
-                      />
-                      <path
-                        d={seg.path}
-                        fill="none"
-                        stroke="url(#active-path-gradient)"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        className="path-flow-animated"
-                      />
-                    </Fragment>
-                  );
-                } else {
-                  return (
-                    <path
-                      key={idx}
-                      d={seg.path}
-                      fill="none"
-                      stroke="currentColor"
-                      className="text-muted-foreground/30 dark:text-muted-foreground/15"
-                      strokeWidth="2"
-                      strokeDasharray="6,6"
-                      strokeLinecap="round"
-                    />
-                  );
-                }
+                return (
+                  <Fragment key={idx}>
+                    <PathConnector d={seg.path} fillPercent={fillPercent} variant="desktop" />
+                  </Fragment>
+                );
               })}
             </svg>
 

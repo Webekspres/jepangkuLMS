@@ -7,7 +7,8 @@ export { StudentKursusPage } from './student-kursus-page';
 export { StudentLeaderboardPage } from './student-leaderboard-page';
 export { StudentAchievementsPage } from './student-achievements-page';
 export { StudentUserProfile } from './student-user-profile';
-export { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
+export { STUDENT_NAV_LINKS } from './student-nav-links';
+export { STUDENT_ACCOUNT_MENU_ITEMS } from './student-account-menu-items';
 export { STUDENT_ROUTES } from './student-routes';
 export {
   buildDashboardStats,
