@@ -209,17 +209,23 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
           {/* Left: Level Crest & Status (Col span 3) */}
           <div className="col-span-3 flex flex-col items-center border-r border-white/10 pr-6">
             <div className="relative size-20 rounded-full bg-linear-to-br from-brand-red/30 to-brand-orange/30 border border-brand-yellow/40 flex items-center justify-center shadow-lg shadow-brand-orange/10 animate-pulse-subtle">
-              <span className="text-3xl font-black text-brand-yellow tracking-tighter">{item.level}</span>
+              <span className="text-3xl font-black text-brand-yellow tracking-tighter">
+                {item.level}
+              </span>
               <div className="absolute inset-0 rounded-full border border-white/10 scale-90" />
             </div>
             <div className="mt-3 text-center">
-              <h4 className="text-xs font-black tracking-widest text-brand-yellow uppercase">{meta.label}</h4>
+              <h4 className="text-xs font-black tracking-widest text-brand-yellow uppercase">
+                {meta.label}
+              </h4>
               <div className="mt-1.5 flex items-center gap-1.5 justify-center">
                 <span className="relative flex size-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75"></span>
                   <span className="relative inline-flex rounded-full size-2 bg-brand-orange"></span>
                 </span>
-                <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider">Sedang Belajar</span>
+                <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider">
+                  Sedang Belajar
+                </span>
               </div>
             </div>
           </div>
@@ -235,22 +241,27 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
                 Taklukkan Level {item.level} · {meta.label}
               </h3>
               <p className="text-xs text-white/70 leading-relaxed max-w-md">
-                {meta.desc}. Pelajari semua modul untuk membuka ujian penentuan level berikutnya!
+                {meta.desc}. Pelajari semua modul untuk membuka ujian penentuan
+                level berikutnya!
               </p>
             </div>
 
             {/* EXP / Progress Bar */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold tracking-tight">
-                <span className="text-white/60">PROGRESS PETUALANGAN (EXP)</span>
-                <span className="text-brand-yellow font-black">{progress}%</span>
+                <span className="text-white/60">
+                  PROGRESS PETUALANGAN (EXP)
+                </span>
+                <span className="text-brand-yellow font-black">
+                  {progress}%
+                </span>
               </div>
               <div className="h-3.5 overflow-hidden rounded-full bg-slate-950/50 p-[2px] border border-white/5 shadow-inner">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-red via-brand-orange to-brand-yellow shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                  className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow shadow-[0_0_8px_rgba(239,68,68,0.5)]"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
+                  transition={{ duration: 1, ease: "easeOut" }}
                 />
               </div>
             </div>
@@ -264,8 +275,12 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
                 <BookOpen className="size-5" />
               </div>
               <div>
-                <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">Dungeon Modul</p>
-                <p className="text-base font-extrabold text-white">{meta.modules} Modul</p>
+                <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">
+                  Dungeon Modul
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {meta.modules} Modul
+                </p>
               </div>
             </div>
 
@@ -275,8 +290,12 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
                 <Trophy className="size-5" />
               </div>
               <div>
-                <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">XP Terkumpul</p>
-                <p className="text-base font-extrabold text-white">{progress * 10} XP</p>
+                <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">
+                  XP Terkumpul
+                </p>
+                <p className="text-base font-extrabold text-white">
+                  {progress * 10} XP
+                </p>
               </div>
             </div>
           </div>
@@ -370,9 +389,9 @@ function MobileActiveCard({ item }: { item: JlptPathItem }) {
                 <span className="text-white/50 uppercase">EXP</span>
                 <span className="text-brand-yellow font-black">{progress}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-black/30 border border-white/10 p-[1px]">
+              <div className="h-2 overflow-hidden rounded-full bg-black/30 border border-white/10 p-px">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-red via-brand-orange to-brand-yellow"
+                  className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
