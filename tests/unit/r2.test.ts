@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 // Set R2_PUBLIC_URL before importing the module so that r2Config reads it at module load time
 process.env.R2_PUBLIC_URL = 'https://pub-xxxx.r2.dev';
 
-import { extractR2KeyFromUrl, extractR2StorageKeyFromUrl, normalizeR2PublicUrl } from '@/lib/r2';
+import { extractR2KeyFromUrl, normalizeR2PublicUrl } from '@/lib/r2';
 
 describe('R2 Key Helper', () => {
     test('normalizeR2PublicUrl rewrites legacy pub-* host to configured R2_PUBLIC_URL', () => {

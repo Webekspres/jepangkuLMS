@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CheckCircle2,
@@ -61,27 +61,27 @@ function FlashcardDeckInner({
   deckKey,
   onReshuffle,
 }: FlashcardDeckProps & { deckKey: string; onReshuffle: () => void }) {
-  const [deck, setDeck] = useState<FlashcardItem[]>(() => [...items]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [unknown, setUnknown] = useState<Set<number>>(new Set());
   const [isShuffled, setIsShuffled] = useState(shuffle);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
   const [showFurigana, setShowFurigana] = useState(true);
   void deckKey;
 
-  // Handle shuffle/unshuffle toggle
-  useEffect(() => {
-    if (isShuffled) {
-      setDeck(shuffleArray([...items]));
-    } else {
-      setDeck([...items]);
-    }
+  const deck = useMemo(() => {
+    if (!isShuffled) return [...items];
+    void shuffleSeed;
+    return shuffleArray([...items]);
+  }, [isShuffled, items, shuffleSeed]);
+
+  function resetNavState() {
     setIndex(0);
     setFlipped(false);
     setKnown(new Set());
     setUnknown(new Set());
-  }, [isShuffled, items]);
+  }
 
   if (deck.length === 0) {
     return (
@@ -115,14 +115,9 @@ function FlashcardDeckInner({
   }
 
   function resetDeck() {
-    setKnown(new Set());
-    setUnknown(new Set());
-    setIndex(0);
-    setFlipped(false);
+    resetNavState();
     if (isShuffled) {
-      setDeck(shuffleArray([...items]));
-    } else {
-      setDeck([...items]);
+      setShuffleSeed((value) => value + 1);
     }
     onReshuffle();
   }
@@ -137,7 +132,10 @@ function FlashcardDeckInner({
             variant={isShuffled ? "default" : "outline"}
             size="sm"
             className="h-8 gap-1.5 text-[11px] font-bold rounded-lg"
-            onClick={() => setIsShuffled(!isShuffled)}
+            onClick={() => {
+              setIsShuffled((current) => !current);
+              resetNavState();
+            }}
           >
             <Shuffle className="size-3.5" />
             {isShuffled ? 'Urutan Acak' : 'Urutan Asli'}
