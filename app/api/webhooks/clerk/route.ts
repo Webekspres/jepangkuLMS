@@ -1,5 +1,7 @@
+import { after } from 'next/server';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
+import { dispatchWelcomeEmail, parseClerkUserCreatedEvent } from '@/lib/email';
 import { createRequestId, jsonApiError, logApiError } from '@/lib/errors/api-error';
 import { loggers } from '@/lib/logger';
 
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
 
         const payload = await req.text();
 
-        let evt;
+        let evt: unknown;
         try {
             evt = wh.verify(payload, {
                 'svix-id': svixId,
@@ -43,17 +45,26 @@ export async function POST(req: Request) {
             ? String((evt as { type?: string }).type)
             : 'unknown';
 
+        const userId =
+            typeof evt === 'object' && evt !== null && 'data' in evt
+                ? (evt as { data?: { id?: string } }).data?.id
+                : undefined;
+
         webhookLog.info(
-            {
-                eventType,
-                requestId,
-                userId:
-                    typeof evt === 'object' && evt !== null && 'data' in evt
-                        ? (evt as { data?: { id?: string } }).data?.id
-                        : undefined,
-            },
-            'Clerk webhook received (LMS stub — sync handled by Core)',
+            { eventType, requestId, userId },
+            'Clerk webhook received',
         );
+
+        const welcomePayload = parseClerkUserCreatedEvent(evt);
+        if (welcomePayload) {
+            after(() => {
+                dispatchWelcomeEmail({
+                    email: welcomePayload.email,
+                    name: welcomePayload.name,
+                    userId: welcomePayload.userId,
+                });
+            });
+        }
 
         return NextResponse.json(
             { received: true, requestId },
