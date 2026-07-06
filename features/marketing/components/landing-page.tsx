@@ -7,7 +7,6 @@ import { motion } from "motion/react";
 import {
   ArrowRight,
   BookOpen,
-  CheckCircle2,
   ChevronRight,
   GraduationCap,
   Menu,

@@ -55,25 +55,30 @@ function useDashboardBootstrapGate() {
     isSignedIn &&
     (pathname?.startsWith('/dashboard') ?? false);
 
-  const [gateOpen, setGateOpen] = useState(!needsGate);
+  const gateSession = `${pathname ?? ''}:${isSignedIn}`;
+  const [releasedSessions, setReleasedSessions] = useState<Set<string>>(() => new Set());
+  const gateOpen = !needsGate || releasedSessions.has(gateSession);
 
   useEffect(() => {
-    if (!needsGate) {
-      setGateOpen(true);
-      return;
-    }
+    if (!needsGate) return;
 
-    setGateOpen(false);
+    const onReady = () => {
+      setReleasedSessions((current) => {
+        if (current.has(gateSession)) return current;
+        const next = new Set(current);
+        next.add(gateSession);
+        return next;
+      });
+    };
 
-    const onReady = () => setGateOpen(true);
     window.addEventListener(STUDENT_CORE_DATA_READY_EVENT, onReady);
-    const timeout = window.setTimeout(() => setGateOpen(true), MAX_BOOTSTRAP_WAIT_MS);
+    const timeout = window.setTimeout(onReady, MAX_BOOTSTRAP_WAIT_MS);
 
     return () => {
       window.removeEventListener(STUDENT_CORE_DATA_READY_EVENT, onReady);
       window.clearTimeout(timeout);
     };
-  }, [needsGate, pathname, isLoaded, isSignedIn]);
+  }, [needsGate, gateSession]);
 
   return gateOpen;
 }

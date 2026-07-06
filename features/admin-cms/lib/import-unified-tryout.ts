@@ -1,20 +1,10 @@
 import type { PrismaClient } from '@prisma/client';
 import JSZip from 'jszip';
-import type { TryoutImportRow } from '@/features/admin-cms/lib/import-tryout-questions';
 import { importTryoutQuestions } from '@/features/admin-cms/lib/import-tryout-questions';
 import { readXlsxBuffer, resolveSheetName, sheetToRecords } from '@/features/admin-cms/lib/xlsx-workbook';
 import { validateTryoutQuestionRecords } from '@/features/admin-cms/lib/import-tryout-tryout-rows';
 import { parseChokaiExcelRecords } from '@/features/admin-cms/lib/import-chokai-zip';
 import { importChokaiZip as importChokaiQuestions } from '@/features/admin-cms/lib/import-chokai-zip';
-import type { ChokaiImportRow, ChokaiImportPreview } from '@/features/admin-cms/lib/import-chokai-zip';
-import { probeAudioDurationSec, sliceAudioToMp3 } from '@/lib/media/ffmpeg';
-import { uploadToR2 } from '@/lib/r2';
-import {
-    buildTryoutChokaiClipKey,
-    buildTryoutChokaiMasterKey,
-} from '@/lib/media/tryout-audio';
-import { uploadTryoutChokaiImage } from '@/lib/media/tryout-chokai-image';
-import { chokaiClipDedupeKey } from '@/features/admin-cms/lib/chokai-excel-columns';
 
 type ZipAssets = Map<string, Map<string, Buffer>>;
 
@@ -221,7 +211,7 @@ export async function importUnifiedTryoutZip(
     const extracted = await extractUnifiedZip(input.buffer);
     if (!extracted.ok) throw new Error(extracted.error);
 
-    const { xlsx, assets } = extracted;
+    const { xlsx } = extracted;
     let workbook: Awaited<ReturnType<typeof readXlsxBuffer>>;
 
     try {
