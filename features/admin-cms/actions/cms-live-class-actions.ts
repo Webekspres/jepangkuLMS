@@ -63,6 +63,7 @@ function parseLiveClassForm(formData: FormData) {
   const maxSlots = Number(formData.get('maxSlots') ?? 30) || 30;
   const filledSlots = Number(formData.get('filledSlots') ?? 0) || 0;
   const thumbUrl = String(formData.get('thumbUrl') ?? '').trim() || null;
+  const paymentLink = String(formData.get('paymentLink') ?? '').trim() || null;
   const isPublished = formData.get('isPublished') === 'on';
   const sessions = parseSessions(formData);
 
@@ -77,6 +78,7 @@ function parseLiveClassForm(formData: FormData) {
     maxSlots,
     filledSlots,
     thumbUrl,
+    paymentLink,
     isPublished,
     sessions,
   };
@@ -117,6 +119,7 @@ function toScalarData(data: ReturnType<typeof parseLiveClassForm>) {
     maxSlots: data.maxSlots,
     filledSlots: data.filledSlots,
     thumbUrl: data.thumbUrl,
+    paymentLink: data.paymentLink,
     isPublished: data.isPublished,
   };
 }

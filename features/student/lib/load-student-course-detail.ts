@@ -8,6 +8,7 @@ import {
 import { estimateCourseDuration } from '@/features/learning/lib/course-display';
 import { prisma } from '@/lib/prisma';
 import type { EnrollmentStatus } from '@prisma/client';
+import { computeCourseProgressFromLessons } from '@/features/learning/lib/progress';
 
 export const loadStudentCourseDetail = cache(async function loadStudentCourseDetail(
   courseSlug: string,
@@ -15,7 +16,7 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
   const userId = await requireAuthUserId();
   const adminAccess = await isLmsAdmin(userId);
 
-  const [course, enrollmentRow, user, activeEnrollments] = await Promise.all([
+  const [course, enrollmentRow, user, activeEnrollments, completedProgress] = await Promise.all([
     getCachedCourseWithLessons(courseSlug),
     prisma.enrollment.findFirst({
       where: { userId, course: { slug: courseSlug } },
@@ -26,6 +27,14 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
       select: { displayName: true },
     }),
     getCachedUserEnrollments(userId),
+    prisma.userProgress.findMany({
+      where: {
+        userId,
+        lesson: { module: { course: { slug: courseSlug } } },
+        isCompleted: true,
+      },
+      select: { lesson: { select: { slug: true } } },
+    }),
   ]);
 
   if (!course) return null;
@@ -37,9 +46,13 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
   const isEnrolled = enrollmentStatus === 'ACTIVE';
   const enrollment = activeEnrollments.find((e) => e.courseSlug === courseSlug) ?? null;
 
+  const completedSlugs = new Set(completedProgress.map((p) => p.lesson.slug));
+  const progress = computeCourseProgressFromLessons(course.lessons, completedSlugs);
+
   return {
     course,
     enrollment,
+    progress,
     enrollmentStatus,
     isEnrolled,
     isPending: !adminAccess && enrollmentStatus === 'PENDING',

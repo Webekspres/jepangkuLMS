@@ -10,6 +10,7 @@ import {
   Loader2,
   RotateCcw,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import {
 } from '@/features/quiz-engine/store/useQuizStore';
 import { shuffleArray } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
+import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 
 export type LessonQuizQuestion = {
   id: string;
@@ -100,6 +102,31 @@ export function LessonQuizPanel({
       const payload = await submitQuizAnswers({ lessonId, answers });
       setResult(payload);
       setPhase('result');
+
+      // Toast feedback — confetti removed; lesson completion celebrates via "Tandai Selesai"
+      if (payload.score >= 70) {
+        toast.success('Quiz Lulus! 🎉', {
+          description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
+        });
+      } else {
+        toast(`Quiz Selesai — Skor ${payload.score}%`, {
+          description: `${payload.correct}/${payload.total} benar. Coba lagi untuk meningkatkan skor!`,
+        });
+      }
+
+      // Dispatch rewards event
+      const event = new CustomEvent('gamified-event', {
+        detail: {
+          type: 'REWARD_EARNED',
+          xpGained: payload.xpReward,
+          pointsGained: payload.pointsReward,
+          title: payload.score >= 70 ? 'Quiz Lulus! 🎉' : 'Quiz Selesai!',
+          description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
+        },
+      });
+      window.dispatchEvent(event);
+      requestStudentCoreDataRefresh();
+
       onSubmitted?.(payload.score);
     });
   }
@@ -233,28 +260,70 @@ export function LessonQuizPanel({
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={goPrevious}
-          disabled={currentIndex === 0}
-          className="gap-1.5"
-        >
-          <ChevronLeft className="size-4" />
-          Sebelumnya
-        </Button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border pt-4">
+        {/* Navigation buttons: always side-by-side */}
+        <div className="flex items-center justify-between w-full gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={goPrevious}
+            disabled={currentIndex === 0}
+            className="gap-1.5 shrink-0"
+          >
+            <ChevronLeft className="size-4" />
+            Sebelumnya
+          </Button>
 
-        <div className="flex flex-wrap justify-center gap-1.5">
+          {/* Question markers for large screen */}
+          <div className="hidden md:flex flex-wrap justify-center gap-1.5 max-w-sm overflow-x-auto py-1">
+            {questionIds.map((qId, index) => (
+              <button
+                key={qId}
+                type="button"
+                onClick={() => setCurrentIndex(index)}
+                className={cn(
+                  'size-8 rounded-lg text-xs font-semibold transition-colors shrink-0',
+                  index === currentIndex
+                    ? 'bg-primary text-primary-foreground font-bold'
+                    : answers[qId]
+                      ? 'bg-emerald-500/15 text-emerald-700'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                )}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+
+          {isLast ? (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!allAnswered || isPending}
+              className="gap-1.5 shrink-0"
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+              Lihat hasil
+            </Button>
+          ) : (
+            <Button type="button" onClick={goNext} disabled={!selectedOptionId} className="gap-1.5 shrink-0">
+              Selanjutnya
+              <ArrowRight className="size-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Question markers for smaller screens: wrapped below buttons */}
+        <div className="flex md:hidden flex-wrap justify-center gap-1.5 py-1">
           {questionIds.map((qId, index) => (
             <button
               key={qId}
               type="button"
               onClick={() => setCurrentIndex(index)}
               className={cn(
-                'size-8 rounded-lg text-xs font-semibold transition-colors',
+                'size-7 rounded-lg text-xs font-semibold transition-colors',
                 index === currentIndex
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground font-bold'
                   : answers[qId]
                     ? 'bg-emerald-500/15 text-emerald-700'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80',
@@ -264,23 +333,6 @@ export function LessonQuizPanel({
             </button>
           ))}
         </div>
-
-        {isLast ? (
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!allAnswered || isPending}
-            className="gap-1.5"
-          >
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-            Lihat hasil
-          </Button>
-        ) : (
-          <Button type="button" onClick={goNext} disabled={!selectedOptionId} className="gap-1.5">
-            Selanjutnya
-            <ArrowRight className="size-4" />
-          </Button>
-        )}
       </div>
     </div>
   );

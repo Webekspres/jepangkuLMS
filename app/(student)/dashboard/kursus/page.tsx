@@ -7,9 +7,6 @@ export const metadata: Metadata = {
   description: 'Kursus terdaftar dan katalog JLPT area siswa.',
 };
 
-/** Data katalog di-cache 1 jam; enrollment user di-cache 2 menit (invalidate saat enroll/progress). */
-export const revalidate = 120;
-
 export default async function DashboardKursusRoutePage() {
   const data = await loadStudentKursusData();
 

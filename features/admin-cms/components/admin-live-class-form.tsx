@@ -49,6 +49,7 @@ type LiveClassFormData = {
   maxSlots: number;
   filledSlots: number;
   thumbUrl: string | null;
+  paymentLink: string | null;
   isPublished: boolean;
   sessions: LiveClassSessionData[];
 };
@@ -220,6 +221,17 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
               type="url"
               placeholder="https://…"
               defaultValue={liveClass?.thumbUrl ?? ''}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentLink">Link Pembayaran (opsional)</Label>
+            <Input
+              id="paymentLink"
+              name="paymentLink"
+              type="url"
+              placeholder="https://…"
+              defaultValue={liveClass?.paymentLink ?? ''}
             />
           </div>
 

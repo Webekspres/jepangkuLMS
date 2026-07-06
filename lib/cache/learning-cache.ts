@@ -135,19 +135,19 @@ export function getCachedLessonMaterials(lessonId: string) {
           where: { lessonId: id },
           include: { category: true },
           take: 50,
-          orderBy: { huruf: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         }),
         prisma.materialKosakata.findMany({
           where: { lessonId: id },
           include: { category: true },
           take: 50,
-          orderBy: { kosakata: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         }),
         prisma.materialTataBahasa.findMany({
           where: { lessonId: id },
           include: { category: true },
           take: 50,
-          orderBy: { tataBahasa: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         }),
         prisma.question.count({ where: { lessonId: id } }),
       ]);

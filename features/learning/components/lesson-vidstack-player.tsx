@@ -184,6 +184,11 @@ export function LessonVidstackPlayer({
         onContextMenu={secured ? (event) => event.preventDefault() : undefined}
       >
         <MediaPlayer
+          // Force a full unmount/remount on video change instead of an in-place
+          // provider swap — an in-place `src` swap leaves the old YouTube provider's
+          // in-flight promises unresolved, which it then rejects with
+          // "provider destroyed" (vidstack/player#1459, #1597).
+          key={resolvedVideoId}
           ref={playerRef}
           title={title}
           src={src}

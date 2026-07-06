@@ -30,6 +30,7 @@ import type {
 } from '@/features/live-class/lib/load-live-class-detail';
 import { formatIdr } from '@/lib/lms/format-price';
 import { cn } from '@/lib/utils';
+import { buildWhatsAppUrl } from '@/lib/admin-contact';
 
 const STATUS_DOT: Record<LiveSessionStatus, string> = {
   live: 'bg-emerald-500',
@@ -275,11 +276,59 @@ export function LiveClassDetailPage({ liveClass }: { liveClass: LiveClassDetailV
             </p>
           </div>
         ) : liveClass.enrollmentStatus === 'PENDING' ? (
-          <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <Clock className="size-5 shrink-0 text-amber-600" />
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-              Pendaftaran sedang diverifikasi admin.
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <Clock className="size-5 shrink-0 text-amber-600" />
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                Pendaftaran sedang diverifikasi admin.
+              </p>
+            </div>
+            {liveClass.priceIdr > 0 && (
+              <div className="rounded-xl border border-border bg-muted/20 p-5 space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-foreground">Selesaikan Pembayaran</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Silakan lakukan pembayaran sebesar <span className="font-bold text-foreground">{formatIdr(liveClass.priceIdr)}</span> melalui salah satu metode di bawah ini.
+                  </p>
+                </div>
+
+                {liveClass.paymentLink ? (
+                  <div className="pt-2">
+                    <Button asChild className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold">
+                      <a href={liveClass.paymentLink} target="_blank" rel="noopener noreferrer">
+                        Bayar Sekarang <ExternalLink className="size-4" />
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border bg-background p-4 space-y-2 max-w-md">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tujuan Transfer Manual</p>
+                    <div className="grid grid-cols-[80px_1fr] text-xs gap-y-1">
+                      <span className="text-muted-foreground">Bank:</span>
+                      <span className="font-bold text-foreground">{liveClass.paymentSettings.bankName}</span>
+                      <span className="text-muted-foreground">No. Rek:</span>
+                      <span className="font-mono font-bold text-foreground">{liveClass.paymentSettings.accountNumber}</span>
+                      <span className="text-muted-foreground">Nama:</span>
+                      <span className="font-bold text-foreground">{liveClass.paymentSettings.accountName}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                  <Button asChild variant="outline" className="w-full sm:w-auto border-emerald-500 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 gap-2 font-bold">
+                    <a
+                      href={buildWhatsAppUrl(
+                        `Halo Admin JepangKu, saya sudah mendaftar kelas live "${liveClass.title}" (ID: ${liveClass.id}) dan ingin mengonfirmasi pembayaran.`
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Konfirmasi via WhatsApp
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

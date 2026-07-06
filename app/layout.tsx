@@ -22,10 +22,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kursus.jepangku.com"),
+
   title: "JepangKu LMS - Platform Belajar Bahasa Jepang Interaktif",
-  description: "Kuasai Bahasa Jepang dari tingkat N5 hingga N1 secara interaktif. Dilengkapi video lesson terstruktur, kuis evaluasi, serta gamifikasi skor XP dan Badge pencapaian.",
+
+  description:
+    "Kuasai Bahasa Jepang dari tingkat N5 hingga N1 secara interaktif. Dilengkapi video lesson terstruktur, kuis evaluasi, serta gamifikasi skor XP dan Badge pencapaian.",
+
+  openGraph: {
+    title: "JepangKu LMS - Platform Belajar Bahasa Jepang Interaktif",
+    description:
+      "Kuasai Bahasa Jepang dari tingkat N5 hingga N1 secara interaktif.",
+    url: "https://kursus.jepangku.com",
+    siteName: "JepangKu LMS",
+    locale: "id_ID",
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "JepangKu LMS",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "JepangKu LMS - Platform Belajar Bahasa Jepang Interaktif",
+    description:
+      "Kuasai Bahasa Jepang dari tingkat N5 hingga N1 secara interaktif.",
+    images: ["/opengraph-image.png"],
+  },
+
   ...(getGscVerificationToken()
-    ? { verification: { google: getGscVerificationToken()! } }
+    ? { verification: { google: getGscVerificationToken() } }
     : {}),
 };
 

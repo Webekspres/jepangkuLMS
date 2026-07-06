@@ -1,6 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type LevelJLPT } from '@prisma/client';
-import { Pool } from 'pg';
 
 import { importMateriFromXlsx } from './lib/import-materi-from-xlsx';
 import { seedLmsBadges } from './lib/seed-badges';
@@ -83,8 +82,7 @@ function createPrisma(): PrismaClient {
     throw new Error('DATABASE_URL is required for seeding');
   }
 
-  const pool = new Pool({ connectionString });
-  return new PrismaClient({ adapter: new PrismaPg(pool) });
+  return new PrismaClient({ adapter: new PrismaPg(connectionString) });
 }
 
 async function seedCourses(prisma: PrismaClient) {

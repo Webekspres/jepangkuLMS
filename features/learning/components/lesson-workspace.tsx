@@ -9,6 +9,7 @@ import {
     BookOpen,
     CheckCircle2,
     ChevronDown,
+    ChevronLeft,
     ChevronRight,
     Circle,
     HelpCircle,
@@ -20,6 +21,7 @@ import {
     X,
     Zap,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
@@ -221,7 +223,8 @@ type LessonXpPanelProps = {
     xpTasks: LessonXpTask[];
     completed: boolean;
     isPending: boolean;
-    onComplete: () => void;
+    allContentEngaged: boolean;
+    onMarkComplete: () => void;
     compact?: boolean;
 };
 
@@ -229,7 +232,8 @@ function LessonXpPanel({
     xpTasks,
     completed,
     isPending,
-    onComplete,
+    allContentEngaged,
+    onMarkComplete,
     compact = false,
 }: LessonXpPanelProps) {
     return (
@@ -271,20 +275,27 @@ function LessonXpPanel({
                         </span>
                     </div>
                 ))}
-                <Button
-                    size="sm"
-                    className="mt-2 w-full"
-                    disabled={completed || isPending}
-                    onClick={onComplete}
-                >
-                    {isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
-                    ) : completed ? (
-                        'Pelajaran selesai'
-                    ) : (
-                        'Tandai selesai'
-                    )}
-                </Button>
+                {completed ? (
+                    <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 className="size-4 shrink-0" />
+                        Pelajaran selesai
+                    </div>
+                ) : (
+                    <Button
+                        type="button"
+                        size="sm"
+                        className="mt-2 w-full gap-1.5"
+                        disabled={!allContentEngaged || isPending}
+                        onClick={onMarkComplete}
+                    >
+                        {isPending ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="size-3.5" />
+                        )}
+                        {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
+                    </Button>
+                )}
             </CardContent>
         </Card>
     );
@@ -305,6 +316,10 @@ export function LessonWorkspace({
     const [completed, setCompleted] = useState(lesson.isCompleted);
     const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
     const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
+
+    const currentLessonIndex = syllabus.findIndex((item) => item.slug === lesson.slug);
+    const prevLesson = currentLessonIndex > 0 ? syllabus[currentLessonIndex - 1] : null;
+    const nextLesson = currentLessonIndex < syllabus.length - 1 ? syllabus[currentLessonIndex + 1] : null;
 
     const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
 
@@ -335,9 +350,16 @@ export function LessonWorkspace({
     const [activeTab, setActiveTab] = useState<ContentTab | null>(resolvedInitialTab);
     const [flashcardVisited, setFlashcardVisited] = useState(resolvedInitialTab === 'flashcard');
     const [quizPassed, setQuizPassed] = useState(false);
+    const [contentViewed, setContentViewed] = useState(resolvedInitialTab === firstAvailableTab);
 
+    // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
+        setCompleted(lesson.isCompleted);
+        setActiveTab(resolvedInitialTab);
+        setFlashcardVisited(resolvedInitialTab === 'flashcard');
+        setQuizPassed(false);
+        setContentViewed(resolvedInitialTab === firstAvailableTab);
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
@@ -377,13 +399,38 @@ export function LessonWorkspace({
         );
     };
 
-    function handleComplete() {
+    // Gate flags — each content type that exists must be engaged before the
+    // "Tandai Selesai" button is enabled. Completion itself is explicit (button click).
+    const contentSectionDone = hasVideo || lesson.content ? completed || contentViewed : true;
+    const flashcardSectionDone = hasFlashcard ? flashcardVisited : true;
+    const quizSectionDone = hasQuiz ? quizPassed : true;
+    const hasAnyContent = hasVideo || Boolean(lesson.content) || hasFlashcard || hasQuiz;
+    const allContentEngaged =
+        hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
+
+    // Explicit mark-complete handler — only called when user clicks the button.
+    function handleMarkComplete() {
+        if (completed || isPending) return;
         startTransition(async () => {
-            // Completion only awards the lesson-read reward (LESSON_COMPLETED).
-            // Flashcard & quiz XP are granted by their own idempotent server actions,
-            // so they are intentionally NOT aggregated here (would double-count).
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
-            if ('success' in result || result.alreadyCompleted) {
+            if (result && 'success' in result) {
+                setCompleted(true);
+                toast.success('Pelajaran Selesai! 🎉', {
+                    description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
+                });
+                const event = new CustomEvent('gamified-event', {
+                    detail: {
+                        type: 'REWARD_EARNED',
+                        xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
+                        pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
+                        title: 'Pelajaran Selesai! 🎉',
+                        description: `Kamu berhasil menyelesaikan pelajaran "${lesson.title}"`,
+                    },
+                });
+                window.dispatchEvent(event);
+                requestStudentCoreDataRefresh();
+                router.refresh();
+            } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
                 router.refresh();
             }
@@ -392,10 +439,26 @@ export function LessonWorkspace({
 
     function handleTabChange(tab: ContentTab) {
         setActiveTab(tab);
+        if (tab === 'video' || tab === firstAvailableTab) {
+            setContentViewed(true);
+        }
         if (tab === 'flashcard') {
             setFlashcardVisited(true);
             startTransition(async () => {
-                await recordFlashcardVisit(lesson.id);
+                const result = await recordFlashcardVisit(lesson.id);
+                if (result && result.awarded) {
+                    const event = new CustomEvent('gamified-event', {
+                      detail: {
+                        type: 'REWARD_EARNED',
+                        xpGained: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
+                        pointsGained: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
+                        title: 'Materi Dijelajahi!',
+                        description: `Kamu menjelajahi flashcard pelajaran "${lesson.title}"`,
+                      }
+                    });
+                    window.dispatchEvent(event);
+                    requestStudentCoreDataRefresh();
+                }
                 router.refresh();
             });
         }
@@ -407,7 +470,7 @@ export function LessonWorkspace({
         xpTasks.push({
             label: 'Video / materi dibaca',
             xp: REWARDS.LESSON_COMPLETED.xp,
-            done: completed || Boolean(lesson.content),
+            done: completed || contentViewed,
         });
     }
     if (hasFlashcard) {
@@ -513,6 +576,21 @@ export function LessonWorkspace({
                         {contentTabs}
                     </div>
 
+                    {lesson.slug === 'tryout-n5-placement' && (
+                        <div className="rounded-2xl border-2 border-brand-yellow/30 bg-brand-yellow/10 p-4 sm:p-5 shadow-sm flex items-start gap-3">
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-yellow/20 text-brand-yellow text-lg font-bold">
+                                📝
+                            </span>
+                            <div className="space-y-1">
+                                <h3 className="text-sm font-bold text-foreground">Informasi Diagnostic Placement Test N5</h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Ini adalah tes penempatan awal untuk mengukur pemahaman tata bahasa, kosakata, dan kanji dasar N5-mu. 
+                                    Disarankan untuk menyelesaikan tes ini secara jujur tanpa melihat kamus atau catatan agar visualisasi hasil belajar di dashboard-mu akurat.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── Priority 1 (TOP): Dynamic content area — active tab content ── */}
                     {hasVideo && (
                         <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
@@ -617,12 +695,49 @@ export function LessonWorkspace({
                                     xpTasks={xpTasks}
                                     completed={completed}
                                     isPending={isPending}
-                                    onComplete={handleComplete}
+                                    allContentEngaged={allContentEngaged}
+                                    onMarkComplete={handleMarkComplete}
                                     compact
                                 />
                             </div>
                         </div>
                     )}
+                    {/* Lesson Navigation Bar (Prev / Next Lesson) */}
+                    <div className="flex items-center justify-between border-y border-border/60 py-4 my-6 gap-4">
+                        {prevLesson ? (
+                            <Link
+                                href={STUDENT_ROUTES.belajar(course.slug, prevLesson.slug)}
+                                className="group flex flex-col items-start gap-1 max-w-[45%] text-left"
+                            >
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
+                                    <ChevronLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+                                    Sebelumnya
+                                </span>
+                                <span className="text-xs font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                    {prevLesson.title}
+                                </span>
+                            </Link>
+                        ) : (
+                            <div className="invisible" />
+                        )}
+
+                        {nextLesson ? (
+                            <Link
+                                href={STUDENT_ROUTES.belajar(course.slug, nextLesson.slug)}
+                                className="group flex flex-col items-end gap-1 max-w-[45%] text-right"
+                            >
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
+                                    Selanjutnya
+                                    <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                                </span>
+                                <span className="text-xs font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                    {nextLesson.title}
+                                </span>
+                            </Link>
+                        ) : (
+                            <div className="invisible" />
+                        )}
+                    </div>
 
                     {/* ── Priority 3 (BOTTOM): Q&A / discussion ── */}
                     {activeTab === firstAvailableTab && (
@@ -650,7 +765,8 @@ export function LessonWorkspace({
                         xpTasks={xpTasks}
                         completed={completed}
                         isPending={isPending}
-                        onComplete={handleComplete}
+                        allContentEngaged={allContentEngaged}
+                        onMarkComplete={handleMarkComplete}
                     />
                 </aside>
             </div>
@@ -667,24 +783,27 @@ export function LessonWorkspace({
                         <List className="size-4 shrink-0" />
                         <span className="truncate">Daftar materi</span>
                     </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="h-10 shrink-0 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm"
-                        disabled={completed || isPending}
-                        onClick={handleComplete}
-                    >
-                        {isPending ? (
-                            <Loader2 className="size-4 animate-spin" />
-                        ) : completed ? (
-                            'Selesai'
-                        ) : (
-                            <>
-                                <span className="sm:hidden">Tandai</span>
-                                <span className="hidden sm:inline">Tandai selesai</span>
-                            </>
-                        )}
-                    </Button>
+                    {completed ? (
+                        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 sm:h-9">
+                            <CheckCircle2 className="size-4" />
+                            Selesai
+                        </span>
+                    ) : (
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
+                            disabled={!allContentEngaged || isPending}
+                            onClick={handleMarkComplete}
+                        >
+                            {isPending ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                                <CheckCircle2 className="size-3.5" />
+                            )}
+                            Tandai Selesai
+                        </Button>
+                    )}
                 </div>
             </div>
 

@@ -7,7 +7,7 @@ export function getOAuthCallbackUrl(): string {
 }
 
 export function getOAuthCompleteUrl(): string {
-  return getAuthRedirectUrl(AUTH_ROUTES.authComplete);
+  return getAuthRedirectUrl(AUTH_ROUTES.dashboard);
 }
 
 /** URL callback OAuth saat ini (harus match redirectUrl saat start OAuth) */

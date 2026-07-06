@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clear": "rm -rf .next && next dev",
     "tunnel": "npm exec --yes -- ngrok@latest http 3000",
     "tunnel:stable": "npm exec --yes -- ngrok@latest start lms --config ./ngrok.yml --config \"$HOME/AppData/Local/ngrok/ngrok.yml\"",
     "build": "next build",

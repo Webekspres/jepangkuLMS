@@ -1,8 +1,6 @@
 'use client';
 
-import { AUTH_ROUTES } from '@/lib/auth/constants';
-
-/** Tukar Clerk session → Core JWT tanpa redirect (background / shadow mode). */
+/** Tukar Clerk session → Core JWT tanpa redirect (background). */
 export async function syncCoreSessionSilent(): Promise<boolean> {
     try {
         const response = await fetch('/api/auth/core-token', {
@@ -15,38 +13,19 @@ export async function syncCoreSessionSilent(): Promise<boolean> {
     }
 }
 
-/** Setelah Clerk session aktif, tukar ke Core JWT lalu redirect dashboard */
-export async function syncCoreSessionAndRedirect(
-    redirectTo: string = AUTH_ROUTES.dashboard,
-): Promise<{ ok: true } | { ok: false; message: string; code?: string }> {
-    const response = await fetch('/api/auth/core-token', {
-        method: 'POST',
-        credentials: 'include',
-    });
+/** Retry sampai cookie Clerk terbaca server atau batas waktu habis. */
+const CORE_SESSION_RETRY_DELAYS_MS = [0, 400, 800, 1500, 2500, 4000, 6000, 8000];
 
-    if (!response.ok) {
-        let message = 'Gagal memuat profil belajar Anda. Silakan coba lagi.';
-        let code: string | undefined;
-        try {
-            const body = (await response.json()) as {
-                error?: string | { code?: string; message?: string };
-                code?: string;
-            };
-            if (typeof body.error === 'string') {
-                message = body.error;
-            } else if (body.error && typeof body.error === 'object') {
-                if (body.error.message) message = body.error.message;
-                if (body.error.code) code = body.error.code;
-            }
-            if (!code && body.code) code = body.code;
-        } catch {
-            // ignore
+export async function ensureCoreSessionWithRetry(): Promise<boolean> {
+    for (const delay of CORE_SESSION_RETRY_DELAYS_MS) {
+        if (delay > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
         }
-        return { ok: false, message, code };
+        if (await syncCoreSessionSilent()) {
+            return true;
+        }
     }
-
-    window.location.assign(redirectTo);
-    return { ok: true };
+    return false;
 }
 
 export function mapClerkError(err: unknown, fallback: string): string {

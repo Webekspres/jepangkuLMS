@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 
 type ThemeToggleProps = {
   className?: string;
@@ -23,6 +24,10 @@ type ThemeToggleProps = {
 export function ThemeToggle({ className, size = 'icon' }: ThemeToggleProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const mounted = useIsClient();
+
+  if (!THEME_SWITCHING_ENABLED) {
+    return null;
+  }
 
   const activeTheme = theme ?? 'system';
   const TriggerIcon = !mounted ? Sun : resolvedTheme === 'dark' ? Moon : Sun;

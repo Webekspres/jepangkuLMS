@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Award,
@@ -17,11 +18,12 @@ import type { LmsNotificationType } from '@prisma/client';
 import {
   deleteReadNotificationsAction,
   dismissNotificationAction,
-  fetchNotificationsAction,
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from '@/features/notifications/actions/notification-actions';
 import { cn } from '@/lib/utils';
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type NotificationItem = {
   id: string;
@@ -42,6 +44,15 @@ const TYPE_ICONS: Record<LmsNotificationType, { icon: LucideIcon; color: string 
   COURSE_GRANTED: { icon: BookOpen, color: 'text-primary' },
 };
 
+// ── TanStack Query keys ───────────────────────────────────────────────────────
+
+export const NOTIF_KEYS = {
+  unreadCount: ['notifications', 'unread-count'] as const,
+  list: ['notifications', 'list'] as const,
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function formatRelativeTime(date: Date | string): string {
   const value = new Date(date);
   const diffMs = Date.now() - value.getTime();
@@ -56,6 +67,22 @@ function formatRelativeTime(date: Date | string): string {
   return value.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
+async function fetchUnreadCount(): Promise<number> {
+  const res = await fetch('/api/notifications/unread-count', { cache: 'no-store' });
+  if (!res.ok) return 0;
+  const data = (await res.json()) as { count: number };
+  return data.count;
+}
+
+async function fetchNotificationList(): Promise<NotificationItem[]> {
+  const res = await fetch('/api/notifications', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { items: NotificationItem[] };
+  return data.items;
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+
 type NotificationBellProps = {
   className?: string;
   buttonClassName?: string;
@@ -65,6 +92,8 @@ type NotificationBellProps = {
   footerMode?: 'navigate' | 'clear-read';
 };
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function NotificationBell({
   className,
   buttonClassName,
@@ -73,31 +102,36 @@ export function NotificationBell({
   footerMode = 'navigate',
 }: NotificationBellProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((item) => !item.readAt).length;
+  // ── Query 1: Eager unread COUNT — fetches on mount, no dropdown needed ──
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: NOTIF_KEYS.unreadCount,
+    queryFn: fetchUnreadCount,
+    // Refresh badge every 60 s while tab is active
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+  });
+
+  // ── Query 2: Lazy notification LIST — only fetches when dropdown is open ──
+  const { data: notifications = [], isFetching: loading } = useQuery({
+    queryKey: NOTIF_KEYS.list,
+    queryFn: fetchNotificationList,
+    enabled: open,
+    staleTime: 15_000,
+  });
+
   const readCount = notifications.filter((item) => item.readAt).length;
+  // Prefer live unread count from badge query so badge is always accurate
+  const liveUnreadCount = open
+    ? notifications.filter((item) => !item.readAt).length
+    : unreadCount;
 
-  const loadNotifications = useCallback(async () => {
-    setLoading(true);
-    try {
-      const items = await fetchNotificationsAction();
-      setNotifications(items);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  function handleToggle() {
-    const next = !open;
-    setOpen(next);
-    if (next) void loadNotifications();
-  }
-
+  // ── Close on outside click / Escape ──────────────────────────────────────
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
@@ -114,10 +148,28 @@ export function NotificationBell({
     };
   }, [open]);
 
+  // ── Sync badge count after list loads so it stays accurate ───────────────
+  useEffect(() => {
+    if (!open || loading || notifications.length === 0) return;
+    const freshCount = notifications.filter((item) => !item.readAt).length;
+    queryClient.setQueryData(NOTIF_KEYS.unreadCount, freshCount);
+  }, [open, loading, notifications, queryClient]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  function handleToggle() {
+    setOpen((prev) => !prev);
+  }
+
   function markAllRead() {
     startTransition(async () => {
       await markAllNotificationsReadAction();
-      setNotifications((prev) => prev.map((item) => ({ ...item, readAt: item.readAt ?? new Date() })));
+      // Optimistic update — list
+      queryClient.setQueryData(NOTIF_KEYS.list, (prev: NotificationItem[] = []) =>
+        prev.map((item) => ({ ...item, readAt: item.readAt ?? new Date() })),
+      );
+      // Badge → 0
+      queryClient.setQueryData(NOTIF_KEYS.unreadCount, 0);
     });
   }
 
@@ -125,8 +177,11 @@ export function NotificationBell({
     startTransition(async () => {
       if (!item.readAt) {
         await markNotificationReadAction(item.id);
-        setNotifications((prev) =>
+        queryClient.setQueryData(NOTIF_KEYS.list, (prev: NotificationItem[] = []) =>
           prev.map((row) => (row.id === item.id ? { ...row, readAt: new Date() } : row)),
+        );
+        queryClient.setQueryData(NOTIF_KEYS.unreadCount, (prev: number = 0) =>
+          Math.max(0, prev - 1),
         );
       }
       if (item.href) {
@@ -139,16 +194,30 @@ export function NotificationBell({
   function dismiss(id: string) {
     startTransition(async () => {
       await dismissNotificationAction(id);
-      setNotifications((prev) => prev.filter((item) => item.id !== id));
+      queryClient.setQueryData(NOTIF_KEYS.list, (prev: NotificationItem[] = []) => {
+        const removed = prev.find((item) => item.id === id);
+        const next = prev.filter((item) => item.id !== id);
+        // Adjust badge count if the dismissed item was unread
+        if (removed && !removed.readAt) {
+          queryClient.setQueryData(NOTIF_KEYS.unreadCount, (c: number = 0) =>
+            Math.max(0, c - 1),
+          );
+        }
+        return next;
+      });
     });
   }
 
   function clearRead() {
     startTransition(async () => {
       await deleteReadNotificationsAction();
-      setNotifications((prev) => prev.filter((item) => !item.readAt));
+      queryClient.setQueryData(NOTIF_KEYS.list, (prev: NotificationItem[] = []) =>
+        prev.filter((item) => !item.readAt),
+      );
     });
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div ref={rootRef} className={cn('relative', className)}>
@@ -156,16 +225,16 @@ export function NotificationBell({
         type="button"
         onClick={handleToggle}
         aria-expanded={open}
-        aria-label={`Notifikasi${unreadCount > 0 ? ` (${unreadCount} baru)` : ''}`}
+        aria-label={`Notifikasi${liveUnreadCount > 0 ? ` (${liveUnreadCount} baru)` : ''}`}
         className={cn(
           'relative flex size-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground',
           buttonClassName,
         )}
       >
         <Bell className="size-4" />
-        {unreadCount > 0 ? (
+        {liveUnreadCount > 0 ? (
           <span className="absolute -top-1 -right-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {liveUnreadCount > 9 ? '9+' : liveUnreadCount}
           </span>
         ) : null}
       </button>
@@ -182,13 +251,13 @@ export function NotificationBell({
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-foreground">Notifikasi</span>
-                {unreadCount > 0 ? (
+                {liveUnreadCount > 0 ? (
                   <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                    {unreadCount} baru
+                    {liveUnreadCount} baru
                   </span>
                 ) : null}
               </div>
-              {unreadCount > 0 ? (
+              {liveUnreadCount > 0 ? (
                 <button
                   type="button"
                   onClick={markAllRead}

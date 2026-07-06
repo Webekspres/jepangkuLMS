@@ -1,5 +1,7 @@
-import { AuthCompletePage } from '@/features/auth/components/auth-complete-page';
+import { redirect } from 'next/navigation';
+import { AUTH_ROUTES } from '@/lib/auth/constants';
 
+/** Legacy URL — Core sync sekarang background; langsung ke dashboard. */
 export default function AuthCompleteRoute() {
-  return <AuthCompletePage />;
+  redirect(AUTH_ROUTES.dashboard);
 }
