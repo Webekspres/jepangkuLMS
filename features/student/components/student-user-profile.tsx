@@ -14,6 +14,7 @@ import {
   User,
 } from 'lucide-react';
 import { ProfileThemeToggle } from '@/components/theme/profile-theme-toggle';
+import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
@@ -194,11 +195,14 @@ export function StudentUserProfile() {
               ))}
             </div>
 
-            <div className="mx-2 border-t border-border" />
-
-            <div className="px-2 pt-2">
-              <ProfileThemeToggle />
-            </div>
+            {THEME_SWITCHING_ENABLED ? (
+              <>
+                <div className="mx-2 border-t border-border" />
+                <div className="px-2 pt-2">
+                  <ProfileThemeToggle />
+                </div>
+              </>
+            ) : null}
 
             <div className="p-2 pt-1">
               <button

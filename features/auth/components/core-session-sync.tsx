@@ -20,7 +20,12 @@ export function CoreSessionSync() {
 
     useEffect(() => {
         if (!isCoreIntegrationEnabled()) return;
-        if (!userId) return;
+
+        if (!userId) {
+            exchangedForUser.current = null;
+            return;
+        }
+
         if (exchangedForUser.current === userId) return;
         exchangedForUser.current = userId;
 

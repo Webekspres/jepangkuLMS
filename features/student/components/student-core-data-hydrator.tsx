@@ -40,6 +40,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
 
     useEffect(() => {
         let cancelled = false;
+        syncAttempted.current = false;
 
         queueMicrotask(() => {
             const cached = readCachedStudentCoreData(clerkUserId);

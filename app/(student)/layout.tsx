@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
-import { ensureCoreJwtCookie } from '@/lib/auth/ensure-core-jwt';
 import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
 import { StudentCoreDataBoundary } from '@/features/student/components/student-core-data-boundary';
 
@@ -16,7 +15,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { userId } = await auth();
   if (userId) {
     await syncUserAnchor(userId).catch(() => undefined);
-    await ensureCoreJwtCookie().catch(() => false);
   }
 
   return <StudentCoreDataBoundary>{children}</StudentCoreDataBoundary>;

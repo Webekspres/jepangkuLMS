@@ -1,5 +1,4 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { ensureCoreJwtCookie } from '@/lib/auth/ensure-core-jwt';
 import { syncUserAnchor } from '@/lib/auth/sync-user-anchor';
 import { resolveClerkIdentity } from '@/features/auth/lib/clerk-user-display';
 import { AdminShell } from '@/features/admin-cms/components/admin-shell';
@@ -14,7 +13,6 @@ export default async function AdminAreaLayout({ children }: { children: React.Re
   const { userId } = await auth();
   if (userId) {
     await syncUserAnchor(userId).catch(() => undefined);
-    await ensureCoreJwtCookie().catch(() => false);
   }
 
   const pendingEnrollmentCount = await getPendingEnrollmentCount();
