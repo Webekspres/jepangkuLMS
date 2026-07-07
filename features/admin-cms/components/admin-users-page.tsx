@@ -117,7 +117,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                 <TableRow key={user.id}>
                   <TableCell>
                     <p className="font-medium text-foreground">{user.resolvedDisplayName}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p>
+                    {/* <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p> */}
                   </TableCell>
                   <TableCell>
                     <p className="tabular-nums font-medium">{user.activeEnrollmentCount} aktif</p>
