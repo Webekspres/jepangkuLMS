@@ -36,7 +36,7 @@ const PODIUM_META = [
         crownEmoji: '🥈',
         rankLabel: 'Shirogane',
         rankLabelEn: 'Silver',
-        podiumHeight: 'h-16 sm:h-20',
+        podiumHeight: 'h-[4.5rem] sm:h-24',
         rankClass: 'text-slate-300 dark:text-slate-300 font-extrabold text-3xl sm:text-4xl',
         glowClass: 'shadow-slate-400/20',
         ringClass: 'ring-slate-400/60 border-slate-400/40',
@@ -53,7 +53,7 @@ const PODIUM_META = [
         crownEmoji: '👑',
         rankLabel: 'Ougon',
         rankLabelEn: 'Gold',
-        podiumHeight: 'h-24 sm:h-32',
+        podiumHeight: 'h-28 sm:h-36',
         rankClass: 'text-brand-yellow dark:text-brand-yellow font-black text-4xl sm:text-5xl drop-shadow-[0_0_12px_rgba(248,231,28,0.8)]',
         glowClass: 'shadow-brand-yellow/30',
         ringClass: 'ring-brand-yellow/70 border-brand-yellow/60',
@@ -70,7 +70,7 @@ const PODIUM_META = [
         crownEmoji: '🥉',
         rankLabel: 'Akagane',
         rankLabelEn: 'Bronze',
-        podiumHeight: 'h-10 sm:h-14',
+        podiumHeight: 'h-12 sm:h-16',
         rankClass: 'text-amber-600 dark:text-amber-500 font-extrabold text-3xl sm:text-4xl',
         glowClass: 'shadow-amber-700/20',
         ringClass: 'ring-amber-600/50 border-amber-600/40',
@@ -180,23 +180,22 @@ function PodiumSlot({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay, type: 'spring', stiffness: 220, damping: 20 }}
             className={cn(
-                'flex flex-col items-center justify-end',
+                'flex flex-col items-stretch justify-end',
                 center
-                    ? 'w-[40%] min-w-[9rem] max-w-[11rem] z-10'
-                    : 'w-[30%] min-w-[7rem] max-w-[9rem]',
+                    ? 'w-[38%] min-w-[8.5rem] max-w-[10.5rem] z-10'
+                    : 'w-[27%] min-w-[6.75rem] max-w-[8.25rem]',
             )}
         >
-            {/* Unified Champion Card */}
+            {/* Profile card — floats above pedestal */}
             <div
                 className={cn(
-                    'relative w-full rounded-2xl border flex flex-col items-center justify-between',
+                    'relative w-full rounded-t-2xl border border-b-0 flex flex-col items-center',
                     'shadow-xl backdrop-blur-sm',
                     meta.glowClass,
                     meta.cardClass,
-                    center ? 'pt-5 px-3' : 'pt-4 px-2.5',
+                    center ? 'pt-5 px-3 pb-3' : 'pt-4 px-2 pb-2.5',
                 )}
             >
-                {/* Rank label banner */}
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20">
                     <span
                         className={cn(
@@ -211,31 +210,25 @@ function PodiumSlot({
                     </span>
                 </div>
 
-                {/* Pulsing aura for rank 1 - now wraps the whole unified card */}
-                {center && (
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none z-0">
-                        <div className="absolute inset-0 rounded-2xl animate-pulse opacity-20 bg-brand-yellow/20 blur-md" />
+                {center ? (
+                    <div className="absolute inset-0 rounded-t-2xl pointer-events-none z-0">
+                        <div className="absolute inset-0 rounded-t-2xl animate-pulse opacity-20 bg-brand-yellow/20 blur-md" />
                     </div>
-                )}
+                ) : null}
 
-                {/* User Details (Top Section) */}
                 <div className="relative flex flex-col items-center gap-1.5 w-full z-10">
-                    {/* Avatar */}
                     <div className="relative mt-1">
-                        {/* Outer glow ring for rank 1 */}
-                        {center && (
+                        {center ? (
                             <div className="absolute inset-0 rounded-full bg-brand-yellow/30 blur-md scale-110 pointer-events-none" />
-                        )}
+                        ) : null}
                         <LeaderboardAvatar entry={entry} sizeClass={meta.avatarSize} ringClass={meta.ringClass} />
-                        {/* "You" badge */}
-                        {entry.isYou && (
+                        {entry.isYou ? (
                             <div className="absolute -bottom-1 -right-1 rounded-full bg-brand-red border border-red-300/30 text-white text-[7px] font-black px-1.5 py-px leading-tight uppercase tracking-wider shadow-md">
                                 Kamu
                             </div>
-                        )}
+                        ) : null}
                     </div>
 
-                    {/* Name */}
                     <p
                         className={cn(
                             'max-w-full truncate text-center font-black tracking-tight leading-tight',
@@ -245,12 +238,10 @@ function PodiumSlot({
                         {entry.name}
                     </p>
 
-                    {/* Equipped title */}
-                    {entry.badgeTitle && (
+                    {entry.badgeTitle ? (
                         <BadgeTitlePill title={entry.badgeTitle} size={center ? 'default' : 'sm'} />
-                    )}
+                    ) : null}
 
-                    {/* Points */}
                     <p
                         className={cn(
                             'flex items-center gap-0.5 font-bold tabular-nums',
@@ -261,18 +252,20 @@ function PodiumSlot({
                         {formatDisplayNumber(entry.points)} poin
                     </p>
                 </div>
+            </div>
 
-                {/* Seamless Rank Number (Bottom Section) */}
-                <div
-                    className={cn(
-                        'w-full flex items-center justify-center mt-3 z-10',
-                        meta.podiumHeight, // dynamic height provides vertical separation seamlessly
-                    )}
-                >
-                    <span className={cn('font-black tabular-nums tracking-tight leading-none', meta.rankClass)}>
-                        {entry.rank}
-                    </span>
-                </div>
+            {/* Pedestal — fixed height tier, shared baseline */}
+            <div
+                className={cn(
+                    'w-full flex items-center justify-center rounded-b-2xl border shadow-lg',
+                    meta.podiumHeight,
+                    meta.podiumClass,
+                    meta.glowClass,
+                )}
+            >
+                <span className={cn('font-black tabular-nums tracking-tight leading-none', meta.rankClass)}>
+                    {entry.rank}
+                </span>
             </div>
         </motion.div>
     );
@@ -500,7 +493,7 @@ export function StudentLeaderboardPage() {
 
                     {/* ── Podium zone ─────────────────────────────────────────────────────── */}
                     <div
-                        className="relative border-b border-border py-8 px-4 sm:px-8 overflow-hidden"
+                        className="relative border-b border-border py-8 px-6 sm:px-8 overflow-hidden"
                         style={{ background: 'linear-gradient(180deg, #181548 0%, #12103a 100%)' }}
                     >
                         {/* Decorative lights */}
@@ -510,12 +503,12 @@ export function StudentLeaderboardPage() {
 
                         <div
                             className={cn(
-                                'relative mx-auto flex items-end justify-center gap-3 sm:gap-4',
+                                'relative mx-auto flex w-full max-w-[22rem] items-end justify-center gap-2 sm:max-w-xl sm:gap-4',
                                 top10.length === 1
                                     ? 'max-w-[14rem]'
                                     : top10.length === 2
                                         ? 'max-w-sm'
-                                        : 'max-w-xl',
+                                        : undefined,
                             )}
                         >
                             {podiumSlots.map((slot, index) => (

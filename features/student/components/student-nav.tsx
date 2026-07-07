@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
-import { Coins, LogOut, Menu, X, Zap } from 'lucide-react';
+import { Coins, LogOut, Zap, ChevronDown } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,10 +16,30 @@ import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
-import { STUDENT_NAV_LINKS, STUDENT_PROFILE_LINKS } from './student-nav-links';
+import { STUDENT_NAV_LINKS } from './student-nav-links';
 import { STUDENT_ROUTES } from './student-routes';
+import { ProfileAvatar } from './profile-avatar';
+import { StudentAccountMenuLinks } from './student-account-menu-links';
+import { StudentProfileMenuHeader } from './student-profile-menu-header';
 import { StudentUserProfile } from './student-user-profile';
 import { StudentNotificationBell } from './student-notification-bell';
+
+function MobileMenuSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="px-2 py-1">
+      <p className="px-4 py-2 text-xs font-extrabold tracking-wide text-brand-navy uppercase dark:text-foreground">
+        {title}
+      </p>
+      <div className="flex flex-col">{children}</div>
+    </div>
+  );
+}
 
 export function StudentNav() {
   const pathname = usePathname();
@@ -28,6 +48,8 @@ export function StudentNav() {
   const core = useStudentCoreData();
   const displayName = core.displayName ?? identity?.displayName ?? '…';
   const badgeTitle = core.equippedBadgeTitle;
+  const avatarUrl = core.avatarUrl ?? identity?.imageUrl ?? null;
+  const avatarInitial = (identity?.initial ?? displayName.slice(0, 2) ?? 'KM').toUpperCase();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const hydrated = useSyncExternalStore(
@@ -100,15 +122,20 @@ export function StudentNav() {
 
         <div className="flex items-center gap-1 md:hidden">
           <StudentNotificationBell />
-          <StudentUserProfile />
           <button
             type="button"
-            className="rounded-lg p-1"
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-label={menuOpen ? 'Tutup menu akun' : 'Buka menu akun'}
             aria-expanded={menuOpen}
+            className="inline-flex items-center gap-1 rounded-xl border border-border bg-card py-1 pr-1.5 pl-1 transition-colors hover:bg-muted/40"
           >
-            {menuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+            <ProfileAvatar size="sm" imageUrl={avatarUrl} initial={avatarInitial} />
+            <ChevronDown
+              className={cn(
+                'size-3.5 text-muted-foreground transition-transform',
+                menuOpen && 'rotate-180',
+              )}
+            />
           </button>
         </div>
       </div>
@@ -116,64 +143,65 @@ export function StudentNav() {
       <MarketingMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
+        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none max-h-[min(90vh,720px)] overflow-hidden flex flex-col"
       >
-        <div className="border-b border-border px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">{displayName}</p>
-          {badgeTitle ? (
-            <p className="text-xs font-medium text-primary">{badgeTitle}</p>
-          ) : null}
-          {identity?.email ? (
-            <p className="truncate text-xs text-muted-foreground">{identity.email}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Lv.{core.level} · {formatDisplayNumber(core.totalXp)} XP
-            </p>
-          )}
+        <StudentProfileMenuHeader
+          displayName={displayName}
+          badgeTitle={badgeTitle}
+          level={core.level}
+          levelTitle={core.levelTitle}
+          totalXp={core.totalXp}
+          imageUrl={avatarUrl}
+          initial={avatarInitial}
+          email={identity?.email}
+          onClose={() => setMenuOpen(false)}
+        />
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <MobileMenuSection title="Akun Saya">
+            <StudentAccountMenuLinks
+              isActive={isActive}
+              onNavigate={() => setMenuOpen(false)}
+            />
+          </MobileMenuSection>
+
+          <div className="mx-4 border-t border-border" />
+
+          <MobileMenuSection title="Navigasi">
+            {STUDENT_NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={cn(
+                  'rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
+                  isActive(link.href)
+                    ? 'bg-primary/10 font-semibold text-primary'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </MobileMenuSection>
         </div>
-        <nav className="flex flex-col p-2">
-          {STUDENT_NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={cn(
-                'rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
-                isActive(link.href)
-                  ? 'bg-primary/10 font-semibold text-primary'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
-          {STUDENT_PROFILE_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className="rounded-xl px-4 py-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="mt-2 border-t border-border p-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={signingOut}
-              className="h-11 w-full justify-start gap-3 px-4 text-sm font-medium"
-              onClick={() => {
-                setMenuOpen(false);
-                setSigningOut(true);
-                void signOutFromApp(signOut).finally(() => setSigningOut(false));
-              }}
-            >
-              <LogOut className="size-4 shrink-0" />
-              {signingOut ? 'Keluar…' : 'Keluar'}
-            </Button>
-          </div>
-        </nav>
+
+        <div className="shrink-0 border-t border-border p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={signingOut}
+            className="h-11 w-full justify-start gap-3 px-4 text-sm font-medium text-primary hover:bg-primary/5"
+            onClick={() => {
+              setMenuOpen(false);
+              setSigningOut(true);
+              void signOutFromApp(signOut).finally(() => setSigningOut(false));
+            }}
+          >
+            <LogOut className="size-4 shrink-0" />
+            {signingOut ? 'Keluar…' : 'Keluar'}
+          </Button>
+        </div>
       </MarketingMobileMenu>
     </nav>
   );

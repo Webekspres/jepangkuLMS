@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, EnrollmentType } from '@prisma/client';
+import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
 export type AdminEnrollmentRow = {
@@ -30,7 +31,7 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
     prisma.enrollment.findMany({
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       include: {
-        user: { select: { displayName: true } },
+        user: { select: { displayName: true, ssoDisplayName: true } },
         course: { select: { title: true, slug: true, priceIdr: true } },
         liveClass: { select: { title: true, senseiName: true, priceIdr: true } },
         tryoutSession: { select: { title: true, code: true, priceIdr: true } },
@@ -52,7 +53,10 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
       type: row.type,
       createdAt: row.createdAt,
       userId: row.userId,
-      userDisplayName: row.user.displayName,
+      userDisplayName: resolvePublicDisplayName({
+        displayName: row.user.displayName,
+        ssoDisplayName: row.user.ssoDisplayName,
+      }),
     };
 
     if (row.type === 'COURSE' && row.course && row.courseId) {

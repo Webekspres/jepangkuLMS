@@ -2,80 +2,39 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  BookOpen,
-  ChevronDown,
-  LayoutDashboard,
-  LogOut,
-  Target,
-  Trophy,
-  User,
-} from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { ProfileThemeToggle } from '@/components/theme/profile-theme-toggle';
 import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
-import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
-import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
+import { StudentAccountMenuLinks } from './student-account-menu-links';
+import { StudentProfileMenuHeader } from './student-profile-menu-header';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ROUTES } from './student-routes';
 
-const MENU_ITEMS = [
-  { href: STUDENT_ROUTES.profil, label: 'Profil Saya', icon: User },
-  { href: STUDENT_ROUTES.kursus, label: 'Kursus Saya', icon: BookOpen },
-  { href: STUDENT_ROUTES.tryout, label: 'JLPT Try Out', icon: Target },
-  { href: STUDENT_ROUTES.achievements, label: 'Achievements', icon: Trophy },
-] as const;
-
-function xpProgressPercent(totalXp: number, level: number): number {
-  if (totalXp <= 0) return 0;
-
-  const thresholds: Record<number, number> = {
-    1: 0,
-    2: 100,
-    3: 300,
-    4: 600,
-    5: 1000,
-  };
-
-  const getThreshold = (lvl: number): number => {
-    if (lvl <= 1) return 0;
-    if (lvl in thresholds) return thresholds[lvl];
-    return 1000 + (lvl - 5) * 500;
-  };
-
-  const currentThreshold = getThreshold(level);
-  const nextThreshold = getThreshold(level + 1);
-  const range = nextThreshold - currentThreshold;
-
-  if (range <= 0) return 99.9;
-
-  const xpInLevel = Math.max(0, totalXp - currentThreshold);
-  const pct = (xpInLevel / range) * 100;
-  return Math.min(99.9, Math.max(0, Math.round(pct * 10) / 10));
-}
-
 export function StudentUserProfile() {
+  const pathname = usePathname();
   const { signOut } = useClerk();
   const { identity } = useClerkIdentity();
   const core = useStudentCoreData();
   const displayName = core.displayName ?? identity?.displayName ?? 'Kamu';
   const imageUrl = core.avatarUrl ?? identity?.imageUrl ?? null;
   const initial = (identity?.initial ?? displayName.slice(0, 2) ?? 'KM').toUpperCase();
-  const badgeTitle = core.equippedBadgeTitle;
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const nextLevel = core.level + 1;
-  const xpPercent = xpProgressPercent(core.totalXp, core.level);
-  const levelSubtitle = core.levelTitle
-    ? `${core.levelTitle} • Lv.${core.level}`
-    : `Pemula • Lv.${core.level}`;
+  const isActive = (href: string) => {
+    if (href === STUDENT_ROUTES.home) {
+      return pathname === href;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -128,71 +87,21 @@ export function StudentUserProfile() {
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
           >
-            {/* Header — pink tint + XP bar */}
-            <div className="border-b border-border bg-primary/5 p-4 dark:bg-primary/10">
-              <div className="mb-3 flex items-center gap-3">
-                <ProfileAvatar size="lg" imageUrl={imageUrl} initial={initial} />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
-                    {badgeTitle ? (
-                      <span className="shrink-0 inline-flex items-center gap-0.5 rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground dark:border-brand-yellow/30 dark:bg-brand-yellow/15 dark:text-brand-yellow">
-                        {badgeTitle}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                        Level N5
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{levelSubtitle}</p>
-                </div>
-              </div>
+            <StudentProfileMenuHeader
+              displayName={displayName}
+              badgeTitle={core.equippedBadgeTitle}
+              level={core.level}
+              levelTitle={core.levelTitle}
+              totalXp={core.totalXp}
+              imageUrl={imageUrl}
+              initial={initial}
+            />
 
-              <div>
-                <div className="mb-1.5 flex justify-between text-xs">
-                  <span className="text-muted-foreground">XP ke Lv.{nextLevel}</span>
-                  <span className="font-bold text-primary">{xpPercent}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <motion.div
-                    className="h-full rounded-full bg-linear-to-r from-primary to-brand-yellow"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${xpPercent}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                  />
-                </div>
-                <p className="mt-1.5 text-[10px] text-muted-foreground">
-                  {formatDisplayNumber(core.totalXp)} XP total
-                </p>
-              </div>
-            </div>
-
-            {/* Nav links */}
             <div className="p-2">
-              {core.canAccessAdmin && (
-                <Link
-                  href={ADMIN_ROUTES.dashboard}
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  <LayoutDashboard className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                  Dashboard Admin
-                </Link>
-              )}
-              {MENU_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                  className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  <item.icon className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                  {item.label}
-                </Link>
-              ))}
+              <StudentAccountMenuLinks
+                isActive={isActive}
+                onNavigate={() => setOpen(false)}
+              />
             </div>
 
             {THEME_SWITCHING_ENABLED ? (

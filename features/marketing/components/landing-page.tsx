@@ -10,7 +10,6 @@ import {
   ChevronRight,
   GraduationCap,
   Menu,
-  MessageCircle,
   Play,
   Target,
   Video,
@@ -711,12 +710,12 @@ export function LandingPage() {
               Pilih Paket yang Cocok untukmu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Paket peluncuran — konsultasi & pembelian via admin WhatsApp.
-              Harga dapat berubah seiring penambahan konten.
+              Mulai gratis dari N5, lalu daftar untuk mengakses paket lanjutan saat
+              tersedia.
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             {PRICING_PLANS.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -766,9 +765,9 @@ export function LandingPage() {
                   variant={plan.highlighted ? "default" : "outline"}
                   className="mt-8 h-11 w-full gap-2"
                 >
-                  <Link href="/hubungi">
-                    <MessageCircle className="size-4" />
-                    Tanya via WhatsApp
+                  <Link href="/sign-up">
+                    Daftar Sekarang
+                    <ArrowRight className="size-4" />
                   </Link>
                 </Button>
               </motion.div>

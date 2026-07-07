@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
-import { resolvePublicDisplayName } from '@/lib/lms/display-name';
+import { isGenericLmsDisplayName, resolvePublicDisplayName } from '@/lib/lms/display-name';
 import {
     uploadToR2,
     deleteFromR2,
@@ -125,15 +125,16 @@ export async function updateLmsDisplayName(userId: string, displayName: string):
     if (error) throw new Error(error);
 
     const trimmed = displayName.trim();
+    const storedDisplayName = isGenericLmsDisplayName(trimmed) ? null : trimmed;
 
     await prisma.user.upsert({
         where: { id: userId },
         create: userAnchorCreateData(userId, {
-            displayName: trimmed,
+            displayName: storedDisplayName ?? undefined,
             displayNameSetupAt: new Date(),
         }),
         update: {
-            displayName: trimmed,
+            displayName: storedDisplayName,
             displayNameSetupAt: new Date(),
         },
     });

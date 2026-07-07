@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-03                                                  |
+| **Terakhir diperbarui**   | 2026-07-07                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (63 item terlacak)                                  |
 
@@ -117,11 +117,11 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route                                      | Status | Catatan                                                                          |
 | :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
 | `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
-| `/admin/live-class`                        |   ✅   | CRUD jadwal live class                                                           |
-| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal 3 bagian + impor Excel MOJI/BUNPOU + impor ZIP Chokai       |
+| `/admin/live-class`                        |   ✅   | CRUD jadwal live class + kolom peserta (enrollment) + dialog daftar siswa        |
+| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal + impor + kolom peserta + dialog daftar siswa               |
 | `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
-| `/admin/pembayaran`                        |   ✅   | Enrollment PENDING/ACTIVE                                                        |
-| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran**                                               |
+| `/admin/pembayaran`                        |   ✅   | Antrian enrollment + tab Riwayat (`EnrollmentLog`: approve/reject/grant/request) |
+| `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran** + kolom peserta + dialog daftar siswa          |
 | `/admin/kursus/import`                     |   ✅   | Impor kursus formulir Excel multi-tab (ganti CSV)                                |
 | `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md)) |
 | `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                            |
@@ -133,7 +133,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Domain           | Status | Catatan                                                                        |
 | :--------------- | :----: | :----------------------------------------------------------------------------- |
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries                                      |
-| **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import                                     |
+| **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders                                       |
 | **tryout**       |   ✅   | Bagian terpisah + focus navbar + simpan jawaban + halaman analisa              |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
@@ -183,7 +183,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-07 | Riwayat enrollment admin: model `EnrollmentLog` + migrasi; log REQUESTED/APPROVED/REJECTED/GRANTED/REVOKED; tab Antrian \| Riwayat di `/admin/pembayaran` (cari, filter aksi, pagination) |
 | 2026-07-03 | Overhaul flashcard (3D flip tanpa ghosting, Furigana & Shuffle toggle, Onyomi/Kunyomi split dengan `|`, "Sudah tahu" front face shortcut, mobile max-height), instant progress updates (confetti, custom events, core session refresh), bottom lesson navigation, dan fix pg-pool seed crash |
+| 2026-07-07 | Admin daftar peserta per program: kolom Peserta di tabel Kursus/Live Class/Tryout (klik → dialog siswa + approve/cabut); detail pengguna wire enrollment Live Class & Tryout; sync `filledSlots` live class dari enrollment ACTIVE |
 | 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |
 | 2026-06-30 | Refactor monetisasi & metadata: `CourseCategoryType` (Utama/Gratis/Tambahan) + dropdown CMS + kolom Excel outcomes; `TryoutSession.level` (satu sesi = satu JLPT), hapus `Question.tryoutLevel`, bank soal tanpa tab level, enrollment gate tryout by session id, `logLmsXpEvent` upsert anti-P2002 |
 | 2026-06-29 | Fitur "Bagikan Pencapaian" (Share Achievement) pada halaman koleksi badge siswa: modal interaktif berdesain glassmorphism premium dengan pulsing glow sesuai rarity, integrasi Web Share API dan link sharing sosial media (WhatsApp, X/Twitter, Threads, Facebook), serta fitur "Simpan Kartu" (Unduh Gambar) 1080x1920 berbasis html-to-image |

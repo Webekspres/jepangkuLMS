@@ -15,6 +15,7 @@ import {
   lmsQuizCorrectSourceKey,
 } from '@/lib/lms/point-rules';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
   GAMIFICATION_REWARDS,
@@ -80,6 +81,14 @@ export async function requestCourseEnrollment(courseSlug: string) {
       studentUserId: userId,
       studentName,
       courseTitle: course.title,
+    });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'COURSE',
+      productTitle: course.title,
+      productSubtitle: course.slug,
+      studentName,
     });
   }
 

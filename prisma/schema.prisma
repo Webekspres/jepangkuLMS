@@ -33,6 +33,14 @@ enum EnrollmentType {
     TRYOUT
 }
 
+enum EnrollmentLogAction {
+    REQUESTED
+    APPROVED
+    REJECTED
+    GRANTED
+    REVOKED
+}
+
 enum QuestionType {
     QUIZ
     TRYOUT
@@ -114,6 +122,8 @@ model User {
 
     equippedBadge  LmsBadge?            @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
     enrollments    Enrollment[]
+    enrollmentLogsAsStudent EnrollmentLog[] @relation("EnrollmentLogStudent")
+    enrollmentLogsAsActor   EnrollmentLog[] @relation("EnrollmentLogActor")
     progress       UserProgress[]
     attempts       QuizAttempt[]
     lmsStats       UserLmsStats?
@@ -299,6 +309,28 @@ model Enrollment {
     @@unique([userId, liveClassId])
     @@unique([userId, tryoutSessionId])
     @@index([userId, type])
+}
+
+/// Audit trail enrollment — permintaan siswa & tindakan admin.
+model EnrollmentLog {
+    id              String              @id @default(uuid())
+    enrollmentId    String?
+    userId          String
+    actorUserId     String?
+    type            EnrollmentType
+    action          EnrollmentLogAction
+    productTitle    String
+    productSubtitle String?
+    studentName     String?
+    actorName       String?
+    createdAt       DateTime            @default(now())
+
+    user  User  @relation("EnrollmentLogStudent", fields: [userId], references: [id], onDelete: Cascade)
+    actor User? @relation("EnrollmentLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+    @@index([createdAt(sort: Desc)])
+    @@index([userId])
+    @@index([action])
 }
 
 model Lesson {

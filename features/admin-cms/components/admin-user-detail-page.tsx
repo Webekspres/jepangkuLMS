@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,18 +10,26 @@ import {
   Check,
   Coins,
   GraduationCap,
-  Trash2,
+  Target,
   UserPlus,
+  Video,
 } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import {
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   approveEnrollmentAction,
   grantEnrollmentAction,
   rejectEnrollmentAction,
 } from '@/features/admin-cms/actions/cms-enrollment-actions';
 import { updateUserRoleAction } from '@/features/admin-cms/actions/cms-user-actions';
-import type { AdminUserDetail } from '@/features/admin-cms/lib/load-admin-user-detail';
+import type {
+  AdminGrantProductOption,
+  AdminUserDetail,
+} from '@/features/admin-cms/lib/load-admin-user-detail';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { formatIdr } from '@/lib/lms/format-price';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +37,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -45,9 +54,21 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+type EnrollmentProductType = 'COURSE' | 'LIVE_CLASS' | 'TRYOUT';
+
 type AdminUserDetailPageProps = {
   user: AdminUserDetail;
-  courses: { id: string; title: string; slug: string }[];
+  grantOptions: {
+    courses: AdminGrantProductOption[];
+    liveClasses: AdminGrantProductOption[];
+    tryoutSessions: AdminGrantProductOption[];
+  };
+};
+
+const PRODUCT_TYPE_LABEL: Record<EnrollmentProductType, string> = {
+  COURSE: 'Kursus',
+  LIVE_CLASS: 'Live Class',
+  TRYOUT: 'JLPT Tryout',
 };
 
 function formatDate(value: Date | string): string {
@@ -64,22 +85,59 @@ function progressLabel(completed: number, total: number): string {
   return `${completed}/${total} pelajaran (${pct}%)`;
 }
 
-export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps) {
+type RejectTarget = {
+  id: string;
+  status: 'PENDING' | 'ACTIVE';
+  label: string;
+};
+
+export function AdminUserDetailPage({ user, grantOptions }: AdminUserDetailPageProps) {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [grantCourseId, setGrantCourseId] = useState(courses[0]?.id ?? '');
-  const [rejectEnrollmentId, setRejectEnrollmentId] = useState<string | null>(null);
+  const [grantType, setGrantType] = useState<EnrollmentProductType>('COURSE');
+  const [rejectTarget, setRejectTarget] = useState<RejectTarget | null>(null);
+
+  const productsByType = useMemo(
+    () => ({
+      COURSE: grantOptions.courses,
+      LIVE_CLASS: grantOptions.liveClasses,
+      TRYOUT: grantOptions.tryoutSessions,
+    }),
+    [grantOptions],
+  );
+
+  const productOptions = productsByType[grantType];
+  const [grantProductId, setGrantProductId] = useState(productOptions[0]?.id ?? '');
+
+  const defaultEnrollmentTab = useMemo(() => {
+    if (user.courseEnrollments.length > 0) return 'course';
+    if (user.liveClassEnrollments.length > 0) return 'live-class';
+    if (user.tryoutEnrollments.length > 0) return 'tryout';
+    return 'course';
+  }, [user.courseEnrollments.length, user.liveClassEnrollments.length, user.tryoutEnrollments.length]);
+
+  const [enrollmentTab, setEnrollmentTab] = useState(defaultEnrollmentTab);
 
   const displayName = user.resolvedDisplayName;
   const initial = displayName.charAt(0).toUpperCase();
-  const rejectTarget = user.enrollments.find((row) => row.id === rejectEnrollmentId);
+
+  const pendingByTab = {
+    course: user.courseEnrollments.filter((r) => r.status === 'PENDING').length,
+    'live-class': user.liveClassEnrollments.filter((r) => r.status === 'PENDING').length,
+    tryout: user.tryoutEnrollments.filter((r) => r.status === 'PENDING').length,
+  };
+
+  function handleTypeChange(value: EnrollmentProductType) {
+    setGrantType(value);
+    setGrantProductId(productsByType[value][0]?.id ?? '');
+  }
 
   function refreshAfterAction(result: { ok: boolean; message?: string }, successMessage?: string) {
     if (!result.ok) {
-      const message = result.message ?? 'Gagal memproses permintaan.';
-      toast.error(message);
-      setMessage(message);
+      const msg = result.message ?? 'Gagal memproses permintaan.';
+      toast.error(msg);
+      setMessage(msg);
       return;
     }
     if (successMessage) toast.success(successMessage);
@@ -98,10 +156,11 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
     event.preventDefault();
     const formData = new FormData();
     formData.set('userId', user.id);
-    formData.set('courseId', grantCourseId);
+    formData.set('type', grantType);
+    formData.set('productId', grantProductId);
     startTransition(async () => {
       const result = await grantEnrollmentAction(formData);
-      refreshAfterAction(result, 'Akses kursus berhasil diberikan.');
+      refreshAfterAction(result, 'Akses program berhasil diberikan.');
     });
   }
 
@@ -113,11 +172,11 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
   }
 
   function handleRejectConfirm() {
-    if (!rejectEnrollmentId) return;
+    if (!rejectTarget) return;
     startTransition(async () => {
-      const result = await rejectEnrollmentAction(rejectEnrollmentId);
+      const result = await rejectEnrollmentAction(rejectTarget.id);
       refreshAfterAction(result, 'Enrollment dihapus.');
-      setRejectEnrollmentId(null);
+      setRejectTarget(null);
     });
   }
 
@@ -125,7 +184,7 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
     <AdminPageShell
       label="Pengguna"
       title={displayName}
-      subtitle="Detail profil LMS, role, dan kursus yang dimiliki siswa."
+      subtitle="Detail profil LMS, role, dan program yang diikuti siswa."
       backHref={ADMIN_ROUTES.users}
       backLabel="Kembali ke daftar pengguna"
     >
@@ -182,7 +241,7 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Kursus aktif
+                Program aktif
               </p>
               <p className="mt-1 flex items-center gap-1 text-lg font-bold tabular-nums">
                 <BookOpen className="size-4 text-primary" />
@@ -224,28 +283,43 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
         <Card className="border-border p-5">
           <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-foreground">
             <UserPlus className="size-4 text-primary" />
-            Tambah enrollment kursus
+            Tambah enrollment program
           </h2>
           <p className="mb-4 text-xs text-muted-foreground">
-            Grant akses kursus langsung ke pengguna ini (status aktif).
+            Grant akses kursus, live class, atau tryout langsung ke pengguna ini (status aktif).
           </p>
-          <form onSubmit={handleGrant} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1 space-y-2">
-              <Label htmlFor="grantCourse">Kursus</Label>
-              <Select value={grantCourseId} onValueChange={setGrantCourseId}>
-                <SelectTrigger id="grantCourse">
-                  <SelectValue placeholder="Pilih kursus" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <form onSubmit={handleGrant} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Jenis program</Label>
+                <Select value={grantType} onValueChange={(v) => handleTypeChange(v as EnrollmentProductType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="COURSE">Kursus</SelectItem>
+                    <SelectItem value="LIVE_CLASS">Live Class</SelectItem>
+                    <SelectItem value="TRYOUT">JLPT Tryout</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{PRODUCT_TYPE_LABEL[grantType]}</Label>
+                <Select value={grantProductId} onValueChange={setGrantProductId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Pilih ${PRODUCT_TYPE_LABEL[grantType].toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Button type="submit" disabled={isPending || !grantCourseId} className="shrink-0">
+            <Button type="submit" disabled={isPending || !grantProductId} className="shrink-0">
               Grant akses
             </Button>
           </form>
@@ -254,31 +328,40 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
 
       <Card className="overflow-hidden border-border">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-sm font-bold text-foreground">Kursus & enrollment</h2>
+          <h2 className="text-sm font-bold text-foreground">Enrollment program</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {user.enrollmentCount} enrollment total · {user.quizAttempts} attempt kuis/tryout
+            {user.enrollmentCount} total · {user.quizAttempts} attempt kuis/tryout
           </p>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs uppercase tracking-wider">Kursus</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider">Progress</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider">Harga</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider">Terdaftar</TableHead>
-              <TableHead className="text-right text-xs uppercase tracking-wider">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {user.enrollments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
-                  Belum memiliki kursus. Grant enrollment dari form di atas.
-                </TableCell>
-              </TableRow>
-            ) : (
-              user.enrollments.map((row) => (
+
+        <Tabs value={enrollmentTab} onValueChange={setEnrollmentTab} className="gap-0">
+          <div className="px-5 pt-3">
+            <TabsList variant="line" className="gap-4">
+              <TabsTrigger value="course">
+                <BookOpen className="size-3.5" />
+                Kursus
+                <TabCountBadge count={user.courseEnrollments.length} pending={pendingByTab.course} />
+              </TabsTrigger>
+              <TabsTrigger value="live-class">
+                <Video className="size-3.5" />
+                Live Class
+                <TabCountBadge count={user.liveClassEnrollments.length} pending={pendingByTab['live-class']} />
+              </TabsTrigger>
+              <TabsTrigger value="tryout">
+                <Target className="size-3.5" />
+                JLPT Tryout
+                <TabCountBadge count={user.tryoutEnrollments.length} pending={pendingByTab.tryout} />
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="course" className="mt-0">
+            <EnrollmentTable
+              headers={['Program', 'Status', 'Progress', 'Harga', 'Terdaftar', 'Aksi']}
+              emptyMessage="Belum memiliki kursus."
+              isEmpty={user.courseEnrollments.length === 0}
+            >
+              {user.courseEnrollments.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
                     <p className="font-medium text-foreground">{row.courseTitle}</p>
@@ -310,60 +393,219 @@ export function AdminUserDetailPage({ user, courses }: AdminUserDetailPageProps)
                     {formatDate(row.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {row.status === 'PENDING' ? (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          className="gap-1"
-                          disabled={isPending}
-                          onClick={() => handleApprove(row.id)}
-                        >
-                          <Check className="size-3.5" />
-                          Setujui
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={isPending}
-                          onClick={() => setRejectEnrollmentId(row.id)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isPending}
-                        onClick={() => setRejectEnrollmentId(row.id)}
-                      >
-                        Cabut akses
-                      </Button>
-                    )}
+                    <EnrollmentActions
+                      enrollmentId={row.id}
+                      status={row.status}
+                      label={row.courseTitle}
+                      isPending={isPending}
+                      onApprove={handleApprove}
+                      onReject={() =>
+                        setRejectTarget({ id: row.id, status: row.status, label: row.courseTitle })
+                      }
+                    />
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </EnrollmentTable>
+          </TabsContent>
+
+          <TabsContent value="live-class" className="mt-0">
+            <EnrollmentTable
+              headers={['Program', 'Level', 'Status', 'Harga', 'Terdaftar', 'Aksi']}
+              emptyMessage="Belum terdaftar di live class."
+              isEmpty={user.liveClassEnrollments.length === 0}
+            >
+              {user.liveClassEnrollments.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <p className="font-medium text-foreground">{row.title}</p>
+                    <p className="text-xs text-muted-foreground">{row.senseiName}</p>
+                    <Link
+                      href={ADMIN_ROUTES.liveClass}
+                      className="mt-1 inline-block text-xs font-semibold text-primary hover:underline"
+                    >
+                      Kelola live class →
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">
+                      {row.level}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={row.status === 'PENDING' ? 'secondary' : 'default'}>
+                      {row.status === 'PENDING' ? 'Menunggu' : 'Aktif'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{formatIdr(row.priceIdr)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(row.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EnrollmentActions
+                      enrollmentId={row.id}
+                      status={row.status}
+                      label={row.title}
+                      isPending={isPending}
+                      onApprove={handleApprove}
+                      onReject={() =>
+                        setRejectTarget({ id: row.id, status: row.status, label: row.title })
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </EnrollmentTable>
+          </TabsContent>
+
+          <TabsContent value="tryout" className="mt-0">
+            <EnrollmentTable
+              headers={['Sesi', 'Level', 'Status', 'Harga', 'Terdaftar', 'Aksi']}
+              emptyMessage="Belum terdaftar di sesi tryout."
+              isEmpty={user.tryoutEnrollments.length === 0}
+            >
+              {user.tryoutEnrollments.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <p className="font-medium text-foreground">{row.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.phaseLabel} · <code>{row.code}</code>
+                    </p>
+                    <Link
+                      href={ADMIN_ROUTES.tryoutSessionQuestions(row.tryoutSessionId)}
+                      className="mt-1 inline-block text-xs font-semibold text-primary hover:underline"
+                    >
+                      Kelola soal →
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">
+                      {row.level}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={row.status === 'PENDING' ? 'secondary' : 'default'}>
+                      {row.status === 'PENDING' ? 'Menunggu' : 'Aktif'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{formatIdr(row.priceIdr)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(row.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EnrollmentActions
+                      enrollmentId={row.id}
+                      status={row.status}
+                      label={row.title}
+                      isPending={isPending}
+                      onApprove={handleApprove}
+                      onReject={() =>
+                        setRejectTarget({ id: row.id, status: row.status, label: row.title })
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </EnrollmentTable>
+          </TabsContent>
+        </Tabs>
       </Card>
 
       <AdminConfirmDialog
-        open={rejectEnrollmentId !== null}
-        title={rejectTarget?.status === 'PENDING' ? 'Tolak enrollment?' : 'Cabut akses kursus?'}
+        open={rejectTarget !== null}
+        title={rejectTarget?.status === 'PENDING' ? 'Tolak enrollment?' : 'Cabut akses?'}
         description={
           rejectTarget
             ? rejectTarget.status === 'PENDING'
-              ? `Hapus permintaan enrollment untuk kursus ${rejectTarget.courseTitle}?`
-              : `Cabut akses ${displayName} ke kursus ${rejectTarget.courseTitle}? Progress tetap tersimpan di DB.`
+              ? `Hapus permintaan enrollment untuk ${rejectTarget.label}?`
+              : `Cabut akses ${displayName} ke ${rejectTarget.label}?`
             : 'Hapus enrollment ini?'
         }
         confirmLabel={rejectTarget?.status === 'PENDING' ? 'Tolak' : 'Cabut akses'}
         onConfirm={handleRejectConfirm}
         onOpenChange={(open) => {
-          if (!open) setRejectEnrollmentId(null);
+          if (!open) setRejectTarget(null);
         }}
+        loading={isPending}
       />
     </AdminPageShell>
+  );
+}
+
+function EnrollmentTable({
+  headers,
+  emptyMessage,
+  isEmpty,
+  children,
+}: {
+  headers: string[];
+  emptyMessage: string;
+  isEmpty: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {headers.map((header) => (
+            <TableHead
+              key={header}
+              className={`text-xs uppercase tracking-wider ${header === 'Aksi' ? 'text-right' : ''}`}
+            >
+              {header}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isEmpty ? (
+          <TableRow>
+            <TableCell colSpan={headers.length} className="py-12 text-center text-muted-foreground">
+              {emptyMessage}
+            </TableCell>
+          </TableRow>
+        ) : (
+          children
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function EnrollmentActions({
+  enrollmentId,
+  status,
+  isPending,
+  onApprove,
+  onReject,
+}: {
+  enrollmentId: string;
+  status: 'PENDING' | 'ACTIVE';
+  label: string;
+  isPending: boolean;
+  onApprove: (id: string) => void;
+  onReject: () => void;
+}) {
+  if (status === 'PENDING') {
+    return (
+      <AdminTableActions>
+        <Button
+          size="sm"
+          className="gap-1"
+          disabled={isPending}
+          onClick={() => onApprove(enrollmentId)}
+        >
+          <Check className="size-3.5" />
+          Setujui
+        </Button>
+        <AdminTableActionDelete label="Tolak enrollment" disabled={isPending} onClick={onReject} />
+      </AdminTableActions>
+    );
+  }
+
+  return (
+    <Button size="sm" variant="destructive" disabled={isPending} onClick={onReject}>
+      Cabut akses
+    </Button>
   );
 }

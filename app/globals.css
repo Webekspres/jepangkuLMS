@@ -337,6 +337,91 @@
     0 5px 10px -10px rgba(0, 0, 0, 0.4) !important;
 }
 
+/* Shared 3D destructive — table delete + aksi berbahaya (selaras btn-3d-outline, warna merah) */
+.btn-3d-destructive,
+[data-slot="button"][data-variant="destructive"] {
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid #fca5a5 !important;
+  background-color: #fff1f2 !important;
+  background-image: linear-gradient(to bottom, #fff5f5, #fecaca) !important;
+  color: var(--destructive) !important;
+  font-weight: 600 !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.55) inset,
+    0 4px 0 0 #fecaca,
+    0 5px 0 0 #f87171,
+    0 8px 14px -10px rgba(220, 38, 38, 0.22) !important;
+}
+
+.btn-3d-destructive:hover,
+[data-slot="button"][data-variant="destructive"]:hover {
+  background-color: #fff1f2 !important;
+  background-image: linear-gradient(to bottom, #fff5f5, #fca5a5) !important;
+  color: var(--destructive) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.95) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.55) inset,
+    0 5px 0 0 #fca5a5,
+    0 6px 0 0 #ef4444,
+    0 11px 18px -10px rgba(220, 38, 38, 0.28) !important;
+}
+
+.btn-3d-destructive:active,
+[data-slot="button"][data-variant="destructive"]:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.45) inset,
+    0 2px 0 0 #fca5a5,
+    0 3px 0 0 #ef4444,
+    0 5px 10px -10px rgba(220, 38, 38, 0.22) !important;
+}
+
+.dark .btn-3d-destructive,
+.dark [data-slot="button"][data-variant="destructive"] {
+  border: 1px solid color-mix(in srgb, var(--destructive) 55%, white 10%) !important;
+  background-color: color-mix(in srgb, var(--destructive) 18%, var(--card)) !important;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--destructive) 22%, var(--card)),
+    color-mix(in srgb, var(--destructive) 32%, var(--muted))
+  ) !important;
+  color: #fecaca !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 4px 0 0 color-mix(in srgb, var(--destructive) 45%, black 20%),
+    0 5px 0 0 color-mix(in srgb, var(--destructive) 65%, black 35%),
+    0 8px 14px -10px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark .btn-3d-destructive:hover,
+.dark [data-slot="button"][data-variant="destructive"]:hover {
+  background-color: color-mix(in srgb, var(--destructive) 22%, var(--card)) !important;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--destructive) 28%, var(--card)),
+    color-mix(in srgb, var(--destructive) 38%, var(--muted))
+  ) !important;
+  color: #fee2e2 !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 5px 0 0 color-mix(in srgb, var(--destructive) 50%, black 18%),
+    0 6px 0 0 color-mix(in srgb, var(--destructive) 70%, black 38%),
+    0 11px 18px -10px rgba(0, 0, 0, 0.55) !important;
+}
+
+.dark .btn-3d-destructive:active,
+.dark [data-slot="button"][data-variant="destructive"]:active {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 2px 0 0 rgba(255, 255, 255, 0.03) inset,
+    0 2px 0 0 color-mix(in srgb, var(--destructive) 45%, black 20%),
+    0 3px 0 0 color-mix(in srgb, var(--destructive) 65%, black 35%),
+    0 5px 10px -10px rgba(0, 0, 0, 0.4) !important;
+}
+
 /* Clerk social — reuse btn-3d-outline; !important mengalahkan shadcn theme inline */
 .clerk-auth-social-btn.btn-3d-outline.cl-button,
 .clerk-auth-social-btn.btn-3d-outline-dark.cl-button {

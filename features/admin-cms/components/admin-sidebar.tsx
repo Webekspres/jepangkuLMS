@@ -8,6 +8,7 @@ import { useClerk } from '@clerk/nextjs';
 import { ArrowLeft, LogOut, Search } from 'lucide-react';
 import { ADMIN_NAV_GROUPS, getActiveAdminNavHref } from '@/features/admin-cms/admin-nav-config';
 import { ADMIN_ROUTES, AUTH_ROUTES } from '@/lib/auth/constants';
+import { BRAND_LOGO_SRC } from '@/lib/brand-logo';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -50,7 +51,7 @@ export function AdminSidebar({
         <Link href={ADMIN_ROUTES.dashboard} className="flex items-center gap-3" onClick={onNavigate}>
           <span className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary">
             <Image
-              src="/brand/logo.png"
+              src={BRAND_LOGO_SRC}
               alt="JepangKu"
               width={24}
               height={24}

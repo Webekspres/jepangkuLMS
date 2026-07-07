@@ -10,7 +10,6 @@ import {
   Loader2,
   RotateCcw,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -103,25 +102,16 @@ export function LessonQuizPanel({
       setResult(payload);
       setPhase('result');
 
-      // Toast feedback — confetti removed; lesson completion celebrates via "Tandai Selesai"
-      if (payload.score >= 70) {
-        toast.success('Quiz Lulus! 🎉', {
-          description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
-        });
-      } else {
-        toast(`Quiz Selesai — Skor ${payload.score}%`, {
-          description: `${payload.correct}/${payload.total} benar. Coba lagi untuk meningkatkan skor!`,
-        });
-      }
-
-      // Dispatch rewards event
+      // Gamified toast — lesson completion celebrates via "Tandai Selesai"
       const event = new CustomEvent('gamified-event', {
         detail: {
           type: 'REWARD_EARNED',
-          xpGained: payload.xpReward,
-          pointsGained: payload.pointsReward,
-          title: payload.score >= 70 ? 'Quiz Lulus! 🎉' : 'Quiz Selesai!',
-          description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
+          payload: {
+            xpGained: payload.xpReward,
+            pointsGained: payload.pointsReward,
+            title: payload.score >= 70 ? 'Quiz Lulus! 🎉' : 'Quiz Selesai!',
+            description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
+          },
         },
       });
       window.dispatchEvent(event);

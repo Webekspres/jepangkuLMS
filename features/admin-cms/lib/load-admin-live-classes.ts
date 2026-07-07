@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { LevelJLPT } from '@prisma/client';
+import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
 import { prisma } from '@/lib/prisma';
 
 export type AdminLiveClassRow = {
@@ -13,6 +14,8 @@ export type AdminLiveClassRow = {
   nextSessionAt: string | null;
   maxSlots: number;
   filledSlots: number;
+  activeEnrollments: number;
+  pendingEnrollments: number;
   isPublished: boolean;
 };
 
@@ -36,10 +39,15 @@ export const loadAdminLiveClasses = cache(async function loadAdminLiveClasses():
   });
 
   const now = new Date();
+  const enrollmentCounts = await getEnrollmentCountsByProduct(
+    'LIVE_CLASS',
+    rows.map((row) => row.id),
+  );
 
   return rows.map((row) => {
     const upcoming = row.sessions.find((session) => session.scheduledAt >= now);
     const nextSession = upcoming ?? row.sessions.at(-1) ?? null;
+    const counts = enrollmentCounts[row.id] ?? { active: 0, pending: 0, total: 0 };
     return {
       id: row.id,
       title: row.title,
@@ -50,7 +58,9 @@ export const loadAdminLiveClasses = cache(async function loadAdminLiveClasses():
       sessionCount: row.sessions.length,
       nextSessionAt: nextSession ? nextSession.scheduledAt.toISOString() : null,
       maxSlots: row.maxSlots,
-      filledSlots: row.filledSlots,
+      filledSlots: counts.active,
+      activeEnrollments: counts.active,
+      pendingEnrollments: counts.pending,
       isPublished: row.isPublished,
     };
   });

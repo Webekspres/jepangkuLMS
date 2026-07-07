@@ -53,8 +53,8 @@ export const ABOUT_PILLARS: {
 /** Faktual untuk brand baru — bukan statistik sosial palsu. */
 export const ABOUT_FACTS = [
   { label: 'Peluncuran', value: '2026' },
-  { label: 'Level JLPT', value: 'N5–N1' },
-  { label: 'Fokus Utama', value: 'N5' },
+  { label: 'Level JLPT & CEFR', value: 'N5–N1 & A1–C1' },
+  { label: 'Gamifikasi', value: 'Serius Tapi Seru' },
   { label: 'Ekosistem', value: 'LMS + Portal' },
 ] as const;
 
@@ -66,34 +66,34 @@ export type AboutTeamMember = {
   accent: 'primary' | 'blue' | 'amber' | 'emerald';
 };
 
-/** Tim dari profil perusahaan JepangKu. */
+/** Tim JepangKu LMS. */
 export const ABOUT_TEAM: AboutTeamMember[] = [
   {
-    name: 'Adam Fletcher',
-    role: 'Founder & CEO',
-    bio: 'Pendidik dan praktisi ed-tech dengan pengalaman lebih dari 10 tahun membangun ekosistem digital.',
-    initials: 'AF',
+    name: 'Ian',
+    role: 'Visionary Strategist',
+    bio: 'Japan Enthusiast dengan pengalaman kerja dan bisnis lebih dari 15 tahun.',
+    initials: 'I',
     accent: 'primary',
   },
   {
-    name: 'Ian Renassa',
-    role: 'Head of Curriculum',
-    bio: 'Spesialis kurikulum bahasa asing lulusan Jepang, merancang materi adaptif standar JLPT.',
-    initials: 'IR',
+    name: 'Rengga',
+    role: 'Technology Savvy',
+    bio: 'Pengembang teknologi JepangKu yang berbasis di Osaka, Jepang.',
+    initials: 'R',
     accent: 'blue',
   },
   {
-    name: 'George Wilkins',
-    role: 'Lead Japanese Instructor',
-    bio: 'Pengajar bahasa Jepang bersertifikat internasional dengan fokus pengajaran dasar ke mahir.',
-    initials: 'GW',
+    name: 'Dito',
+    role: 'Operational Expert',
+    bio: 'Kuat dalam project governance dan execution control.',
+    initials: 'D',
     accent: 'amber',
   },
   {
-    name: 'Reza Pratama',
-    role: 'Lead Software Engineer',
-    bio: 'Mengembangkan platform LMS interaktif yang ramah pengguna dengan integrasi gamifikasi penuh.',
-    initials: 'RP',
+    name: 'Sensei Lutfi',
+    role: 'Nihongo Master',
+    bio: 'Pembentuk kurikulum belajar JepangKu Nihongo.',
+    initials: 'SL',
     accent: 'emerald',
   },
 ];

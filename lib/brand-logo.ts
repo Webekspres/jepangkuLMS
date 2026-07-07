@@ -1,3 +1,6 @@
+/** Path logo aktif — beta sementara app masih fase beta. */
+export const BRAND_LOGO_SRC = '/brand/logo-beta.png';
+
 /** Ukuran logo brand — satu sumber untuk navbar, auth, dll. */
 export const BRAND_LOGO = {
   /** Navbar landing & halaman publik */

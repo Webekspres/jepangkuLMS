@@ -21,7 +21,6 @@ import {
     X,
     Zap,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
@@ -415,16 +414,15 @@ export function LessonWorkspace({
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if (result && 'success' in result) {
                 setCompleted(true);
-                toast.success('Pelajaran Selesai! 🎉', {
-                    description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
-                });
                 const event = new CustomEvent('gamified-event', {
                     detail: {
                         type: 'REWARD_EARNED',
-                        xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
-                        pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
-                        title: 'Pelajaran Selesai! 🎉',
-                        description: `Kamu berhasil menyelesaikan pelajaran "${lesson.title}"`,
+                        payload: {
+                            xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
+                            pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
+                            title: 'Pelajaran Selesai! 🎉',
+                            description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
+                        },
                     },
                 });
                 window.dispatchEvent(event);
@@ -450,11 +448,13 @@ export function LessonWorkspace({
                     const event = new CustomEvent('gamified-event', {
                       detail: {
                         type: 'REWARD_EARNED',
-                        xpGained: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
-                        pointsGained: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
-                        title: 'Materi Dijelajahi!',
-                        description: `Kamu menjelajahi flashcard pelajaran "${lesson.title}"`,
-                      }
+                        payload: {
+                          xpGained: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
+                          pointsGained: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
+                          title: 'Materi Dijelajahi!',
+                          description: `Kamu menjelajahi flashcard "${lesson.title}"`,
+                        },
+                      },
                     });
                     window.dispatchEvent(event);
                     requestStudentCoreDataRefresh();
