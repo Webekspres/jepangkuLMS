@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { Prisma } from '@prisma/client';
+import { Prisma, type LessonType } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { ensureUniqueLessonSlug, resolveSlugInput } from '@/lib/lms/slug';
@@ -22,6 +22,7 @@ function parseLessonCreateForm(formData: FormData) {
     moduleId: formData.get('moduleId'),
     courseId: formData.get('courseId'),
     title: formData.get('title'),
+    lessonType: formData.get('lessonType') || null,
     slug: formData.get('slug') ?? '',
     order: orderRaw === null || orderRaw === '' ? undefined : orderRaw,
     content: formData.get('content') ?? '',
@@ -34,10 +35,40 @@ function parseLessonUpdateForm(formData: FormData) {
     moduleId: formData.get('moduleId'),
     courseId: formData.get('courseId'),
     title: formData.get('title'),
+    lessonType: formData.get('lessonType') || null,
     slug: formData.get('slug'),
     content: formData.get('content') ?? '',
     videoUrl: formData.get('videoUrl') ?? '',
   });
+}
+
+function normalizeLessonTypeForPersistence(
+  lessonType: LessonType | null | undefined,
+): LessonType | null {
+  return lessonType ?? null;
+}
+
+function sanitizeLessonContentByType(input: {
+  lessonType: LessonType | null;
+  content?: string | null;
+  videoUrl?: string | null;
+}) {
+  const content = input.content || '';
+  const videoUrl = input.videoUrl || '';
+
+  if (input.lessonType === 'VIDEO') {
+    return { content: content || null, videoUrl: videoUrl || null };
+  }
+
+  if (input.lessonType === 'TEXT') {
+    return { content: content || null, videoUrl: null };
+  }
+
+  if (input.lessonType === 'FLASHCARD' || input.lessonType === 'QUIZ') {
+    return { content: null, videoUrl: null };
+  }
+
+  return { content: content || null, videoUrl: videoUrl || null };
 }
 
 function revalidateLessonPaths(courseId: string, moduleId: string, lessonId?: string) {
@@ -59,6 +90,12 @@ export async function createLessonAction(formData: FormData): Promise<CmsActionR
   const order = data.order ?? (await getNextLessonOrder(data.moduleId));
   const base = resolveSlugInput(data.slug, title, 'pelajaran', order);
   const slug = await ensureUniqueLessonSlug(prisma, base);
+  const lessonType = normalizeLessonTypeForPersistence(data.lessonType);
+  const sanitizedContent = sanitizeLessonContentByType({
+    lessonType,
+    content: data.content,
+    videoUrl: data.videoUrl,
+  });
 
   try {
     const lesson = await prisma.lesson.create({
@@ -67,8 +104,9 @@ export async function createLessonAction(formData: FormData): Promise<CmsActionR
         title,
         slug,
         order,
-        content: data.content || null,
-        videoUrl: data.videoUrl || null,
+        lessonType,
+        content: sanitizedContent.content,
+        videoUrl: sanitizedContent.videoUrl,
       },
     });
     revalidateLessonPaths(data.courseId, data.moduleId, lesson.id);
@@ -95,6 +133,12 @@ export async function updateLessonAction(
 
   const data = parsed.data;
   const title = sanitizeCurriculumTitle(data.title);
+  const lessonType = normalizeLessonTypeForPersistence(data.lessonType);
+  const sanitizedContent = sanitizeLessonContentByType({
+    lessonType,
+    content: data.content,
+    videoUrl: data.videoUrl,
+  });
   try {
     await prisma.lesson.update({
       where: { id: lessonId },
@@ -102,8 +146,9 @@ export async function updateLessonAction(
         moduleId: data.moduleId,
         title,
         slug: data.slug,
-        content: data.content || null,
-        videoUrl: data.videoUrl || null,
+        lessonType,
+        content: sanitizedContent.content,
+        videoUrl: sanitizedContent.videoUrl,
       },
     });
     revalidateLessonPaths(data.courseId, data.moduleId, lessonId);

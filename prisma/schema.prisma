@@ -33,6 +33,13 @@ enum EnrollmentType {
     TRYOUT
 }
 
+enum LessonType {
+    VIDEO
+    FLASHCARD
+    QUIZ
+    TEXT
+}
+
 enum EnrollmentLogAction {
     REQUESTED
     APPROVED
@@ -334,13 +341,15 @@ model EnrollmentLog {
 }
 
 model Lesson {
-    id       String  @id @default(uuid())
-    moduleId String
-    title    String
-    slug     String  @unique
-    order    Int
-    content  String? @db.Text
-    videoUrl String?
+    id         String     @id @default(uuid())
+    moduleId   String
+    title      String
+    slug       String     @unique
+    order      Int
+    /// Nullable during migration: null means legacy lesson not yet classified.
+    lessonType LessonType?
+    content    String?    @db.Text
+    videoUrl   String?
 
     module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 

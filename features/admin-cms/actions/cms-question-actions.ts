@@ -6,6 +6,7 @@ import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learni
 import { prisma } from '@/lib/prisma';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 import { assertLessonScope } from '@/features/admin-cms/lib/assert-lesson-scope';
+import { assertLessonAllowsQuizMutation } from '@/features/admin-cms/lib/assert-lesson-type';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { lessonQuestionSchema } from '@/features/admin-cms/lib/validations';
 
@@ -13,6 +14,18 @@ function revalidateLessonContent(courseId: string, moduleId: string, lessonId: s
   revalidateStudentLearningSurfaces({ lessonId });
   revalidatePath(ADMIN_ROUTES.kursusLessonForm(courseId, moduleId));
   revalidatePath(ADMIN_ROUTES.kursusLessons(courseId, moduleId));
+}
+
+async function ensureQuizLesson(lessonId: string): Promise<CmsActionResult | null> {
+  try {
+    await assertLessonAllowsQuizMutation(lessonId);
+    return null;
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Lesson ini tidak menerima soal quiz.',
+    };
+  }
 }
 
 export async function createLessonQuestionAction(
@@ -26,6 +39,8 @@ export async function createLessonQuestionAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureQuizLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const correctCount = data.options.filter((opt) => opt.isCorrect).length;
   if (correctCount !== 1) {
@@ -38,7 +53,8 @@ export async function createLessonQuestionAction(
       type: 'QUIZ',
       questionText: data.questionText,
       explanation: data.explanation || null,
-      xpReward: data.xpReward,
+      // Lesson quiz XP is standardized globally via gamification SSOT.
+      xpReward: 0,
       options: {
         create: data.options.map((opt) => ({
           text: opt.text,
@@ -64,6 +80,8 @@ export async function updateLessonQuestionAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureQuizLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const correctCount = data.options.filter((opt) => opt.isCorrect).length;
   if (correctCount !== 1) {
@@ -82,7 +100,8 @@ export async function updateLessonQuestionAction(
       data: {
         questionText: data.questionText,
         explanation: data.explanation || null,
-        xpReward: data.xpReward,
+        // Legacy field kept in schema, but lesson quiz rewards no longer vary per question.
+        xpReward: 0,
         options: {
           create: data.options.map((opt) => ({
             text: opt.text,
@@ -105,6 +124,8 @@ export async function deleteLessonQuestionAction(
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await assertLessonScope(courseId, moduleId, lessonId);
+  const typeError = await ensureQuizLesson(lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.question.findFirst({
     where: { id: questionId, lessonId },

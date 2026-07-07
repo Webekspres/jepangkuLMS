@@ -8,11 +8,9 @@ import {
   ChevronRight,
   Eye,
   RotateCcw,
-  Shuffle,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { shuffleArray } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
 
 export type FlashcardItem = {
@@ -30,8 +28,6 @@ export type FlashcardItem = {
 
 type FlashcardDeckProps = {
   items: FlashcardItem[];
-  /** Acak urutan kartu saat deck dimuat / di-reset */
-  shuffle?: boolean;
   trackLabel?: string;
   trackColorClass?: string;
   accentColor?: string;
@@ -55,26 +51,15 @@ function renderSubText(sub: string | null | undefined, showFurigana: boolean) {
 
 function FlashcardDeckInner({
   items,
-  shuffle = false,
   trackLabel = 'Flashcard',
   accentColor = '#ec1d24',
-  deckKey,
-  onReshuffle,
-}: FlashcardDeckProps & { deckKey: string; onReshuffle: () => void }) {
+}: FlashcardDeckProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [unknown, setUnknown] = useState<Set<number>>(new Set());
-  const [isShuffled, setIsShuffled] = useState(shuffle);
-  const [shuffleSeed, setShuffleSeed] = useState(0);
   const [showFurigana, setShowFurigana] = useState(true);
-  void deckKey;
-
-  const deck = useMemo(() => {
-    if (!isShuffled) return [...items];
-    void shuffleSeed;
-    return shuffleArray([...items]);
-  }, [isShuffled, items, shuffleSeed]);
+  const deck = useMemo(() => [...items], [items]);
 
   function resetNavState() {
     setIndex(0);
@@ -116,10 +101,6 @@ function FlashcardDeckInner({
 
   function resetDeck() {
     resetNavState();
-    if (isShuffled) {
-      setShuffleSeed((value) => value + 1);
-    }
-    onReshuffle();
   }
 
   return (
@@ -127,20 +108,6 @@ function FlashcardDeckInner({
       {/* Configuration bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 w-full border-b border-border/60 pb-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant={isShuffled ? "default" : "outline"}
-            size="sm"
-            className="h-8 gap-1.5 text-[11px] font-bold rounded-lg"
-            onClick={() => {
-              setIsShuffled((current) => !current);
-              resetNavState();
-            }}
-          >
-            <Shuffle className="size-3.5" />
-            {isShuffled ? 'Urutan Acak' : 'Urutan Asli'}
-          </Button>
-          
           <Button
             type="button"
             variant={showFurigana ? "default" : "outline"}
@@ -438,14 +405,5 @@ function FlashcardDeckInner({
 }
 
 export function FlashcardDeck(props: FlashcardDeckProps) {
-  const itemsKey = props.items.map((item) => `${item.front}:${item.back}`).join('|');
-  const [seed, setSeed] = useState(0);
-  return (
-    <FlashcardDeckInner
-      key={`${itemsKey}:${seed}`}
-      {...props}
-      deckKey={`${itemsKey}:${seed}`}
-      onReshuffle={() => setSeed((value) => value + 1)}
-    />
-  );
+  return <FlashcardDeckInner {...props} />;
 }

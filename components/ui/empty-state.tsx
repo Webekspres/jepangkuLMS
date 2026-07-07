@@ -38,6 +38,7 @@ export function EmptyState({
         alt=""
         width={220}
         height={220}
+        loading="eager"
         aria-hidden
         className="mb-5 h-auto w-32 select-none sm:w-44"
       />

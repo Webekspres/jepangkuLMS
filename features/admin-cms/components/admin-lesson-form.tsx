@@ -2,22 +2,32 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import type { LessonType } from '@prisma/client';
 import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
     createLessonAction,
     updateLessonAction,
 } from '@/features/admin-cms/actions/cms-lesson-actions';
+import { getLessonTypeDefinition } from '@/features/learning/lib/lesson-type-registry';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MarkdownToolbarTextarea } from '@/features/admin-cms/components/markdown-toolbar-textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 type LessonFormValues = {
     title: string;
     slug: string;
+    lessonType: LessonType | '';
     content: string;
     videoUrl: string;
 };
@@ -44,8 +54,11 @@ export function AdminLessonForm({
     const [error, setError] = useState<string | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
     const [values, setValues] = useState<LessonFormValues>(
-        initial ?? { title: '', slug: '', content: '', videoUrl: '' },
+        initial ?? { title: '', slug: '', lessonType: '', content: '', videoUrl: '' },
     );
+    const lessonTypeDef = getLessonTypeDefinition(values.lessonType || null);
+    const showVideoField = lessonTypeDef.allowsVideoField;
+    const showContentField = lessonTypeDef.allowsContentField;
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -56,6 +69,7 @@ export function AdminLessonForm({
         formData.set('courseId', courseId);
         formData.set('moduleId', moduleId);
         formData.set('title', values.title);
+        formData.set('lessonType', values.lessonType);
         if (mode === 'edit') {
             formData.set('slug', values.slug);
         }
@@ -130,6 +144,42 @@ export function AdminLessonForm({
                         ) : null}
 
                         <div className="space-y-2">
+                            <Label htmlFor="lessonType">
+                                Tipe Pelajaran <span className="text-brand-red">*</span>
+                            </Label>
+                            <Select
+                                value={values.lessonType}
+                                onValueChange={(value) => {
+                                    const nextLessonType = value as LessonType;
+                                    const nextTypeDef = getLessonTypeDefinition(nextLessonType);
+                                    setValues((prev) => ({
+                                        ...prev,
+                                        lessonType: nextLessonType,
+                                        videoUrl: nextTypeDef.allowsVideoField ? prev.videoUrl : '',
+                                        content: nextTypeDef.allowsContentField ? prev.content : '',
+                                    }));
+                                }}
+                            >
+                                <SelectTrigger id="lessonType">
+                                    <SelectValue placeholder="Pilih tipe pelajaran" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="VIDEO">Video</SelectItem>
+                                    <SelectItem value="FLASHCARD">Flashcard</SelectItem>
+                                    <SelectItem value="QUIZ">Quiz</SelectItem>
+                                    <SelectItem value="TEXT">Text / Reading</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {fieldErrors.lessonType?.[0] ? (
+                                <p className="text-xs text-destructive">{fieldErrors.lessonType[0]}</p>
+                            ) : null}
+                            <p className="text-xs text-muted-foreground">
+                                Tipe ini menentukan editor utama yang akan dipakai siswa dan admin.
+                            </p>
+                        </div>
+
+                        {showVideoField ? (
+                        <div className="space-y-2">
                             <Label htmlFor="videoUrl">URL Video (opsional)</Label>
                             <Input
                                 id="videoUrl"
@@ -142,9 +192,13 @@ export function AdminLessonForm({
                                 <p className="text-xs text-destructive">{fieldErrors.videoUrl[0]}</p>
                             ) : null}
                         </div>
+                        ) : null}
 
+                        {showContentField ? (
                         <div className="space-y-2">
-                            <Label htmlFor="content">Catatan / intro (opsional)</Label>
+                            <Label htmlFor="content">
+                                {lessonTypeDef.contentFieldLabel} (opsional)
+                            </Label>
                             <MarkdownToolbarTextarea
                                 id="content"
                                 value={values.content}
@@ -153,6 +207,7 @@ export function AdminLessonForm({
                                 placeholder="Penjelasan singkat sebelum siswa mulai belajar..."
                             />
                         </div>
+                        ) : null}
 
                         <div className="flex gap-2 border-t border-border pt-6">
                             <Button type="submit" disabled={isPending}>

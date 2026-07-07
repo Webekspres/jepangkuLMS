@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { LessonType } from '@prisma/client';
 import { ExternalLink, Pencil, Plus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
@@ -20,6 +21,7 @@ import {
   formatLessonDisplayTitle,
   formatModuleDisplayTitle,
 } from '@/features/admin-cms/lib/curriculum-display';
+import { getLessonTypeDefinition } from '@/features/learning/lib/lesson-type-registry';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,7 @@ type LessonRow = {
   title: string;
   slug: string;
   order: number;
+  lessonType: LessonType | null;
   videoUrl: string | null;
   materialCount: number;
   quizCount: number;
@@ -140,6 +143,9 @@ export function AdminLessonsPage({ course, module, lessons }: AdminLessonsPagePr
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
+                    <Badge variant={lesson.lessonType ? 'outline' : 'secondary'} className="text-xs">
+                      {getLessonTypeDefinition(lesson.lessonType).label}
+                    </Badge>
                     {lesson.videoUrl ? (
                       <Badge variant="outline" className="text-xs">
                         Video

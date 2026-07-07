@@ -39,7 +39,6 @@ export function QuizWorkspace({ lesson, questions }: QuizWorkspaceProps) {
       <LessonQuizPanel
         lessonId={lesson.id}
         lessonSlug={lesson.slug}
-        lessonTitle={lesson.title}
         questions={questions}
       />
     </div>

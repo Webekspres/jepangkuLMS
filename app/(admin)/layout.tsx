@@ -29,8 +29,10 @@ export default async function AdminAreaLayout({ children }: { children: React.Re
   }
 
   return (
-    <AdminShell pendingEnrollmentCount={pendingEnrollmentCount} sessionProfile={sessionProfile}>
-      {children}
-    </AdminShell>
+    <div className="fixed inset-0 overflow-hidden">
+      <AdminShell pendingEnrollmentCount={pendingEnrollmentCount} sessionProfile={sessionProfile}>
+        {children}
+      </AdminShell>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
+import type { EnrollmentStatus, LessonType, LevelJLPT } from '@prisma/client';
 import {
   getCachedCoursesWithDbIds,
   getCachedLessonMaterials,
@@ -15,6 +15,11 @@ import {
 } from './course-tree';
 import { mergeCourseDisplay } from './course-display';
 import { type CourseProgress } from './progress';
+import {
+  detectLegacyLessonContentKinds,
+  isLegacyLesson,
+  resolveLessonTypeFromLegacyContent,
+} from './lesson-type';
 
 export type { CourseProgress, ModuleRow };
 
@@ -31,6 +36,8 @@ export type LessonNavItem = {
   title: string;
   order: number;
   isCompleted: boolean;
+  lessonType: LessonType | null;
+  isLegacy: boolean;
   hasQuiz: boolean;
 };
 
@@ -76,6 +83,7 @@ export const getCourseBySlug = cache(async function getCourseBySlug(slug: string
       slug: lesson.slug,
       title: lesson.title,
       order: lesson.order,
+      lessonType: lesson.lessonType ?? null,
       content: lesson.content ?? null,
       videoUrl: lesson.videoUrl ?? null,
       hasQuiz: lesson.hasQuiz ?? false,
@@ -125,7 +133,7 @@ export async function getLessonWorkspace(
     getCachedLessonMaterials(lesson.id),
     prisma.lesson.findUnique({
       where: { id: lesson.id },
-      select: { content: true, videoUrl: true },
+      select: { lessonType: true, content: true, videoUrl: true },
     }),
   ]);
 
@@ -139,6 +147,8 @@ export async function getLessonWorkspace(
     title: l.title,
     order: l.order,
     isCompleted: completedIds.has(l.id),
+    lessonType: l.lessonType ?? null,
+    isLegacy: isLegacyLesson(l.lessonType ?? null),
     hasQuiz: l.hasQuiz ?? false,
   }));
 
@@ -152,6 +162,14 @@ export async function getLessonWorkspace(
           orderBy: { id: 'asc' },
         })
       : [];
+
+  const persistedLessonType = lessonRow?.lessonType ?? lesson.lessonType ?? null;
+  const legacyDetectedTypes = detectLegacyLessonContentKinds({
+    hasVideo: Boolean(lessonRow?.videoUrl?.trim()),
+    hasFlashcard: kanjis.length > 0 || kosakatas.length > 0 || tataBahasas.length > 0,
+    hasQuiz: quizCount > 0,
+    hasText: Boolean(lessonRow?.content?.trim()),
+  });
 
   return {
     accessDenied: false as const,
@@ -167,6 +185,15 @@ export async function getLessonWorkspace(
       slug: lesson.slug,
       title: lesson.title,
       order: lesson.order,
+      lessonType: persistedLessonType,
+      resolvedLessonType: persistedLessonType ?? resolveLessonTypeFromLegacyContent({
+        hasVideo: Boolean(lessonRow?.videoUrl?.trim()),
+        hasFlashcard: kanjis.length > 0 || kosakatas.length > 0 || tataBahasas.length > 0,
+        hasQuiz: quizCount > 0,
+        hasText: Boolean(lessonRow?.content?.trim()),
+      }),
+      isLegacy: isLegacyLesson(persistedLessonType),
+      legacyDetectedTypes,
       content: lessonRow?.content ?? null,
       hasVideo: Boolean(lessonRow?.videoUrl?.trim()),
       isCompleted: completedIds.has(lesson.id),
@@ -196,6 +223,10 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
   });
 
   if (!lesson) return null;
+
+  if (lesson.lessonType && lesson.lessonType !== 'QUIZ') {
+    return { accessDenied: false as const, lesson, questions: [], empty: true as const };
+  }
 
   const course = lesson.module.course;
 
@@ -229,7 +260,6 @@ export async function getLessonQuizBySlug(lessonSlug: string, userId: string) {
       id: q.id,
       questionText: q.questionText,
       explanation: q.explanation,
-      xpReward: q.xpReward,
       options: q.options.map((o) => ({
         id: o.id,
         text: o.text,

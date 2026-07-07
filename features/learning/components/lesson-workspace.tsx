@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { LessonType } from '@prisma/client';
 import {
     BookOpen,
     CheckCircle2,
@@ -24,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { FlashcardDeck } from '@/features/learning/components/flashcard-deck';
 import { SecureLessonVideoPlayer } from '@/features/learning/components/secure-lesson-video-player';
@@ -79,6 +81,10 @@ export type LessonWorkspaceProps = {
         id: string;
         slug: string;
         title: string;
+        lessonType: LessonType | null;
+        resolvedLessonType: LessonType | null;
+        isLegacy: boolean;
+        legacyDetectedTypes: LessonType[];
         content: string | null;
         hasVideo: boolean;
         isCompleted: boolean;
@@ -97,6 +103,7 @@ export type LessonWorkspaceProps = {
 };
 
 type ContentTab = 'video' | 'flashcard' | 'quiz';
+type LessonView = ContentTab | 'text';
 
 type SyllabusGroup = GroupedLesson<LessonNavItem>;
 
@@ -224,6 +231,7 @@ type LessonXpPanelProps = {
     isPending: boolean;
     allContentEngaged: boolean;
     onMarkComplete: () => void;
+    helperText?: string | null;
     compact?: boolean;
 };
 
@@ -233,6 +241,7 @@ function LessonXpPanel({
     isPending,
     allContentEngaged,
     onMarkComplete,
+    helperText,
     compact = false,
 }: LessonXpPanelProps) {
     return (
@@ -274,6 +283,9 @@ function LessonXpPanel({
                         </span>
                     </div>
                 ))}
+                {helperText ? (
+                    <p className="text-xs leading-relaxed text-muted-foreground">{helperText}</p>
+                ) : null}
                 {completed ? (
                     <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
                         <CheckCircle2 className="size-4 shrink-0" />
@@ -326,6 +338,9 @@ export function LessonWorkspace({
     const hasVideo = lesson.hasVideo;
     const hasFlashcard = flashcards.length > 0;
     const hasQuiz = questions.length > 0;
+    const hasText = Boolean(lesson.content?.trim());
+    const isLegacyLesson = lesson.isLegacy;
+    const migratedLessonType = !isLegacyLesson ? lesson.resolvedLessonType : null;
 
     // Intelligent default: pick the first available tab (video → flashcard → quiz),
     // respecting the requested initialTab only when that content actually exists.
@@ -346,31 +361,47 @@ export function LessonWorkspace({
                     ? 'quiz'
                     : firstAvailableTab;
 
-    const [activeTab, setActiveTab] = useState<ContentTab | null>(resolvedInitialTab);
-    const [flashcardVisited, setFlashcardVisited] = useState(resolvedInitialTab === 'flashcard');
-    const [quizPassed, setQuizPassed] = useState(false);
-    const [contentViewed, setContentViewed] = useState(resolvedInitialTab === firstAvailableTab);
+    const resolvedMigratedView: LessonView | null =
+        migratedLessonType === 'VIDEO'
+            ? 'video'
+            : migratedLessonType === 'FLASHCARD'
+                ? 'flashcard'
+                : migratedLessonType === 'QUIZ'
+                    ? 'quiz'
+                    : migratedLessonType === 'TEXT'
+                        ? 'text'
+                        : null;
+    const currentInitialView: LessonView | null = isLegacyLesson ? resolvedInitialTab : resolvedMigratedView;
+
+    const [activeTab, setActiveTab] = useState<ContentTab | null>(
+        isLegacyLesson ? resolvedInitialTab : null,
+    );
+    const [flashcardVisited, setFlashcardVisited] = useState(currentInitialView === 'flashcard');
+    const [quizCompleted, setQuizCompleted] = useState(false);
+    const [contentViewed, setContentViewed] = useState(
+        currentInitialView === 'video' || currentInitialView === 'text',
+    );
 
     // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
         setCompleted(lesson.isCompleted);
-        setActiveTab(resolvedInitialTab);
-        setFlashcardVisited(resolvedInitialTab === 'flashcard');
-        setQuizPassed(false);
-        setContentViewed(resolvedInitialTab === firstAvailableTab);
+        setActiveTab(isLegacyLesson ? resolvedInitialTab : null);
+        setFlashcardVisited(currentInitialView === 'flashcard');
+        setQuizCompleted(false);
+        setContentViewed(currentInitialView === 'video' || currentInitialView === 'text');
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
     }
 
     useEffect(() => {
-        if (resolvedInitialTab === 'flashcard') {
+        if (currentInitialView === 'flashcard') {
             startTransition(async () => {
                 await recordFlashcardVisit(lesson.id);
             });
         }
-    }, [lesson.id, resolvedInitialTab, startTransition]);
+    }, [currentInitialView, lesson.id, startTransition]);
 
     useEffect(() => {
         if (!mobileCurriculumOpen) return;
@@ -400,12 +431,19 @@ export function LessonWorkspace({
 
     // Gate flags — each content type that exists must be engaged before the
     // "Tandai Selesai" button is enabled. Completion itself is explicit (button click).
-    const contentSectionDone = hasVideo || lesson.content ? completed || contentViewed : true;
+    const contentSectionDone = hasVideo || hasText ? completed || contentViewed : true;
     const flashcardSectionDone = hasFlashcard ? flashcardVisited : true;
-    const quizSectionDone = hasQuiz ? quizPassed : true;
-    const hasAnyContent = hasVideo || Boolean(lesson.content) || hasFlashcard || hasQuiz;
-    const allContentEngaged =
-        hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
+    const quizSectionDone = hasQuiz ? quizCompleted : true;
+    const hasAnyContent = hasVideo || hasText || hasFlashcard || hasQuiz;
+    const allContentEngaged = isLegacyLesson
+        ? hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone
+        : migratedLessonType === 'FLASHCARD'
+            ? flashcardSectionDone
+            : migratedLessonType === 'QUIZ'
+                ? quizSectionDone
+                : migratedLessonType === 'VIDEO' || migratedLessonType === 'TEXT'
+                    ? contentSectionDone
+                    : hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
 
     // Explicit mark-complete handler — only called when user clicks the button.
     function handleMarkComplete() {
@@ -426,6 +464,23 @@ export function LessonWorkspace({
                     },
                 });
                 window.dispatchEvent(event);
+                requestStudentCoreDataRefresh();
+                router.refresh();
+            } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
+                setCompleted(true);
+                router.refresh();
+            }
+        });
+    }
+
+    function handleAutoMarkCompleteAfterQuiz() {
+        if (completed || isPending || migratedLessonType !== 'QUIZ') return;
+        startTransition(async () => {
+            const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp, {
+                awardReward: false,
+            });
+            if (result && 'success' in result) {
+                setCompleted(true);
                 requestStudentCoreDataRefresh();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
@@ -466,27 +521,33 @@ export function LessonWorkspace({
 
     // Only reward (and show) content that actually exists in this lesson.
     const xpTasks: LessonXpTask[] = [];
-    if (hasVideo || lesson.content) {
+    if ((isLegacyLesson && (hasVideo || hasText)) || migratedLessonType === 'VIDEO' || migratedLessonType === 'TEXT') {
         xpTasks.push({
-            label: 'Video / materi dibaca',
+            label: migratedLessonType === 'TEXT' ? 'Materi dibaca' : 'Video / materi dibaca',
             xp: REWARDS.LESSON_COMPLETED.xp,
             done: completed || contentViewed,
         });
     }
-    if (hasFlashcard) {
+    if ((isLegacyLesson && hasFlashcard) || migratedLessonType === 'FLASHCARD') {
         xpTasks.push({
             label: 'Flashcard dijelajahi',
             xp: REWARDS.FLASHCARD_EXPLORED.xp,
             done: flashcardVisited,
         });
     }
-    if (hasQuiz) {
+    if ((isLegacyLesson && hasQuiz) || migratedLessonType === 'QUIZ') {
         xpTasks.push({
-            label: 'Quiz lulus 70%+',
+            label: 'Quiz diselesaikan',
             xp: REWARDS.QUIZ_COMPLETED.xp,
-            done: quizPassed,
+            done: quizCompleted,
         });
     }
+    const xpPanelHelperText =
+        ((isLegacyLesson && hasQuiz) || migratedLessonType === 'QUIZ') && !completed
+            ? migratedLessonType === 'QUIZ'
+                ? `XP quiz diberikan otomatis saat jawaban dikirim. Setelah quiz selesai dikirim, pelajaran akan otomatis ditandai selesai. Skor sempurna mendapat bonus +${REWARDS.QUIZ_PERFECT_SCORE.xp} XP.`
+                : `XP quiz diberikan otomatis saat jawaban dikirim. Setelah semua bagian pelajaran selesai dijelajahi, kamu bisa menandai pelajaran ini selesai. Skor sempurna mendapat bonus +${REWARDS.QUIZ_PERFECT_SCORE.xp} XP.`
+            : null;
 
     type TabDef = { id: ContentTab; label: string; icon: typeof Play };
     const availableTabs = (
@@ -505,7 +566,7 @@ export function LessonWorkspace({
                 : 'grid-cols-1';
 
     const contentTabs =
-        availableTabs.length > 0 ? (
+        isLegacyLesson && availableTabs.length > 0 ? (
             <div
                 className={cn(
                     'grid gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5',
@@ -574,6 +635,21 @@ export function LessonWorkspace({
                             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{course.title}</p>
                         </div>
                         {contentTabs}
+                        {isLegacyLesson && lesson.legacyDetectedTypes.length > 1 ? (
+                            <Badge variant="secondary" className="w-fit">
+                                Legacy multi-content lesson
+                            </Badge>
+                        ) : null}
+                        {isLegacyLesson && lesson.legacyDetectedTypes.length > 1 ? (
+                            <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+                                <AlertTitle>Lesson ini masih format lama</AlertTitle>
+                                <AlertDescription>
+                                    Kontennya masih gabungan {lesson.legacyDetectedTypes.join(', ')}.
+                                    Selama masa migrasi, tampilan tab lama tetap dipakai agar materi lama tetap
+                                    bisa diakses.
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
                     </div>
 
                     {lesson.slug === 'tryout-n5-placement' && (
@@ -592,17 +668,17 @@ export function LessonWorkspace({
                     )}
 
                     {/* ── Priority 1 (TOP): Dynamic content area — active tab content ── */}
-                    {hasVideo && (
-                        <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
+                    {(migratedLessonType === 'VIDEO' || (isLegacyLesson && hasVideo)) && (
+                        <div className={cn('w-full', isLegacyLesson && activeTab !== 'video' && 'hidden')}>
                             <SecureLessonVideoPlayer
                                 lessonId={lesson.id}
                                 title={lesson.title}
-                                isActive={activeTab === 'video'}
+                                isActive={!isLegacyLesson || activeTab === 'video'}
                             />
                         </div>
                     )}
 
-                    {activeTab === 'flashcard' && (
+                    {(migratedLessonType === 'FLASHCARD' || activeTab === 'flashcard') && (
                         <Card className="border-border/80 shadow-sm">
                             <CardContent className="p-4 sm:p-6 md:p-8">
                                 <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
@@ -618,7 +694,7 @@ export function LessonWorkspace({
                         </Card>
                     )}
 
-                    {activeTab === 'quiz' && (
+                    {(migratedLessonType === 'QUIZ' || activeTab === 'quiz') && (
                         <Card className="border-border/80 shadow-sm">
                             <CardContent className="p-4 sm:p-6 md:p-8">
                                 <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
@@ -633,10 +709,10 @@ export function LessonWorkspace({
                                     <LessonQuizPanel
                                         lessonId={lesson.id}
                                         lessonSlug={lesson.slug}
-                                        lessonTitle={lesson.title}
                                         questions={questions}
-                                        onSubmitted={(score) => {
-                                            if (score >= 70) setQuizPassed(true);
+                                        onSubmitted={() => {
+                                            setQuizCompleted(true);
+                                            handleAutoMarkCompleteAfterQuiz();
                                         }}
                                     />
                                 ) : (
@@ -652,7 +728,9 @@ export function LessonWorkspace({
                     )}
 
                     {/* ── Priority 2 (MIDDLE): Lesson header & description ── */}
-                    {activeTab === firstAvailableTab && (
+                    {((isLegacyLesson && activeTab === firstAvailableTab) ||
+                        migratedLessonType === 'VIDEO' ||
+                        migratedLessonType === 'TEXT') && (
                         <div className="space-y-3 sm:space-y-4">
                             <Card className="border-border/80 shadow-sm">
                                 <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5 md:p-6">
@@ -667,7 +745,7 @@ export function LessonWorkspace({
                                             </ReactMarkdown>
                                         </div>
                                     )}
-                                    {(hasFlashcard || hasQuiz) && (
+                                    {isLegacyLesson && (hasFlashcard || hasQuiz) && (
                                         <div className="hidden flex-wrap gap-2 sm:flex">
                                             {hasFlashcard && (
                                                 <Button
@@ -697,6 +775,7 @@ export function LessonWorkspace({
                                     isPending={isPending}
                                     allContentEngaged={allContentEngaged}
                                     onMarkComplete={handleMarkComplete}
+                                    helperText={xpPanelHelperText}
                                     compact
                                 />
                             </div>
@@ -740,7 +819,9 @@ export function LessonWorkspace({
                     </div>
 
                     {/* ── Priority 3 (BOTTOM): Q&A / discussion ── */}
-                    {activeTab === firstAvailableTab && (
+                    {((isLegacyLesson && activeTab === firstAvailableTab) ||
+                        migratedLessonType === 'VIDEO' ||
+                        migratedLessonType === 'TEXT') && (
                         <LessonQaSection
                             lessonId={lesson.id}
                             lessonTitle={lesson.title}
@@ -767,6 +848,7 @@ export function LessonWorkspace({
                         isPending={isPending}
                         allContentEngaged={allContentEngaged}
                         onMarkComplete={handleMarkComplete}
+                        helperText={xpPanelHelperText}
                     />
                 </aside>
             </div>

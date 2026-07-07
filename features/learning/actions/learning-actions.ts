@@ -132,8 +132,12 @@ export async function enrollInCourse(courseSlug: string) {
 export async function markLessonComplete(
   lessonId: string,
   xpReward = GAMIFICATION_REWARDS.LESSON_COMPLETED.xp,
+  options?: {
+    awardReward?: boolean;
+  },
 ) {
   const userId = await requireUserId();
+  const shouldAwardReward = options?.awardReward ?? true;
 
   const existing = await prisma.userProgress.findUnique({
     where: { userId_lessonId: { userId, lessonId } },
@@ -154,16 +158,18 @@ export async function markLessonComplete(
     where: { userId, isCompleted: true },
   });
 
-  await awardLmsActivity({
-    userId,
-    amount: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
-    xpAmount: xpReward,
-    coreKind: 'lesson_complete',
-    pointsSourceKey: lmsLessonCompleteSourceKey(lessonId, userId),
-    pointsSourceType: 'LESSON_COMPLETE',
-    sourceId: lessonId,
-    idempotencyKey: buildLmsIdempotencyKey('lesson_complete', userId, lessonId),
-  });
+  if (shouldAwardReward) {
+    await awardLmsActivity({
+      userId,
+      amount: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
+      xpAmount: xpReward,
+      coreKind: 'lesson_complete',
+      pointsSourceKey: lmsLessonCompleteSourceKey(lessonId, userId),
+      pointsSourceType: 'LESSON_COMPLETE',
+      sourceId: lessonId,
+      idempotencyKey: buildLmsIdempotencyKey('lesson_complete', userId, lessonId),
+    });
+  }
 
   if (completedCount === 1) {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_LESSON' });
@@ -181,11 +187,11 @@ export async function markLessonComplete(
   revalidatePath('/dashboard/profil');
   revalidatePath('/dashboard/pencapaian');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
-  learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
+  learningLog.info({ userId, lessonId, xpReward, shouldAwardReward }, 'Lesson marked complete');
   return {
     success: true as const,
-    xpReward,
-    pointsReward: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
+    xpReward: shouldAwardReward ? xpReward : 0,
+    pointsReward: shouldAwardReward ? GAMIFICATION_REWARDS.LESSON_COMPLETED.points : 0,
   };
 }
 

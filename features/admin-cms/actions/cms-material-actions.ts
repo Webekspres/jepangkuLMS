@@ -6,6 +6,7 @@ import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learni
 import { prisma } from '@/lib/prisma';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 import { assertLessonScope } from '@/features/admin-cms/lib/assert-lesson-scope';
+import { assertLessonAllowsFlashcardMutation } from '@/features/admin-cms/lib/assert-lesson-type';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import {
   kanjiMaterialSchema,
@@ -19,6 +20,18 @@ function revalidateLessonContent(courseId: string, moduleId: string, lessonId: s
   revalidatePath(ADMIN_ROUTES.kursusLessons(courseId, moduleId));
 }
 
+async function ensureFlashcardLesson(lessonId: string): Promise<CmsActionResult | null> {
+  try {
+    await assertLessonAllowsFlashcardMutation(lessonId);
+    return null;
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Lesson ini tidak menerima materi flashcard.',
+    };
+  }
+}
+
 export async function createKosakataMaterialAction(
   input: unknown,
 ): Promise<CmsActionResult & { id?: string }> {
@@ -30,6 +43,8 @@ export async function createKosakataMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const row = await prisma.materialKosakata.create({
     data: {
@@ -58,6 +73,8 @@ export async function updateKosakataMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialKosakata.findFirst({
     where: { id: materialId, lessonId: data.lessonId },
@@ -87,6 +104,8 @@ export async function deleteKosakataMaterialAction(
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await assertLessonScope(courseId, moduleId, lessonId);
+  const typeError = await ensureFlashcardLesson(lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialKosakata.findFirst({
     where: { id: materialId, lessonId },
@@ -109,6 +128,8 @@ export async function createKanjiMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const row = await prisma.materialKanji.create({
     data: {
@@ -138,6 +159,8 @@ export async function updateKanjiMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialKanji.findFirst({
     where: { id: materialId, lessonId: data.lessonId },
@@ -168,6 +191,8 @@ export async function deleteKanjiMaterialAction(
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await assertLessonScope(courseId, moduleId, lessonId);
+  const typeError = await ensureFlashcardLesson(lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialKanji.findFirst({
     where: { id: materialId, lessonId },
@@ -190,6 +215,8 @@ export async function createTataBahasaMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const row = await prisma.materialTataBahasa.create({
     data: {
@@ -216,6 +243,8 @@ export async function updateTataBahasaMaterialAction(
 
   const data = parsed.data;
   await assertLessonScope(data.courseId, data.moduleId, data.lessonId);
+  const typeError = await ensureFlashcardLesson(data.lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialTataBahasa.findFirst({
     where: { id: materialId, lessonId: data.lessonId },
@@ -243,6 +272,8 @@ export async function deleteTataBahasaMaterialAction(
 ): Promise<CmsActionResult> {
   await requireAdminAction();
   await assertLessonScope(courseId, moduleId, lessonId);
+  const typeError = await ensureFlashcardLesson(lessonId);
+  if (typeError) return typeError;
 
   const existing = await prisma.materialTataBahasa.findFirst({
     where: { id: materialId, lessonId },

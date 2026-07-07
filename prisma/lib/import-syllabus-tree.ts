@@ -210,7 +210,8 @@ export async function importCourseSyllabusTree(
               type: 'QUIZ',
               questionText: q.questionText,
               explanation: q.explanation ?? null,
-              xpReward: q.xpReward,
+              // Lesson quiz XP follows the gamification reward SSOT, not per-question config.
+              xpReward: 0,
               options: {
                 create: q.options.map((opt) => ({
                   text: opt.text,

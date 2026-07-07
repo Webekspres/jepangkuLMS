@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { submitQuizAnswers } from '@/features/learning/actions/learning-actions';
+import { GAMIFICATION_REWARDS } from '@/features/student/lib/gamification-rewards';
 import {
   selectCurrentQuestionId,
   useQuizStore,
@@ -33,7 +34,6 @@ export type LessonQuizQuestion = {
 type LessonQuizPanelProps = {
   lessonId: string;
   lessonSlug: string;
-  lessonTitle: string;
   questions: LessonQuizQuestion[];
   onSubmitted?: (score: number) => void;
 };
@@ -47,9 +47,7 @@ export function LessonQuizPanel({
   onSubmitted,
 }: LessonQuizPanelProps) {
   const [phase, setPhase] = useState<QuizPhase>('questions');
-  const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(
-    null,
-  );
+  const [result, setResult] = useState<Awaited<ReturnType<typeof submitQuizAnswers>> | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -167,6 +165,12 @@ export function LessonQuizPanel({
             ({result.correct}/{result.total} benar)
           </span>
         </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Reward diterima:
+          <span className="ml-1 font-semibold text-foreground">+{result.xpReward} XP</span>
+          <span className="mx-1 text-muted-foreground">dan</span>
+          <span className="font-semibold text-foreground">+{result.pointsReward} poin</span>
+        </p>
         <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {questionIds.map((qId, i) => (
             <div
@@ -194,9 +198,13 @@ export function LessonQuizPanel({
           Soal {currentIndex + 1} dari {questionIds.length}
         </span>
         <Badge variant="secondary" className="gap-1">
-          +50 XP per benar
+          +{GAMIFICATION_REWARDS.QUIZ_COMPLETED.xp} XP selesai
         </Badge>
       </div>
+      <p className="text-sm text-muted-foreground">
+        XP quiz mengikuti standar JepangKu dan diberikan otomatis saat kamu mengirim jawaban.
+        Skor sempurna mendapat bonus +{GAMIFICATION_REWARDS.QUIZ_PERFECT_SCORE.xp} XP.
+      </p>
 
       <Progress
         value={progressPercent}
