@@ -32,8 +32,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { AdminUserPicker } from '@/features/admin-cms/components/admin-user-picker';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/components/ui/tabs';
 import {
   Select,
@@ -204,64 +205,91 @@ export function AdminEnrollmentsPage({
           </p>
           <p className="mt-1 text-2xl font-bold text-amber-600">{pendingCount}</p>
         </Card>
-        <Card className="p-4 md:col-span-2">
-          <p className="mb-3 text-sm font-semibold text-foreground">Aktifkan enrollment manual</p>
-          <form onSubmit={handleGrant} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="flex-1 space-y-2 sm:min-w-[180px]">
-              <Label htmlFor="grant-user-id">Clerk User ID</Label>
-              <Input
-                id="grant-user-id"
-                value={grantUserId}
-                onChange={(event) => setGrantUserId(event.target.value)}
-                placeholder="user_..."
-                required
-              />
+        <Card className="p-5 md:col-span-2">
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-foreground">Aktifkan enrollment manual</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Berikan akses program langsung ke siswa — status langsung aktif.
+            </p>
+          </div>
+
+          <form onSubmit={handleGrant} className="space-y-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
+              <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-5">
+                <Label htmlFor="grant-student-picker">Siswa</Label>
+                <AdminUserPicker
+                  id="grant-student-picker"
+                  value={grantUserId}
+                  onValueChange={setGrantUserId}
+                  disabled={isPending}
+                  required
+                  showHint={false}
+                  hideLabel
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 xl:col-span-2">
+                <Label htmlFor="grant-product-type">Tipe produk</Label>
+                <Select
+                  value={grantType}
+                  onValueChange={(value) => handleTypeChange(value as EnrollmentProductType)}
+                >
+                  <SelectTrigger id="grant-product-type" className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="COURSE">Kursus</SelectItem>
+                    <SelectItem value="LIVE_CLASS">Live Class</SelectItem>
+                    <SelectItem value="TRYOUT">JLPT Tryout</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-3">
+                <Label htmlFor="grant-product-id">{PRODUCT_TYPE_LABEL[grantType]}</Label>
+                <Select
+                  value={grantProductId}
+                  onValueChange={setGrantProductId}
+                  disabled={productOptions.length === 0}
+                >
+                  <SelectTrigger id="grant-product-id" className="h-10 w-full">
+                    <SelectValue
+                      placeholder={
+                        productOptions.length === 0
+                          ? `Belum ada ${PRODUCT_TYPE_LABEL[grantType].toLowerCase()}`
+                          : 'Pilih program'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2 md:col-span-2 xl:col-span-2">
+                <Label className="invisible select-none" aria-hidden>
+                  Aktifkan
+                </Label>
+                <Button
+                  type="submit"
+                  disabled={isPending || !grantProductId || !grantUserId}
+                  className="h-10 w-full gap-2"
+                >
+                  <UserPlus className="size-4" />
+                  Aktifkan
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2 sm:w-40">
-              <Label>Tipe Produk</Label>
-              <Select
-                value={grantType}
-                onValueChange={(value) => handleTypeChange(value as EnrollmentProductType)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="COURSE">Kursus</SelectItem>
-                  <SelectItem value="LIVE_CLASS">Live Class</SelectItem>
-                  <SelectItem value="TRYOUT">JLPT Tryout</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 space-y-2 sm:min-w-[180px]">
-              <Label>{PRODUCT_TYPE_LABEL[grantType]}</Label>
-              <Select
-                value={grantProductId}
-                onValueChange={setGrantProductId}
-                disabled={productOptions.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      productOptions.length === 0
-                        ? `Belum ada ${PRODUCT_TYPE_LABEL[grantType].toLowerCase()}`
-                        : 'Pilih item'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {productOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={isPending || !grantProductId} className="gap-2">
-              <UserPlus className="size-4" />
-              Aktifkan
-            </Button>
+
+            <p className="text-[11px] text-muted-foreground">
+              Cari siswa by nama tampilan atau SSO (min. 2 karakter), atau tempel Clerk ID langsung (
+              <code className="rounded bg-muted px-1">user_…</code>).
+            </p>
           </form>
         </Card>
       </div>

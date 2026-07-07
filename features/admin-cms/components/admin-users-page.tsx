@@ -41,6 +41,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
         user.id.toLowerCase().includes(q) ||
         (user.resolvedDisplayName ?? '').toLowerCase().includes(q) ||
         (user.displayName ?? '').toLowerCase().includes(q) ||
+        (user.ssoDisplayName ?? '').toLowerCase().includes(q) ||
         user.role.toLowerCase().includes(q),
     );
   }, [users, query]);
@@ -85,7 +86,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari nama, Clerk ID, atau role..."
+            placeholder="Cari nama, SSO, Clerk ID, atau role..."
             className="pl-9"
           />
         </div>
