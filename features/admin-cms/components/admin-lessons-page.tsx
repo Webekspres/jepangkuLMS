@@ -3,10 +3,15 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, Plus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminSortableTableRoot, AdminSortableTableRows } from '@/features/admin-cms/components/admin-sortable-table';
+import {
+  AdminTableAction,
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   deleteLessonAction,
   reorderLessonsAction,
@@ -156,31 +161,23 @@ export function AdminLessonsPage({ course, module, lessons }: AdminLessonsPagePr
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        href={`/dashboard/belajar/${course.slug}/${lesson.slug}`}
-                        target="_blank"
-                      >
-                        <ExternalLink className="size-3.5" />
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        href={`${ADMIN_ROUTES.kursusLessonForm(course.id, module.id)}?id=${lesson.id}`}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Link>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
+                  <AdminTableActions>
+                    <AdminTableAction
+                      label="Pratinjau pelajaran"
+                      icon={ExternalLink}
+                      href={`/dashboard/belajar/${course.slug}/${lesson.slug}`}
+                      external
+                    />
+                    <AdminTableAction
+                      label="Edit pelajaran"
+                      icon={Pencil}
+                      href={`${ADMIN_ROUTES.kursusLessonForm(course.id, module.id)}?id=${lesson.id}`}
+                    />
+                    <AdminTableActionDelete
+                      label="Hapus pelajaran"
                       onClick={() => setDeleteId(lesson.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                    />
+                  </AdminTableActions>
                 </TableCell>
               </>
             )}

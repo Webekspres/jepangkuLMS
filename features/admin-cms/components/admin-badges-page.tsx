@@ -4,10 +4,15 @@ import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Award, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Award, Pencil, Plus, Search } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+    AdminTableAction,
+    AdminTableActionDelete,
+    AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import { deleteBadgeAction } from '@/features/admin-cms/actions/cms-badge-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminBadgeRow } from '@/features/admin-cms/lib/load-admin-badges';
@@ -184,21 +189,17 @@ export function AdminBadgesPage({
                                     <TableCell className="tabular-nums">{badge.unlockCount}</TableCell>
                                     <TableCell className="tabular-nums">{badge.sortOrder}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="icon" className="size-8">
-                                                <Link href={ADMIN_ROUTES.badgesFormEdit(badge.id)}>
-                                                    <Pencil className="size-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="size-8 text-destructive"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit badge"
+                                                icon={Pencil}
+                                                href={ADMIN_ROUTES.badgesFormEdit(badge.id)}
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus badge"
                                                 onClick={() => setDeleteId(badge.id)}
-                                            >
-                                                <Trash2 className="size-4" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))

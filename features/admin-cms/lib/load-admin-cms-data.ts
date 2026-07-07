@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
 import { prisma } from '@/lib/prisma';
 
 export type AdminCourseRow = {
@@ -9,6 +10,8 @@ export type AdminCourseRow = {
   isPublished: boolean;
   moduleCount: number;
   lessonCount: number;
+  activeEnrollments: number;
+  pendingEnrollments: number;
   createdAt: Date;
 };
 
@@ -24,6 +27,11 @@ export const loadAdminCourses = cache(async function loadAdminCourses(): Promise
     },
   });
 
+  const enrollmentCounts = await getEnrollmentCountsByProduct(
+    'COURSE',
+    courses.map((course) => course.id),
+  );
+
   return courses.map((course) => ({
     id: course.id,
     title: course.title,
@@ -32,6 +40,8 @@ export const loadAdminCourses = cache(async function loadAdminCourses(): Promise
     isPublished: course.isPublished,
     moduleCount: course.modules.length,
     lessonCount: course.modules.reduce((sum, mod) => sum + mod._count.lessons, 0),
+    activeEnrollments: enrollmentCounts[course.id]?.active ?? 0,
+    pendingEnrollments: enrollmentCounts[course.id]?.pending ?? 0,
     createdAt: course.createdAt,
   }));
 });

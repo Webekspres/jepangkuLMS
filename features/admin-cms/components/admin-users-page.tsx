@@ -1,15 +1,14 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { Eye, Search, Users } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import { AdminTableAction, AdminTableActions } from '@/features/admin-cms/components/admin-table-actions';
 import { updateUserRoleAction } from '@/features/admin-cms/actions/cms-user-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminUserRow } from '@/features/admin-cms/lib/load-admin-users';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -133,7 +132,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                         handleRoleChange(user.id, value as 'LMS_STUDENT' | 'LMS_ADMIN')
                       }
                     >
-                      <SelectTrigger className="w-[10rem]">
+                      <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -143,12 +142,14 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                     </Select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={ADMIN_ROUTES.userDetail(user.id)}>
-                        <Eye className="size-3.5" />
-                        Detail
-                      </Link>
-                    </Button>
+                    <AdminTableActions>
+                      <AdminTableAction
+                        label="Detail pengguna"
+                        icon={Eye}
+                        href={ADMIN_ROUTES.userDetail(user.id)}
+                        showLabel
+                      />
+                    </AdminTableActions>
                   </TableCell>
                 </TableRow>
               ))

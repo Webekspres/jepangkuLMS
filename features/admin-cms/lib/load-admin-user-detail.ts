@@ -3,7 +3,7 @@ import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
-export type AdminUserEnrollmentRow = {
+export type AdminUserCourseEnrollmentRow = {
   id: string;
   status: EnrollmentStatus;
   createdAt: Date;
@@ -15,6 +15,31 @@ export type AdminUserEnrollmentRow = {
   completedLessons: number;
   totalLessons: number;
 };
+
+export type AdminUserLiveClassEnrollmentRow = {
+  id: string;
+  status: EnrollmentStatus;
+  createdAt: Date;
+  liveClassId: string;
+  title: string;
+  senseiName: string;
+  level: LevelJLPT;
+  priceIdr: number;
+};
+
+export type AdminUserTryoutEnrollmentRow = {
+  id: string;
+  status: EnrollmentStatus;
+  createdAt: Date;
+  tryoutSessionId: string;
+  title: string;
+  code: string;
+  phaseLabel: string;
+  level: LevelJLPT;
+  priceIdr: number;
+};
+
+export type AdminGrantProductOption = { id: string; title: string };
 
 export type AdminUserDetail = {
   id: string;
@@ -31,9 +56,28 @@ export type AdminUserDetail = {
   quizAttempts: number;
   enrollmentCount: number;
   activeEnrollmentCount: number;
-  enrollments: AdminUserEnrollmentRow[];
+  courseEnrollments: AdminUserCourseEnrollmentRow[];
+  liveClassEnrollments: AdminUserLiveClassEnrollmentRow[];
+  tryoutEnrollments: AdminUserTryoutEnrollmentRow[];
 };
 
+export async function loadAdminGrantProductOptions(): Promise<{
+  courses: AdminGrantProductOption[];
+  liveClasses: AdminGrantProductOption[];
+  tryoutSessions: AdminGrantProductOption[];
+}> {
+  const [courses, liveClasses, tryoutSessions] = await Promise.all([
+    prisma.course.findMany({ orderBy: { title: 'asc' }, select: { id: true, title: true } }),
+    prisma.liveClass.findMany({ orderBy: { title: 'asc' }, select: { id: true, title: true } }),
+    prisma.tryoutSession.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, title: true },
+    }),
+  ]);
+  return { courses, liveClasses, tryoutSessions };
+}
+
+/** @deprecated Use loadAdminGrantProductOptions */
 export async function loadAdminCourseOptions(): Promise<
   { id: string; title: string; slug: string }[]
 > {
@@ -53,7 +97,6 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
       equippedBadge: { select: { title: true } },
       progress: { where: { isCompleted: true }, select: { lessonId: true } },
       enrollments: {
-        where: { type: 'COURSE' },
         orderBy: { createdAt: 'desc' },
         include: {
           course: {
@@ -66,6 +109,19 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
               modules: { select: { lessons: { select: { id: true } } } },
             },
           },
+          liveClass: {
+            select: { id: true, title: true, senseiName: true, level: true, priceIdr: true },
+          },
+          tryoutSession: {
+            select: {
+              id: true,
+              title: true,
+              code: true,
+              phaseLabel: true,
+              level: true,
+              priceIdr: true,
+            },
+          },
         },
       },
       _count: { select: { badges: true, attempts: true, enrollments: true } },
@@ -76,15 +132,17 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
 
   const completedLessonIds = new Set(user.progress.map((row) => row.lessonId));
 
-  const enrollments: AdminUserEnrollmentRow[] = user.enrollments
-    .filter((row) => row.course !== null)
-    .map((row) => {
-      const course = row.course!;
+  const courseEnrollments: AdminUserCourseEnrollmentRow[] = [];
+  const liveClassEnrollments: AdminUserLiveClassEnrollmentRow[] = [];
+  const tryoutEnrollments: AdminUserTryoutEnrollmentRow[] = [];
+
+  for (const row of user.enrollments) {
+    if (row.type === 'COURSE' && row.course) {
+      const course = row.course;
       const lessonIds = course.modules.flatMap((mod) => mod.lessons.map((lesson) => lesson.id));
       const totalLessons = lessonIds.length;
       const completedLessons = lessonIds.filter((id) => completedLessonIds.has(id)).length;
-
-      return {
+      courseEnrollments.push({
         id: row.id,
         status: row.status,
         createdAt: row.createdAt,
@@ -95,8 +153,34 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
         priceIdr: course.priceIdr,
         completedLessons,
         totalLessons,
-      };
-    });
+      });
+    } else if (row.type === 'LIVE_CLASS' && row.liveClass) {
+      liveClassEnrollments.push({
+        id: row.id,
+        status: row.status,
+        createdAt: row.createdAt,
+        liveClassId: row.liveClass.id,
+        title: row.liveClass.title,
+        senseiName: row.liveClass.senseiName,
+        level: row.liveClass.level,
+        priceIdr: row.liveClass.priceIdr,
+      });
+    } else if (row.type === 'TRYOUT' && row.tryoutSession) {
+      tryoutEnrollments.push({
+        id: row.id,
+        status: row.status,
+        createdAt: row.createdAt,
+        tryoutSessionId: row.tryoutSession.id,
+        title: row.tryoutSession.title,
+        code: row.tryoutSession.code,
+        phaseLabel: row.tryoutSession.phaseLabel,
+        level: row.tryoutSession.level,
+        priceIdr: row.tryoutSession.priceIdr,
+      });
+    }
+  }
+
+  const allEnrollments = [...courseEnrollments, ...liveClassEnrollments, ...tryoutEnrollments];
 
   return {
     id: user.id,
@@ -115,7 +199,9 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
     completedLessonsTotal: user.progress.length,
     quizAttempts: user._count.attempts,
     enrollmentCount: user._count.enrollments,
-    activeEnrollmentCount: enrollments.filter((row) => row.status === 'ACTIVE').length,
-    enrollments,
+    activeEnrollmentCount: allEnrollments.filter((row) => row.status === 'ACTIVE').length,
+    courseEnrollments,
+    liveClassEnrollments,
+    tryoutEnrollments,
   };
 });

@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Eye, Search, Trash2, UserPlus } from 'lucide-react';
+import { Check, Clock, Eye, History, Search, UserPlus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   approveEnrollmentAction,
   grantEnrollmentAction,
@@ -17,6 +21,11 @@ import type {
   AdminEnrollmentProductOption,
   AdminEnrollmentRow,
 } from '@/features/admin-cms/lib/load-admin-enrollments';
+import type { AdminEnrollmentHistoryRow } from '@/features/admin-cms/lib/load-admin-enrollment-history';
+import {
+  ENROLLMENT_LOG_ACTION_BADGE,
+  ENROLLMENT_LOG_ACTION_LABEL,
+} from '@/features/admin-cms/lib/enrollment-log-labels';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { formatIdr } from '@/lib/lms/format-price';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +34,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -45,6 +55,7 @@ type EnrollmentProductType = 'COURSE' | 'LIVE_CLASS' | 'TRYOUT';
 
 type AdminEnrollmentsPageProps = {
   enrollments: AdminEnrollmentRow[];
+  history: AdminEnrollmentHistoryRow[];
   pendingCount: number;
   courses: AdminEnrollmentProductOption[];
   liveClasses: AdminEnrollmentProductOption[];
@@ -52,6 +63,8 @@ type AdminEnrollmentsPageProps = {
 };
 
 type StatusFilter = 'all' | 'PENDING' | 'ACTIVE';
+type HistoryActionFilter = 'all' | 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'GRANTED' | 'REVOKED';
+type MainTab = 'queue' | 'history';
 
 const PRODUCT_TYPE_LABEL: Record<EnrollmentProductType, string> = {
   COURSE: 'Kursus',
@@ -67,13 +80,17 @@ const PRODUCT_TYPE_BADGE: Record<EnrollmentProductType, string> = {
 
 export function AdminEnrollmentsPage({
   enrollments,
+  history,
   pendingCount,
   courses,
   liveClasses,
   tryoutSessions,
 }: AdminEnrollmentsPageProps) {
   const router = useRouter();
+  const [mainTab, setMainTab] = useState<MainTab>('queue');
   const [query, setQuery] = useState('');
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historyActionFilter, setHistoryActionFilter] = useState<HistoryActionFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('PENDING');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -108,6 +125,21 @@ export function AdminEnrollmentsPage({
     });
   }, [enrollments, query, statusFilter]);
 
+  const filteredHistory = useMemo(() => {
+    const q = historyQuery.trim().toLowerCase();
+    return history.filter((row) => {
+      if (historyActionFilter !== 'all' && row.action !== historyActionFilter) return false;
+      if (!q) return true;
+      return (
+        row.userId.toLowerCase().includes(q) ||
+        (row.studentName?.toLowerCase().includes(q) ?? false) ||
+        (row.actorName?.toLowerCase().includes(q) ?? false) ||
+        row.productTitle.toLowerCase().includes(q) ||
+        (row.productSubtitle?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [history, historyQuery, historyActionFilter]);
+
   const {
     paginatedItems,
     page,
@@ -116,6 +148,17 @@ export function AdminEnrollmentsPage({
     setPage,
     setPageSize,
   } = useAdminTablePagination(filtered, { resetKey: `${query}-${statusFilter}` });
+
+  const {
+    paginatedItems: paginatedHistory,
+    page: historyPage,
+    pageSize: historyPageSize,
+    totalItems: historyTotalItems,
+    setPage: setHistoryPage,
+    setPageSize: setHistoryPageSize,
+  } = useAdminTablePagination(filteredHistory, {
+    resetKey: `${historyQuery}-${historyActionFilter}`,
+  });
 
   const rejectTarget = enrollments.find((row) => row.id === rejectId);
 
@@ -146,7 +189,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Verifikasi pembayaran manual dan aktifkan akses kursus untuk siswa."
+      subtitle="Verifikasi pembayaran manual, aktifkan akses program, dan lacak riwayat tindakan enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -223,7 +266,24 @@ export function AdminEnrollmentsPage({
         </Card>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)} className="gap-4">
+        <TabsList variant="line">
+          <TabsTrigger value="queue">
+            <Clock className="size-3.5" />
+            Antrian
+            {pendingCount > 0 ? (
+              <TabCountBadge count={pendingCount} tone="warning" />
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="size-3.5" />
+            Riwayat
+            <TabCountBadge count={history.length} />
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="queue" className="mt-0 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -301,7 +361,7 @@ export function AdminEnrollmentsPage({
                   </TableCell>
                   <TableCell className="text-right">
                     {row.status === 'PENDING' ? (
-                      <div className="flex justify-end gap-2">
+                      <AdminTableActions>
                         <Button
                           size="sm"
                           className="gap-1"
@@ -316,15 +376,12 @@ export function AdminEnrollmentsPage({
                           <Check className="size-3.5" />
                           Setujui
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
+                        <AdminTableActionDelete
+                          label="Tolak enrollment"
                           disabled={isPending}
                           onClick={() => setRejectId(row.id)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
+                        />
+                      </AdminTableActions>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
@@ -342,6 +399,120 @@ export function AdminEnrollmentsPage({
           onPageSizeChange={setPageSize}
         />
       </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-0 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-sm flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={historyQuery}
+                onChange={(event) => setHistoryQuery(event.target.value)}
+                placeholder="Cari siswa, admin, atau produk..."
+                className="pl-9"
+              />
+            </div>
+            <Select
+              value={historyActionFilter}
+              onValueChange={(value) => setHistoryActionFilter(value as HistoryActionFilter)}
+            >
+              <SelectTrigger className="w-full sm:w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua aksi</SelectItem>
+                <SelectItem value="REQUESTED">Diajukan</SelectItem>
+                <SelectItem value="APPROVED">Disetujui</SelectItem>
+                <SelectItem value="GRANTED">Diberikan manual</SelectItem>
+                <SelectItem value="REJECTED">Ditolak</SelectItem>
+                <SelectItem value="REVOKED">Akses dicabut</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Waktu</TableHead>
+                  <TableHead>Aksi</TableHead>
+                  <TableHead>Siswa</TableHead>
+                  <TableHead>Tipe</TableHead>
+                  <TableHead>Produk</TableHead>
+                  <TableHead>Oleh</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      Belum ada riwayat enrollment untuk filter ini.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedHistory.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {row.createdAt.toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ENROLLMENT_LOG_ACTION_BADGE[row.action]}`}
+                        >
+                          {ENROLLMENT_LOG_ACTION_LABEL[row.action]}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{row.studentName ?? '—'}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{row.userId}</p>
+                        <Link
+                          href={ADMIN_ROUTES.userDetail(row.userId)}
+                          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                        >
+                          <Eye className="size-3" />
+                          Detail pengguna
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${PRODUCT_TYPE_BADGE[row.type]}`}
+                        >
+                          {PRODUCT_TYPE_LABEL[row.type]}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{row.productTitle}</p>
+                        {row.productSubtitle ? (
+                          <p className="text-xs text-muted-foreground">{row.productSubtitle}</p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {row.action === 'REQUESTED'
+                          ? (row.actorName ?? 'Siswa')
+                          : (row.actorName ?? 'Admin')}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <AdminTablePagination
+              page={historyPage}
+              pageSize={historyPageSize}
+              totalItems={historyTotalItems}
+              onPageChange={setHistoryPage}
+              onPageSizeChange={setHistoryPageSize}
+              itemLabel="riwayat"
+            />
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <AdminConfirmDialog
         open={rejectId !== null}

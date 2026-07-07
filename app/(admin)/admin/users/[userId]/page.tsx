@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { AdminUserDetailPage } from '@/features/admin-cms/components/admin-user-detail-page';
 import {
-  loadAdminCourseOptions,
+  loadAdminGrantProductOptions,
   loadAdminUserDetail,
 } from '@/features/admin-cms/lib/load-admin-user-detail';
 
@@ -13,12 +13,12 @@ export default async function AdminUserDetailRoutePage({
   const { userId } = await params;
   const decodedUserId = decodeURIComponent(userId);
 
-  const [user, courses] = await Promise.all([
+  const [user, grantOptions] = await Promise.all([
     loadAdminUserDetail(decodedUserId),
-    loadAdminCourseOptions(),
+    loadAdminGrantProductOptions(),
   ]);
 
   if (!user) notFound();
 
-  return <AdminUserDetailPage user={user} courses={courses} />;
+  return <AdminUserDetailPage user={user} grantOptions={grantOptions} />;
 }

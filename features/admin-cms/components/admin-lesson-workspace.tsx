@@ -3,10 +3,15 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+    AdminTableAction,
+    AdminTableActionDelete,
+    AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import { updateLessonAction } from '@/features/admin-cms/actions/cms-lesson-actions';
 import {
     createKanjiMaterialAction,
@@ -386,10 +391,10 @@ function KosakataPanel({
                                     </TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit kosakata"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -400,18 +405,12 @@ function KosakataPanel({
                                                         contohKalimat: item.contohKalimat ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus kosakata"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -581,10 +580,10 @@ function KanjiPanel({
                                     </TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit kanji"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -596,18 +595,12 @@ function KanjiPanel({
                                                         kunyomi: item.kunyomi ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus kanji"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -787,10 +780,10 @@ function TataBahasaPanel({
                                     <TableCell className="font-medium">{item.tataBahasa}</TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit tata bahasa"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -799,18 +792,12 @@ function TataBahasaPanel({
                                                         contohKalimat: item.contohKalimat ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus tata bahasa"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -980,10 +967,10 @@ function QuizPanel({
                                 {question.questionText}
                             </CardTitle>
                         </div>
-                        <div className="flex gap-1">
-                            <Button
-                                size="sm"
-                                variant="outline"
+                        <AdminTableActions>
+                            <AdminTableAction
+                                label="Edit soal"
+                                icon={Pencil}
                                 onClick={() => {
                                     const correctIndex = question.options.findIndex((o) => o.isCorrect);
                                     setEditingId(question.id);
@@ -998,18 +985,12 @@ function QuizPanel({
                                         correctIndex: String(Math.max(0, correctIndex)),
                                     });
                                 }}
-                            >
-                                <Pencil className="size-3.5" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive"
+                            />
+                            <AdminTableActionDelete
+                                label="Hapus soal"
                                 onClick={() => setDeleteId(question.id)}
-                            >
-                                <Trash2 className="size-3.5" />
-                            </Button>
-                        </div>
+                            />
+                        </AdminTableActions>
                     </CardHeader>
                     <CardContent className="pt-4">
                         <ul className="space-y-1 text-sm">

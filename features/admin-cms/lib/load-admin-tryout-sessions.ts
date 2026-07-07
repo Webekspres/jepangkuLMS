@@ -1,5 +1,6 @@
 import type { LevelJLPT } from '@prisma/client';
 import { cache } from 'react';
+import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
 import { prisma } from '@/lib/prisma';
 
 export type AdminTryoutSessionRow = {
@@ -13,6 +14,8 @@ export type AdminTryoutSessionRow = {
   isActive: boolean;
   sortOrder: number;
   questionCount: number;
+  activeEnrollments: number;
+  pendingEnrollments: number;
 };
 
 export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessions(): Promise<
@@ -22,6 +25,11 @@ export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessi
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     include: { _count: { select: { questions: true } } },
   });
+
+  const enrollmentCounts = await getEnrollmentCountsByProduct(
+    'TRYOUT',
+    rows.map((row) => row.id),
+  );
 
   return rows.map((row) => ({
     id: row.id,
@@ -34,6 +42,8 @@ export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessi
     isActive: row.isActive,
     sortOrder: row.sortOrder,
     questionCount: row._count.questions,
+    activeEnrollments: enrollmentCounts[row.id]?.active ?? 0,
+    pendingEnrollments: enrollmentCounts[row.id]?.pending ?? 0,
   }));
 });
 

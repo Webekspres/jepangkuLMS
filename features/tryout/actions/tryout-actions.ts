@@ -7,6 +7,7 @@ import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import {
   calculateTryoutPoints,
   lmsTryoutCompletedSourceKey,
@@ -76,6 +77,14 @@ export async function requestTryoutEnrollment(sessionCode: string) {
       studentUserId: userId,
       studentName,
       courseTitle: `${session.title} (${session.level})`,
+    });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'TRYOUT',
+      productTitle: session.title,
+      productSubtitle: session.code,
+      studentName,
     });
   }
 
