@@ -52,18 +52,22 @@ export function AdminUserPicker({
 
   useEffect(() => {
     if (!value) {
-      setSelectedUser(null);
-      return;
+      const timer = window.setTimeout(() => setSelectedUser(null), 0);
+      return () => window.clearTimeout(timer);
     }
     if (selectedUser?.id === value) return;
 
     if (CLERK_USER_ID_PATTERN.test(value)) {
-      setSelectedUser({
-        id: value,
-        resolvedDisplayName: value,
-        displayName: null,
-        ssoDisplayName: null,
-      });
+      const timer = window.setTimeout(() => {
+        setSelectedUser({
+          id: value,
+          resolvedDisplayName: value,
+          displayName: null,
+          ssoDisplayName: null,
+          ssoEmail: null,
+        });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [value, selectedUser?.id]);
 
@@ -81,10 +85,12 @@ export function AdminUserPicker({
     const trimmed = query.trim();
 
     if (trimmed.length < MIN_SEARCH_LENGTH || CLERK_USER_ID_PATTERN.test(trimmed)) {
-      setResults([]);
-      setHasSearched(false);
-      setOpen(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setResults([]);
+        setHasSearched(false);
+        setOpen(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     const seq = ++searchSeqRef.current;
@@ -136,6 +142,7 @@ export function AdminUserPicker({
         resolvedDisplayName: trimmed,
         displayName: null,
         ssoDisplayName: null,
+        ssoEmail: null,
       };
       setSelectedUser(directUser);
       onValueChange(trimmed);
@@ -244,6 +251,9 @@ export function AdminUserPicker({
                       <p className="truncate text-xs text-muted-foreground">
                         SSO: {user.ssoDisplayName}
                       </p>
+                    ) : null}
+                    {user.ssoEmail ? (
+                      <p className="truncate text-xs text-muted-foreground">{user.ssoEmail}</p>
                     ) : null}
                     <p className="truncate font-mono text-[10px] text-muted-foreground">{user.id}</p>
                   </div>

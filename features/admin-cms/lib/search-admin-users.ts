@@ -6,6 +6,7 @@ export type AdminUserSearchResult = {
   resolvedDisplayName: string;
   displayName: string | null;
   ssoDisplayName: string | null;
+  ssoEmail: string | null;
 };
 
 export async function searchAdminUsers(query: string, limit = 8): Promise<AdminUserSearchResult[]> {
@@ -18,6 +19,8 @@ export async function searchAdminUsers(query: string, limit = 8): Promise<AdminU
         { id: { contains: trimmed, mode: 'insensitive' } },
         { displayName: { contains: trimmed, mode: 'insensitive' } },
         { ssoDisplayName: { contains: trimmed, mode: 'insensitive' } },
+        { ssoEmail: { contains: trimmed, mode: 'insensitive' } },
+        { phone: { contains: trimmed, mode: 'insensitive' } },
       ],
     },
     orderBy: { createdAt: 'desc' },
@@ -26,6 +29,7 @@ export async function searchAdminUsers(query: string, limit = 8): Promise<AdminU
       id: true,
       displayName: true,
       ssoDisplayName: true,
+      ssoEmail: true,
     },
   });
 
@@ -33,6 +37,7 @@ export async function searchAdminUsers(query: string, limit = 8): Promise<AdminU
     id: user.id,
     displayName: user.displayName,
     ssoDisplayName: user.ssoDisplayName,
+    ssoEmail: user.ssoEmail,
     resolvedDisplayName: resolvePublicDisplayName({
       displayName: user.displayName,
       ssoDisplayName: user.ssoDisplayName,

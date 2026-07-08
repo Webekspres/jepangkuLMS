@@ -3,6 +3,7 @@ import type { importSenseiCourseXlsx } from '@/features/admin-cms/lib/import-sen
 export function createMockSenseiImportPrisma() {
     const createdKanji: Array<Record<string, unknown>> = [];
     const createdQuestions: Array<Record<string, unknown>> = [];
+    const courses = new Map<string, { id: string; slug: string }>();
     const categories = new Map<string, string>();
     const moduleIds = new Map<string, string>();
     const lessonIds = new Map<string, string>();
@@ -10,7 +11,7 @@ export function createMockSenseiImportPrisma() {
     let moduleCounter = 1;
     let lessonCounter = 1;
 
-    const prisma = {
+    const tx = {
         questionOption: { deleteMany: async () => ({ count: 0 }) },
         question: {
             deleteMany: async () => ({ count: 0 }),
@@ -43,27 +44,74 @@ export function createMockSenseiImportPrisma() {
             },
         },
         course: {
-            upsert: async () => ({ id: 'course-1' }),
+            findFirst: async ({ where }: { where: { OR: Array<{ courseExternalId?: string; slug?: string }> } }) => {
+                for (const candidate of where.OR) {
+                    if (candidate.courseExternalId && courses.has(candidate.courseExternalId)) {
+                        return courses.get(candidate.courseExternalId)!;
+                    }
+                    if (candidate.slug && courses.has(candidate.slug)) {
+                        return courses.get(candidate.slug)!;
+                    }
+                }
+                return null;
+            },
+            create: async ({ data }: { data: Record<string, unknown> }) => {
+                const id = 'course-1';
+                const slug = String(data.slug ?? 'course-1');
+                const externalId = String(data.courseExternalId ?? slug);
+                const row = { id, slug };
+                courses.set(externalId, row);
+                courses.set(slug, row);
+                return row;
+            },
+            update: async ({ where }: { where: { id: string } }) => ({ id: where.id }),
         },
         module: {
+            findMany: async () => [],
             deleteMany: async () => ({ count: 0 }),
-            updateMany: async () => ({ count: 0 }),
-            upsert: async ({ where }: { where: { courseId_slug: { slug: string } } }) => {
-                const slug = where.courseId_slug.slug;
+            findFirst: async ({ where }: { where: { OR: Array<{ moduleExternalId?: string; slug?: string }> } }) => {
+                for (const candidate of where.OR) {
+                    const key = candidate.moduleExternalId ?? candidate.slug;
+                    if (key && moduleIds.has(key)) {
+                        return { id: moduleIds.get(key)! };
+                    }
+                }
+                return null;
+            },
+            create: async ({ data }: { data: Record<string, unknown> }) => {
+                const slug = String(data.slug ?? data.moduleExternalId ?? `module-${moduleCounter}`);
                 const id = moduleIds.get(slug) ?? `module-${moduleCounter++}`;
                 moduleIds.set(slug, id);
+                if (data.moduleExternalId) moduleIds.set(String(data.moduleExternalId), id);
                 return { id };
             },
-            update: async () => ({ id: 'module-updated' }),
+            update: async ({ where }: { where: { id: string } }) => ({ id: where.id }),
         },
         lesson: {
-            upsert: async ({ where }: { where: { slug: string } }) => {
-                const slug = where.slug;
+            deleteMany: async () => ({ count: 0 }),
+            findFirst: async ({ where }: { where: { slug?: string; lessonExternalId?: string } }) => {
+                if (where.slug && lessonIds.has(where.slug)) {
+                    return { id: lessonIds.get(where.slug)! };
+                }
+                if (where.lessonExternalId && lessonIds.has(where.lessonExternalId)) {
+                    return { id: lessonIds.get(where.lessonExternalId)! };
+                }
+                return null;
+            },
+            create: async ({ data }: { data: Record<string, unknown> }) => {
+                const slug = String(data.slug ?? data.lessonExternalId ?? `lesson-${lessonCounter}`);
                 const id = lessonIds.get(slug) ?? `lesson-${lessonCounter++}`;
                 lessonIds.set(slug, id);
+                if (data.lessonExternalId) lessonIds.set(String(data.lessonExternalId), id);
                 return { id };
             },
+            update: async ({ where }: { where: { id: string } }) => ({ id: where.id }),
         },
+    };
+
+    const prisma = {
+        ...tx,
+        $transaction: async <T>(callback: (client: typeof tx) => Promise<T>) => callback(tx),
     } as unknown as Parameters<typeof importSenseiCourseXlsx>[0];
 
     return { prisma, createdKanji, createdQuestions };

@@ -15,6 +15,7 @@ const RETRY_DELAY_MS = 300;
 export type ClerkAnchorProfile = {
   ssoDisplayName?: string | null;
   avatarUrl?: string | null;
+  ssoEmail?: string | null;
 };
 
 function isTransientDbError(error: unknown): boolean {
@@ -34,7 +35,7 @@ export function userAnchorCreateData(
   userId: string,
   extra?: Pick<
     Prisma.UserCreateInput,
-    'displayName' | 'ssoDisplayName' | 'avatarUrl' | 'bio' | 'displayNameSetupAt'
+    'displayName' | 'ssoDisplayName' | 'ssoEmail' | 'avatarUrl' | 'bio' | 'phone' | 'displayNameSetupAt' | 'phoneSetupAt'
   >,
 ): Prisma.UserCreateInput {
   return {
@@ -59,6 +60,7 @@ async function resolveClerkAnchorProfile(
   return {
     ssoDisplayName: identity.displayName,
     avatarUrl: identity.imageUrl,
+    ssoEmail: identity.email,
   };
 }
 
@@ -105,6 +107,7 @@ export async function syncUserAnchor(
 ): Promise<void> {
   const profile = await resolveClerkAnchorProfile(userId, clerkProfile);
   const ssoDisplayName = trimSsoDisplayName(profile?.ssoDisplayName);
+  const ssoEmail = profile?.ssoEmail?.trim() || null;
 
   let lastError: unknown;
 
@@ -123,6 +126,7 @@ export async function syncUserAnchor(
         await prisma.user.create({
           data: userAnchorCreateData(userId, {
             ssoDisplayName: ssoDisplayName ?? undefined,
+            ssoEmail: ssoEmail ?? undefined,
             avatarUrl: inherited?.avatarUrl ?? profile?.avatarUrl ?? undefined,
             displayName: inherited?.displayName ?? undefined,
             displayNameSetupAt: inherited?.displayNameSetupAt ?? undefined,
@@ -138,10 +142,19 @@ export async function syncUserAnchor(
           );
         }
       } else {
+        const anchorPatch: Prisma.UserUpdateInput = {};
+
         if (ssoDisplayName && !existing.ssoDisplayName?.trim()) {
+          anchorPatch.ssoDisplayName = ssoDisplayName;
+        }
+        if (ssoEmail) {
+          anchorPatch.ssoEmail = ssoEmail;
+        }
+
+        if (Object.keys(anchorPatch).length > 0) {
           await prisma.user.update({
             where: { id: userId },
-            data: { ssoDisplayName },
+            data: anchorPatch,
           });
         }
 

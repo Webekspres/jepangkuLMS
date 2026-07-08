@@ -14,7 +14,7 @@ export function AdminTableActions({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn('flex items-center justify-end gap-1.5', className)}>{children}</div>
+    <div className={cn('flex shrink-0 items-center justify-end gap-1.5', className)}>{children}</div>
   );
 }
 

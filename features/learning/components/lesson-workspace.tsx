@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { LessonType } from '@prisma/client';
 import {
     BookOpen,
     CheckCircle2,
@@ -19,11 +20,11 @@ import {
     Lock,
     Play,
     X,
-    Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { FlashcardDeck } from '@/features/learning/components/flashcard-deck';
 import { SecureLessonVideoPlayer } from '@/features/learning/components/secure-lesson-video-player';
@@ -79,6 +80,10 @@ export type LessonWorkspaceProps = {
         id: string;
         slug: string;
         title: string;
+        lessonType: LessonType | null;
+        resolvedLessonType: LessonType | null;
+        isLegacy: boolean;
+        legacyDetectedTypes: LessonType[];
         content: string | null;
         hasVideo: boolean;
         isCompleted: boolean;
@@ -97,6 +102,7 @@ export type LessonWorkspaceProps = {
 };
 
 type ContentTab = 'video' | 'flashcard' | 'quiz';
+type LessonView = ContentTab | 'text';
 
 type SyllabusGroup = GroupedLesson<LessonNavItem>;
 
@@ -216,87 +222,78 @@ function LessonCurriculumList({
     );
 }
 
-type LessonXpTask = { label: string; xp: number; done: boolean };
-
-type LessonXpPanelProps = {
-    xpTasks: LessonXpTask[];
+type LessonCompleteActionProps = {
     completed: boolean;
     isPending: boolean;
     allContentEngaged: boolean;
     onMarkComplete: () => void;
-    compact?: boolean;
+    variant?: 'sidebar' | 'mobile-bar';
 };
 
-function LessonXpPanel({
-    xpTasks,
+function LessonCompleteAction({
     completed,
     isPending,
     allContentEngaged,
     onMarkComplete,
-    compact = false,
-}: LessonXpPanelProps) {
-    return (
-        <Card className={compact ? 'border-dashed shadow-none' : 'shadow-sm'}>
-            <CardContent className={cn('space-y-3', compact ? 'p-3.5 sm:p-4' : 'p-4')}>
-                <div className="flex items-center gap-2">
-                    <Zap className="size-4 text-brand-yellow" />
-                    <span
-                        className={cn(
-                            'font-bold text-foreground',
-                            compact ? 'text-sm' : 'text-sm md:text-base',
-                        )}
-                    >
-                        XP pelajaran ini
-                    </span>
-                </div>
-                {xpTasks.map((task) => (
-                    <div key={task.label} className="flex items-center justify-between gap-2">
-                        <span
-                            className={cn(
-                                'flex items-center gap-1.5 text-muted-foreground',
-                                compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm',
-                            )}
-                        >
-                            {task.done ? (
-                                <CheckCircle2 className="size-3.5 text-emerald-600" />
-                            ) : (
-                                <span className="size-3.5 rounded-full border border-border" />
-                            )}
-                            {task.label}
-                        </span>
-                        <span
-                            className={cn(
-                                'text-xs font-bold',
-                                task.done ? 'text-emerald-600' : 'text-muted-foreground',
-                            )}
-                        >
-                            +{task.xp} XP
-                        </span>
-                    </div>
-                ))}
-                {completed ? (
-                    <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
-                        <CheckCircle2 className="size-4 shrink-0" />
-                        Pelajaran selesai
-                    </div>
-                ) : (
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="mt-2 w-full gap-1.5"
-                        disabled={!allContentEngaged || isPending}
-                        onClick={onMarkComplete}
-                    >
-                        {isPending ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                            <CheckCircle2 className="size-3.5" />
-                        )}
-                        {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
-                    </Button>
+    variant = 'sidebar',
+}: LessonCompleteActionProps) {
+    const isMobileBar = variant === 'mobile-bar';
+
+    if (completed) {
+        return (
+            <div
+                className={cn(
+                    'flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-center font-semibold text-emerald-700',
+                    isMobileBar ? 'h-10 px-3 text-xs sm:h-9' : 'px-3 py-2.5 text-xs',
                 )}
-            </CardContent>
-        </Card>
+            >
+                <CheckCircle2 className="size-4 shrink-0" />
+                {isMobileBar ? 'Selesai' : 'Pelajaran selesai'}
+            </div>
+        );
+    }
+
+    if (isMobileBar) {
+        return (
+            <Button
+                type="button"
+                size="sm"
+                className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
+                disabled={!allContentEngaged || isPending}
+                onClick={onMarkComplete}
+            >
+                {isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                    <CheckCircle2 className="size-3.5" />
+                )}
+                Tandai Selesai
+            </Button>
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            {!allContentEngaged && (
+                <p className="text-center text-[11px] leading-snug text-muted-foreground">
+                    Selesaikan materi pelajaran ini untuk menandai selesai.
+                </p>
+            )}
+            <Button
+                type="button"
+                size="sm"
+                className="w-full gap-1.5"
+                disabled={!allContentEngaged || isPending}
+                onClick={onMarkComplete}
+            >
+                {isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                    <CheckCircle2 className="size-3.5" />
+                )}
+                {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
+            </Button>
+        </div>
     );
 }
 
@@ -326,6 +323,9 @@ export function LessonWorkspace({
     const hasVideo = lesson.hasVideo;
     const hasFlashcard = flashcards.length > 0;
     const hasQuiz = questions.length > 0;
+    const hasText = Boolean(lesson.content?.trim());
+    const isLegacyLesson = lesson.isLegacy;
+    const migratedLessonType = !isLegacyLesson ? lesson.resolvedLessonType : null;
 
     // Intelligent default: pick the first available tab (video → flashcard → quiz),
     // respecting the requested initialTab only when that content actually exists.
@@ -346,31 +346,47 @@ export function LessonWorkspace({
                     ? 'quiz'
                     : firstAvailableTab;
 
-    const [activeTab, setActiveTab] = useState<ContentTab | null>(resolvedInitialTab);
-    const [flashcardVisited, setFlashcardVisited] = useState(resolvedInitialTab === 'flashcard');
-    const [quizPassed, setQuizPassed] = useState(false);
-    const [contentViewed, setContentViewed] = useState(resolvedInitialTab === firstAvailableTab);
+    const resolvedMigratedView: LessonView | null =
+        migratedLessonType === 'VIDEO'
+            ? 'video'
+            : migratedLessonType === 'FLASHCARD'
+                ? 'flashcard'
+                : migratedLessonType === 'QUIZ'
+                    ? 'quiz'
+                    : migratedLessonType === 'TEXT'
+                        ? 'text'
+                        : null;
+    const currentInitialView: LessonView | null = isLegacyLesson ? resolvedInitialTab : resolvedMigratedView;
+
+    const [activeTab, setActiveTab] = useState<ContentTab | null>(
+        isLegacyLesson ? resolvedInitialTab : null,
+    );
+    const [flashcardVisited, setFlashcardVisited] = useState(currentInitialView === 'flashcard');
+    const [quizCompleted, setQuizCompleted] = useState(false);
+    const [contentViewed, setContentViewed] = useState(
+        currentInitialView === 'video' || currentInitialView === 'text',
+    );
 
     // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
         setCompleted(lesson.isCompleted);
-        setActiveTab(resolvedInitialTab);
-        setFlashcardVisited(resolvedInitialTab === 'flashcard');
-        setQuizPassed(false);
-        setContentViewed(resolvedInitialTab === firstAvailableTab);
+        setActiveTab(isLegacyLesson ? resolvedInitialTab : null);
+        setFlashcardVisited(currentInitialView === 'flashcard');
+        setQuizCompleted(false);
+        setContentViewed(currentInitialView === 'video' || currentInitialView === 'text');
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
     }
 
     useEffect(() => {
-        if (resolvedInitialTab === 'flashcard') {
+        if (currentInitialView === 'flashcard') {
             startTransition(async () => {
                 await recordFlashcardVisit(lesson.id);
             });
         }
-    }, [lesson.id, resolvedInitialTab, startTransition]);
+    }, [currentInitialView, lesson.id, startTransition]);
 
     useEffect(() => {
         if (!mobileCurriculumOpen) return;
@@ -400,12 +416,19 @@ export function LessonWorkspace({
 
     // Gate flags — each content type that exists must be engaged before the
     // "Tandai Selesai" button is enabled. Completion itself is explicit (button click).
-    const contentSectionDone = hasVideo || lesson.content ? completed || contentViewed : true;
+    const contentSectionDone = hasVideo || hasText ? completed || contentViewed : true;
     const flashcardSectionDone = hasFlashcard ? flashcardVisited : true;
-    const quizSectionDone = hasQuiz ? quizPassed : true;
-    const hasAnyContent = hasVideo || Boolean(lesson.content) || hasFlashcard || hasQuiz;
-    const allContentEngaged =
-        hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
+    const quizSectionDone = hasQuiz ? quizCompleted : true;
+    const hasAnyContent = hasVideo || hasText || hasFlashcard || hasQuiz;
+    const allContentEngaged = isLegacyLesson
+        ? hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone
+        : migratedLessonType === 'FLASHCARD'
+            ? flashcardSectionDone
+            : migratedLessonType === 'QUIZ'
+                ? quizSectionDone
+                : migratedLessonType === 'VIDEO' || migratedLessonType === 'TEXT'
+                    ? contentSectionDone
+                    : hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
 
     // Explicit mark-complete handler — only called when user clicks the button.
     function handleMarkComplete() {
@@ -435,6 +458,23 @@ export function LessonWorkspace({
         });
     }
 
+    function handleAutoMarkCompleteAfterQuiz() {
+        if (completed || isPending || migratedLessonType !== 'QUIZ') return;
+        startTransition(async () => {
+            const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp, {
+                awardReward: false,
+            });
+            if (result && 'success' in result) {
+                setCompleted(true);
+                requestStudentCoreDataRefresh();
+                router.refresh();
+            } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
+                setCompleted(true);
+                router.refresh();
+            }
+        });
+    }
+
     function handleTabChange(tab: ContentTab) {
         setActiveTab(tab);
         if (tab === 'video' || tab === firstAvailableTab) {
@@ -444,7 +484,7 @@ export function LessonWorkspace({
             setFlashcardVisited(true);
             startTransition(async () => {
                 const result = await recordFlashcardVisit(lesson.id);
-                if (result && result.awarded) {
+                if (result && result.awarded && !completed) {
                     const event = new CustomEvent('gamified-event', {
                       detail: {
                         type: 'REWARD_EARNED',
@@ -464,30 +504,6 @@ export function LessonWorkspace({
         }
     }
 
-    // Only reward (and show) content that actually exists in this lesson.
-    const xpTasks: LessonXpTask[] = [];
-    if (hasVideo || lesson.content) {
-        xpTasks.push({
-            label: 'Video / materi dibaca',
-            xp: REWARDS.LESSON_COMPLETED.xp,
-            done: completed || contentViewed,
-        });
-    }
-    if (hasFlashcard) {
-        xpTasks.push({
-            label: 'Flashcard dijelajahi',
-            xp: REWARDS.FLASHCARD_EXPLORED.xp,
-            done: flashcardVisited,
-        });
-    }
-    if (hasQuiz) {
-        xpTasks.push({
-            label: 'Quiz lulus 70%+',
-            xp: REWARDS.QUIZ_COMPLETED.xp,
-            done: quizPassed,
-        });
-    }
-
     type TabDef = { id: ContentTab; label: string; icon: typeof Play };
     const availableTabs = (
         [
@@ -505,7 +521,7 @@ export function LessonWorkspace({
                 : 'grid-cols-1';
 
     const contentTabs =
-        availableTabs.length > 0 ? (
+        isLegacyLesson && availableTabs.length > 0 ? (
             <div
                 className={cn(
                     'grid gap-1 rounded-xl border border-border bg-card p-1 shadow-sm sm:inline-flex sm:rounded-2xl sm:p-1.5',
@@ -574,6 +590,21 @@ export function LessonWorkspace({
                             <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{course.title}</p>
                         </div>
                         {contentTabs}
+                        {isLegacyLesson && lesson.legacyDetectedTypes.length > 1 ? (
+                            <Badge variant="secondary" className="w-fit">
+                                Legacy multi-content lesson
+                            </Badge>
+                        ) : null}
+                        {isLegacyLesson && lesson.legacyDetectedTypes.length > 1 ? (
+                            <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+                                <AlertTitle>Lesson ini masih format lama</AlertTitle>
+                                <AlertDescription>
+                                    Kontennya masih gabungan {lesson.legacyDetectedTypes.join(', ')}.
+                                    Selama masa migrasi, tampilan tab lama tetap dipakai agar materi lama tetap
+                                    bisa diakses.
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
                     </div>
 
                     {lesson.slug === 'tryout-n5-placement' && (
@@ -592,17 +623,17 @@ export function LessonWorkspace({
                     )}
 
                     {/* ── Priority 1 (TOP): Dynamic content area — active tab content ── */}
-                    {hasVideo && (
-                        <div className={cn('w-full', activeTab !== 'video' && 'hidden')}>
+                    {(migratedLessonType === 'VIDEO' || (isLegacyLesson && hasVideo)) && (
+                        <div className={cn('w-full', isLegacyLesson && activeTab !== 'video' && 'hidden')}>
                             <SecureLessonVideoPlayer
                                 lessonId={lesson.id}
                                 title={lesson.title}
-                                isActive={activeTab === 'video'}
+                                isActive={!isLegacyLesson || activeTab === 'video'}
                             />
                         </div>
                     )}
 
-                    {activeTab === 'flashcard' && (
+                    {(migratedLessonType === 'FLASHCARD' || activeTab === 'flashcard') && (
                         <Card className="border-border/80 shadow-sm">
                             <CardContent className="p-4 sm:p-6 md:p-8">
                                 <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
@@ -618,7 +649,7 @@ export function LessonWorkspace({
                         </Card>
                     )}
 
-                    {activeTab === 'quiz' && (
+                    {(migratedLessonType === 'QUIZ' || activeTab === 'quiz') && (
                         <Card className="border-border/80 shadow-sm">
                             <CardContent className="p-4 sm:p-6 md:p-8">
                                 <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6">
@@ -633,10 +664,11 @@ export function LessonWorkspace({
                                     <LessonQuizPanel
                                         lessonId={lesson.id}
                                         lessonSlug={lesson.slug}
-                                        lessonTitle={lesson.title}
                                         questions={questions}
-                                        onSubmitted={(score) => {
-                                            if (score >= 70) setQuizPassed(true);
+                                        suppressRewardToast={completed}
+                                        onSubmitted={() => {
+                                            setQuizCompleted(true);
+                                            handleAutoMarkCompleteAfterQuiz();
                                         }}
                                     />
                                 ) : (
@@ -652,7 +684,9 @@ export function LessonWorkspace({
                     )}
 
                     {/* ── Priority 2 (MIDDLE): Lesson header & description ── */}
-                    {activeTab === firstAvailableTab && (
+                    {((isLegacyLesson && activeTab === firstAvailableTab) ||
+                        migratedLessonType === 'VIDEO' ||
+                        migratedLessonType === 'TEXT') && (
                         <div className="space-y-3 sm:space-y-4">
                             <Card className="border-border/80 shadow-sm">
                                 <CardContent className="space-y-3 p-4 sm:space-y-4 sm:p-5 md:p-6">
@@ -667,7 +701,7 @@ export function LessonWorkspace({
                                             </ReactMarkdown>
                                         </div>
                                     )}
-                                    {(hasFlashcard || hasQuiz) && (
+                                    {isLegacyLesson && (hasFlashcard || hasQuiz) && (
                                         <div className="hidden flex-wrap gap-2 sm:flex">
                                             {hasFlashcard && (
                                                 <Button
@@ -689,17 +723,6 @@ export function LessonWorkspace({
                                     )}
                                 </CardContent>
                             </Card>
-
-                            <div className="lg:hidden">
-                                <LessonXpPanel
-                                    xpTasks={xpTasks}
-                                    completed={completed}
-                                    isPending={isPending}
-                                    allContentEngaged={allContentEngaged}
-                                    onMarkComplete={handleMarkComplete}
-                                    compact
-                                />
-                            </div>
                         </div>
                     )}
                     {/* Lesson Navigation Bar (Prev / Next Lesson) */}
@@ -740,7 +763,9 @@ export function LessonWorkspace({
                     </div>
 
                     {/* ── Priority 3 (BOTTOM): Q&A / discussion ── */}
-                    {activeTab === firstAvailableTab && (
+                    {((isLegacyLesson && activeTab === firstAvailableTab) ||
+                        migratedLessonType === 'VIDEO' ||
+                        migratedLessonType === 'TEXT') && (
                         <LessonQaSection
                             lessonId={lesson.id}
                             lessonTitle={lesson.title}
@@ -749,8 +774,8 @@ export function LessonWorkspace({
                     )}
                 </div>
 
-                <aside className="hidden space-y-4 lg:block lg:sticky lg:top-6 lg:self-start">
-                    <Card className="overflow-hidden py-0">
+                <aside className="hidden lg:block lg:sticky lg:top-6 lg:self-start">
+                    <Card className="overflow-hidden py-0 shadow-sm">
                         <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
                             <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                 <BookOpen className="size-4 text-primary" />
@@ -758,52 +783,46 @@ export function LessonWorkspace({
                             </span>
                             <span className="text-xs text-muted-foreground">{syllabusGroups.length} modul</span>
                         </div>
-                        <div className="max-h-[min(70vh,36rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div className="border-t border-border bg-muted/25 px-4 py-3.5">
+                            <LessonCompleteAction
+                                completed={completed}
+                                isPending={isPending}
+                                allContentEngaged={allContentEngaged}
+                                onMarkComplete={handleMarkComplete}
+                                variant="sidebar"
+                            />
+                        </div>
                     </Card>
-
-                    <LessonXpPanel
-                        xpTasks={xpTasks}
-                        completed={completed}
-                        isPending={isPending}
-                        allContentEngaged={allContentEngaged}
-                        onMarkComplete={handleMarkComplete}
-                    />
                 </aside>
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6 lg:hidden">
-                <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
-                        onClick={() => setMobileCurriculumOpen(true)}
-                    >
-                        <List className="size-4 shrink-0" />
-                        <span className="truncate">Daftar materi</span>
-                    </Button>
-                    {completed ? (
-                        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 sm:h-9">
-                            <CheckCircle2 className="size-4" />
-                            Selesai
-                        </span>
-                    ) : (
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm lg:hidden">
+                {!completed && !allContentEngaged && (
+                    <p className="border-b border-border/60 bg-muted/30 px-4 py-1.5 text-center text-[10px] text-muted-foreground sm:text-[11px]">
+                        Selesaikan materi untuk menandai pelajaran ini selesai
+                    </p>
+                )}
+                <div className="px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6">
+                    <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
                         <Button
                             type="button"
+                            variant="outline"
                             size="sm"
-                            className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
-                            disabled={!allContentEngaged || isPending}
-                            onClick={handleMarkComplete}
+                            className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
+                            onClick={() => setMobileCurriculumOpen(true)}
                         >
-                            {isPending ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                            ) : (
-                                <CheckCircle2 className="size-3.5" />
-                            )}
-                            Tandai Selesai
+                            <List className="size-4 shrink-0" />
+                            <span className="truncate">Daftar materi</span>
                         </Button>
-                    )}
+                        <LessonCompleteAction
+                            completed={completed}
+                            isPending={isPending}
+                            allContentEngaged={allContentEngaged}
+                            onMarkComplete={handleMarkComplete}
+                            variant="mobile-bar"
+                        />
+                    </div>
                 </div>
             </div>
 

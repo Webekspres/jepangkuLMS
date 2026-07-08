@@ -89,6 +89,8 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
         data.bio = lmsProfile?.bio ?? null;
         data.displayName = await resolveLmsDisplayName(userId, clerkName, email);
         data.needsDisplayNameSetup = !lmsProfile?.displayNameSetupAt;
+        data.needsPhoneSetup = !lmsProfile?.phoneSetupAt;
+        data.phone = lmsProfile?.phone ?? null;
         data.suggestedDisplayName = (() => {
             const suggested = resolvePublicDisplayName({
                 displayName: null,

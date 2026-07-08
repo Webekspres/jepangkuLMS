@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { MAX_IMPORT_BYTES } from '@/features/admin-cms/lib/course-import-types';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
 import {
-    importSenseiCourseXlsx,
-    previewSenseiCourseImport,
-} from '@/features/admin-cms/lib/import-sensei-course-xlsx';
+    importCourseWorkbook,
+    previewCourseImport,
+} from '@/features/admin-cms/lib/import-framework/import-course-workbook';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -37,11 +37,11 @@ export async function POST(request: Request) {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         if (dryRun) {
-            const preview = await previewSenseiCourseImport(buffer);
+            const preview = await previewCourseImport(buffer);
             return NextResponse.json({ ok: preview.ok, preview });
         }
 
-        const result = await importSenseiCourseXlsx(prisma, buffer);
+        const result = await importCourseWorkbook(prisma, buffer);
         if (!result.ok) {
             return NextResponse.json(
                 { ok: false, message: 'Validasi impor gagal.', preview: result.preview, errors: result.errors },

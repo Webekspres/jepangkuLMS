@@ -11,6 +11,8 @@ type SenseiTestWorkbookOptions = {
     unknownKanjiCategory?: string;
     includeStrokeGif?: boolean;
     quizRichText?: boolean;
+    prependInstructionRowsToQuiz?: boolean;
+    invalidQuizOptions?: boolean;
 };
 
 function addSheet(
@@ -82,10 +84,16 @@ export async function buildSenseiTestWorkbookBuffer(options: SenseiTestWorkbookO
         manifest.columns.quiz.jawabanBenar,
         manifest.columns.quiz.penjelasan,
     ], [
+        ...(options.prependInstructionRowsToQuiz
+            ? [
+                ['', 'Petunjuk umum quiz', '', '', ''],
+                ['', 'Pilih jawaban terbaik', '', '', ''],
+            ]
+            : []),
         [
             1,
             options.quizRichText ? 'Pertanyaan **tebal**' : 'Apa arti 一?',
-            '1. satu\n2. dua',
+            options.invalidQuizOptions ? '1. satu' : '1. satu\n2. dua',
             '1',
             'Benar',
         ],
@@ -95,21 +103,30 @@ export async function buildSenseiTestWorkbookBuffer(options: SenseiTestWorkbookO
         manifest.columns.quiz.pertanyaan,
         manifest.columns.quiz.pilihanJawaban,
         manifest.columns.quiz.jawabanBenar,
-    ], [[1, 'Soal 2?', '1. ya\n2. tidak', '2']]);
+    ], [
+        ...(options.prependInstructionRowsToQuiz ? [['', 'Instruksi tambahan', '', '']] : []),
+        [1, 'Soal 2?', '1. ya\n2. tidak', '2'],
+    ]);
     if (manifest.sheets.placement) {
         addSheet(workbook, manifest.sheets.placement, [
             manifest.columns.quiz.no,
             manifest.columns.quiz.pertanyaan,
             manifest.columns.quiz.pilihanJawaban,
             manifest.columns.quiz.jawabanBenar,
-        ], [[1, 'Placement?', '1. A\n2. B', '1']]);
+        ], [
+            ...(options.prependInstructionRowsToQuiz ? [['', 'Instruksi placement', '', '']] : []),
+            [1, 'Placement?', '1. A\n2. B', '1'],
+        ]);
     }
     addSheet(workbook, manifest.sheets.tryout, [
         manifest.columns.quiz.no,
         manifest.columns.quiz.pertanyaan,
         manifest.columns.quiz.pilihanJawaban,
         manifest.columns.quiz.jawabanBenar,
-    ], [[1, 'Tryout?', '1. benar\n2. salah', '1']]);
+    ], [
+        ...(options.prependInstructionRowsToQuiz ? [['', 'Instruksi tryout', '', '']] : []),
+        [1, 'Tryout?', '1. benar\n2. salah', '1'],
+    ]);
 
     const raw = await workbook.xlsx.writeBuffer();
     return Buffer.from(raw);

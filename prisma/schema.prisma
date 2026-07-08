@@ -33,6 +33,13 @@ enum EnrollmentType {
     TRYOUT
 }
 
+enum LessonType {
+    VIDEO
+    FLASHCARD
+    QUIZ
+    TEXT
+}
+
 enum EnrollmentLogAction {
     REQUESTED
     APPROVED
@@ -109,10 +116,16 @@ model User {
     displayName        String?   @db.VarChar(32)
     /// Nama dari SSO Clerk (Google, dll.) — fallback leaderboard & UI sebelum setup
     ssoDisplayName     String?   @db.VarChar(64)
+    /// Email utama dari Clerk — cache admin (bukan sumber kebenaran; Core/Clerk otoritatif)
+    ssoEmail           String?   @db.VarChar(320)
     /// Setelah user konfirmasi nama di onboarding / edit profil
     displayNameSetupAt DateTime?
     /// Bio singkat profil belajar
     bio                String?   @db.VarChar(280)
+    /// Nomor ponsel/WhatsApp siswa — untuk kontak admin
+    phone              String?   @db.VarChar(20)
+    /// Setelah user mengisi nomor ponsel di onboarding / edit profil
+    phoneSetupAt       DateTime?
     /// Foto profil LMS — override Clerk jika di-set
     avatarUrl          String?
     role               LmsRole   @default(LMS_STUDENT)
@@ -252,6 +265,7 @@ model UserBadge {
 // ====================================================================
 model Course {
     id          String             @id @default(uuid())
+    courseExternalId String?       @unique
     title       String
     slug        String             @unique
     description String?            @db.Text
@@ -274,6 +288,7 @@ model Course {
 model Module {
     id          String   @id @default(uuid())
     courseId    String
+    moduleExternalId String?
     title       String
     slug        String
     order       Int
@@ -285,6 +300,7 @@ model Module {
     lessons Lesson[]
 
     @@unique([courseId, slug])
+    @@unique([courseId, moduleExternalId])
     @@unique([courseId, order])
     @@index([courseId])
 }
@@ -334,13 +350,16 @@ model EnrollmentLog {
 }
 
 model Lesson {
-    id       String  @id @default(uuid())
-    moduleId String
-    title    String
-    slug     String  @unique
-    order    Int
-    content  String? @db.Text
-    videoUrl String?
+    id         String     @id @default(uuid())
+    moduleId   String
+    lessonExternalId String?
+    title      String
+    slug       String     @unique
+    order      Int
+    /// Nullable during migration: null means legacy lesson not yet classified.
+    lessonType LessonType?
+    content    String?    @db.Text
+    videoUrl   String?
 
     module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
@@ -354,6 +373,7 @@ model Lesson {
     comments  LessonComment[]
 
     @@unique([moduleId, slug])
+    @@unique([moduleId, lessonExternalId])
     @@index([moduleId])
 }
 

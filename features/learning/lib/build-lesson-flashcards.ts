@@ -43,6 +43,7 @@ export function buildLessonFlashcards(materials: LessonMaterials): FlashcardItem
             back: item.arti,
             example: item.contohKalimat,
             badge: 'Kosa Kata',
+            kind: 'kosakata',
             accentColor: style.accentColor,
             trackColorClass: style.trackColorClass,
         });
@@ -56,6 +57,7 @@ export function buildLessonFlashcards(materials: LessonMaterials): FlashcardItem
             back: item.arti,
             example: item.mnemonik || null,
             badge: 'Kanji',
+            kind: 'kanji',
             accentColor: style.accentColor,
             trackColorClass: style.trackColorClass,
             mediaUrl: item.strokeGifUrl || null,
@@ -72,6 +74,7 @@ export function buildLessonFlashcards(materials: LessonMaterials): FlashcardItem
             back: item.arti,
             example: item.contohKalimat,
             badge: 'Tata Bahasa',
+            kind: 'tata-bahasa',
             accentColor: style.accentColor,
             trackColorClass: style.trackColorClass,
         });

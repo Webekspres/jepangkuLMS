@@ -34,6 +34,7 @@ export default async function AdminLessonListPage({ params }: AdminLessonListPag
         title: lesson.title,
         slug: lesson.slug,
         order: lesson.order,
+        lessonType: lesson.lessonType ?? null,
         videoUrl: lesson.videoUrl,
         materialCount:
           lesson._count.kanjis + lesson._count.kosakatas + lesson._count.tataBahasas,

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { clearEquippedBadge, equipLmsBadge } from '@/lib/lms/badges';
-import { updateLmsAvatarFromUpload, updateLmsBio, updateLmsDisplayName } from '@/lib/lms/user-profile';
+import { updateLmsAvatarFromUpload, updateLmsBio, updateLmsDisplayName, updateLmsPhone } from '@/lib/lms/user-profile';
 
 const displayNameSchema = z
   .string()
@@ -42,6 +42,39 @@ export async function completeStudentDisplayNameSetup(
 }
 
 const bioSchema = z.string().max(280, 'Bio maksimal 280 karakter.');
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(8, 'Nomor ponsel terlalu pendek.')
+  .max(20, 'Nomor ponsel maksimal 20 karakter.');
+
+export async function updateStudentPhone(
+  phone: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const userId = await requireAuthUserWithAnchor();
+    const parsed = phoneSchema.safeParse(phone);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? 'Nomor tidak valid.' };
+    }
+    await updateLmsPhone(userId, parsed.data);
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/profil');
+    revalidatePath('/dashboard/profil/edit');
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal menyimpan nomor ponsel.';
+    return { ok: false, error: message };
+  }
+}
+
+/** Onboarding pertama — wajib set nomor ponsel setelah nama tampilan. */
+export async function completeStudentPhoneSetup(
+  phone: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return updateStudentPhone(phone);
+}
 
 export async function updateStudentBio(
   bio: string,

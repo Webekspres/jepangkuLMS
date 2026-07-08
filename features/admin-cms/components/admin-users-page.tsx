@@ -42,6 +42,8 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
         (user.resolvedDisplayName ?? '').toLowerCase().includes(q) ||
         (user.displayName ?? '').toLowerCase().includes(q) ||
         (user.ssoDisplayName ?? '').toLowerCase().includes(q) ||
+        (user.ssoEmail ?? '').toLowerCase().includes(q) ||
+        (user.phone ?? '').toLowerCase().includes(q) ||
         user.role.toLowerCase().includes(q),
     );
   }, [users, query]);
@@ -86,7 +88,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari nama, SSO, Clerk ID, atau role..."
+            placeholder="Cari nama, email, telepon, Clerk ID, atau role..."
             className="pl-9"
           />
         </div>
@@ -97,6 +99,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs uppercase tracking-wider">Pengguna</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider">Telepon</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Kursus</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Poin</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Badge</TableHead>
@@ -107,7 +110,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
                   <Users className="mx-auto mb-2 size-8 opacity-40" />
                   Belum ada pengguna terdaftar.
                 </TableCell>
@@ -118,6 +121,18 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                   <TableCell>
                     <p className="font-medium text-foreground">{user.resolvedDisplayName}</p>
                     {/* <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p> */}
+                  </TableCell>
+                  <TableCell>
+                    {user.phone ? (
+                      <a
+                        href={`tel:${user.phone}`}
+                        className="text-sm tabular-nums text-foreground hover:text-primary hover:underline"
+                      >
+                        {user.phone}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Belum diisi</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <p className="tabular-nums font-medium">{user.activeEnrollmentCount} aktif</p>

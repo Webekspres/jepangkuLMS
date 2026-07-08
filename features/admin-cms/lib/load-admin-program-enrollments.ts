@@ -7,6 +7,7 @@ export type ProgramEnrollmentStudentRow = {
   id: string;
   userId: string;
   displayName: string;
+  phone: string | null;
   status: EnrollmentStatus;
   createdAt: Date;
 };
@@ -29,7 +30,7 @@ export const loadProgramEnrollments = cache(async function loadProgramEnrollment
     where: enrollmentWhere(type, productId),
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     include: {
-      user: { select: { id: true, displayName: true, ssoDisplayName: true } },
+      user: { select: { id: true, displayName: true, ssoDisplayName: true, phone: true } },
     },
   });
 
@@ -40,6 +41,7 @@ export const loadProgramEnrollments = cache(async function loadProgramEnrollment
       displayName: row.user.displayName,
       ssoDisplayName: row.user.ssoDisplayName,
     }),
+    phone: row.user.phone,
     status: row.status,
     createdAt: row.createdAt,
   }));
