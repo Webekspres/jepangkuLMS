@@ -119,7 +119,7 @@ function ReplyForm({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder={`Balas @${mentionHandle(target.author)}…`}
-        className="min-h-[64px] resize-none border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+        className="min-h-[64px] rounded-sm border-border bg-background text-sm"
         rows={2}
         autoFocus
       />
@@ -313,16 +313,16 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-background p-3 sm:p-4">
+      <div className="space-y-3 border-t border-border pt-4">
         <Textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Tulis pertanyaan atau komentar kamu… Gunakan @nama untuk mention."
-          className="min-h-[80px] resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+          placeholder="Tulis pertanyaan atau komentar kamu…."
+          className="min-h-[80px] rounded-sm border-border bg-background"
           rows={3}
         />
-        {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
-        <div className="mt-3 flex justify-end">
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        <div className="flex justify-end">
           <Button size="sm" className="gap-2" disabled={isPending || !draft.trim()} onClick={handleSubmit}>
             <Send className="size-3.5" />
             Kirim
