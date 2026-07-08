@@ -26,10 +26,10 @@ async function releaseModuleOrderSlots(tx: Tx, courseId: string) {
     select: { id: true, order: true },
   });
 
-  for (const module of modules) {
+  for (const courseModule of modules) {
     await tx.module.update({
-      where: { id: module.id },
-      data: { order: module.order + MODULE_ORDER_OFFSET },
+      where: { id: courseModule.id },
+      data: { order: courseModule.order + MODULE_ORDER_OFFSET },
     });
   }
 }
@@ -202,11 +202,11 @@ export async function persistNormalizedCourseImport(
       const seenModuleIds: string[] = [];
       const seenLessonIds: string[] = [];
 
-    for (const module of normalized.modules) {
-      const persistedModule = await upsertModule(tx, course.id, module);
+    for (const courseModule of normalized.modules) {
+      const persistedModule = await upsertModule(tx, course.id, courseModule);
       seenModuleIds.push(persistedModule.id);
 
-      for (const lesson of module.lessons) {
+      for (const lesson of courseModule.lessons) {
         const persistedLesson = await upsertLesson(tx, persistedModule.id, lesson);
         seenLessonIds.push(persistedLesson.id);
         await persistLessonContent(tx, persistedLesson.id, lesson);

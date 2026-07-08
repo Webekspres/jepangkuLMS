@@ -80,8 +80,12 @@ export function AdminProgramEnrollmentsDialog({
     if (!open) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    const loadingTimer = window.setTimeout(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+    }, 0);
 
     void loadProgramEnrollmentsAction(type, productId).then((result) => {
       if (cancelled) return;
@@ -96,6 +100,7 @@ export function AdminProgramEnrollmentsDialog({
 
     return () => {
       cancelled = true;
+      window.clearTimeout(loadingTimer);
     };
   }, [open, type, productId]);
 
@@ -135,7 +140,7 @@ export function AdminProgramEnrollmentsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="gap-0 overflow-hidden rounded-md p-0 sm:max-w-2xl **:data-[slot=dialog-close]:rounded-md">
+        <DialogContent className="gap-0 overflow-hidden rounded-md p-0 sm:max-w-3xl **:data-[slot=dialog-close]:rounded-md">
           <DialogHeader className="space-y-3 border-b border-border bg-muted/30 px-5 py-4 pr-12">
             <div className="flex items-start gap-3">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -189,6 +194,7 @@ export function AdminProgramEnrollmentsDialog({
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="h-10 pl-5 text-xs uppercase tracking-wider">Siswa</TableHead>
+                    <TableHead className="h-10 text-xs uppercase tracking-wider">Telepon</TableHead>
                     <TableHead className="h-10 text-xs uppercase tracking-wider">Status</TableHead>
                     <TableHead className="h-10 text-xs uppercase tracking-wider">Terdaftar</TableHead>
                     <TableHead className="h-10 pr-5 text-right text-xs uppercase tracking-wider">
@@ -208,6 +214,18 @@ export function AdminProgramEnrollmentsDialog({
                           Detail pengguna
                           <ExternalLink className="size-3" />
                         </Link>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        {row.phone ? (
+                          <a
+                            href={`tel:${row.phone}`}
+                            className="text-sm tabular-nums text-foreground hover:text-primary hover:underline"
+                          >
+                            {row.phone}
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Belum diisi</span>
+                        )}
                       </TableCell>
                       <TableCell className="py-3">
                         <Badge

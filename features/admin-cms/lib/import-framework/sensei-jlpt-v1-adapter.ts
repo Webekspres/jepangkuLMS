@@ -67,7 +67,7 @@ function normalizeLessonsFromDefinitions(
   parsed: Extract<ParsedSenseiJlptWorkbook, { ok: true }>,
   definitions: Array<N4LessonDef | N5LessonDef>,
 ) {
-  const { manifest, level, sheets } = parsed;
+  const { manifest, sheets } = parsed;
 
   return definitions.map((lesson) => {
     if (lesson.module === 'kanji' && lesson.excelCategory) {

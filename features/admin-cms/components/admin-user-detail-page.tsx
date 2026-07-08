@@ -225,6 +225,15 @@ export function AdminUserDetailPage({ user, grantOptions }: AdminUserDetailPageP
               ) : (
                 <p className="mt-1 text-xs text-muted-foreground">Email belum tersedia</p>
               )}
+              {user.phone ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  <a href={`tel:${user.phone}`} className="hover:text-foreground hover:underline tabular-nums">
+                    {user.phone}
+                  </a>
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Nomor ponsel belum diisi</p>
+              )}
               <p className="mt-2 text-xs text-muted-foreground">Terdaftar {formatDate(user.createdAt)}</p>
             </div>
           </div>

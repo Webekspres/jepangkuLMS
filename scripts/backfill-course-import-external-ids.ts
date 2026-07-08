@@ -41,10 +41,10 @@ async function main() {
   }
 
   let moduleUpdates = 0;
-  for (const module of modules) {
+  for (const courseModule of modules) {
     await prisma.module.update({
-      where: { id: module.id },
-      data: { moduleExternalId: module.slug },
+      where: { id: courseModule.id },
+      data: { moduleExternalId: courseModule.slug },
     });
     moduleUpdates += 1;
   }

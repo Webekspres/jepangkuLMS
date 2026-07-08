@@ -10,7 +10,7 @@ const LESSON_SHEET = '3. Lesson';
 export async function buildInvalidOfficialVideoWorkbookBuffer(): Promise<Buffer> {
   const buffer = await buildCourseImportTemplateV1Buffer();
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+  await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
   const lessonSheet = workbook.getWorksheet(LESSON_SHEET);
   if (!lessonSheet) {

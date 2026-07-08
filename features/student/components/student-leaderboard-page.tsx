@@ -36,15 +36,15 @@ const PODIUM_META = [
         crownEmoji: '🥈',
         rankLabel: 'Shirogane',
         rankLabelEn: 'Silver',
-        podiumHeight: 'h-[4.5rem] sm:h-24',
-        rankClass: 'text-slate-300 dark:text-slate-300 font-extrabold text-3xl sm:text-4xl',
+        podiumHeight: 'h-[3.5rem] sm:h-24',
+        rankClass: 'text-slate-300 dark:text-slate-300 font-extrabold text-2xl sm:text-4xl',
         glowClass: 'shadow-slate-400/20',
         ringClass: 'ring-slate-400/60 border-slate-400/40',
         cardClass:
             'border-slate-400/30 bg-linear-to-br from-slate-800/90 to-slate-900/95 dark:from-slate-800/90 dark:to-slate-900/95',
         podiumClass:
             'border-t-2 border-slate-400/40 bg-linear-to-b from-slate-700/50 to-slate-800/60',
-        avatarSize: 'size-14 sm:size-16 text-sm',
+        avatarSize: 'size-12 sm:size-16 text-xs',
         scale: 'scale-95',
     },
     // metaIndex 1 → Rank 1 (Gold / Ougon)
@@ -53,15 +53,15 @@ const PODIUM_META = [
         crownEmoji: '👑',
         rankLabel: 'Ougon',
         rankLabelEn: 'Gold',
-        podiumHeight: 'h-28 sm:h-36',
-        rankClass: 'text-brand-yellow dark:text-brand-yellow font-black text-4xl sm:text-5xl drop-shadow-[0_0_12px_rgba(248,231,28,0.8)]',
+        podiumHeight: 'h-20 sm:h-36',
+        rankClass: 'text-brand-yellow dark:text-brand-yellow font-black text-3xl sm:text-5xl drop-shadow-[0_0_12px_rgba(248,231,28,0.8)]',
         glowClass: 'shadow-brand-yellow/30',
         ringClass: 'ring-brand-yellow/70 border-brand-yellow/60',
         cardClass:
             'border-brand-yellow/40 bg-linear-to-br from-amber-900/60 via-amber-800/40 to-slate-900/95',
         podiumClass:
             'border-t-2 border-brand-yellow/50 bg-linear-to-b from-amber-800/40 to-amber-900/50',
-        avatarSize: 'size-16 sm:size-20 text-base',
+        avatarSize: 'size-14 sm:size-20 text-sm',
         scale: 'scale-105',
     },
     // metaIndex 2 → Rank 3 (Bronze / Akagane)
@@ -70,15 +70,15 @@ const PODIUM_META = [
         crownEmoji: '🥉',
         rankLabel: 'Akagane',
         rankLabelEn: 'Bronze',
-        podiumHeight: 'h-12 sm:h-16',
-        rankClass: 'text-amber-600 dark:text-amber-500 font-extrabold text-3xl sm:text-4xl',
+        podiumHeight: 'h-10 sm:h-16',
+        rankClass: 'text-amber-600 dark:text-amber-500 font-extrabold text-2xl sm:text-4xl',
         glowClass: 'shadow-amber-700/20',
         ringClass: 'ring-amber-600/50 border-amber-600/40',
         cardClass:
             'border-amber-700/30 bg-linear-to-br from-amber-950/80 to-slate-900/95',
         podiumClass:
             'border-t-2 border-amber-700/40 bg-linear-to-b from-amber-900/30 to-amber-950/40',
-        avatarSize: 'size-12 sm:size-14 text-xs',
+        avatarSize: 'size-11 sm:size-14 text-[10px]',
         scale: 'scale-90',
     },
 ] as const;
@@ -97,7 +97,7 @@ function BadgeTitlePill({
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1 rounded-full border',
+                'inline-flex max-w-full items-center gap-1 rounded-full border truncate',
                 'bg-amber-500/10 border-amber-500/35 dark:bg-amber-400/10 dark:border-amber-400/30',
                 'font-bold tracking-widest uppercase leading-none',
                 '[text-shadow:0_1px_3px_rgba(0,0,0,0.4)]',
@@ -180,10 +180,8 @@ function PodiumSlot({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay, type: 'spring', stiffness: 220, damping: 20 }}
             className={cn(
-                'flex flex-col items-stretch justify-end',
-                center
-                    ? 'w-[38%] min-w-[8.5rem] max-w-[10.5rem] z-10'
-                    : 'w-[27%] min-w-[6.75rem] max-w-[8.25rem]',
+                'flex min-w-0 flex-1 flex-col items-stretch justify-end',
+                center ? 'z-10 basis-[38%] max-w-42 sm:min-w-34' : 'basis-[27%] max-w-33 sm:min-w-27',
             )}
         >
             {/* Profile card — floats above pedestal */}
@@ -193,7 +191,7 @@ function PodiumSlot({
                     'shadow-xl backdrop-blur-sm',
                     meta.glowClass,
                     meta.cardClass,
-                    center ? 'pt-5 px-3 pb-3' : 'pt-4 px-2 pb-2.5',
+                    center ? 'pt-5 px-2 pb-3 sm:px-3' : 'pt-4 px-1.5 pb-2.5 sm:px-2',
                 )}
             >
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20">
@@ -444,7 +442,7 @@ export function StudentLeaderboardPage() {
                     </div>
 
                     {/* Stat cards */}
-                    <div className="grid grid-cols-2 gap-3 sm:min-w-[17rem]">
+                    <div className="grid grid-cols-2 gap-3 sm:min-w-68">
                         <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center backdrop-blur-sm">
                             <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">
                                 Peringkat Anda
@@ -493,7 +491,7 @@ export function StudentLeaderboardPage() {
 
                     {/* ── Podium zone ─────────────────────────────────────────────────────── */}
                     <div
-                        className="relative border-b border-border py-8 px-6 sm:px-8 overflow-hidden"
+                        className="relative border-b border-border px-3 py-6 pt-8 sm:px-8 sm:py-8"
                         style={{ background: 'linear-gradient(180deg, #181548 0%, #12103a 100%)' }}
                     >
                         {/* Decorative lights */}
@@ -503,9 +501,9 @@ export function StudentLeaderboardPage() {
 
                         <div
                             className={cn(
-                                'relative mx-auto flex w-full max-w-[22rem] items-end justify-center gap-2 sm:max-w-xl sm:gap-4',
+                                'relative mx-auto flex w-full max-w-[18rem] items-end justify-center gap-1 sm:max-w-xl sm:gap-4',
                                 top10.length === 1
-                                    ? 'max-w-[14rem]'
+                                    ? 'max-w-48'
                                     : top10.length === 2
                                         ? 'max-w-sm'
                                         : undefined,

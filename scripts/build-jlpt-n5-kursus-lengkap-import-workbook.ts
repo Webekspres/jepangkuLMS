@@ -305,8 +305,10 @@ function cellVal(value: ExcelJS.CellValue): string {
   if (typeof value === 'object' && 'richText' in value) {
     return value.richText.map((part) => part.text).join('');
   }
-  if (typeof value === 'object' && 'text' in value) return value.text;
-  if (typeof value === 'object' && 'hyperlink' in value) return value.hyperlink;
+  if (typeof value === 'object' && value !== null && 'text' in value) return String(value.text);
+  if (typeof value === 'object' && value !== null && 'hyperlink' in value) {
+    return String((value as { hyperlink?: unknown }).hyperlink ?? '');
+  }
   if (typeof value === 'object' && 'result' in value) return String(value.result ?? '');
   return String(value);
 }
@@ -786,9 +788,8 @@ async function main() {
   const quizRows: Record<string, string | number>[] = [];
 
   lessonRefs.forEach((lesson) => {
-    const moduleRow = moduleRows.find((row) => row.module_external_id === lesson.moduleId);
     const order =
-      CURRICULUM.find((module) => module.title === lesson.moduleTitle)?.lessons.findIndex(
+      CURRICULUM.find((courseModule) => courseModule.title === lesson.moduleTitle)?.lessons.findIndex(
         (item) => item.title === lesson.title,
       ) ?? 0;
 

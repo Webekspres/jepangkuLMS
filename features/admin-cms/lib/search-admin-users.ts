@@ -20,6 +20,7 @@ export async function searchAdminUsers(query: string, limit = 8): Promise<AdminU
         { displayName: { contains: trimmed, mode: 'insensitive' } },
         { ssoDisplayName: { contains: trimmed, mode: 'insensitive' } },
         { ssoEmail: { contains: trimmed, mode: 'insensitive' } },
+        { phone: { contains: trimmed, mode: 'insensitive' } },
       ],
     },
     orderBy: { createdAt: 'desc' },

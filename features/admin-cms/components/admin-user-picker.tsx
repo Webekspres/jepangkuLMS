@@ -52,19 +52,22 @@ export function AdminUserPicker({
 
   useEffect(() => {
     if (!value) {
-      setSelectedUser(null);
-      return;
+      const timer = window.setTimeout(() => setSelectedUser(null), 0);
+      return () => window.clearTimeout(timer);
     }
     if (selectedUser?.id === value) return;
 
     if (CLERK_USER_ID_PATTERN.test(value)) {
-      setSelectedUser({
-        id: value,
-        resolvedDisplayName: value,
-        displayName: null,
-        ssoDisplayName: null,
-        ssoEmail: null,
-      });
+      const timer = window.setTimeout(() => {
+        setSelectedUser({
+          id: value,
+          resolvedDisplayName: value,
+          displayName: null,
+          ssoDisplayName: null,
+          ssoEmail: null,
+        });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [value, selectedUser?.id]);
 
@@ -82,10 +85,12 @@ export function AdminUserPicker({
     const trimmed = query.trim();
 
     if (trimmed.length < MIN_SEARCH_LENGTH || CLERK_USER_ID_PATTERN.test(trimmed)) {
-      setResults([]);
-      setHasSearched(false);
-      setOpen(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setResults([]);
+        setHasSearched(false);
+        setOpen(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     const seq = ++searchSeqRef.current;

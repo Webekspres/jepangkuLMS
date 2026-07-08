@@ -47,6 +47,7 @@ export type AdminUserDetail = {
   displayName: string | null;
   ssoDisplayName: string | null;
   ssoEmail: string | null;
+  phone: string | null;
   resolvedDisplayName: string;
   avatarUrl: string | null;
   role: 'LMS_STUDENT' | 'LMS_ADMIN';
@@ -207,6 +208,7 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
     displayName: user.displayName,
     ssoDisplayName: user.ssoDisplayName,
     ssoEmail,
+    phone: user.phone,
     resolvedDisplayName: resolvePublicDisplayName({
       displayName: user.displayName,
       ssoDisplayName: user.ssoDisplayName,

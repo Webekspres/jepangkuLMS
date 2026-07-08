@@ -8,12 +8,14 @@ export function getPaymentSettings() {
   const accountName = process.env.PAYMENT_ACCOUNT_NAME;
   const accountNumber = process.env.PAYMENT_ACCOUNT_NUMBER;
 
-  if (process.env.NODE_ENV === 'production') {
-    if (!bankName || !accountName || !accountNumber) {
-      throw new Error(
-        'PAYMENT_BANK_NAME, PAYMENT_ACCOUNT_NAME, and PAYMENT_ACCOUNT_NUMBER must be set in production',
-      );
-    }
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PHASE !== 'phase-production-build' &&
+    (!bankName || !accountName || !accountNumber)
+  ) {
+    throw new Error(
+      'PAYMENT_BANK_NAME, PAYMENT_ACCOUNT_NAME, and PAYMENT_ACCOUNT_NUMBER must be set in production',
+    );
   }
 
   return {

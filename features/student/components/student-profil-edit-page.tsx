@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
 import { useStudentCoreData } from './student-core-data-context';
-import { updateStudentAvatar, updateStudentBio, updateStudentDisplayName } from '@/features/student/actions/profile-actions';
+import { updateStudentAvatar, updateStudentBio, updateStudentDisplayName, updateStudentPhone } from '@/features/student/actions/profile-actions';
 import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 import { STUDENT_ROUTES } from './student-routes';
 
@@ -26,9 +26,11 @@ export function StudentProfilEditPage() {
   const avatarUrl = core.avatarUrl ?? identity?.imageUrl;
   const initialDisplayName = core.displayName ?? identity?.displayName ?? '';
   const initialBio = core.bio ?? '';
+  const initialPhone = core.phone ?? '';
 
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [bio, setBio] = useState(initialBio);
+  const [phone, setPhone] = useState(initialPhone);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [displayNameSaved, setDisplayNameSaved] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -147,6 +149,13 @@ export function StudentProfilEditPage() {
           return;
         }
 
+        const phoneResult = await updateStudentPhone(phone);
+        if (!phoneResult.ok) {
+          setDisplayNameError(phoneResult.error);
+          toast.error(phoneResult.error);
+          return;
+        }
+
         setDisplayNameSaved(true);
         setPendingAvatarFile(null); // Clear pending avatar
         toast.success('Profil berhasil disimpan.');
@@ -177,7 +186,7 @@ export function StudentProfilEditPage() {
         <p className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-primary">PROFIL</p>
         <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">Edit Profil</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Kelola nama tampilan dan informasi profil belajar kamu.
+          Kelola nama tampilan, nomor ponsel, dan informasi profil belajar kamu.
         </p>
       </div>
 
@@ -268,6 +277,30 @@ export function StudentProfilEditPage() {
             )}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="phone">
+              Nomor Ponsel <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              maxLength={20}
+              disabled={isPending}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setDisplayNameSaved(false);
+                setDisplayNameError(null);
+              }}
+              placeholder="Contoh: 08123456789"
+              className="max-w-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Digunakan admin untuk info kelas dan grup belajar. Format: 08xx atau +62xx.
+            </p>
+          </div>
+
           {/* Email (readonly from Clerk) */}
           {/* <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -311,7 +344,7 @@ export function StudentProfilEditPage() {
       <div className="flex items-center gap-3">
         <Button
           onClick={handleSave}
-          disabled={isPending || displayName.trim().length < 2}
+          disabled={isPending || displayName.trim().length < 2 || phone.trim().length < 8}
           className="gap-2"
         >
           {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
@@ -324,7 +357,7 @@ export function StudentProfilEditPage() {
 
       {/* ── Modal Potong Foto (react-easy-crop) ────────────────────────────────── */}
       {isCropModalOpen && imageSrc && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 dark:bg-black/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/70 dark:bg-black/80 p-4 backdrop-blur-sm">
           <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-slate-200 dark:border-brand-yellow/30 bg-white dark:bg-slate-950 p-5 shadow-2xl">
             {/* Header */}
             <div className="mb-4">

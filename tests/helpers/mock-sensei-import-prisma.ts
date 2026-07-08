@@ -67,6 +67,7 @@ export function createMockSenseiImportPrisma() {
             update: async ({ where }: { where: { id: string } }) => ({ id: where.id }),
         },
         module: {
+            findMany: async () => [],
             deleteMany: async () => ({ count: 0 }),
             findFirst: async ({ where }: { where: { OR: Array<{ moduleExternalId?: string; slug?: string }> } }) => {
                 for (const candidate of where.OR) {

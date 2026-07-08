@@ -122,6 +122,10 @@ model User {
     displayNameSetupAt DateTime?
     /// Bio singkat profil belajar
     bio                String?   @db.VarChar(280)
+    /// Nomor ponsel/WhatsApp siswa — untuk kontak admin
+    phone              String?   @db.VarChar(20)
+    /// Setelah user mengisi nomor ponsel di onboarding / edit profil
+    phoneSetupAt       DateTime?
     /// Foto profil LMS — override Clerk jika di-set
     avatarUrl          String?
     role               LmsRole   @default(LMS_STUDENT)

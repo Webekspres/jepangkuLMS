@@ -15,8 +15,8 @@ export function buildPreviewFromNormalized(
   let tataBahasaCount = 0;
   let questionCount = 0;
 
-  for (const module of normalized.modules) {
-    for (const lesson of module.lessons) {
+  for (const courseModule of normalized.modules) {
+    for (const lesson of courseModule.lessons) {
       if (lesson.content.kind === 'FLASHCARD') {
         kanjiCount += lesson.content.kanjis.length;
         kosakataCount += lesson.content.kosakatas.length;

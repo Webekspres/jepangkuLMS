@@ -14,6 +14,32 @@ const DISPLAY_NAME_MIN = 2;
 const DISPLAY_NAME_MAX = 32;
 const DISPLAY_NAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} _.-]*$/u;
 const BIO_MAX = 280;
+const PHONE_MAX = 20;
+
+export function normalizeLmsPhone(value: string): string {
+    return value.replace(/[\s().-]/g, '').trim();
+}
+
+export function formatLmsPhoneForStorage(value: string): string {
+    const normalized = normalizeLmsPhone(value);
+    if (normalized.startsWith('0')) return `+62${normalized.slice(1)}`;
+    if (normalized.startsWith('62') && !normalized.startsWith('+')) return `+${normalized}`;
+    if (normalized.startsWith('+')) return normalized;
+    return `+62${normalized}`;
+}
+
+export function validateLmsPhone(value: string): string | null {
+    const normalized = normalizeLmsPhone(value);
+    if (!normalized) return 'Nomor ponsel wajib diisi.';
+    if (!/^(\+?62|0)[0-9]{8,14}$/.test(normalized)) {
+        return 'Format nomor tidak valid. Contoh: 08123456789 atau +628123456789.';
+    }
+    const stored = formatLmsPhoneForStorage(normalized);
+    if (stored.length > PHONE_MAX) {
+        return `Nomor ponsel maksimal ${PHONE_MAX} karakter.`;
+    }
+    return null;
+}
 
 export function validateLmsBio(value: string): string | null {
     const trimmed = value.trim();
@@ -39,6 +65,8 @@ export type LmsUserProfile = {
     displayName: string | null;
     ssoDisplayName: string | null;
     displayNameSetupAt: Date | null;
+    phone: string | null;
+    phoneSetupAt: Date | null;
     bio: string | null;
     avatarUrl: string | null;
     equippedBadgeId: string | null;
@@ -52,6 +80,8 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
             displayName: true,
             ssoDisplayName: true,
             displayNameSetupAt: true,
+            phone: true,
+            phoneSetupAt: true,
             bio: true,
             avatarUrl: true,
             equippedBadgeId: true,
@@ -63,6 +93,8 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
         displayName: user.displayName,
         ssoDisplayName: user.ssoDisplayName,
         displayNameSetupAt: user.displayNameSetupAt,
+        phone: user.phone,
+        phoneSetupAt: user.phoneSetupAt,
         bio: user.bio,
         avatarUrl: user.avatarUrl,
         equippedBadgeId: user.equippedBadgeId,
@@ -197,6 +229,25 @@ export async function updateLmsBio(userId: string, bio: string): Promise<void> {
         create: userAnchorCreateData(userId, { bio: trimmed || null }),
         update: { bio: trimmed || null },
     });
+}
+
+export async function updateLmsPhone(userId: string, phone: string): Promise<void> {
+    const error = validateLmsPhone(phone);
+    if (error) throw new Error(error);
+
+    const stored = formatLmsPhoneForStorage(phone);
+    await prisma.user.upsert({
+        where: { id: userId },
+        create: userAnchorCreateData(userId, { phone: stored, phoneSetupAt: new Date() }),
+        update: {
+            phone: stored,
+            phoneSetupAt: new Date(),
+        },
+    });
+}
+
+export async function completeLmsPhoneSetup(userId: string, phone: string): Promise<void> {
+    await updateLmsPhone(userId, phone);
 }
 
 export async function updateUserLmsRole(

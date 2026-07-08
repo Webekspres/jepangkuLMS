@@ -43,9 +43,9 @@ export function buildCourseImportReportText(preview: CourseImportPreview): strin
 
   if (preview.modulePreview && preview.modulePreview.length > 0) {
     lines.push('=== STRUKTUR MODUL ===');
-    for (const module of preview.modulePreview) {
-      lines.push(`Modul ${module.order}: ${module.moduleTitle} (${module.moduleExternalId})`);
-      for (const lesson of module.lessons) {
+    for (const courseModule of preview.modulePreview) {
+      lines.push(`Modul ${courseModule.order}: ${courseModule.moduleTitle} (${courseModule.moduleExternalId})`);
+      for (const lesson of courseModule.lessons) {
         lines.push(`  - [${lesson.lessonType}] ${lesson.title} (${lesson.lessonExternalId})`);
       }
     }

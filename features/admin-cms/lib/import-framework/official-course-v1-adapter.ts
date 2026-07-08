@@ -476,7 +476,7 @@ export function normalizeOfficialCourseV1Workbook(
       continue;
     }
 
-    const module = moduleById.get(moduleExternalId)!;
+    const courseModule = moduleById.get(moduleExternalId)!;
     const content =
       lessonType === 'VIDEO'
         ? {
@@ -508,7 +508,7 @@ export function normalizeOfficialCourseV1Workbook(
                 ),
               };
 
-    module.lessons.push({
+    courseModule.lessons.push({
       lessonExternalId,
       moduleExternalId,
       title,

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "phone" VARCHAR(20);
+ALTER TABLE "User" ADD COLUMN "phoneSetupAt" TIMESTAMP(3);

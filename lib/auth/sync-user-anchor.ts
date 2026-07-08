@@ -2,7 +2,6 @@ import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { resolveInitialLmsRole } from '@/lib/auth/lms-roles';
 import { resolveClerkIdentity } from '@/features/auth/lib/clerk-user-display';
-import { resolveClerkPrimaryEmail } from '@/lib/auth/clerk-user-email';
 import { trimSsoDisplayName } from '@/lib/lms/display-name';
 import { checkDailyLoginLms } from '@/lib/lms/points';
 import { loggers, serializeError } from '@/lib/logger';
@@ -36,7 +35,7 @@ export function userAnchorCreateData(
   userId: string,
   extra?: Pick<
     Prisma.UserCreateInput,
-    'displayName' | 'ssoDisplayName' | 'ssoEmail' | 'avatarUrl' | 'bio' | 'displayNameSetupAt'
+    'displayName' | 'ssoDisplayName' | 'ssoEmail' | 'avatarUrl' | 'bio' | 'phone' | 'displayNameSetupAt' | 'phoneSetupAt'
   >,
 ): Prisma.UserCreateInput {
   return {
