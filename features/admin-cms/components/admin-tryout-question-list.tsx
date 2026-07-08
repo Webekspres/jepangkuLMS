@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil } from 'lucide-react';
+import {
+  AdminTableAction,
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import type { LevelJLPT } from '@prisma/client';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import {
@@ -165,27 +170,17 @@ export function AdminTryoutQuestionList({
                     ) : null}
                   </div>
                 </button>
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="outline"
-                    aria-label="Edit soal"
+                <AdminTableActions>
+                  <AdminTableAction
+                    label="Edit soal"
+                    icon={Pencil}
                     onClick={() => openEdit(question)}
-                  >
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="secondary"
-                    className="border border-brand-navy/20 bg-brand-navy text-white hover:bg-brand-navy/90 hover:text-white [&_svg]:text-white"
-                    aria-label="Hapus soal"
+                  />
+                  <AdminTableActionDelete
+                    label="Hapus soal"
                     onClick={() => setDeleteId(question.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
+                  />
+                </AdminTableActions>
               </div>
 
               <AnimatedCollapse open={isOpen}>

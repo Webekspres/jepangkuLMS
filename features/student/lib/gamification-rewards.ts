@@ -26,6 +26,48 @@ export const CORE_MAX_LEVEL = 100;
 /** Total XP untuk mencapai level maksimum: (100 - 1) * 50 = 4.950. */
 export const CORE_MAX_TOTAL_XP = (CORE_MAX_LEVEL - 1) * CORE_XP_PER_LEVEL;
 
+/** Minimum cumulative `total_xp` untuk berada di level L (selaras Core `levels.xp_required`). */
+export function coreXpRequiredForLevel(level: number): number {
+  if (level <= 1) return 0;
+  return (level - 1) * CORE_XP_PER_LEVEL;
+}
+
+export type CoreLevelProgress = {
+  percent: number;
+  xpInCurrentLevel: number;
+  xpNeededForNextLevel: number;
+  xpRemaining: number;
+  isMaxLevel: boolean;
+};
+
+/** Progress XP dalam level saat ini menuju level berikutnya. */
+export function getCoreLevelProgress(totalXp: number, level: number): CoreLevelProgress {
+  const safeLevel = Math.max(1, Math.min(level, CORE_MAX_LEVEL));
+  const isMaxLevel = safeLevel >= CORE_MAX_LEVEL;
+  const currentThreshold = coreXpRequiredForLevel(safeLevel);
+  const nextThreshold = isMaxLevel
+    ? currentThreshold
+    : coreXpRequiredForLevel(safeLevel + 1);
+  const xpNeededForNextLevel = isMaxLevel ? 0 : nextThreshold - currentThreshold;
+  const xpInCurrentLevel = Math.max(0, totalXp - currentThreshold);
+  const xpRemaining = isMaxLevel ? 0 : Math.max(0, nextThreshold - totalXp);
+
+  let percent = 0;
+  if (isMaxLevel) {
+    percent = 100;
+  } else if (xpNeededForNextLevel > 0) {
+    percent = Math.min(100, (xpInCurrentLevel / xpNeededForNextLevel) * 100);
+  }
+
+  return {
+    percent: Math.round(percent * 10) / 10,
+    xpInCurrentLevel,
+    xpNeededForNextLevel,
+    xpRemaining,
+    isMaxLevel,
+  };
+}
+
 export type GamificationReward = { xp: number; points: number };
 
 /**

@@ -3,10 +3,16 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import type { LessonType } from '@prisma/client';
+import { Pencil, Plus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+    AdminTableAction,
+    AdminTableActionDelete,
+    AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import { updateLessonAction } from '@/features/admin-cms/actions/cms-lesson-actions';
 import {
     createKanjiMaterialAction,
@@ -27,13 +33,22 @@ import {
 import type { AdminLessonContent } from '@/features/admin-cms/lib/load-admin-lesson-content';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
+import { getLessonTypeDefinition } from '@/features/learning/lib/lesson-type-registry';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -62,6 +77,14 @@ type AdminLessonWorkspaceProps = {
 
 type MainTab = 'info' | 'flashcard' | 'quiz';
 type FlashTab = 'kosakata' | 'kanji' | 'tata-bahasa';
+type LessonInfoValues = {
+    title: string;
+    slug: string;
+    order: number;
+    lessonType: LessonType | '';
+    content: string;
+    videoUrl: string;
+};
 
 function StatusBanner({ message, tone }: { message: string; tone: 'success' | 'error' }) {
     return (
@@ -82,9 +105,6 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialTab = (searchParams.get('tab') as MainTab | null) ?? 'info';
-    const [mainTab, setMainTab] = useState<MainTab>(
-        initialTab === 'flashcard' || initialTab === 'quiz' ? initialTab : 'info',
-    );
     const [flashTab, setFlashTab] = useState<FlashTab>('kosakata');
     const [banner, setBanner] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
 
@@ -92,6 +112,17 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
         () => content.kosakatas.length + content.kanjis.length + content.tataBahasas.length,
         [content],
     );
+    const lessonTypeDef = getLessonTypeDefinition(content.lesson.lessonType);
+    const lessonTypeLabel = lessonTypeDef.label;
+    const allowFlashcardTab = lessonTypeDef.adminTabs.includes('flashcard');
+    const allowQuizTab = lessonTypeDef.adminTabs.includes('quiz');
+    const resolvedInitialTab: MainTab =
+        initialTab === 'flashcard' && allowFlashcardTab
+            ? 'flashcard'
+            : initialTab === 'quiz' && allowQuizTab
+                ? 'quiz'
+                : 'info';
+    const [mainTab, setMainTab] = useState<MainTab>(resolvedInitialTab);
 
     return (
         <AdminPageShell
@@ -111,10 +142,31 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
             }
         >
             {banner ? <div className="mb-4"><StatusBanner {...banner} /></div> : null}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+                <Badge variant={content.lesson.isLegacy ? 'secondary' : 'outline'}>
+                    {content.lesson.isLegacy ? 'Legacy lesson' : `Tipe: ${lessonTypeLabel}`}
+                </Badge>
+                {content.lesson.isLegacy && content.lesson.legacyDetectedTypes.length > 1 ? (
+                    <Badge variant="outline">
+                        Multi-content: {content.lesson.legacyDetectedTypes.join(', ')}
+                    </Badge>
+                ) : null}
+            </div>
+            {content.lesson.isLegacy && content.lesson.legacyDetectedTypes.length > 1 ? (
+                <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-950">
+                    <AlertTitle>Legacy multi-content lesson</AlertTitle>
+                    <AlertDescription>
+                        Pelajaran lama ini masih memiliki lebih dari satu tipe konten
+                        ({content.lesson.legacyDetectedTypes.join(', ')}). Editor kompatibilitas tetap
+                        ditampilkan sampai kontennya dipisah atau dimigrasikan ke satu `lessonType`.
+                    </AlertDescription>
+                </Alert>
+            ) : null}
 
-            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)} className="gap-6">
+            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainTab)} className="min-w-0 gap-6">
                 <TabsList>
                     <TabsTrigger value="info">Informasi</TabsTrigger>
+                    {allowFlashcardTab ? (
                     <TabsTrigger value="flashcard">
                         Flashcard
                         {materialTotal > 0 ? (
@@ -123,6 +175,8 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                             </Badge>
                         ) : null}
                     </TabsTrigger>
+                    ) : null}
+                    {allowQuizTab ? (
                     <TabsTrigger value="quiz">
                         Kuis
                         {content.questions.length > 0 ? (
@@ -131,9 +185,10 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                             </Badge>
                         ) : null}
                     </TabsTrigger>
+                    ) : null}
                 </TabsList>
 
-                <TabsContent value="info">
+                <TabsContent value="info" className="min-w-0 flex-none">
                     <LessonInfoPanel
                         scope={scope}
                         lesson={content.lesson}
@@ -145,7 +200,8 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                     />
                 </TabsContent>
 
-                <TabsContent value="flashcard">
+                {allowFlashcardTab ? (
+                <TabsContent value="flashcard" className="min-w-0 flex-none">
                     <p className="mb-4 text-sm text-muted-foreground">
                         Kelola kartu per jenis materi. Di halaman belajar siswa, semua jenis digabung jadi satu
                         deck flashcard (diacak setiap sesi).
@@ -159,7 +215,7 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                             </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="kosakata">
+                        <TabsContent value="kosakata" className="min-w-0 flex-none">
                             <KosakataPanel
                                 scope={scope}
                                 items={content.kosakatas}
@@ -169,7 +225,7 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                                 }}
                             />
                         </TabsContent>
-                        <TabsContent value="kanji">
+                        <TabsContent value="kanji" className="min-w-0 flex-none">
                             <KanjiPanel
                                 scope={scope}
                                 items={content.kanjis}
@@ -179,7 +235,7 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                                 }}
                             />
                         </TabsContent>
-                        <TabsContent value="tata-bahasa">
+                        <TabsContent value="tata-bahasa" className="min-w-0 flex-none">
                             <TataBahasaPanel
                                 scope={scope}
                                 items={content.tataBahasas}
@@ -191,8 +247,10 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                         </TabsContent>
                     </Tabs>
                 </TabsContent>
+                ) : null}
 
-                <TabsContent value="quiz">
+                {allowQuizTab ? (
+                <TabsContent value="quiz" className="min-w-0 flex-none">
                     <QuizPanel
                         scope={scope}
                         questions={content.questions}
@@ -202,6 +260,7 @@ export function AdminLessonWorkspace({ scope, moduleTitle, courseSlug, content }
                         }}
                     />
                 </TabsContent>
+                ) : null}
             </Tabs>
         </AdminPageShell>
     );
@@ -219,13 +278,17 @@ function LessonInfoPanel({
     onError: (message: string) => void;
 }) {
     const [isPending, startTransition] = useTransition();
-    const [values, setValues] = useState({
+    const [values, setValues] = useState<LessonInfoValues>({
         title: lesson.title,
         slug: lesson.slug,
         order: lesson.order,
+        lessonType: lesson.lessonType ?? '',
         content: lesson.content ?? '',
         videoUrl: lesson.videoUrl ?? '',
     });
+    const lessonTypeDef = getLessonTypeDefinition(values.lessonType || null);
+    const showVideoField = lessonTypeDef.allowsVideoField;
+    const showContentField = lessonTypeDef.allowsContentField;
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -235,6 +298,7 @@ function LessonInfoPanel({
         formData.set('title', values.title);
         formData.set('slug', values.slug);
         formData.set('order', String(values.order));
+        formData.set('lessonType', values.lessonType);
         formData.set('content', values.content);
         formData.set('videoUrl', values.videoUrl);
 
@@ -281,6 +345,33 @@ function LessonInfoPanel({
                         onSlugChange={(slug) => setValues((p) => ({ ...p, slug }))}
                     />
                     <div className="space-y-2">
+                        <Label htmlFor="lessonType">Tipe Pelajaran</Label>
+                        <Select
+                            value={values.lessonType}
+                            onValueChange={(value) => {
+                                const nextLessonType = value as LessonType;
+                                const nextTypeDef = getLessonTypeDefinition(nextLessonType);
+                                setValues((prev) => ({
+                                    ...prev,
+                                    lessonType: nextLessonType,
+                                    videoUrl: nextTypeDef.allowsVideoField ? prev.videoUrl : '',
+                                    content: nextTypeDef.allowsContentField ? prev.content : '',
+                                }));
+                            }}
+                        >
+                            <SelectTrigger id="lessonType">
+                                <SelectValue placeholder="Pilih tipe pelajaran" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="VIDEO">Video</SelectItem>
+                                <SelectItem value="FLASHCARD">Flashcard</SelectItem>
+                                <SelectItem value="QUIZ">Quiz</SelectItem>
+                                <SelectItem value="TEXT">Text / Reading</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {showVideoField ? (
+                    <div className="space-y-2">
                         <Label htmlFor="videoUrl">URL Video</Label>
                         <Input
                             id="videoUrl"
@@ -289,8 +380,12 @@ function LessonInfoPanel({
                             placeholder="https://youtube.com/..."
                         />
                     </div>
+                    ) : null}
+                    {showContentField ? (
                     <div className="space-y-2">
-                        <Label htmlFor="content">Catatan / intro</Label>
+                        <Label htmlFor="content">
+                            {lessonTypeDef.contentFieldLabel}
+                        </Label>
                         <MarkdownToolbarTextarea
                             id="content"
                             value={values.content}
@@ -298,6 +393,7 @@ function LessonInfoPanel({
                             rows={8}
                         />
                     </div>
+                    ) : null}
                     <Button type="submit" disabled={isPending}>
                         {isPending ? 'Menyimpan...' : 'Simpan Informasi'}
                     </Button>
@@ -386,10 +482,10 @@ function KosakataPanel({
                                     </TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit kosakata"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -400,18 +496,12 @@ function KosakataPanel({
                                                         contohKalimat: item.contohKalimat ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus kosakata"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -581,10 +671,10 @@ function KanjiPanel({
                                     </TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit kanji"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -596,18 +686,12 @@ function KanjiPanel({
                                                         kunyomi: item.kunyomi ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus kanji"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -787,10 +871,10 @@ function TataBahasaPanel({
                                     <TableCell className="font-medium">{item.tataBahasa}</TableCell>
                                     <TableCell className="text-sm">{item.arti}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Edit tata bahasa"
+                                                icon={Pencil}
                                                 onClick={() => {
                                                     setEditingId(item.id);
                                                     setForm({
@@ -799,18 +883,12 @@ function TataBahasaPanel({
                                                         contohKalimat: item.contohKalimat ?? '',
                                                     });
                                                 }}
-                                            >
-                                                <Pencil className="size-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus tata bahasa"
                                                 onClick={() => setDeleteId(item.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -940,7 +1018,6 @@ function QuizPanel({
     const [form, setForm] = useState({
         questionText: '',
         explanation: '',
-        xpReward: 10,
         options: emptyOptions(),
         correctIndex: '0',
     });
@@ -950,7 +1027,6 @@ function QuizPanel({
         setForm({
             questionText: '',
             explanation: '',
-            xpReward: 10,
             options: emptyOptions(),
             correctIndex: '0',
         });
@@ -960,7 +1036,6 @@ function QuizPanel({
         ...scope,
         questionText: form.questionText,
         explanation: form.explanation,
-        xpReward: form.xpReward,
         options: form.options.map((opt, index) => ({
             text: opt.text,
             isCorrect: String(index) === form.correctIndex,
@@ -968,29 +1043,28 @@ function QuizPanel({
     });
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
             {questions.map((question, index) => (
-                <Card key={question.id} className="border-border">
-                    <CardHeader className="flex flex-row items-start justify-between gap-4 border-b border-border bg-muted/20 py-4">
-                        <div>
+                <Card key={question.id} className="min-w-0 border-border">
+                    <CardHeader className="flex min-w-0 flex-row items-start justify-between gap-4 border-b border-border bg-muted/20 py-4">
+                        <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Soal {index + 1}
                             </p>
-                            <CardTitle className="mt-1 text-base font-semibold leading-snug">
+                            <CardTitle className="mt-1 wrap-break-word text-base font-semibold leading-snug">
                                 {question.questionText}
                             </CardTitle>
                         </div>
-                        <div className="flex gap-1">
-                            <Button
-                                size="sm"
-                                variant="outline"
+                        <AdminTableActions>
+                            <AdminTableAction
+                                label="Edit soal"
+                                icon={Pencil}
                                 onClick={() => {
                                     const correctIndex = question.options.findIndex((o) => o.isCorrect);
                                     setEditingId(question.id);
                                     setForm({
                                         questionText: question.questionText,
                                         explanation: question.explanation ?? '',
-                                        xpReward: question.xpReward,
                                         options: question.options.map((o) => ({
                                             text: o.text,
                                             isCorrect: o.isCorrect,
@@ -998,26 +1072,20 @@ function QuizPanel({
                                         correctIndex: String(Math.max(0, correctIndex)),
                                     });
                                 }}
-                            >
-                                <Pencil className="size-3.5" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive"
+                            />
+                            <AdminTableActionDelete
+                                label="Hapus soal"
                                 onClick={() => setDeleteId(question.id)}
-                            >
-                                <Trash2 className="size-3.5" />
-                            </Button>
-                        </div>
+                            />
+                        </AdminTableActions>
                     </CardHeader>
-                    <CardContent className="pt-4">
+                    <CardContent className="min-w-0 pt-4">
                         <ul className="space-y-1 text-sm">
                             {question.options.map((opt) => (
                                 <li
                                     key={opt.id}
                                     className={cn(
-                                        'rounded-md px-2 py-1',
+                                        'wrap-break-word rounded-md px-2 py-1',
                                         opt.isCorrect && 'bg-emerald-500/10 font-medium text-emerald-700',
                                     )}
                                 >
@@ -1042,7 +1110,7 @@ function QuizPanel({
                 </p>
             ) : null}
 
-            <Card className="border-border">
+                <Card className="min-w-0 border-border">
                 <CardHeader className="border-b border-border bg-muted/30">
                     <CardTitle className="text-base font-bold">
                         {editingId ? 'Edit Soal' : 'Tambah Soal Kuis'}
@@ -1065,7 +1133,7 @@ function QuizPanel({
                                 resetForm();
                             });
                         }}
-                        className="space-y-4"
+                        className="min-w-0 space-y-4"
                     >
                         <div className="space-y-2">
                             <Label>Pertanyaan *</Label>
@@ -1084,25 +1152,19 @@ function QuizPanel({
                                 rows={2}
                             />
                         </div>
-                        <div className="space-y-2 max-w-xs">
-                            <Label>XP reward</Label>
-                            <Input
-                                type="number"
-                                min={1}
-                                max={1000}
-                                value={form.xpReward}
-                                onChange={(e) => setForm((p) => ({ ...p, xpReward: Number(e.target.value) }))}
-                            />
-                        </div>
-
                         <div className="space-y-3">
                             <Label>Opsi jawaban — pilih yang benar</Label>
                             <RadioGroup
                                 value={form.correctIndex}
                                 onValueChange={(value) => setForm((p) => ({ ...p, correctIndex: value }))}
+                                className="min-w-0 space-y-2.5"
                             >
                                 {form.options.map((opt, index) => (
-                                    <div key={index} className="flex items-center gap-3">
+                                    <label
+                                        key={index}
+                                        htmlFor={`opt-${index}`}
+                                        className="flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border/70 bg-background px-3 py-2.5 transition-colors hover:bg-muted/30"
+                                    >
                                         <RadioGroupItem value={String(index)} id={`opt-${index}`} />
                                         <Input
                                             value={opt.text}
@@ -1116,8 +1178,9 @@ function QuizPanel({
                                             }
                                             placeholder={`Opsi ${index + 1}`}
                                             required
+                                            className="min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
                                         />
-                                    </div>
+                                    </label>
                                 ))}
                             </RadioGroup>
                         </div>

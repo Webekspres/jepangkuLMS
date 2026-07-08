@@ -3,7 +3,6 @@ import { CORE_JWT_COOKIE } from '@/lib/auth/constants';
 import { getCoreJwtCookieOptions } from '@/lib/auth/cookie-options';
 import { assertSameOriginPost } from '@/lib/security/csrf';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { createRequestId } from '@/lib/errors/api-error';
 
 const SIGN_OUT_RATE_LIMIT = 10; // requests
 const SIGN_OUT_RATE_WINDOW_MS = 60_000; // per minute

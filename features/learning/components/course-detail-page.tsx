@@ -24,12 +24,9 @@ import { MarketingFooter } from '@/features/marketing/components/marketing-foote
 import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing-nav-layout';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
+import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { CourseSyllabusAccordion } from './course-syllabus-accordion';
-import {
-  ADMIN_WA_NUMBER,
-  PAYMENT_BCA,
-  type CourseDetail,
-} from './course-detail-data';
+import { PAYMENT_BCA, type CourseDetail } from './course-detail-data';
 
 type CourseDetailPageProps = {
   course: CourseDetail;
@@ -67,7 +64,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
     );
   };
 
-  const waConsultText = encodeURIComponent(
+  const waConsultUrl = buildWhatsAppUrl(
     `Halo, saya ingin konsultasi mengenai kursus "${course.title}" (${course.price}).`,
   );
 
@@ -319,7 +316,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
                       <a
-                        href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waConsultText}`}
+                        href={waConsultUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -338,7 +335,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-semibold">
                       <a
-                        href={`https://wa.me/${ADMIN_WA_NUMBER}?text=${waConsultText}`}
+                        href={waConsultUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

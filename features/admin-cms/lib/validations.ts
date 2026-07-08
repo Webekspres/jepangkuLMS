@@ -7,6 +7,7 @@ export { slugifyTitle } from '@/lib/lms/slug';
 export const optionalSlugField = z.string().trim().optional().or(z.literal(''));
 
 const courseCategoryTypeSchema = z.enum(['KURSUS_UTAMA', 'KURSUS_GRATIS', 'KURSUS_TAMBAHAN']);
+export const lessonTypeSchema = z.enum(['VIDEO', 'FLASHCARD', 'QUIZ', 'TEXT']);
 
 const courseFields = {
   title: z.string().trim().min(1, 'Judul wajib diisi').max(200),
@@ -57,6 +58,7 @@ const lessonFields = {
   moduleId: uuidSchema,
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul pelajaran wajib diisi').max(200),
+  lessonType: lessonTypeSchema.nullable().optional(),
   order: z.coerce.number().int().min(1).max(9999).optional(),
   content: z.string().trim().max(20000).optional().or(z.literal('')),
   videoUrl: z
@@ -67,6 +69,7 @@ const lessonFields = {
 
 export const lessonCreateFormSchema = z.object({
   ...lessonFields,
+  lessonType: lessonTypeSchema,
   slug: optionalSlugField,
 });
 
@@ -74,6 +77,7 @@ export const lessonUpdateFormSchema = z.object({
   moduleId: uuidSchema,
   courseId: uuidSchema,
   title: z.string().trim().min(1, 'Judul pelajaran wajib diisi').max(200),
+  lessonType: lessonTypeSchema.nullable().optional(),
   slug: slugSchema,
   content: z.string().trim().max(20000).optional().or(z.literal('')),
   videoUrl: z
@@ -132,7 +136,6 @@ export const lessonQuestionSchema = z.object({
   moduleId: uuidSchema,
   questionText: z.string().trim().min(1, 'Pertanyaan wajib diisi'),
   explanation: z.string().trim().optional().or(z.literal('')),
-  xpReward: z.coerce.number().int().min(1).max(1000).default(10),
   options: z.array(questionOptionSchema).min(2, 'Minimal 2 opsi jawaban'),
 });
 

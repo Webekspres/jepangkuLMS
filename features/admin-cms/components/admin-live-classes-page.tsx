@@ -3,10 +3,16 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Search, Trash2, Video } from 'lucide-react';
+import { Pencil, Plus, Search, Video } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+  AdminTableAction,
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   deleteLiveClassAction,
   toggleLiveClassPublishedAction,
@@ -157,7 +163,14 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
                     )}
                   </TableCell>
                   <TableCell>
-                    {row.filledSlots}/{row.maxSlots}
+                    <AdminPesertaCell
+                      type="LIVE_CLASS"
+                      productId={row.id}
+                      programTitle={row.title}
+                      activeCount={row.activeEnrollments}
+                      pendingCount={row.pendingEnrollments}
+                      maxSlots={row.maxSlots}
+                    />
                   </TableCell>
                   <TableCell>
                     <button
@@ -172,21 +185,18 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
                     </button>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button asChild variant="ghost" size="icon">
-                        <Link href={ADMIN_ROUTES.liveClassFormEdit(row.id)}>
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(row.id)}
+                    <AdminTableActions>
+                      <AdminTableAction
+                        label="Edit live class"
+                        icon={Pencil}
+                        href={ADMIN_ROUTES.liveClassFormEdit(row.id)}
+                      />
+                      <AdminTableActionDelete
+                        label="Hapus live class"
                         disabled={isPending}
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </div>
+                        onClick={() => setDeleteId(row.id)}
+                      />
+                    </AdminTableActions>
                   </TableCell>
                 </TableRow>
               ))

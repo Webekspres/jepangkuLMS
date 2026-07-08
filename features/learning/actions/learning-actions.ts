@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
@@ -15,6 +15,7 @@ import {
   lmsQuizCorrectSourceKey,
 } from '@/lib/lms/point-rules';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
   GAMIFICATION_REWARDS,
@@ -43,7 +44,7 @@ export async function requestEnrollment(courseId: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, courseId, status: enrollment.status }, 'Enrollment requested');
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
@@ -81,6 +82,14 @@ export async function requestCourseEnrollment(courseSlug: string) {
       studentName,
       courseTitle: course.title,
     });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'COURSE',
+      productTitle: course.title,
+      productSubtitle: course.slug,
+      studentName,
+    });
   }
 
   revalidatePath('/admin/pembayaran');
@@ -88,7 +97,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     { userId, courseSlug, courseId: course.id, status: enrollment.status },
     'Course enrollment requested',
@@ -114,7 +123,7 @@ export async function enrollInCourse(courseSlug: string) {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, courseSlug, courseId: course.id, status: enrollment.status }, 'Course enrollment activated');
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
 }
@@ -123,8 +132,12 @@ export async function enrollInCourse(courseSlug: string) {
 export async function markLessonComplete(
   lessonId: string,
   xpReward = GAMIFICATION_REWARDS.LESSON_COMPLETED.xp,
+  options?: {
+    awardReward?: boolean;
+  },
 ) {
   const userId = await requireUserId();
+  const shouldAwardReward = options?.awardReward ?? true;
 
   const existing = await prisma.userProgress.findUnique({
     where: { userId_lessonId: { userId, lessonId } },
@@ -145,16 +158,18 @@ export async function markLessonComplete(
     where: { userId, isCompleted: true },
   });
 
-  await awardLmsActivity({
-    userId,
-    amount: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
-    xpAmount: xpReward,
-    coreKind: 'lesson_complete',
-    pointsSourceKey: lmsLessonCompleteSourceKey(lessonId, userId),
-    pointsSourceType: 'LESSON_COMPLETE',
-    sourceId: lessonId,
-    idempotencyKey: buildLmsIdempotencyKey('lesson_complete', userId, lessonId),
-  });
+  if (shouldAwardReward) {
+    await awardLmsActivity({
+      userId,
+      amount: GAMIFICATION_REWARDS.LESSON_COMPLETED.points,
+      xpAmount: xpReward,
+      coreKind: 'lesson_complete',
+      pointsSourceKey: lmsLessonCompleteSourceKey(lessonId, userId),
+      pointsSourceType: 'LESSON_COMPLETE',
+      sourceId: lessonId,
+      idempotencyKey: buildLmsIdempotencyKey('lesson_complete', userId, lessonId),
+    });
+  }
 
   if (completedCount === 1) {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_LESSON' });
@@ -171,9 +186,13 @@ export async function markLessonComplete(
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidatePath('/dashboard/pencapaian');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
-  learningLog.info({ userId, lessonId, xpReward }, 'Lesson marked complete');
-  return { success: true as const };
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
+  learningLog.info({ userId, lessonId, xpReward, shouldAwardReward }, 'Lesson marked complete');
+  return {
+    success: true as const,
+    xpReward: shouldAwardReward ? xpReward : 0,
+    pointsReward: shouldAwardReward ? GAMIFICATION_REWARDS.LESSON_COMPLETED.points : 0,
+  };
 }
 
 /** Record flashcard tab visit — idempotent per lesson. */
@@ -196,7 +215,11 @@ export async function recordFlashcardVisit(lessonId: string) {
     revalidatePath('/dashboard/leaderboard');
   }
 
-  return { awarded: result.pointsTotal != null };
+  return {
+    awarded: result.pointsTotal != null,
+    xpReward: result.pointsTotal != null ? GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.xp : 0,
+    pointsReward: result.pointsTotal != null ? GAMIFICATION_REWARDS.FLASHCARD_EXPLORED.points : 0,
+  };
 }
 
 /** Simpan jawaban kuis — skor dihitung server-side. */
@@ -282,7 +305,7 @@ export async function submitQuizAnswers(input: {
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidatePath('/dashboard/pencapaian');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     {
       userId,
@@ -297,6 +320,19 @@ export async function submitQuizAnswers(input: {
     },
     'Quiz submitted',
   );
+
+  const questionResults = questions.map((question) => {
+    const selectedId = input.answers[question.id];
+    if (!selectedId) {
+      return { questionId: question.id, status: 'unanswered' as const };
+    }
+    const selected = question.options.find((option) => option.id === selectedId);
+    return {
+      questionId: question.id,
+      status: selected?.isCorrect ? ('correct' as const) : ('wrong' as const),
+    };
+  });
+
   return {
     attemptId: attempt.id,
     score,
@@ -304,6 +340,7 @@ export async function submitQuizAnswers(input: {
     total: questions.length,
     xpReward: quizXp,
     pointsReward: scored.total,
+    questionResults,
   };
 }
 
@@ -374,6 +411,6 @@ export async function submitQuizAttempt(input: {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   return { attemptId: attempt.id, score: attempt.score };
 }

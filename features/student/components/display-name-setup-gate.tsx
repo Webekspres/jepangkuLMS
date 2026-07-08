@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Phone, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,15 +16,19 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useClerkIdentity } from '@/features/auth/hooks/use-clerk-identity';
-import { completeStudentDisplayNameSetup } from '@/features/student/actions/profile-actions';
+import {
+  completeStudentDisplayNameSetup,
+  completeStudentPhoneSetup,
+} from '@/features/student/actions/profile-actions';
 import { STUDENT_CORE_DATA_REFRESH_EVENT } from '@/features/student/lib/student-core-data-events';
 import { useStudentCoreData } from '@/features/student/components/student-core-data-context';
 
 type DisplayNameSetupFormProps = {
   suggested: string;
+  onCompleted: () => void;
 };
 
-function DisplayNameSetupForm({ suggested }: DisplayNameSetupFormProps) {
+function DisplayNameSetupForm({ suggested, onCompleted }: DisplayNameSetupFormProps) {
   const [displayName, setDisplayName] = useState(suggested);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,6 +47,7 @@ function DisplayNameSetupForm({ suggested }: DisplayNameSetupFormProps) {
 
       toast.success('Nama tampilan disimpan.');
       window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+      onCompleted();
     });
   }
 
@@ -102,10 +107,82 @@ function DisplayNameSetupForm({ suggested }: DisplayNameSetupFormProps) {
   );
 }
 
-/** Modal wajib saat login pertama — konfirmasi nama tampilan di LMS. */
+function PhoneSetupForm() {
+  const core = useStudentCoreData();
+  const [phone, setPhone] = useState(core.phone ?? '');
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+
+    startTransition(async () => {
+      const result = await completeStudentPhoneSetup(phone);
+      if (!result.ok) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success('Nomor ponsel disimpan.');
+      window.dispatchEvent(new Event(STUDENT_CORE_DATA_REFRESH_EVENT));
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Phone className="size-5 text-primary" />
+          Lengkapi nomor ponsel
+        </DialogTitle>
+        <DialogDescription>
+          Silahkan untuk mengisi nomor ponsel dibawah ini.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-2 py-4">
+        <Label htmlFor="phone-setup">Nomor ponsel / WhatsApp</Label>
+        <Input
+          id="phone-setup"
+          type="tel"
+          inputMode="tel"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+          placeholder="Contoh: 08123456789"
+          autoComplete="tel"
+          maxLength={20}
+          disabled={isPending}
+          autoFocus
+        />
+        <p className="text-xs text-muted-foreground">
+          Format Indonesia: 08xx atau +62xx. Kamu bisa mengubahnya nanti di profil.
+        </p>
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" className="w-full sm:w-auto" disabled={isPending || phone.trim().length < 8}>
+          {isPending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Menyimpan…
+            </>
+          ) : (
+            'Selesai'
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/** Modal wajib saat login pertama — konfirmasi nama tampilan & nomor ponsel di LMS. */
 export function DisplayNameSetupGate() {
   const core = useStudentCoreData();
   const { identity, isLoaded } = useClerkIdentity();
+  const [nameStepDone, setNameStepDone] = useState(false);
 
   const suggested =
     core.suggestedDisplayName?.trim() ||
@@ -113,7 +190,9 @@ export function DisplayNameSetupGate() {
     core.displayName?.trim() ||
     '';
 
-  const open = isLoaded && core.status === 'ready' && core.needsDisplayNameSetup;
+  const showNameStep = core.needsDisplayNameSetup && !nameStepDone;
+  const showPhoneStep = !showNameStep && core.needsPhoneSetup;
+  const open = isLoaded && core.status === 'ready' && (showNameStep || showPhoneStep);
 
   if (!open) return null;
 
@@ -125,7 +204,15 @@ export function DisplayNameSetupGate() {
         onEscapeKeyDown={(event) => event.preventDefault()}
         onPointerDownOutside={(event) => event.preventDefault()}
       >
-        <DisplayNameSetupForm key={`${core.userId ?? 'guest'}-${suggested}`} suggested={suggested} />
+        {showNameStep ? (
+          <DisplayNameSetupForm
+            key={`${core.userId ?? 'guest'}-${suggested}`}
+            suggested={suggested}
+            onCompleted={() => setNameStepDone(true)}
+          />
+        ) : (
+          <PhoneSetupForm key={`phone-${core.userId ?? 'guest'}`} />
+        )}
       </DialogContent>
     </Dialog>
   );

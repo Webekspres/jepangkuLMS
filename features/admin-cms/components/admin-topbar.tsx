@@ -9,6 +9,7 @@ import { getAdminBreadcrumbs } from '@/features/admin-cms/lib/admin-nav';
 import { AUTH_ROUTES, ADMIN_ROUTES } from '@/lib/auth/constants';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { ProfileThemeToggle } from '@/components/theme/profile-theme-toggle';
+import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -113,10 +114,14 @@ export function AdminTopbar({ onMenuClick, sessionProfile = null }: AdminTopbarP
                 <p className="text-xs text-muted-foreground">Admin CMS</p>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <div className="px-1 py-1">
-                <ProfileThemeToggle />
-              </div>
-              <DropdownMenuSeparator />
+              {THEME_SWITCHING_ENABLED ? (
+                <>
+                  <div className="px-1 py-1">
+                    <ProfileThemeToggle />
+                  </div>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem asChild>
                 <Link href={AUTH_ROUTES.dashboard}>Dashboard Siswa</Link>
               </DropdownMenuItem>

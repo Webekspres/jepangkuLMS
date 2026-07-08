@@ -25,7 +25,7 @@ export function AdminPageShell({
   className,
 }: AdminPageShellProps) {
   return (
-    <div className={cn('min-h-full bg-background', className)}>
+    <div className={cn('min-w-0 overflow-x-hidden bg-background', className)}>
       <section className="border-b border-border bg-muted/40">
         <div className={`${ADMIN_CONTENT_CLASS} py-8`}>
           {backHref ? (
@@ -51,7 +51,7 @@ export function AdminPageShell({
           </div>
         </div>
       </section>
-      <div className={`${ADMIN_CONTENT_CLASS} py-8`}>{children}</div>
+      <div className={`${ADMIN_CONTENT_CLASS} min-w-0 overflow-x-hidden py-8`}>{children}</div>
     </div>
   );
 }

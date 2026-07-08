@@ -45,9 +45,11 @@ export function AdminShell({
         </>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden">
         <AdminTopbar onMenuClick={() => setMobileOpen(true)} sessionProfile={sessionProfile} />
-        <main className={cn('flex-1 overflow-y-auto')}>{children}</main>
+        <main className={cn('min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto')}>
+          {children}
+        </main>
       </div>
     </div>
   );

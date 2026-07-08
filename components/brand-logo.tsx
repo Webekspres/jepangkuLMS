@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { BRAND_LOGO } from '@/lib/brand-logo';
+import { BRAND_LOGO, BRAND_LOGO_SRC } from '@/lib/brand-logo';
 import { cn } from '@/lib/utils';
 
 const FOOTER_LOGO = {
@@ -9,7 +9,7 @@ const FOOTER_LOGO = {
 } as const;
 
 /**
- * `nav` / `authForm` / `footer` — selalu tampilkan logo berwarna (logo.png).
+ * `nav` / `authForm` / `footer` — logo berwarna beta (`logo-beta.png`).
  * `footer-dark` — khusus untuk panel dark yang butuh kontras: tampilkan logo putih.
  * `auth-panel-white` — panel brand kiri auth (selalu putih).
  */
@@ -26,7 +26,7 @@ export function BrandLogo({ variant = 'nav', priority, className }: BrandLogoPro
     variant === 'footer' || variant === 'footer-dark' ? FOOTER_LOGO : BRAND_LOGO[variant === 'auth-panel-white' ? 'authPanel' : variant] ?? BRAND_LOGO.nav;
   const imgClass = cn(config.className, className);
 
-  const src = '/brand/logo.png';
+  const src = BRAND_LOGO_SRC;
 
   return (
     <Image

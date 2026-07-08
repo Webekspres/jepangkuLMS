@@ -2,6 +2,7 @@ import { cache } from 'react';
 import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
+import { getPaymentSettings } from '@/lib/payment/settings';
 import {
   resolveLiveSessionStatus,
   type LiveSessionStatus,
@@ -36,6 +37,12 @@ export type LiveClassDetailView = {
   maxSlots: number;
   filledSlots: number;
   thumbUrl: string | null;
+  paymentLink: string | null;
+  paymentSettings: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+  };
   isFull: boolean;
   sessionCount: number;
   isEnrolled: boolean;
@@ -96,6 +103,8 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     maxSlots: row.maxSlots,
     filledSlots: row.filledSlots,
     thumbUrl: row.thumbUrl,
+    paymentLink: row.paymentLink,
+    paymentSettings: getPaymentSettings(),
     isFull: row.filledSlots >= row.maxSlots,
     sessionCount: row.sessions.length,
     isEnrolled,

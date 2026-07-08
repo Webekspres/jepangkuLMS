@@ -28,9 +28,12 @@ export type StudentCoreData = {
   userId: string | null;
   /** True sampai user konfirmasi nama tampilan pertama kali. */
   needsDisplayNameSetup: boolean;
+  /** True sampai user mengisi nomor ponsel pertama kali. */
+  needsPhoneSetup: boolean;
   /** Nama awal dari SSO — prefill modal onboarding. */
   suggestedDisplayName: string | null;
   displayName: string | null;
+  phone: string | null;
   email: string | null;
   avatarUrl: string | null;
   totalXp: number;
@@ -67,7 +70,9 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   userId: null,
   displayName: null,
   needsDisplayNameSetup: false,
+  needsPhoneSetup: false,
   suggestedDisplayName: null,
+  phone: null,
   email: null,
   avatarUrl: null,
   totalXp: 0,

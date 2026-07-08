@@ -44,6 +44,7 @@ Selamat datang Agent! Dokumen ini berisi instruksi, konvensi, dan aturan arsitek
 * **Testing:** `bun test` (logic/unit) + Playwright (`@playwright/test`) untuk E2E UI.
 * **Identitas & SSO:** JepangKu Core Backend (Clerk dipasang di Core); LMS konsumen sesi/API.
 * **Profil & gamifikasi:** Core Service via `lib/core/` (bukan DB LMS).
+* **Transactional email:** Resend + React Email via `lib/email/` (welcome on Clerk `user.created`).
 
 ---
 
@@ -209,3 +210,81 @@ Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerj
   * Seed: `bun run db:seed`
   * Studio: `bun run db:studio`
   * Reset DB (dev): `bun run db:reset`
+
+---
+
+## 📧 Transactional Email (Resend + React Email)
+
+### Why Resend
+
+* **API-first** — no raw SMTP; fits serverless / Next.js route handlers.
+* **Deliverability** — domain verification, bounce handling, logs in Resend dashboard.
+* **Developer UX** — simple Node SDK; pairs with React Email for typed templates.
+* **Idempotency** — webhook retries do not duplicate welcome sends when keyed per user.
+
+SMTP is intentionally **not** used.
+
+### Architecture
+
+```text
+Clerk user.created
+  → POST /api/webhooks/clerk (verify Svix)
+  → after(() => dispatchWelcomeEmail(...))   # non-blocking
+  → sendWelcomeEmail → sendEmail → Resend API
+```
+
+Email logic lives in `lib/email/` — **never** in React template components or auth UI.
+
+| Path | Role |
+| :--- | :--- |
+| `lib/email/config.ts` | `RESEND_API_KEY`, `EMAIL_FROM`, app URL |
+| `lib/email/resend.ts` | Resend client singleton |
+| `lib/email/send-email.ts` | Generic `sendEmail({ to, subject, react })` |
+| `lib/email/send-welcome-email.tsx` | `sendWelcomeEmail` + `dispatchWelcomeEmail` |
+| `lib/email/parse-clerk-user-created.ts` | Clerk webhook → `{ email, name, userId }` |
+| `emails/welcome-email.tsx` | React Email template (presentation only) |
+| `emails/components/email-layout.tsx` | Shared layout, brand styles |
+
+### Add a new template
+
+1. Create `emails/your-template.tsx` using `@react-email/components` + `EmailLayout`.
+2. Add `lib/email/send-your-template.tsx` calling `sendEmail()` (subject, idempotency key, tags).
+3. Export from `lib/email/index.ts`.
+4. Trigger from webhook, server action, or `after()` — use `dispatch*` helper so failures only log.
+5. Unit-test parsers/mappers; preview with `bun run email:dev`.
+
+### Local testing
+
+```bash
+# Preview templates (React Email dev server on :3001)
+bun run email:dev
+
+# Send real test (Resend sandbox / verified domain)
+RESEND_API_KEY=re_... bun -e "
+  import { sendWelcomeEmail } from './lib/email/send-welcome-email.tsx';
+  const r = await sendWelcomeEmail({ email: 'you@example.com', name: 'Test' });
+  console.log(r);
+"
+```
+
+Register Clerk webhook to `https://YOUR_HOST/api/webhooks/clerk` with event **`user.created`**.
+
+### Environment variables
+
+| Variable | Required | Notes |
+| :--- | :---: | :--- |
+| `RESEND_API_KEY` | prod | Skip send + warn log if unset (dev OK) |
+| `EMAIL_FROM` | no | Default `JepangKu <hello@jepangku.com>` |
+| `NEXT_PUBLIC_APP_URL` | yes | CTA links + logo URL in emails |
+| `CLERK_WEBHOOK_SECRET` | yes | Welcome trigger |
+
+### Deployment
+
+* Verify sending domain in Resend (`jepangku.com`).
+* Set `RESEND_API_KEY` and `EMAIL_FROM` in VPS `.env` / Docker build secrets.
+* Clerk Dashboard: LMS webhook URL + `user.created` event (can coexist with Core webhook).
+* Email failure **must not** block webhook — already handled via `dispatchWelcomeEmail` + `after()`.
+
+### Future: background jobs (Inngest / Trigger.dev)
+
+Replace `after(() => dispatchWelcomeEmail(...))` with `inngest.send({ name: 'email/welcome', data })` — keep `sendWelcomeEmail` unchanged. Queue workers call the same `lib/email` helpers.

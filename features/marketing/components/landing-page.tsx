@@ -1,34 +1,33 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { motion } from 'motion/react';
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "motion/react";
 import {
   ArrowRight,
   BookOpen,
-  CheckCircle2,
   ChevronRight,
   GraduationCap,
   Menu,
-  MessageCircle,
-  Play,  
+  Play,
   Target,
   Video,
   Wifi,
   X,
   Zap,
-} from 'lucide-react';
-import { BrandLogo } from '@/components/brand-logo';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { MarketingMobileMenu } from './marketing-mobile-menu';
-import { LANDING_NAV_MENU_TOP } from './marketing-nav-layout';
-import { MarketingNavLinkItem } from './marketing-nav-link';
-import { MARKETING_NAV_LINKS } from './marketing-nav-links';
-import { MarketingFooter } from './marketing-footer';
-import { MarketingLightSurface } from './marketing-light-surface';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { MarketingMobileMenu } from "./marketing-mobile-menu";
+import { LANDING_NAV_MENU_TOP } from "./marketing-nav-layout";
+import { MarketingNavLinkItem } from "./marketing-nav-link";
+import { MARKETING_NAV_LINKS } from "./marketing-nav-links";
+import { MarketingFooter } from "./marketing-footer";
+import { MarketingLightSurface } from "./marketing-light-surface";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { THEME_SWITCHING_ENABLED } from "@/lib/theme/theme-config";
 import {
   HERO_MOCK_MODULES,
   HERO_TRUST_LEVELS,
@@ -40,13 +39,13 @@ import {
   LANDING_SEIGAIHA,
   LANDING_VALUE_PROPS,
   PRICING_PLANS,
-} from './landing-data';
+} from "./landing-data";
 
 const PLATFORM_HIGHLIGHTS = [
-  { icon: GraduationCap, value: 'N5 → N1', label: '5 level JLPT' },
-  { icon: Video, value: '10+', label: 'Video Lesson' },
-  { icon: Target, value: '5 Level', label: 'Try Out JLPT' },
-  { icon: Wifi, value: 'Live', label: 'Kelas Interaktif' },
+  { icon: GraduationCap, value: "N5 → N1", label: "5 level JLPT" },
+  { icon: Video, value: "10+", label: "Video Lesson" },
+  { icon: Target, value: "5 Level", label: "Try Out JLPT" },
+  { icon: Wifi, value: "Live", label: "Kelas Interaktif" },
 ] as const;
 
 export function LandingPage() {
@@ -56,14 +55,14 @@ export function LandingPage() {
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     onScroll();
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [menuOpen]);
 
@@ -162,12 +161,14 @@ export function LandingPage() {
             ))}
           </nav>
           <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
-            <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                Tema tampilan
-              </span>
-              <ThemeToggle size="icon-sm" />
-            </div>
+            {THEME_SWITCHING_ENABLED ? (
+              <div className="flex items-center justify-between px-1 pb-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Tema tampilan
+                </span>
+                <ThemeToggle size="icon-sm" />
+              </div>
+            ) : null}
             <Button asChild variant="outline" className="h-11 w-full">
               <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
                 Masuk
@@ -183,10 +184,9 @@ export function LandingPage() {
       </motion.nav>
 
       {/* Hero — dark navy background matches Figma design */}
-      {/* Elliptic bottom curve: border-radius 0 0 50% 50% / 0 0 6rem 6rem gives a wide smooth arch */}
+      {/* Elliptic bottom curve — mobile: shallow arch; desktop: wider smooth arch */}
       <section
-        className="bg-brand-hero-navy relative flex min-h-[min(100svh,900px)] items-center overflow-hidden sm:min-h-[min(100svh,880px)]"
-        style={{ borderRadius: "0 0 50% 50% / 0 0 6rem 6rem" }}
+        className="bg-brand-hero-navy relative flex min-h-[min(108svh,960px)] items-stretch overflow-hidden rounded-[0_0_50%_50%/0_0_2.5rem_2.5rem] sm:min-h-[min(105svh,940px)] sm:rounded-[0_0_50%_50%/0_0_3rem_3rem] lg:min-h-[min(100svh,900px)] lg:items-center lg:rounded-[0_0_50%_50%/0_0_6rem_6rem]"
       >
         {/* Photographic backdrop (bg-hero.webp) */}
         <div
@@ -214,33 +214,39 @@ export function LandingPage() {
         {/* Radial light at top-left */}
         <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-brand-red/20 blur-[120px]" />
 
-        <div className="container relative mx-auto grid w-full items-center gap-6 px-4 pt-20 pb-10 sm:gap-8 sm:pt-24 sm:pb-12 md:px-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
-          {/* LEFT: headline + buttons */}
+        <div className="container relative mx-auto flex flex-col gap-6 px-4 pt-20 pb-16 sm:gap-8 sm:pt-24 sm:pb-20 md:px-8 lg:grid lg:grid-cols-[1.05fr_1fr] lg:grid-rows-[auto_auto_auto] lg:items-center lg:gap-x-12 lg:gap-y-5 lg:pb-12">
+          {/* Headline + deskripsi — mobile: atas; desktop: kolom kiri baris 1 */}
           <motion.div
+            className="order-1 lg:col-start-1 lg:row-start-1"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <span className="text-sm font-medium text-white/80">
-                Powered by JepangKu
-              </span>
-            </div>
-            <h1 className="mb-5 text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white">
+            <h1 className="mb-5 text-center text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white lg:text-left">
               Kursus bahasa Jepang
               <br />
-              terstruktur untuk JLPT
+              terstruktur untuk target
               <br />
               <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-                N5 sampai N1
+                JLPT dan CEFR
               </span>
             </h1>
-            <p className="mb-6 max-w-lg text-base leading-relaxed text-white/70 md:text-lg">
-              Belajar dengan video lesson, modul bertahap, kuis interaktif, dan
-              try out JLPT — dimulai dari N5 saat peluncuran awal.
+            <p className="mx-auto mb-0 max-w-lg text-center text-base leading-relaxed text-white/70 md:text-lg lg:mx-0 lg:mb-6 lg:text-left">
+              Belajar bahasa Jepang dari N5 hingga N1 melalui video
+              pembelajaran, modul terstruktur, kuis interaktif, dan try out
+              JLPT. Disusun mengacu pada standar CEFR untuk membantu Anda
+              belajar lebih terarah dan percaya diri.
             </p>
+          </motion.div>
 
-            <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+          {/* Kurikulum JLPT — mobile: atas mock video; desktop: kolom kiri (atas CTA) */}
+          <motion.div
+            className="order-2 lg:col-start-1 lg:row-start-2"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.05 }}
+          >
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 lg:justify-start">
               <p className="text-sm font-medium text-white/60">
                 Kurikulum JLPT N5–N1
               </p>
@@ -260,40 +266,14 @@ export function LandingPage() {
                 ))}
               </div>
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="h-11 w-full border-white/40 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white sm:h-12 sm:w-auto"
-              >
-                <Link href="/sign-in">Mulai Belajar Sekarang</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                className="h-11 w-full px-6 sm:h-12 sm:w-auto"
-              >
-                <Link href="/kursus" className="inline-flex items-center gap-2">
-                  Jelajahi Semua Kursus
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="mt-6 inline-flex items-center gap-2 text-sm text-white/60">
-              <CheckCircle2 className="size-4 shrink-0 text-brand-yellow" />
-              <span>Segera belajar sekarang</span>
-            </div>
           </motion.div>
 
-          {/* RIGHT: LMS mock UI — always light appearance (decorative illustration) */}
+          {/* Mock UI video — mobile: setelah kurikulum; desktop: kolom kanan full-height */}
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.12 }}
-            className="relative mx-auto w-full max-w-xl lg:mt-0 lg:max-w-none"
+            className="relative order-3 mx-auto w-full max-w-xl lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:mt-0 lg:max-w-none"
           >
             <div className="origin-center transition-transform duration-500 transform-[perspective(1400px)_rotateY(-8deg)_rotateX(4deg)] hover:transform-[perspective(1400px)_rotateY(-5deg)_rotateX(2deg)]">
               {/* Always light-mode colors for the mock UI (it's a decorative illustration on dark bg) */}
@@ -365,16 +345,45 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            <p className="mt-5 text-center text-sm text-white/60">
+            <p className="mt-5 hidden text-center text-sm text-white/60 lg:block">
               Bagian dari ekosistem{" "}
               <Link
                 href="https://jepangku.com/"
-                target='_blank'
+                target="_blank"
                 className="font-semibold text-white underline-offset-4 hover:underline"
               >
                 JepangKu
               </Link>
             </p>
+          </motion.div>
+
+          {/* Tombol CTA — mobile: bawah mock video; desktop: kolom kiri bawah kurikulum */}
+          <motion.div
+            className="order-4 lg:col-start-1 lg:row-start-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.08 }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center lg:justify-start">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-11 w-full border-white/40 bg-white/10 px-6 text-white hover:bg-white/20 hover:text-white sm:h-12 sm:w-auto"
+              >
+                <Link href="/sign-in">Mulai Belajar Sekarang</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                className="h-11 w-full px-6 sm:h-12 sm:w-auto"
+              >
+                <Link href="/kursus" className="inline-flex items-center gap-2">
+                  Jelajahi Semua Kursus
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>            
           </motion.div>
         </div>
       </section>
@@ -653,7 +662,8 @@ export function LandingPage() {
               </span>
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Satu platform untuk pembelajaran bahasa Jepang yang terstruktur, interaktif, dan menyenangkan.
+              Satu platform untuk pembelajaran bahasa Jepang yang terstruktur,
+              interaktif, dan menyenangkan.
             </p>
           </motion.div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
@@ -700,12 +710,12 @@ export function LandingPage() {
               Pilih Paket yang Cocok untukmu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Paket peluncuran — konsultasi & pembelian via admin WhatsApp.
-              Harga dapat berubah seiring penambahan konten.
+              Mulai gratis dari N5, lalu daftar untuk mengakses paket lanjutan saat
+              tersedia.
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             {PRICING_PLANS.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -755,9 +765,9 @@ export function LandingPage() {
                   variant={plan.highlighted ? "default" : "outline"}
                   className="mt-8 h-11 w-full gap-2"
                 >
-                  <Link href="/hubungi">
-                    <MessageCircle className="size-4" />
-                    Tanya via WhatsApp
+                  <Link href="/sign-up">
+                    Daftar Sekarang
+                    <ArrowRight className="size-4" />
                   </Link>
                 </Button>
               </motion.div>

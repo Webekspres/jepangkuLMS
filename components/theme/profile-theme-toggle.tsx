@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { useIsClient } from '@/lib/hooks/use-is-client';
 import { cn } from '@/lib/utils';
+import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 
 type ProfileThemeToggleProps = {
   className?: string;
@@ -13,6 +14,11 @@ type ProfileThemeToggleProps = {
 export function ProfileThemeToggle({ className }: ProfileThemeToggleProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useIsClient();
+
+  if (!THEME_SWITCHING_ENABLED) {
+    return null;
+  }
+
   const isDark = mounted && resolvedTheme === 'dark';
 
   function toggle() {

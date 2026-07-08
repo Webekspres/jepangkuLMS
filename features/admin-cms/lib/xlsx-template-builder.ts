@@ -1,7 +1,57 @@
 import ExcelJS from 'exceljs';
 import { XLSX_COLORS } from '@/features/admin-cms/lib/xlsx-workbook';
 
-type ColDef = { header: string; key: string; width: number; required?: boolean };
+export type ColDef = {
+    header: string;
+    key: string;
+    width: number;
+    required?: boolean;
+    /** Excel dropdown list for data rows (reduces typing errors). */
+    listOptions?: string[];
+};
+
+const DATA_ENTRY_FIRST_ROW = 4;
+const DATA_ENTRY_LAST_ROW = 503;
+
+function columnIndexToLetter(col: number): string {
+    let n = col;
+    let letters = '';
+    while (n > 0) {
+        const remainder = (n - 1) % 26;
+        letters = String.fromCharCode(65 + remainder) + letters;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letters;
+}
+
+function applyListValidation(
+    sheet: ExcelJS.Worksheet,
+    colIndex: number,
+    options: string[],
+    allowBlank: boolean,
+) {
+    if (options.length === 0) return;
+
+    const columnLetter = columnIndexToLetter(colIndex);
+    const range = `${columnLetter}${DATA_ENTRY_FIRST_ROW}:${columnLetter}${DATA_ENTRY_LAST_ROW}`;
+    const validations = (
+        sheet as ExcelJS.Worksheet & {
+            dataValidations: {
+                add: (address: string, rule: Record<string, unknown>) => void;
+            };
+        }
+    ).dataValidations;
+
+    validations.add(range, {
+        type: 'list',
+        allowBlank,
+        formulae: [`"${options.join(',')}"`],
+        showErrorMessage: true,
+        errorStyle: 'stop',
+        errorTitle: 'Pilihan tidak valid',
+        error: `Pilih salah satu: ${options.join(', ')}`,
+    });
+}
 
 function applyHeaderStyle(cell: ExcelJS.Cell, required: boolean) {
     cell.font = {
@@ -19,7 +69,7 @@ function applyHeaderStyle(cell: ExcelJS.Cell, required: boolean) {
     };
 }
 
-function addGuideSheet(workbook: ExcelJS.Workbook, lines: string[]) {
+export function addGuideSheet(workbook: ExcelJS.Workbook, lines: string[]) {
     const sheet = workbook.addWorksheet('0. Panduan', {
         properties: { tabColor: { argb: 'FFF59E0B' } },
     });
@@ -44,7 +94,7 @@ function addGuideSheet(workbook: ExcelJS.Workbook, lines: string[]) {
     sheet.getColumn(1).width = 90;
 }
 
-function addDataSheet(
+export function addDataSheet(
     workbook: ExcelJS.Workbook,
     tabName: string,
     tabColor: string,
@@ -84,6 +134,11 @@ function addDataSheet(
         const cell = example.getCell(idx + 1);
         cell.value = exampleRow[col.key] ?? '';
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
+    });
+
+    columns.forEach((col, idx) => {
+        if (!col.listOptions?.length) return;
+        applyListValidation(sheet, idx + 1, col.listOptions, !col.required);
     });
 }
 

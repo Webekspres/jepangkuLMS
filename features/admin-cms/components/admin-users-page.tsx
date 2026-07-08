@@ -1,15 +1,14 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { Eye, Search, Users } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import { AdminTableAction, AdminTableActions } from '@/features/admin-cms/components/admin-table-actions';
 import { updateUserRoleAction } from '@/features/admin-cms/actions/cms-user-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
 import type { AdminUserRow } from '@/features/admin-cms/lib/load-admin-users';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,6 +41,9 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
         user.id.toLowerCase().includes(q) ||
         (user.resolvedDisplayName ?? '').toLowerCase().includes(q) ||
         (user.displayName ?? '').toLowerCase().includes(q) ||
+        (user.ssoDisplayName ?? '').toLowerCase().includes(q) ||
+        (user.ssoEmail ?? '').toLowerCase().includes(q) ||
+        (user.phone ?? '').toLowerCase().includes(q) ||
         user.role.toLowerCase().includes(q),
     );
   }, [users, query]);
@@ -86,7 +88,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari nama, Clerk ID, atau role..."
+            placeholder="Cari nama, email, telepon, Clerk ID, atau role..."
             className="pl-9"
           />
         </div>
@@ -97,6 +99,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs uppercase tracking-wider">Pengguna</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider">Telepon</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Kursus</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Poin</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Badge</TableHead>
@@ -107,7 +110,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
                   <Users className="mx-auto mb-2 size-8 opacity-40" />
                   Belum ada pengguna terdaftar.
                 </TableCell>
@@ -117,7 +120,19 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                 <TableRow key={user.id}>
                   <TableCell>
                     <p className="font-medium text-foreground">{user.resolvedDisplayName}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p>
+                    {/* <p className="font-mono text-[10px] text-muted-foreground">{user.id}</p> */}
+                  </TableCell>
+                  <TableCell>
+                    {user.phone ? (
+                      <a
+                        href={`tel:${user.phone}`}
+                        className="text-sm tabular-nums text-foreground hover:text-primary hover:underline"
+                      >
+                        {user.phone}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Belum diisi</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <p className="tabular-nums font-medium">{user.activeEnrollmentCount} aktif</p>
@@ -133,7 +148,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                         handleRoleChange(user.id, value as 'LMS_STUDENT' | 'LMS_ADMIN')
                       }
                     >
-                      <SelectTrigger className="w-[10rem]">
+                      <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -143,12 +158,14 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
                     </Select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={ADMIN_ROUTES.userDetail(user.id)}>
-                        <Eye className="size-3.5" />
-                        Detail
-                      </Link>
-                    </Button>
+                    <AdminTableActions>
+                      <AdminTableAction
+                        label="Detail pengguna"
+                        icon={Eye}
+                        href={ADMIN_ROUTES.userDetail(user.id)}
+                        showLabel
+                      />
+                    </AdminTableActions>
                   </TableCell>
                 </TableRow>
               ))

@@ -8,8 +8,3 @@ export const STUDENT_NAV_LINKS = [
   { href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard' },
   { href: STUDENT_ROUTES.tryout, label: 'Tryout JLPT' },
 ] as const;
-
-export const STUDENT_PROFILE_LINKS = [
-  { href: STUDENT_ROUTES.profil, label: 'Profil & XP' },
-  { href: '/sign-in', label: 'Keluar' },
-] as const;

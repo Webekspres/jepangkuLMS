@@ -2,23 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useAuth } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
+import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
+import { BRAND_LOGO_SRC } from '@/lib/brand-logo';
+import { STUDENT_CORE_DATA_READY_EVENT } from '@/features/student/lib/student-core-data-events';
 
-const SPLASH_DURATION_MS = 800;
+const MIN_SPLASH_MS = 700;
+const MAX_BOOTSTRAP_WAIT_MS = 15_000;
+const PROGRESS_HOLD = 88;
 const LOGO_CLASS = 'h-20 w-auto object-contain sm:h-24';
 
 type AppSplashProps = {
   children: React.ReactNode;
 };
 
-/** Logo abu-abu di bawah, warna penuh di-reveal kiri→kanan seiring progress. */
 function ProgressRevealLogo({ progress }: { progress: number }) {
   const revealClip = `inset(0 ${100 - progress}% 0 0)`;
 
   return (
     <div className="relative w-fit">
       <Image
-        src="/brand/logo.png"
+        src={BRAND_LOGO_SRC}
         alt=""
         width={280}
         height={80}
@@ -28,11 +34,11 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
       />
       <div className="absolute inset-0" style={{ clipPath: revealClip }}>
         <Image
-          src="/brand/logo.png"
+          src={BRAND_LOGO_SRC}
           alt="JepangKu"
           width={280}
           height={80}
-          className={`${LOGO_CLASS}`}
+          className={LOGO_CLASS}
           priority
         />
       </div>
@@ -40,32 +46,75 @@ function ProgressRevealLogo({ progress }: { progress: number }) {
   );
 }
 
+function useDashboardBootstrapGate() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const pathname = usePathname();
+
+  const needsGate =
+    isCoreIntegrationEnabled() &&
+    isLoaded &&
+    isSignedIn &&
+    (pathname?.startsWith('/dashboard') ?? false);
+
+  const gateSession = `${pathname ?? ''}:${isSignedIn}`;
+  const [releasedSessions, setReleasedSessions] = useState<Set<string>>(() => new Set());
+  const gateOpen = !needsGate || releasedSessions.has(gateSession);
+
+  useEffect(() => {
+    if (!needsGate) return;
+
+    const onReady = () => {
+      setReleasedSessions((current) => {
+        if (current.has(gateSession)) return current;
+        const next = new Set(current);
+        next.add(gateSession);
+        return next;
+      });
+    };
+
+    window.addEventListener(STUDENT_CORE_DATA_READY_EVENT, onReady);
+    const timeout = window.setTimeout(onReady, MAX_BOOTSTRAP_WAIT_MS);
+
+    return () => {
+      window.removeEventListener(STUDENT_CORE_DATA_READY_EVENT, onReady);
+      window.clearTimeout(timeout);
+    };
+  }, [needsGate, gateSession]);
+
+  return gateOpen;
+}
+
 export function AppSplash({ children }: AppSplashProps) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  const gateOpen = useDashboardBootstrapGate();
   const displayPercent = Math.round(progress);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const duration = reducedMotion ? 350 : SPLASH_DURATION_MS;
-    const start = performance.now();
-    let raf = 0;
+    const tickMs = reducedMotion ? 50 : 35;
+    const step = reducedMotion ? 8 : gateOpen ? 6 : 2.5;
 
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const next = Math.min(100, (elapsed / duration) * 100);
-      setProgress(next);
+    const interval = window.setInterval(() => {
+      setProgress((current) => {
+        if (!gateOpen) {
+          return Math.min(PROGRESS_HOLD, current + step);
+        }
+        return Math.min(100, current + step);
+      });
+    }, tickMs);
 
-      if (next < 100) {
-        raf = requestAnimationFrame(tick);
-      } else {
-        window.setTimeout(() => setVisible(false), reducedMotion ? 0 : 400);
-      }
-    };
+    return () => window.clearInterval(interval);
+  }, [gateOpen]);
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  useEffect(() => {
+    if (progress < 100 || !gateOpen) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const delay = reducedMotion ? 0 : MIN_SPLASH_MS / 3;
+    const timer = window.setTimeout(() => setVisible(false), delay);
+    return () => window.clearTimeout(timer);
+  }, [progress, gateOpen]);
 
   return (
     <>
@@ -91,8 +140,6 @@ export function AppSplash({ children }: AppSplashProps) {
               transition={{ duration: 0.35 }}
               className="flex flex-col items-center gap-8 sm:gap-10"
             >
-              {/* <p className="text-lg tracking-wide text-muted-foreground sm:text-xl">Halo</p> */}
-
               <div className="flex flex-col items-center gap-6 sm:gap-8">
                 <ProgressRevealLogo progress={progress} />
                 <span className="font-mono text-sm tabular-nums tracking-widest text-muted-foreground sm:text-base">

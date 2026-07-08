@@ -1,9 +1,27 @@
 import type { ImportSyllabusTreeResult } from '@/prisma/lib/import-syllabus-tree';
 
+export type CourseImportTemplateInfo = {
+    key: string;
+    version: string;
+    detectedBy: string;
+};
+
 export type CourseImportRowError = {
     row: number;
     message: string;
     sheet?: string;
+    code?: string;
+};
+
+export type CourseImportModulePreview = {
+    moduleTitle: string;
+    moduleExternalId: string;
+    order: number;
+    lessons: Array<{
+        title: string;
+        lessonType: string;
+        lessonExternalId: string;
+    }>;
 };
 
 export type CourseImportPreview = {
@@ -26,6 +44,9 @@ export type CourseImportPreview = {
     }>;
     errors: CourseImportRowError[];
     warnings: string[];
+    structuredWarnings?: CourseImportRowError[];
+    modulePreview?: CourseImportModulePreview[];
+    template?: CourseImportTemplateInfo;
 };
 
 export type CourseImportResult = {
@@ -33,6 +54,8 @@ export type CourseImportResult = {
     preview: CourseImportPreview;
     imported: ImportSyllabusTreeResult[];
     errors?: CourseImportRowError[];
+    /** Pesan ringkas untuk admin UI saat impor gagal di persistence. */
+    message?: string;
 };
 
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;

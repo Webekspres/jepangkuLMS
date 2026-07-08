@@ -3,10 +3,16 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Search, Target, Trash2, ListChecks } from 'lucide-react';
+import { ListChecks, Pencil, Plus, Search, Target } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+  AdminTableAction,
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   deleteTryoutSessionAction,
   toggleTryoutSessionActiveAction,
@@ -118,6 +124,7 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
               <TableHead>Fase</TableHead>
               <TableHead>Soal</TableHead>
               <TableHead>Durasi</TableHead>
+              <TableHead>Peserta</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -125,7 +132,7 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
           <TableBody>
             {paginatedItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                   <Target className="mx-auto mb-2 size-8 opacity-40" />
                   Belum ada sesi tryout.
                 </TableCell>
@@ -152,6 +159,15 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
                   <TableCell>{row.questionCount}</TableCell>
                   <TableCell>{row.timeLimitMinutes} mnt</TableCell>
                   <TableCell>
+                    <AdminPesertaCell
+                      type="TRYOUT"
+                      productId={row.id}
+                      programTitle={row.title}
+                      activeCount={row.activeEnrollments}
+                      pendingCount={row.pendingEnrollments}
+                    />
+                  </TableCell>
+                  <TableCell>
                     <button
                       type="button"
                       disabled={isPending}
@@ -164,27 +180,24 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
                     </button>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={ADMIN_ROUTES.tryoutSessionQuestions(row.id)}>
-                          <ListChecks className="size-3.5" />
-                          Soal
-                        </Link>
-                      </Button>
-                      <Button asChild variant="ghost" size="icon">
-                        <Link href={ADMIN_ROUTES.tryoutSessionFormEdit(row.id)}>
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(row.id)}
+                    <AdminTableActions>
+                      <AdminTableAction
+                        label="Kelola soal"
+                        icon={ListChecks}
+                        href={ADMIN_ROUTES.tryoutSessionQuestions(row.id)}
+                        showLabel
+                      />
+                      <AdminTableAction
+                        label="Edit sesi tryout"
+                        icon={Pencil}
+                        href={ADMIN_ROUTES.tryoutSessionFormEdit(row.id)}
+                      />
+                      <AdminTableActionDelete
+                        label="Hapus sesi tryout"
                         disabled={isPending}
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </div>
+                        onClick={() => setDeleteId(row.id)}
+                      />
+                    </AdminTableActions>
                   </TableCell>
                 </TableRow>
               ))

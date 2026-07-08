@@ -31,12 +31,14 @@ export async function seedN5CourseStructure(
       },
       create: {
         courseId,
+        moduleExternalId: mod.slug,
         slug: mod.slug,
         title: mod.title,
         order: mod.order,
         description: mod.description,
       },
       update: {
+        moduleExternalId: mod.slug,
         title: mod.title,
         description: mod.description,
         order: mod.order,
@@ -56,6 +58,7 @@ export async function seedN5CourseStructure(
     const row = await prisma.lesson.upsert({
       where: { slug: lesson.slug },
       create: {
+        lessonExternalId: lesson.slug,
         slug: lesson.slug,
         title: lesson.title,
         order: lesson.order,
@@ -64,6 +67,7 @@ export async function seedN5CourseStructure(
         moduleId,
       },
       update: {
+        lessonExternalId: lesson.slug,
         title: lesson.title,
         order: lesson.order,
         content: lesson.content,

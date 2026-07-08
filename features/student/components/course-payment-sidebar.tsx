@@ -114,7 +114,7 @@ export function CoursePaymentSidebar({
                 <p className="mt-1 text-3xl font-extrabold tabular-nums text-primary">
                   {progressPercent}%
                 </p>
-                <Progress value={progressPercent} className="mt-3" />
+                <Progress value={Math.max(5, progressPercent)} className="mt-3 h-2.5" />
               </div>
               <Button asChild className="h-11 w-full gap-2">
                 <Link

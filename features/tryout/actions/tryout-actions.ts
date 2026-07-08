@@ -1,13 +1,13 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import {
   calculateTryoutPoints,
   lmsTryoutCompletedSourceKey,
@@ -78,11 +78,19 @@ export async function requestTryoutEnrollment(sessionCode: string) {
       studentName,
       courseTitle: `${session.title} (${session.level})`,
     });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'TRYOUT',
+      productTitle: session.title,
+      productSubtitle: session.code,
+      studentName,
+    });
   }
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard/tryout');
-  updateTag(LEARNING_CACHE_TAGS.userEnrollments(userId));
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
 
   return { enrollmentId: enrollment.id, sessionCode, status: enrollment.status };
 }

@@ -1,10 +1,13 @@
 /** Utilitas hirarki Course → Module → Lesson dari data Prisma / API. */
 
+import type { LessonType } from '@prisma/client';
+
 export type LessonRow = {
   id: string;
   slug: string;
   title: string;
   order: number;
+  lessonType?: LessonType | null;
   content?: string | null;
   videoUrl?: string | null;
   hasQuiz?: boolean;
@@ -91,6 +94,7 @@ type PrismaLessonWithCount = {
   slug: string;
   title: string;
   order: number;
+  lessonType?: LessonType | null;
   content?: string | null;
   videoUrl?: string | null;
   _count?: { questions: number };
@@ -118,6 +122,7 @@ export function mapCourseModulesFromPrisma(modules: PrismaModuleWithLessons[]): 
       slug: lesson.slug,
       title: lesson.title,
       order: lesson.order,
+      lessonType: lesson.lessonType ?? null,
       content: lesson.content ?? null,
       videoUrl: lesson.videoUrl ?? null,
       hasQuiz: (lesson._count?.questions ?? 0) > 0,

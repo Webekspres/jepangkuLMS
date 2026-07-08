@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { LmsRole } from '@prisma/client';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { searchAdminUsers, type AdminUserSearchResult } from '@/features/admin-cms/lib/search-admin-users';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { updateUserLmsRole } from '@/lib/lms/user-profile';
 import { auth } from '@clerk/nextjs/server';
@@ -10,6 +11,20 @@ import { auth } from '@clerk/nextjs/server';
 export type CmsUserActionResult =
   | { ok: true }
   | { ok: false; message: string };
+
+export type SearchAdminUsersResult =
+  | { ok: true; users: AdminUserSearchResult[] }
+  | { ok: false; message: string };
+
+export async function searchAdminUsersAction(query: string): Promise<SearchAdminUsersResult> {
+  try {
+    await requireAdminAction();
+    const users = await searchAdminUsers(query);
+    return { ok: true, users };
+  } catch {
+    return { ok: false, message: 'Gagal mencari pengguna.' };
+  }
+}
 
 export async function updateUserRoleAction(
   targetUserId: string,

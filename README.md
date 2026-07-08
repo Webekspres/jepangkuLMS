@@ -5,7 +5,7 @@ Platform belajar bahasa Jepang (JLPT N5–N1) — bagian dari ekosistem JepangKu
 | Status | Keterangan |
 | :--- | :--- |
 | Auth gate | **Clerk** (`proxy.ts`) |
-| Core JWT | Best-effort exchange (`/api/auth/core-token`) |
+| Core JWT | Client sync (`CoreSessionSync` → `POST /api/auth/core-token`) |
 | Fase 1 integrasi | ✅ coded — award XP, admin gate, verify JWT |
 | Dev lokal | Core di `:8080`, LMS di `:3001` (beda port dari News) |
 

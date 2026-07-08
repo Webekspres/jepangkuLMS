@@ -8,6 +8,7 @@ import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { cn } from '@/lib/utils';
+import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
@@ -106,10 +107,12 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between px-1 pb-1">
-            <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
-            <ThemeToggle size="icon-sm" />
-          </div>
+          {THEME_SWITCHING_ENABLED ? (
+            <div className="flex items-center justify-between px-1 pb-1">
+              <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
+              <ThemeToggle size="icon-sm" />
+            </div>
+          ) : null}
           <Button asChild variant="outline" className="h-11 w-full">
             <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
               Masuk

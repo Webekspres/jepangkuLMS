@@ -51,7 +51,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge kanji N5 — mengenal 漢字 dasar.',
     sortOrder: 3,
     unlockRule: 'MANUAL',
-    requirementText: 'Selesaikan modul kanji N5 (grant admin / milestone)',
+    requirementText: 'Selesaikan modul kanji N5',
     rarity: 'COMMON',
   },
   {
@@ -61,7 +61,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Badge level N5 — menyelesaikan materi dasar hiragana, katakana, dan kosakata.',
     sortOrder: 4,
     unlockRule: 'MANUAL',
-    requirementText: 'Selesaikan kurikulum N5 (milestone)',
+    requirementText: 'Selesaikan kurikulum N5',
     rarity: 'COMMON',
   },
   {
@@ -71,7 +71,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Quiz N5 — skor di bawah 50%; terus latihan dan coba lagi.',
     sortOrder: 5,
     unlockRule: 'MANUAL',
-    requirementText: 'Kuis N5 dengan skor < 50% (grant manual / fase 2)',
+    requirementText: 'Kuis N5 dengan skor di bawah 50%',
     rarity: 'COMMON',
   },
   {
@@ -81,7 +81,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     description: 'Quiz N5 — skor 50–74%; progress yang solid.',
     sortOrder: 6,
     unlockRule: 'MANUAL',
-    requirementText: 'Kuis N5 skor 50–74% (grant manual / fase 2)',
+    requirementText: 'Kuis N5 dengan skor 50–74%',
     rarity: 'RARE',
   },
   {

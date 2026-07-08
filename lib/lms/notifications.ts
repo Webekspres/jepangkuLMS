@@ -1,4 +1,5 @@
 import type { LmsNotificationType } from '@prisma/client';
+import { createClerkClient } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 export type CreateLmsNotificationInput = {
@@ -128,6 +129,60 @@ export async function notifyBadgeUnlocked(input: {
     href: '/dashboard/pencapaian',
     dedupeKey: `badge-unlock:${input.userId}:${input.badgeId}`,
   });
+}
+
+export async function notifyLiveClassRegistration(input: {
+  studentUserId: string;
+  liveClassTitle: string;
+  priceIdr: number;
+}): Promise<void> {
+  await createLmsNotification({
+    userId: input.studentUserId,
+    type: 'ENROLLMENT_PENDING',
+    title: 'Pendaftaran Live Class Berhasil',
+    body: `Pendaftaran Anda di "${input.liveClassTitle}" telah diterima dan menunggu verifikasi pembayaran.`,
+    href: '/dashboard/live-class',
+  });
+
+  try {
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const clerkUser = await clerk.users.getUser(input.studentUserId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress ?? 'unknown@example.com';
+    
+    console.log(`[EMAIL MOCK] Mengirim email konfirmasi pendaftaran:
+      To: ${email}
+      Subject: Pendaftaran Live Class - JepangKu LMS
+      Body: Halo ${clerkUser.firstName ?? 'Siswa'}, pendaftaran Anda untuk kelas "${input.liveClassTitle}" seharga Rp ${input.priceIdr.toLocaleString('id-ID')} telah kami terima.
+      Silakan selesaikan pembayaran dan konfirmasi via WhatsApp.`);
+  } catch (error) {
+    console.error('[EMAIL MOCK ERROR] Gagal mengambil email dari Clerk untuk registration:', error);
+  }
+}
+
+export async function notifyLiveClassApproval(input: {
+  studentUserId: string;
+  liveClassTitle: string;
+}): Promise<void> {
+  await createLmsNotification({
+    userId: input.studentUserId,
+    type: 'ENROLLMENT_APPROVED',
+    title: 'Akses Live Class Aktif',
+    body: `Pendaftaran Anda di "${input.liveClassTitle}" sudah disetujui! Silakan cek jadwal pertemuan di dasbor.`,
+    href: '/dashboard/live-class',
+  });
+
+  try {
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const clerkUser = await clerk.users.getUser(input.studentUserId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress ?? 'unknown@example.com';
+    
+    console.log(`[EMAIL MOCK] Mengirim email persetujuan pendaftaran:
+      To: ${email}
+      Subject: Kelas Live Aktif - JepangKu LMS
+      Body: Halo ${clerkUser.firstName ?? 'Siswa'}, pendaftaran Anda untuk kelas "${input.liveClassTitle}" telah disetujui! Anda sekarang dapat mengakses link pertemuan Zoom di halaman detail kelas.`);
+  } catch (error) {
+    console.error('[EMAIL MOCK ERROR] Gagal mengambil email dari Clerk untuk approval:', error);
+  }
 }
 
 export async function getPendingEnrollmentCount(): Promise<number> {

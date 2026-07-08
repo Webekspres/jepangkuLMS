@@ -53,6 +53,10 @@ export default clerkMiddleware(
             return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
         }
 
+        if (userId && pathname === AUTH_ROUTES.authComplete) {
+            return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
+        }
+
         if (userId && isAuthEntryPath(pathname)) {
             return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
         }

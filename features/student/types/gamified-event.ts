@@ -1,4 +1,9 @@
-export type GamifiedEventType = 'NEW_BADGE_UNLOCKED' | 'DAILY_LOGIN_CLAIMED' | 'LEVEL_UP' | 'SYSTEM_ALERT';
+export type GamifiedEventType =
+  | 'NEW_BADGE_UNLOCKED'
+  | 'DAILY_LOGIN_CLAIMED'
+  | 'LEVEL_UP'
+  | 'REWARD_EARNED'
+  | 'SYSTEM_ALERT';
 
 export interface GamifiedEventPayload {
   badgeTitle?: string;
@@ -10,6 +15,7 @@ export interface GamifiedEventPayload {
   levelTitle?: string;
   title?: string;
   message?: string;
+  description?: string;
 }
 
 export interface GamifiedEvent {

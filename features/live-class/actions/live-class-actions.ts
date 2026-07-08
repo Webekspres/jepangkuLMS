@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
-import { notifyEnrollmentPending } from '@/lib/lms/notifications';
+import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
@@ -23,7 +24,7 @@ export async function requestLiveClassEnrollment(
 
   const liveClass = await prisma.liveClass.findFirst({
     where: { id: liveClassId, isPublished: true },
-    select: { id: true, title: true, priceIdr: true, maxSlots: true, filledSlots: true },
+    select: { id: true, title: true, senseiName: true, priceIdr: true, maxSlots: true, filledSlots: true },
   });
   if (!liveClass) return { ok: false, message: 'Live class tidak ditemukan.' };
 
@@ -55,6 +56,19 @@ export async function requestLiveClassEnrollment(
       studentUserId: userId,
       studentName,
       courseTitle: `Live Class — ${liveClass.title}`,
+    });
+    await notifyLiveClassRegistration({
+      studentUserId: userId,
+      liveClassTitle: liveClass.title,
+      priceIdr: liveClass.priceIdr,
+    });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'LIVE_CLASS',
+      productTitle: liveClass.title,
+      productSubtitle: liveClass.senseiName,
+      studentName,
     });
   }
 

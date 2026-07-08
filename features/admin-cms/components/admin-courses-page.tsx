@@ -3,10 +3,16 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Layers, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Layers, Pencil, Plus, Search } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
+import {
+    AdminTableAction,
+    AdminTableActionDelete,
+    AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
     deleteCourseAction,
     toggleCoursePublishedAction,
@@ -100,6 +106,7 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                             <TableHead className="text-xs uppercase tracking-wider">Kursus</TableHead>
                             <TableHead className="text-xs uppercase tracking-wider">Level</TableHead>
                             <TableHead className="text-xs uppercase tracking-wider">Struktur</TableHead>
+                            <TableHead className="text-xs uppercase tracking-wider">Peserta</TableHead>
                             <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
                             <TableHead className="text-right text-xs uppercase tracking-wider">Aksi</TableHead>
                         </TableRow>
@@ -107,7 +114,7 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                     <TableBody>
                         {filtered.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                                     Belum ada kursus. Buat kursus pertama untuk mulai menambah modul.
                                 </TableCell>
                             </TableRow>
@@ -127,6 +134,15 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                                         {course.moduleCount} modul · {course.lessonCount} pelajaran
                                     </TableCell>
                                     <TableCell>
+                                        <AdminPesertaCell
+                                            type="COURSE"
+                                            productId={course.id}
+                                            programTitle={course.title}
+                                            activeCount={course.activeEnrollments}
+                                            pendingCount={course.pendingEnrollments}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
                                         <Badge
                                             className={
                                                 course.isPublished
@@ -138,44 +154,37 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex justify-end gap-1">
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={ADMIN_ROUTES.kursusModules(course.id)}>
-                                                    <Layers className="size-3.5" />
-                                                    Modul
-                                                </Link>
-                                            </Button>
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={`${ADMIN_ROUTES.kursusForm}?id=${course.id}`}>
-                                                    <Pencil className="size-3.5" />
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
+                                        <AdminTableActions>
+                                            <AdminTableAction
+                                                label="Kelola modul"
+                                                icon={Layers}
+                                                href={ADMIN_ROUTES.kursusModules(course.id)}
+                                                showLabel
+                                            />
+                                            <AdminTableAction
+                                                label="Edit kursus"
+                                                icon={Pencil}
+                                                href={`${ADMIN_ROUTES.kursusForm}?id=${course.id}`}
+                                            />
+                                            <AdminTableAction
+                                                label={course.isPublished ? 'Sembunyikan' : 'Publikasi'}
+                                                icon={course.isPublished ? EyeOff : Eye}
                                                 disabled={isPending}
                                                 onClick={() =>
                                                     startTransition(async () => {
-                                                        await toggleCoursePublishedAction(course.id, !course.isPublished);
+                                                        await toggleCoursePublishedAction(
+                                                            course.id,
+                                                            !course.isPublished,
+                                                        );
                                                         router.refresh();
                                                     })
                                                 }
-                                            >
-                                                {course.isPublished ? (
-                                                    <EyeOff className="size-3.5" />
-                                                ) : (
-                                                    <Eye className="size-3.5" />
-                                                )}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-destructive hover:text-destructive"
+                                            />
+                                            <AdminTableActionDelete
+                                                label="Hapus kursus"
                                                 onClick={() => setDeleteId(course.id)}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                            </Button>
-                                        </div>
+                                            />
+                                        </AdminTableActions>
                                     </TableCell>
                                 </TableRow>
                             ))

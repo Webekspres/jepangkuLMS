@@ -3,10 +3,15 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Pencil, Plus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminSortableTableRoot, AdminSortableTableRows } from '@/features/admin-cms/components/admin-sortable-table';
+import {
+  AdminTableAction,
+  AdminTableActionDelete,
+  AdminTableActions,
+} from '@/features/admin-cms/components/admin-table-actions';
 import {
   deleteModuleAction,
   reorderModulesAction,
@@ -148,27 +153,23 @@ export function AdminModulesPage({ course, modules }: AdminModulesPageProps) {
                   {mod.lessonCount} pelajaran
                 </TableCell>
                 <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={ADMIN_ROUTES.kursusLessons(course.id, mod.id)}>
-                        <BookOpen className="size-3.5" />
-                        Pelajaran
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`${ADMIN_ROUTES.kursusModuleForm(course.id)}?id=${mod.id}`}>
-                        <Pencil className="size-3.5" />
-                      </Link>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
+                  <AdminTableActions>
+                    <AdminTableAction
+                      label="Kelola pelajaran"
+                      icon={BookOpen}
+                      href={ADMIN_ROUTES.kursusLessons(course.id, mod.id)}
+                      showLabel
+                    />
+                    <AdminTableAction
+                      label="Edit modul"
+                      icon={Pencil}
+                      href={`${ADMIN_ROUTES.kursusModuleForm(course.id)}?id=${mod.id}`}
+                    />
+                    <AdminTableActionDelete
+                      label="Hapus modul"
                       onClick={() => setDeleteId(mod.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                    />
+                  </AdminTableActions>
                 </TableCell>
               </>
             )}

@@ -134,6 +134,7 @@ export const loggers = {
   api: createLogger('api'),
   seed: createLogger('seed'),
   webhook: createLogger('webhook'),
+  email: createLogger('email'),
 } as const;
 
 export {

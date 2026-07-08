@@ -11,7 +11,7 @@ import {
     leaderboardDisplayInitials,
 } from '@/lib/lms/leaderboard';
 import { getUserLmsPoints } from '@/lib/lms/points';
-import { resolvePublicDisplayName } from '@/lib/lms/display-name';
+import { isGenericLmsDisplayName, resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { loadLmsUserProfile, resolveLmsAvatarUrl, resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { DEFAULT_LMS_ROLE } from '@/lib/auth/lms-roles';
 import {
@@ -89,11 +89,16 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
         data.bio = lmsProfile?.bio ?? null;
         data.displayName = await resolveLmsDisplayName(userId, clerkName, email);
         data.needsDisplayNameSetup = !lmsProfile?.displayNameSetupAt;
-        data.suggestedDisplayName = resolvePublicDisplayName({
-            displayName: null,
-            ssoDisplayName: lmsProfile?.ssoDisplayName ?? clerkName,
-            email,
-        });
+        data.needsPhoneSetup = !lmsProfile?.phoneSetupAt;
+        data.phone = lmsProfile?.phone ?? null;
+        data.suggestedDisplayName = (() => {
+            const suggested = resolvePublicDisplayName({
+                displayName: null,
+                ssoDisplayName: lmsProfile?.ssoDisplayName ?? clerkName,
+                email,
+            });
+            return isGenericLmsDisplayName(suggested) ? '' : suggested;
+        })();
         data.avatarUrl = (await resolveLmsAvatarUrl(userId, clerkUser?.imageUrl ?? null)) ?? data.avatarUrl;
         data.lmsPoints = await getUserLmsPoints(userId);
         data.lmsRank = await getLmsRankForUser(userId);

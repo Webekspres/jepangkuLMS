@@ -1,5 +1,11 @@
 import { cache } from 'react';
+import type { LessonType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import {
+  detectLegacyLessonContentKinds,
+  isLegacyLesson,
+  type LegacyLessonContentKinds,
+} from '@/features/learning/lib/lesson-type';
 
 export type AdminLessonContent = {
   lesson: {
@@ -7,6 +13,9 @@ export type AdminLessonContent = {
     title: string;
     slug: string;
     order: number;
+    lessonType: LessonType | null;
+    isLegacy: boolean;
+    legacyDetectedTypes: LessonType[];
     content: string | null;
     videoUrl: string | null;
   };
@@ -37,7 +46,6 @@ export type AdminLessonContent = {
     id: string;
     questionText: string;
     explanation: string | null;
-    xpReward: number;
     options: Array<{ id: string; text: string; isCorrect: boolean }>;
   }>;
 };
@@ -54,6 +62,7 @@ export const loadAdminLessonContent = cache(async function loadAdminLessonConten
       title: true,
       slug: true,
       order: true,
+      lessonType: true,
       content: true,
       videoUrl: true,
       kosakatas: {
@@ -95,7 +104,6 @@ export const loadAdminLessonContent = cache(async function loadAdminLessonConten
           id: true,
           questionText: true,
           explanation: true,
-          xpReward: true,
           options: {
             orderBy: { id: 'asc' },
             select: { id: true, text: true, isCorrect: true },
@@ -107,12 +115,23 @@ export const loadAdminLessonContent = cache(async function loadAdminLessonConten
 
   if (!lesson) return null;
 
+  const legacyKinds: LegacyLessonContentKinds = {
+    hasVideo: Boolean(lesson.videoUrl?.trim()),
+    hasFlashcard:
+      lesson.kosakatas.length > 0 || lesson.kanjis.length > 0 || lesson.tataBahasas.length > 0,
+    hasQuiz: lesson.questions.length > 0,
+    hasText: Boolean(lesson.content?.trim()),
+  };
+
   return {
     lesson: {
       id: lesson.id,
       title: lesson.title,
       slug: lesson.slug,
       order: lesson.order,
+      lessonType: lesson.lessonType,
+      isLegacy: isLegacyLesson(lesson.lessonType),
+      legacyDetectedTypes: detectLegacyLessonContentKinds(legacyKinds),
       content: lesson.content,
       videoUrl: lesson.videoUrl,
     },

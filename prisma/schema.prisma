@@ -33,6 +33,21 @@ enum EnrollmentType {
     TRYOUT
 }
 
+enum LessonType {
+    VIDEO
+    FLASHCARD
+    QUIZ
+    TEXT
+}
+
+enum EnrollmentLogAction {
+    REQUESTED
+    APPROVED
+    REJECTED
+    GRANTED
+    REVOKED
+}
+
 enum QuestionType {
     QUIZ
     TRYOUT
@@ -101,10 +116,16 @@ model User {
     displayName        String?   @db.VarChar(32)
     /// Nama dari SSO Clerk (Google, dll.) — fallback leaderboard & UI sebelum setup
     ssoDisplayName     String?   @db.VarChar(64)
+    /// Email utama dari Clerk — cache admin (bukan sumber kebenaran; Core/Clerk otoritatif)
+    ssoEmail           String?   @db.VarChar(320)
     /// Setelah user konfirmasi nama di onboarding / edit profil
     displayNameSetupAt DateTime?
     /// Bio singkat profil belajar
     bio                String?   @db.VarChar(280)
+    /// Nomor ponsel/WhatsApp siswa — untuk kontak admin
+    phone              String?   @db.VarChar(20)
+    /// Setelah user mengisi nomor ponsel di onboarding / edit profil
+    phoneSetupAt       DateTime?
     /// Foto profil LMS — override Clerk jika di-set
     avatarUrl          String?
     role               LmsRole   @default(LMS_STUDENT)
@@ -114,6 +135,8 @@ model User {
 
     equippedBadge  LmsBadge?            @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
     enrollments    Enrollment[]
+    enrollmentLogsAsStudent EnrollmentLog[] @relation("EnrollmentLogStudent")
+    enrollmentLogsAsActor   EnrollmentLog[] @relation("EnrollmentLogActor")
     progress       UserProgress[]
     attempts       QuizAttempt[]
     lmsStats       UserLmsStats?
@@ -242,6 +265,7 @@ model UserBadge {
 // ====================================================================
 model Course {
     id          String             @id @default(uuid())
+    courseExternalId String?       @unique
     title       String
     slug        String             @unique
     description String?            @db.Text
@@ -264,6 +288,7 @@ model Course {
 model Module {
     id          String   @id @default(uuid())
     courseId    String
+    moduleExternalId String?
     title       String
     slug        String
     order       Int
@@ -275,6 +300,7 @@ model Module {
     lessons Lesson[]
 
     @@unique([courseId, slug])
+    @@unique([courseId, moduleExternalId])
     @@unique([courseId, order])
     @@index([courseId])
 }
@@ -301,14 +327,39 @@ model Enrollment {
     @@index([userId, type])
 }
 
+/// Audit trail enrollment — permintaan siswa & tindakan admin.
+model EnrollmentLog {
+    id              String              @id @default(uuid())
+    enrollmentId    String?
+    userId          String
+    actorUserId     String?
+    type            EnrollmentType
+    action          EnrollmentLogAction
+    productTitle    String
+    productSubtitle String?
+    studentName     String?
+    actorName       String?
+    createdAt       DateTime            @default(now())
+
+    user  User  @relation("EnrollmentLogStudent", fields: [userId], references: [id], onDelete: Cascade)
+    actor User? @relation("EnrollmentLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+    @@index([createdAt(sort: Desc)])
+    @@index([userId])
+    @@index([action])
+}
+
 model Lesson {
-    id       String  @id @default(uuid())
-    moduleId String
-    title    String
-    slug     String  @unique
-    order    Int
-    content  String? @db.Text
-    videoUrl String?
+    id         String     @id @default(uuid())
+    moduleId   String
+    lessonExternalId String?
+    title      String
+    slug       String     @unique
+    order      Int
+    /// Nullable during migration: null means legacy lesson not yet classified.
+    lessonType LessonType?
+    content    String?    @db.Text
+    videoUrl   String?
 
     module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
@@ -322,6 +373,7 @@ model Lesson {
     comments  LessonComment[]
 
     @@unique([moduleId, slug])
+    @@unique([moduleId, lessonExternalId])
     @@index([moduleId])
 }
 
@@ -390,6 +442,7 @@ model MaterialKanji {
     artiKunyomi   String?
     mnemonik      String? @db.Text
     strokeGifUrl  String?
+    sortOrder     Int     @default(0)
 
     lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
     category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -404,6 +457,7 @@ model MaterialKosakata {
     romaji        String?
     arti          String
     contohKalimat String? @db.Text
+    sortOrder     Int     @default(0)
 
     lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
     category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -416,6 +470,7 @@ model MaterialTataBahasa {
     tataBahasa    String
     arti          String
     contohKalimat String? @db.Text
+    sortOrder     Int     @default(0)
 
     lesson   Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
     category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -461,6 +516,7 @@ model LiveClass {
     maxSlots    Int       @default(30)
     filledSlots Int       @default(0)
     thumbUrl    String?
+    paymentLink String?
     isPublished Boolean   @default(true)
     createdAt   DateTime  @default(now())
 

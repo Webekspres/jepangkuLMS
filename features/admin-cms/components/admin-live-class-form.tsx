@@ -49,6 +49,7 @@ type LiveClassFormData = {
   maxSlots: number;
   filledSlots: number;
   thumbUrl: string | null;
+  paymentLink: string | null;
   isPublished: boolean;
   sessions: LiveClassSessionData[];
 };
@@ -223,6 +224,17 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="paymentLink">Link Pembayaran (opsional)</Label>
+            <Input
+              id="paymentLink"
+              name="paymentLink"
+              type="url"
+              placeholder="https://…"
+              defaultValue={liveClass?.paymentLink ?? ''}
+            />
+          </div>
+
           <div className="space-y-3 rounded-lg border border-border p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -246,11 +258,13 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
                   {sessions.length > 1 ? (
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
+                      variant="destructive"
+                      size="icon-sm"
+                      aria-label="Hapus pertemuan"
+                      title="Hapus pertemuan"
                       onClick={() => removeSession(index)}
                     >
-                      <Trash2 className="size-4 text-destructive" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   ) : null}
                 </div>
