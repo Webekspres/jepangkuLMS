@@ -320,6 +320,19 @@ export async function submitQuizAnswers(input: {
     },
     'Quiz submitted',
   );
+
+  const questionResults = questions.map((question) => {
+    const selectedId = input.answers[question.id];
+    if (!selectedId) {
+      return { questionId: question.id, status: 'unanswered' as const };
+    }
+    const selected = question.options.find((option) => option.id === selectedId);
+    return {
+      questionId: question.id,
+      status: selected?.isCorrect ? ('correct' as const) : ('wrong' as const),
+    };
+  });
+
   return {
     attemptId: attempt.id,
     score,
@@ -327,6 +340,7 @@ export async function submitQuizAnswers(input: {
     total: questions.length,
     xpReward: quizXp,
     pointsReward: scored.total,
+    questionResults,
   };
 }
 

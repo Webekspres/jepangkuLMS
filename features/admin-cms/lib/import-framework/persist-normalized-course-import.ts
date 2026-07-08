@@ -13,8 +13,26 @@ import { persistFlashcardLesson } from '@/features/admin-cms/lib/import-framewor
 import { persistQuizLesson } from '@/features/admin-cms/lib/import-framework/persist-quiz-lesson';
 import { persistTextLesson } from '@/features/admin-cms/lib/import-framework/persist-text-lesson';
 import { persistVideoLesson } from '@/features/admin-cms/lib/import-framework/persist-video-lesson';
+import { mapPrismaImportError } from '@/features/admin-cms/lib/import-framework/map-prisma-import-error';
 
 type Tx = Prisma.TransactionClient;
+
+/** Free (courseId, order) slots before REPLACE upserts — avoids P2002 when legacy rows lack moduleExternalId. */
+const MODULE_ORDER_OFFSET = 10_000;
+
+async function releaseModuleOrderSlots(tx: Tx, courseId: string) {
+  const modules = await tx.module.findMany({
+    where: { courseId },
+    select: { id: true, order: true },
+  });
+
+  for (const module of modules) {
+    await tx.module.update({
+      where: { id: module.id },
+      data: { order: module.order + MODULE_ORDER_OFFSET },
+    });
+  }
+}
 
 function isTextLesson(
   lesson: NormalizedLesson,
@@ -94,6 +112,7 @@ async function upsertModule(tx: Tx, courseId: string, module: NormalizedModule) 
       OR: [
         { moduleExternalId: module.moduleExternalId },
         ...(module.slug ? [{ slug: module.slug }] : []),
+        { order: module.order },
       ],
     },
   });
@@ -176,10 +195,12 @@ export async function persistNormalizedCourseImport(
   normalized: NormalizedCourseImport,
   preview: CourseImportResult['preview'],
 ): Promise<CourseImportResult> {
-  return prisma.$transaction(async (tx) => {
-    const course = await upsertCourse(tx, normalized.course);
-    const seenModuleIds: string[] = [];
-    const seenLessonIds: string[] = [];
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const course = await upsertCourse(tx, normalized.course);
+      await releaseModuleOrderSlots(tx, course.id);
+      const seenModuleIds: string[] = [];
+      const seenLessonIds: string[] = [];
 
     for (const module of normalized.modules) {
       const persistedModule = await upsertModule(tx, course.id, module);
@@ -238,5 +259,21 @@ export async function persistNormalizedCourseImport(
         },
       ],
     };
-  });
+    });
+  } catch (error) {
+    const mapped = mapPrismaImportError(error);
+    if (!mapped) throw error;
+
+    return {
+      ok: false,
+      preview: {
+        ...preview,
+        ok: false,
+        errors: [...preview.errors, ...mapped.errors],
+      },
+      imported: [],
+      errors: mapped.errors,
+      message: mapped.message,
+    };
+  }
 }

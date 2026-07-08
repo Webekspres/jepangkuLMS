@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download, FileUp, Loader2, Upload } from 'lucide-react';
+import { Download, FileDown, FileUp, Loader2, Upload } from 'lucide-react';
 import {
     importCourseWorkbookAction,
     previewCourseImportAction,
@@ -25,6 +25,19 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { buildCourseImportReportText } from '@/features/admin-cms/lib/import-framework/build-course-import-report-text';
+import type { CourseImportPreview } from '@/features/admin-cms/lib/course-import-types';
+
+function downloadImportReport(preview: CourseImportPreview, filename: string) {
+    const text = buildCourseImportReportText(preview);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+}
 
 async function fileToBase64(file: File): Promise<string> {
     const buffer = await file.arrayBuffer();
@@ -99,13 +112,34 @@ export function AdminCourseImportPage() {
                 }
             } else {
                 setMessage({ type: 'error', text: result.message });
-                setPreviewResult({ ok: false, preview: result.preview });
+                setPreviewResult({
+                    ok: false,
+                    preview: {
+                        ...result.preview,
+                        ok: false,
+                        errors: result.errors?.length
+                            ? [...result.preview.errors, ...result.errors.filter(
+                                  (error) =>
+                                      !result.preview.errors.some(
+                                          (existing) =>
+                                              existing.code === error.code &&
+                                              existing.message === error.message,
+                                      ),
+                              )]
+                            : result.preview.errors,
+                    },
+                });
             }
         });
     };
 
     const preview = previewResult?.preview;
     const canImport = Boolean(preview?.ok && file);
+    const hasReport =
+        Boolean(preview) &&
+        (preview!.errors.length > 0 ||
+            preview!.warnings.length > 0 ||
+            (preview!.structuredWarnings?.length ?? 0) > 0);
 
     return (
         <AdminPageShell
@@ -228,22 +262,69 @@ export function AdminCourseImportPage() {
                         ) : (
                             <Badge variant="destructive">Ada error</Badge>
                         )}
+                        {hasReport ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5"
+                                onClick={() =>
+                                    downloadImportReport(
+                                        preview,
+                                        `laporan-impor-kursus-${new Date().toISOString().slice(0, 10)}.txt`,
+                                    )
+                                }
+                            >
+                                <FileDown className="size-3.5" />
+                                Unduh laporan
+                            </Button>
+                        ) : null}
                     </div>
 
                     {preview.errors.length > 0 ? (
                         <Card className="border-destructive/30 p-4">
                             <h3 className="mb-2 text-sm font-semibold text-destructive">Perlu diperbaiki</h3>
-                            <ul className="max-h-48 space-y-1 overflow-y-auto text-sm text-destructive">
+                            <ul className="max-h-48 space-y-2 overflow-y-auto text-sm text-destructive">
                                 {preview.errors.map((error, index) => (
-                                    <li key={`${error.sheet ?? 'sheet'}-${error.row}-${error.code ?? index}`}>
-                                        {error.message}
+                                    <li
+                                        key={`${error.sheet ?? 'sheet'}-${error.row}-${error.code ?? index}`}
+                                        className="flex flex-wrap items-start gap-2"
+                                    >
+                                        {error.code ? (
+                                            <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
+                                                {error.code}
+                                            </Badge>
+                                        ) : null}
+                                        <span>{error.message}</span>
                                     </li>
                                 ))}
                             </ul>
                         </Card>
                     ) : null}
 
-                    {preview.warnings.length > 0 ? (
+                    {(preview.structuredWarnings?.length ?? 0) > 0 ? (
+                        <Card className="border-amber-200 bg-amber-50/50 p-4">
+                            <h3 className="mb-2 text-sm font-semibold text-amber-900">Perhatian</h3>
+                            <ul className="space-y-2 text-sm text-amber-900">
+                                {preview.structuredWarnings!.map((warning, index) => (
+                                    <li
+                                        key={`${warning.sheet ?? 'sheet'}-${warning.row}-${warning.code ?? index}`}
+                                        className="flex flex-wrap items-start gap-2"
+                                    >
+                                        {warning.code ? (
+                                            <Badge
+                                                variant="outline"
+                                                className="shrink-0 border-amber-300 font-mono text-[10px] text-amber-900"
+                                            >
+                                                {warning.code}
+                                            </Badge>
+                                        ) : null}
+                                        <span>{warning.message}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    ) : preview.warnings.length > 0 ? (
                         <Card className="border-amber-200 bg-amber-50/50 p-4">
                             <h3 className="mb-2 text-sm font-semibold text-amber-900">Perhatian</h3>
                             <ul className="space-y-1 text-sm text-amber-900">
@@ -251,6 +332,54 @@ export function AdminCourseImportPage() {
                                     <li key={warning}>{warning}</li>
                                 ))}
                             </ul>
+                        </Card>
+                    ) : null}
+
+                    {preview.modulePreview && preview.modulePreview.length > 0 ? (
+                        <Card className="overflow-hidden border-border">
+                            <div className="border-b border-border px-4 py-3">
+                                <h3 className="text-sm font-semibold text-foreground">Struktur modul & pelajaran</h3>
+                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Modul</TableHead>
+                                        <TableHead>Pelajaran</TableHead>
+                                        <TableHead>Tipe</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {preview.modulePreview.flatMap((module) =>
+                                        module.lessons.length > 0
+                                            ? module.lessons.map((lesson, lessonIndex) => (
+                                                  <TableRow
+                                                      key={`${module.moduleExternalId}-${lesson.lessonExternalId}`}
+                                                  >
+                                                      {lessonIndex === 0 ? (
+                                                          <TableCell
+                                                              rowSpan={module.lessons.length}
+                                                              className="align-top font-medium"
+                                                          >
+                                                              {module.moduleTitle}
+                                                          </TableCell>
+                                                      ) : null}
+                                                      <TableCell>{lesson.title}</TableCell>
+                                                      <TableCell>
+                                                          <Badge variant="secondary">{lesson.lessonType}</Badge>
+                                                      </TableCell>
+                                                  </TableRow>
+                                              ))
+                                            : [
+                                                  <TableRow key={module.moduleExternalId}>
+                                                      <TableCell className="font-medium">{module.moduleTitle}</TableCell>
+                                                      <TableCell colSpan={2} className="text-muted-foreground">
+                                                          (belum ada pelajaran)
+                                                      </TableCell>
+                                                  </TableRow>,
+                                              ],
+                                    )}
+                                </TableBody>
+                            </Table>
                         </Card>
                     ) : null}
 

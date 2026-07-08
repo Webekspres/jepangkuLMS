@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { CourseImportPreview, CourseImportResult } from '@/features/admin-cms/lib/course-import-types';
 import { MAX_IMPORT_BYTES } from '@/features/admin-cms/lib/course-import-types';
 import { buildCourseImportReport } from '@/features/admin-cms/lib/import-framework/build-course-import-report';
+import { buildModulePreviewFromNormalized } from '@/features/admin-cms/lib/import-framework/build-module-preview-from-normalized';
 import { detectCourseImportTemplate } from '@/features/admin-cms/lib/import-framework/detect-course-import-template';
 import { courseImportIssueToRowError } from '@/features/admin-cms/lib/import-framework/format-course-import-issue';
 import { normalizeOfficialCourseV1Workbook } from '@/features/admin-cms/lib/import-framework/official-course-v1-adapter';
@@ -28,6 +29,25 @@ function mergePreviewWithValidation(
   };
 }
 
+function enrichPreviewFromNormalized(
+  preview: CourseImportPreview,
+  normalized: NormalizeSuccess['normalized'],
+  reportWarnings: ReturnType<typeof buildCourseImportReport>['warnings'],
+): CourseImportPreview {
+  const structuredWarnings = reportWarnings.map(courseImportIssueToRowError);
+  return {
+    ...preview,
+    modulePreview: buildModulePreviewFromNormalized(normalized),
+    structuredWarnings,
+    warnings: [...preview.warnings, ...structuredWarnings.map((warning) => warning.message)],
+    template: preview.template ?? {
+      key: normalized.template.key,
+      version: normalized.template.version,
+      detectedBy: normalized.template.detectedBy,
+    },
+  };
+}
+
 async function normalizeCourseImportBuffer(buffer: Buffer) {
   if (buffer.byteLength > MAX_IMPORT_BYTES) {
     return {
@@ -35,7 +55,7 @@ async function normalizeCourseImportBuffer(buffer: Buffer) {
       preview: {
         ok: false,
         ...emptyCourseImportPreview(),
-        errors: [{ row: 0, message: 'File terlalu besar (maks. 10 MB).' }],
+        errors: [{ row: 0, code: 'FILE_TOO_LARGE', message: 'File terlalu besar (maks. 10 MB).' }],
       },
     };
   }
@@ -49,7 +69,7 @@ async function normalizeCourseImportBuffer(buffer: Buffer) {
       preview: {
         ok: false,
         ...emptyCourseImportPreview(),
-        errors: [{ row: 0, message: 'File Excel tidak bisa dibaca. Pastikan format .xlsx.' }],
+        errors: [{ row: 0, code: 'INVALID_XLSX', message: 'File Excel tidak bisa dibaca. Pastikan format .xlsx.' }],
       },
     };
   }
@@ -64,6 +84,7 @@ async function normalizeCourseImportBuffer(buffer: Buffer) {
         errors: [
           {
             row: 0,
+            code: 'TEMPLATE_UNKNOWN',
             message:
               'Format workbook tidak dikenali. Gunakan template resmi JepangKu atau workbook sensei N4/N5.',
           },
@@ -86,18 +107,12 @@ export async function previewCourseImport(buffer: Buffer): Promise<CourseImportP
   }
 
   const validationIssues = validateNormalizedCourseImport(result.normalized);
-  return {
-    ...mergePreviewWithValidation(result.preview, validationIssues),
-    warnings: [
-      ...result.preview.warnings,
-      ...result.report.warnings.map((warning) => warning.message),
-    ],
-    template: result.preview.template ?? {
-      key: result.normalized.template.key,
-      version: result.normalized.template.version,
-      detectedBy: result.normalized.template.detectedBy,
-    },
-  };
+  const enrichedPreview = enrichPreviewFromNormalized(
+    result.preview,
+    result.normalized,
+    result.report.warnings,
+  );
+  return mergePreviewWithValidation(enrichedPreview, validationIssues);
 }
 
 export async function importCourseWorkbook(
@@ -117,21 +132,26 @@ export async function importCourseWorkbook(
   const validationIssues = validateNormalizedCourseImport(result.normalized);
   if (validationIssues.length > 0) {
     const report = buildCourseImportReport(validationIssues);
+    const enrichedPreview = enrichPreviewFromNormalized(
+      result.preview,
+      result.normalized,
+      result.report.warnings,
+    );
     return {
       ok: false,
-      preview: mergePreviewWithValidation(result.preview, validationIssues),
+      preview: mergePreviewWithValidation(enrichedPreview, validationIssues),
       imported: [],
       errors: report.errors.map(courseImportIssueToRowError),
     };
   }
 
-  return persistNormalizedCourseImport(prisma, result.normalized, {
-    ...result.preview,
-    warnings: [
-      ...result.preview.warnings,
-      ...result.report.warnings.map((warning) => warning.message),
-    ],
-  });
+  const enrichedPreview = enrichPreviewFromNormalized(
+    result.preview,
+    result.normalized,
+    result.report.warnings,
+  );
+
+  return persistNormalizedCourseImport(prisma, result.normalized, enrichedPreview);
 }
 
 // Exported for tests that need the full normalize result.

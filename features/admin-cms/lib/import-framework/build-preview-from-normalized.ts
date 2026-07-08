@@ -1,4 +1,5 @@
 import type { CourseImportPreview } from '@/features/admin-cms/lib/course-import-types';
+import { buildModulePreviewFromNormalized } from '@/features/admin-cms/lib/import-framework/build-module-preview-from-normalized';
 import type { NormalizedCourseImport } from '@/features/admin-cms/lib/import-framework/normalized-import-types';
 
 export function buildPreviewFromNormalized(
@@ -51,6 +52,7 @@ export function buildPreviewFromNormalized(
     ],
     errors: [],
     warnings: options?.warnings ?? [],
+    modulePreview: buildModulePreviewFromNormalized(normalized),
     template: {
       key: normalized.template.key,
       version: normalized.template.version,

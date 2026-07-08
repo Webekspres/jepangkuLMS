@@ -20,7 +20,6 @@ import {
     Lock,
     Play,
     X,
-    Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
@@ -223,92 +222,78 @@ function LessonCurriculumList({
     );
 }
 
-type LessonXpTask = { label: string; xp: number; done: boolean };
-
-type LessonXpPanelProps = {
-    xpTasks: LessonXpTask[];
+type LessonCompleteActionProps = {
     completed: boolean;
     isPending: boolean;
     allContentEngaged: boolean;
     onMarkComplete: () => void;
-    helperText?: string | null;
-    compact?: boolean;
+    variant?: 'sidebar' | 'mobile-bar';
 };
 
-function LessonXpPanel({
-    xpTasks,
+function LessonCompleteAction({
     completed,
     isPending,
     allContentEngaged,
     onMarkComplete,
-    helperText,
-    compact = false,
-}: LessonXpPanelProps) {
-    return (
-        <Card className={compact ? 'border-dashed shadow-none' : 'shadow-sm'}>
-            <CardContent className={cn('space-y-3', compact ? 'p-3.5 sm:p-4' : 'p-4')}>
-                <div className="flex items-center gap-2">
-                    <Zap className="size-4 text-brand-yellow" />
-                    <span
-                        className={cn(
-                            'font-bold text-foreground',
-                            compact ? 'text-sm' : 'text-sm md:text-base',
-                        )}
-                    >
-                        XP pelajaran ini
-                    </span>
-                </div>
-                {xpTasks.map((task) => (
-                    <div key={task.label} className="flex items-center justify-between gap-2">
-                        <span
-                            className={cn(
-                                'flex items-center gap-1.5 text-muted-foreground',
-                                compact ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm',
-                            )}
-                        >
-                            {task.done ? (
-                                <CheckCircle2 className="size-3.5 text-emerald-600" />
-                            ) : (
-                                <span className="size-3.5 rounded-full border border-border" />
-                            )}
-                            {task.label}
-                        </span>
-                        <span
-                            className={cn(
-                                'text-xs font-bold',
-                                task.done ? 'text-emerald-600' : 'text-muted-foreground',
-                            )}
-                        >
-                            +{task.xp} XP
-                        </span>
-                    </div>
-                ))}
-                {helperText ? (
-                    <p className="text-xs leading-relaxed text-muted-foreground">{helperText}</p>
-                ) : null}
-                {completed ? (
-                    <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-700">
-                        <CheckCircle2 className="size-4 shrink-0" />
-                        Pelajaran selesai
-                    </div>
-                ) : (
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="mt-2 w-full gap-1.5"
-                        disabled={!allContentEngaged || isPending}
-                        onClick={onMarkComplete}
-                    >
-                        {isPending ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                            <CheckCircle2 className="size-3.5" />
-                        )}
-                        {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
-                    </Button>
+    variant = 'sidebar',
+}: LessonCompleteActionProps) {
+    const isMobileBar = variant === 'mobile-bar';
+
+    if (completed) {
+        return (
+            <div
+                className={cn(
+                    'flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-center font-semibold text-emerald-700',
+                    isMobileBar ? 'h-10 px-3 text-xs sm:h-9' : 'px-3 py-2.5 text-xs',
                 )}
-            </CardContent>
-        </Card>
+            >
+                <CheckCircle2 className="size-4 shrink-0" />
+                {isMobileBar ? 'Selesai' : 'Pelajaran selesai'}
+            </div>
+        );
+    }
+
+    if (isMobileBar) {
+        return (
+            <Button
+                type="button"
+                size="sm"
+                className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
+                disabled={!allContentEngaged || isPending}
+                onClick={onMarkComplete}
+            >
+                {isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                    <CheckCircle2 className="size-3.5" />
+                )}
+                Tandai Selesai
+            </Button>
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            {!allContentEngaged && (
+                <p className="text-center text-[11px] leading-snug text-muted-foreground">
+                    Selesaikan materi pelajaran ini untuk menandai selesai.
+                </p>
+            )}
+            <Button
+                type="button"
+                size="sm"
+                className="w-full gap-1.5"
+                disabled={!allContentEngaged || isPending}
+                onClick={onMarkComplete}
+            >
+                {isPending ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                    <CheckCircle2 className="size-3.5" />
+                )}
+                {isPending ? 'Menyimpan…' : 'Tandai Selesai'}
+            </Button>
+        </div>
     );
 }
 
@@ -499,7 +484,7 @@ export function LessonWorkspace({
             setFlashcardVisited(true);
             startTransition(async () => {
                 const result = await recordFlashcardVisit(lesson.id);
-                if (result && result.awarded) {
+                if (result && result.awarded && !completed) {
                     const event = new CustomEvent('gamified-event', {
                       detail: {
                         type: 'REWARD_EARNED',
@@ -518,36 +503,6 @@ export function LessonWorkspace({
             });
         }
     }
-
-    // Only reward (and show) content that actually exists in this lesson.
-    const xpTasks: LessonXpTask[] = [];
-    if ((isLegacyLesson && (hasVideo || hasText)) || migratedLessonType === 'VIDEO' || migratedLessonType === 'TEXT') {
-        xpTasks.push({
-            label: migratedLessonType === 'TEXT' ? 'Materi dibaca' : 'Video / materi dibaca',
-            xp: REWARDS.LESSON_COMPLETED.xp,
-            done: completed || contentViewed,
-        });
-    }
-    if ((isLegacyLesson && hasFlashcard) || migratedLessonType === 'FLASHCARD') {
-        xpTasks.push({
-            label: 'Flashcard dijelajahi',
-            xp: REWARDS.FLASHCARD_EXPLORED.xp,
-            done: flashcardVisited,
-        });
-    }
-    if ((isLegacyLesson && hasQuiz) || migratedLessonType === 'QUIZ') {
-        xpTasks.push({
-            label: 'Quiz diselesaikan',
-            xp: REWARDS.QUIZ_COMPLETED.xp,
-            done: quizCompleted,
-        });
-    }
-    const xpPanelHelperText =
-        ((isLegacyLesson && hasQuiz) || migratedLessonType === 'QUIZ') && !completed
-            ? migratedLessonType === 'QUIZ'
-                ? `XP quiz diberikan otomatis saat jawaban dikirim. Setelah quiz selesai dikirim, pelajaran akan otomatis ditandai selesai. Skor sempurna mendapat bonus +${REWARDS.QUIZ_PERFECT_SCORE.xp} XP.`
-                : `XP quiz diberikan otomatis saat jawaban dikirim. Setelah semua bagian pelajaran selesai dijelajahi, kamu bisa menandai pelajaran ini selesai. Skor sempurna mendapat bonus +${REWARDS.QUIZ_PERFECT_SCORE.xp} XP.`
-            : null;
 
     type TabDef = { id: ContentTab; label: string; icon: typeof Play };
     const availableTabs = (
@@ -710,6 +665,7 @@ export function LessonWorkspace({
                                         lessonId={lesson.id}
                                         lessonSlug={lesson.slug}
                                         questions={questions}
+                                        suppressRewardToast={completed}
                                         onSubmitted={() => {
                                             setQuizCompleted(true);
                                             handleAutoMarkCompleteAfterQuiz();
@@ -767,18 +723,6 @@ export function LessonWorkspace({
                                     )}
                                 </CardContent>
                             </Card>
-
-                            <div className="lg:hidden">
-                                <LessonXpPanel
-                                    xpTasks={xpTasks}
-                                    completed={completed}
-                                    isPending={isPending}
-                                    allContentEngaged={allContentEngaged}
-                                    onMarkComplete={handleMarkComplete}
-                                    helperText={xpPanelHelperText}
-                                    compact
-                                />
-                            </div>
                         </div>
                     )}
                     {/* Lesson Navigation Bar (Prev / Next Lesson) */}
@@ -830,8 +774,8 @@ export function LessonWorkspace({
                     )}
                 </div>
 
-                <aside className="hidden space-y-4 lg:block lg:sticky lg:top-6 lg:self-start">
-                    <Card className="overflow-hidden py-0">
+                <aside className="hidden lg:block lg:sticky lg:top-6 lg:self-start">
+                    <Card className="overflow-hidden py-0 shadow-sm">
                         <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
                             <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
                                 <BookOpen className="size-4 text-primary" />
@@ -839,53 +783,46 @@ export function LessonWorkspace({
                             </span>
                             <span className="text-xs text-muted-foreground">{syllabusGroups.length} modul</span>
                         </div>
-                        <div className="max-h-[min(70vh,36rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div className="border-t border-border bg-muted/25 px-4 py-3.5">
+                            <LessonCompleteAction
+                                completed={completed}
+                                isPending={isPending}
+                                allContentEngaged={allContentEngaged}
+                                onMarkComplete={handleMarkComplete}
+                                variant="sidebar"
+                            />
+                        </div>
                     </Card>
-
-                    <LessonXpPanel
-                        xpTasks={xpTasks}
-                        completed={completed}
-                        isPending={isPending}
-                        allContentEngaged={allContentEngaged}
-                        onMarkComplete={handleMarkComplete}
-                        helperText={xpPanelHelperText}
-                    />
                 </aside>
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6 lg:hidden">
-                <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
-                        onClick={() => setMobileCurriculumOpen(true)}
-                    >
-                        <List className="size-4 shrink-0" />
-                        <span className="truncate">Daftar materi</span>
-                    </Button>
-                    {completed ? (
-                        <span className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 sm:h-9">
-                            <CheckCircle2 className="size-4" />
-                            Selesai
-                        </span>
-                    ) : (
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm lg:hidden">
+                {!completed && !allContentEngaged && (
+                    <p className="border-b border-border/60 bg-muted/30 px-4 py-1.5 text-center text-[10px] text-muted-foreground sm:text-[11px]">
+                        Selesaikan materi untuk menandai pelajaran ini selesai
+                    </p>
+                )}
+                <div className="px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6">
+                    <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
                         <Button
                             type="button"
+                            variant="outline"
                             size="sm"
-                            className="h-10 shrink-0 gap-1.5 px-3 text-xs sm:h-9 sm:text-sm"
-                            disabled={!allContentEngaged || isPending}
-                            onClick={handleMarkComplete}
+                            className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
+                            onClick={() => setMobileCurriculumOpen(true)}
                         >
-                            {isPending ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                            ) : (
-                                <CheckCircle2 className="size-3.5" />
-                            )}
-                            Tandai Selesai
+                            <List className="size-4 shrink-0" />
+                            <span className="truncate">Daftar materi</span>
                         </Button>
-                    )}
+                        <LessonCompleteAction
+                            completed={completed}
+                            isPending={isPending}
+                            allContentEngaged={allContentEngaged}
+                            onMarkComplete={handleMarkComplete}
+                            variant="mobile-bar"
+                        />
+                    </div>
                 </div>
             </div>
 

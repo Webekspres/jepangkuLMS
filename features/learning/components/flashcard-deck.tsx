@@ -19,6 +19,7 @@ export type FlashcardItem = {
   back: string;
   example?: string | null;
   badge?: string;
+  kind?: 'kanji' | 'kosakata' | 'tata-bahasa';
   accentColor?: string;
   trackColorClass?: string;
   mediaUrl?: string | null;
@@ -34,19 +35,29 @@ type FlashcardDeckProps = {
 };
 
 const NAVY_GRADIENT = 'linear-gradient(135deg, #0d1b3e 0%, #1a2d5a 100%)';
+const CARD_HEIGHT = 'h-[280px] sm:h-[300px]';
+
+function hasJapaneseKana(text: string) {
+  return /[\u3040-\u30ff]/.test(text);
+}
+
+function isReadingMetaSub(sub: string) {
+  return /Kunyomi:|Onyomi:|Kun:|On:/i.test(sub);
+}
 
 function renderSubText(sub: string | null | undefined, showFurigana: boolean) {
-  if (!sub) return null;
+  if (!sub || isReadingMetaSub(sub)) return null;
   if (showFurigana) return sub;
-  
-  // If showFurigana is false, filter out the kana (furigana) part
+
   const parts = sub.split(' · ');
   if (parts.length > 1) {
-    return parts[1]; // Return only romaji
+    return parts[1];
   }
-  // If there's only 1 part, check if it's kana (Japanese characters). if so, hide it.
-  const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(parts[0]);
-  return hasJapanese ? null : parts[0];
+  return hasJapaneseKana(parts[0]) ? null : parts[0];
+}
+
+function formatReadingList(value: string) {
+  return value.split(/,\s*/).join(' · ');
 }
 
 function FlashcardDeckInner({
@@ -79,6 +90,9 @@ function FlashcardDeckInner({
   const card = deck[index];
   const cardBadge = card.badge ?? trackLabel;
   const cardAccent = card.accentColor ?? accentColor;
+  const isKanjiCard = card.kind === 'kanji';
+  const showFuriganaToggle =
+    isKanjiCard && Boolean(card.sub && hasJapaneseKana(card.sub.split(' · ')[0] ?? ''));
   const progress = deck.length > 0 ? (known.size + unknown.size) / deck.length : 0;
   const progressPercent = Math.round(progress * 100);
 
@@ -106,18 +120,22 @@ function FlashcardDeckInner({
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center">
       {/* Configuration bar */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 w-full border-b border-border/60 pb-3">
+      <div className="mb-4 flex w-full flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant={showFurigana ? "default" : "outline"}
-            size="sm"
-            className="h-8 gap-1.5 text-[11px] font-bold rounded-lg"
-            onClick={() => setShowFurigana(!showFurigana)}
-          >
-            <Eye className="size-3.5" />
-            {showFurigana ? 'Sembunyikan Furigana' : 'Tampilkan Furigana'}
-          </Button>
+          {showFuriganaToggle ? (
+            <Button
+              type="button"
+              variant={showFurigana ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg text-[11px] font-bold"
+              onClick={() => setShowFurigana(!showFurigana)}
+            >
+              <Eye className="size-3.5" />
+              {showFurigana ? 'Sembunyikan Furigana' : 'Tampilkan Furigana'}
+            </Button>
+          ) : (
+            <span className="text-[11px] font-semibold text-muted-foreground">{cardBadge}</span>
+          )}
         </div>
 
         <button
@@ -165,18 +183,22 @@ function FlashcardDeckInner({
 
       {/* Card area with true 3D Flip */}
       <div
-        className="mb-6 w-full cursor-pointer select-none"
+        className="mb-5 w-full cursor-pointer select-none"
         style={{ perspective: '1200px' }}
         onClick={() => setFlipped((f) => !f)}
       >
         <motion.div
           animate={{ rotateY: flipped ? 180 : 0 }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
-          style={{ transformStyle: 'preserve-3d', position: 'relative', minHeight: '264px' }}
+          className={cn('relative w-full', CARD_HEIGHT)}
+          style={{ transformStyle: 'preserve-3d' }}
         >
-          {/* Front — navy gradient ala Figma */}
+          {/* Front — navy gradient */}
           <div
-            className="absolute inset-0 flex min-h-64 max-h-[340px] flex-col items-center justify-center rounded-2xl p-6 shadow-xl overflow-y-auto"
+            className={cn(
+              'absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-5 shadow-xl sm:p-6',
+              isKanjiCard ? 'justify-center' : 'items-center justify-center',
+            )}
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
@@ -195,48 +217,61 @@ function FlashcardDeckInner({
               {cardBadge}
             </span>
             <span className="absolute top-4 right-4 text-[10px] text-white/40">Ketuk untuk flip →</span>
-            
-            {card.sub && renderSubText(card.sub, showFurigana) && (
-              <p
-                className="relative z-10 mb-2 text-sm text-white/60 font-semibold"
-                style={{ fontFamily: 'var(--font-noto-sans-jp, inherit)' }}
-              >
-                {renderSubText(card.sub, showFurigana)}
-              </p>
+
+            {isKanjiCard ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-2 pt-8">
+                {renderSubText(card.sub, showFurigana) && (
+                  <p
+                    className="text-sm font-medium text-white/60"
+                    style={{ fontFamily: 'var(--font-noto-sans-jp, inherit)' }}
+                  >
+                    {renderSubText(card.sub, showFurigana)}
+                  </p>
+                )}
+                <p
+                  className="text-center font-bold text-white leading-none"
+                  style={{
+                    fontSize: 'clamp(3.5rem, 14vw, 5rem)',
+                    fontFamily: 'var(--font-noto-sans-jp, inherit)',
+                  }}
+                >
+                  {card.front}
+                </p>
+              </div>
+            ) : (
+              <>
+                {card.sub && (
+                  <p
+                    className="relative z-10 mb-2 text-sm font-semibold text-white/60"
+                    style={{ fontFamily: 'var(--font-noto-sans-jp, inherit)' }}
+                  >
+                    {card.sub}
+                  </p>
+                )}
+                <p
+                  className="relative z-10 text-center font-bold text-white leading-tight"
+                  style={{
+                    fontSize: 'clamp(1.75rem, 7vw, 2.75rem)',
+                    fontFamily: 'var(--font-noto-sans-jp, inherit)',
+                  }}
+                >
+                  {card.front}
+                </p>
+              </>
             )}
-            
-            <p
-              className="relative z-10 text-center font-bold text-white leading-tight"
-              style={{
-                fontSize: 'clamp(2rem, 8vw, 3.25rem)',
-                fontFamily: 'var(--font-noto-sans-jp, inherit)',
-              }}
-            >
-              {card.front}
-            </p>
-            
-            {/* Front "Sudah tahu" shortcut */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleKnown(true);
-              }}
-              className="absolute bottom-4 right-4 flex items-center gap-1 rounded-lg bg-emerald-500/20 px-2.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/35 transition-colors border border-emerald-500/30"
-            >
-              <CheckCircle2 className="size-3.5" />
-              Sudah tahu
-            </button>
           </div>
 
           {/* Back face */}
           <div
-            className="absolute inset-0 flex min-h-64 max-h-[340px] flex-col items-center justify-center rounded-2xl p-6 shadow-xl overflow-y-auto"
+            className={cn(
+              'absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-5 shadow-xl sm:p-6',
+              isKanjiCard ? 'justify-between' : 'items-center justify-center',
+            )}
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              background: `linear-gradient(135deg, ${cardAccent}15 0%, #ffffff 100%)`,
+              background: `linear-gradient(135deg, ${cardAccent}12 0%, #ffffff 100%)`,
               border: `2px solid ${cardAccent}`,
               zIndex: flipped ? 10 : 0,
               visibility: flipped ? 'visible' : 'hidden',
@@ -250,42 +285,67 @@ function FlashcardDeckInner({
             >
               Arti
             </span>
-            <span className="absolute top-4 right-4 text-[10px] text-muted-foreground/60">Ketuk untuk kembali →</span>
-            
-            <p className="text-center text-xl font-extrabold text-foreground sm:text-2xl mt-4 leading-normal">{card.back}</p>
-            
-            {/* Kunyomi & Onyomi split by | */}
-            {(card.onyomi || card.kunyomi) && (
-              <div className="mt-3 text-xs text-muted-foreground flex flex-col items-center gap-1 bg-muted/40 px-3 py-2 rounded-lg border border-border/50">
-                {card.onyomi && (
-                  <span>
-                    <strong className="text-foreground">Onyomi:</strong> {card.onyomi.split(/,\s*/).join(' | ')}
-                  </span>
-                )}
-                {card.kunyomi && (
-                  <span>
-                    <strong className="text-foreground">Kunyomi:</strong> {card.kunyomi.split(/,\s*/).join(' | ')}
-                  </span>
-                )}
-              </div>
-            )}
+            <span className="absolute top-4 right-4 text-[10px] text-muted-foreground/60">
+              Ketuk untuk kembali →
+            </span>
 
-            {card.example && (
-              <div
-                className="mt-4 w-full rounded-xl p-3 text-center border border-border/40"
-                style={{ background: `${cardAccent}08` }}
-              >
-                <p className="whitespace-pre-line text-xs sm:text-sm text-muted-foreground italic leading-relaxed">
-                  {card.example}
+            {isKanjiCard ? (
+              <div className="flex h-full flex-col justify-center gap-2.5 pt-8">
+                <p className="text-center text-lg font-extrabold leading-snug text-foreground sm:text-xl">
+                  {card.back}
                 </p>
+
+                {(card.onyomi || card.kunyomi) && (
+                  <div className="grid grid-cols-2 gap-2 text-[11px] sm:text-xs">
+                    {card.onyomi && (
+                      <div className="rounded-lg border border-border/50 bg-muted/40 px-2.5 py-2 text-center">
+                        <p className="mb-0.5 font-bold text-foreground">Onyomi</p>
+                        <p className="leading-snug text-muted-foreground">{formatReadingList(card.onyomi)}</p>
+                      </div>
+                    )}
+                    {card.kunyomi && (
+                      <div className="rounded-lg border border-border/50 bg-muted/40 px-2.5 py-2 text-center">
+                        <p className="mb-0.5 font-bold text-foreground">Kunyomi</p>
+                        <p className="leading-snug text-muted-foreground">{formatReadingList(card.kunyomi)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex min-h-0 items-end justify-center gap-3">
+                  {card.example && (
+                    <p className="line-clamp-2 flex-1 text-center text-[11px] italic leading-snug text-muted-foreground sm:text-xs">
+                      {card.example}
+                    </p>
+                  )}
+                  {card.mediaUrl && (
+                    <div className="shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={card.mediaUrl}
+                        alt={card.front}
+                        className="size-14 rounded-lg border border-border/50 bg-white object-contain p-1 shadow-sm sm:size-16"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            
-            {card.mediaUrl && (
-              <div className="mt-4 flex justify-center w-full">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={card.mediaUrl} alt={card.front} className="max-h-24 w-auto rounded-lg object-contain shadow-sm border border-border/50 bg-white" />
-              </div>
+            ) : (
+              <>
+                <p className="mt-4 text-center text-xl font-extrabold leading-normal text-foreground sm:text-2xl">
+                  {card.back}
+                </p>
+                {card.example && (
+                  <div
+                    className="mt-3 w-full rounded-xl border border-border/40 p-3 text-center"
+                    style={{ background: `${cardAccent}08` }}
+                  >
+                    <p className="line-clamp-3 text-xs italic leading-relaxed text-muted-foreground sm:text-sm">
+                      {card.example}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </motion.div>

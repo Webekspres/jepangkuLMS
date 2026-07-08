@@ -122,7 +122,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
 | `/admin/pembayaran`                        |   ✅   | Antrian enrollment + tab Riwayat (`EnrollmentLog`: approve/reject/grant/request) |
 | `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran** + kolom peserta + dialog daftar siswa          |
-| `/admin/kursus/import`                     |   ✅   | Impor kursus multi-template: `official-course-v1` (metadata) + legacy sensei N4/N5; unduh template `/api/admin/kursus/template` |
+| `/admin/kursus/import`                     |   ✅   | Impor multi-template (`official-course-v1` + sensei N4/N5); pratinjau struktur modul/pelajaran, kode error/warning, unduh laporan `.txt`; integration test official + rollback validasi |
 | `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md)) |
 | `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                            |
 
@@ -183,6 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-08 | Course Import V1 fase 5 & 10 selesai: `modulePreview` + tabel struktur modul/pelajaran di UI admin, kode error/warning terstruktur, unduh laporan `.txt` (`build-course-import-report-text`), integration test official template + rollback saat validasi gagal |
 | 2026-07-08 | Course Import V1 fase 8–11: template resmi `official-course-v1` (builder + download), deteksi multi-template (`detect-course-import-template`), adapter resmi, entry point `previewCourseImport`/`importCourseWorkbook`, UX pratinjau (template badge + error sheet/baris), re-export legacy `import-sensei-course-xlsx` |
 | 2026-07-08 | Course Import V1 fase 5: persistence transaksional REPLACE + external ID nullable (`courseExternalId`/`moduleExternalId`/`lessonExternalId`), backfill script `course-import:backfill-external-ids`, integration test DB-optional |
 | 2026-07-07 | Refactor arsitektur lesson bertipe tunggal dimulai: `Lesson.lessonType` nullable + registry tipe (`VIDEO`/`FLASHCARD`/`QUIZ`/`TEXT`), form/admin workspace/student workspace kompatibel legacy, guard mutasi materi/soal, dan script dry-run backfill `lesson:backfill-types` |
