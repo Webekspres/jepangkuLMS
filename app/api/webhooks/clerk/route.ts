@@ -1,7 +1,9 @@
 import { after } from 'next/server';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
+import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
 import { dispatchWelcomeEmail, parseClerkUserCreatedEvent } from '@/lib/email';
+import { prisma } from '@/lib/prisma';
 import { createRequestId, jsonApiError, logApiError } from '@/lib/errors/api-error';
 import { loggers } from '@/lib/logger';
 
@@ -57,11 +59,23 @@ export async function POST(req: Request) {
 
         const welcomePayload = parseClerkUserCreatedEvent(evt);
         if (welcomePayload) {
-            after(() => {
+            after(async () => {
                 dispatchWelcomeEmail({
                     email: welcomePayload.email,
                     name: welcomePayload.name,
                     userId: welcomePayload.userId,
+                });
+
+                await prisma.user.upsert({
+                    where: { id: welcomePayload.userId },
+                    create: userAnchorCreateData(welcomePayload.userId, {
+                        ssoEmail: welcomePayload.email,
+                        ssoDisplayName: welcomePayload.name,
+                    }),
+                    update: {
+                        ssoEmail: welcomePayload.email,
+                        ssoDisplayName: welcomePayload.name,
+                    },
                 });
             });
         }

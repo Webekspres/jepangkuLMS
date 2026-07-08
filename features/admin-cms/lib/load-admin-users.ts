@@ -5,6 +5,7 @@ export type AdminUserRow = {
   id: string;
   displayName: string | null;
   ssoDisplayName: string | null;
+  ssoEmail: string | null;
   resolvedDisplayName: string;
   role: 'LMS_STUDENT' | 'LMS_ADMIN';
   lmsPoints: number;
@@ -21,6 +22,7 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
       id: true,
       displayName: true,
       ssoDisplayName: true,
+      ssoEmail: true,
       role: true,
       createdAt: true,
       lmsStats: { select: { lmsPoints: true } },
@@ -33,6 +35,7 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
     id: user.id,
     displayName: user.displayName,
     ssoDisplayName: user.ssoDisplayName,
+    ssoEmail: user.ssoEmail,
     resolvedDisplayName: resolvePublicDisplayName({
       displayName: user.displayName,
       ssoDisplayName: user.ssoDisplayName,

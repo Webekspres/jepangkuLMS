@@ -63,6 +63,7 @@ export function AdminUserPicker({
         resolvedDisplayName: value,
         displayName: null,
         ssoDisplayName: null,
+        ssoEmail: null,
       });
     }
   }, [value, selectedUser?.id]);
@@ -136,6 +137,7 @@ export function AdminUserPicker({
         resolvedDisplayName: trimmed,
         displayName: null,
         ssoDisplayName: null,
+        ssoEmail: null,
       };
       setSelectedUser(directUser);
       onValueChange(trimmed);
@@ -244,6 +246,9 @@ export function AdminUserPicker({
                       <p className="truncate text-xs text-muted-foreground">
                         SSO: {user.ssoDisplayName}
                       </p>
+                    ) : null}
+                    {user.ssoEmail ? (
+                      <p className="truncate text-xs text-muted-foreground">{user.ssoEmail}</p>
                     ) : null}
                     <p className="truncate font-mono text-[10px] text-muted-foreground">{user.id}</p>
                   </div>

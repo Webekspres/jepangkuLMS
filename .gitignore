@@ -55,7 +55,7 @@ next-env.d.ts
 
 # docs — binary/reference files stay local (README, markdown OK)
 docs/*.pdf
-docs/*.xlsx
+# docs/*.xlsx
 docs/*.xls
 docs/*.doc
 docs/*.docx

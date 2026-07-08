@@ -7,34 +7,37 @@ import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import type { CourseImportPreview } from '@/features/admin-cms/lib/course-import-types';
 import {
-    importSenseiCourseXlsx,
-    previewSenseiCourseImport,
-} from '@/features/admin-cms/lib/import-sensei-course-xlsx';
+    importCourseWorkbook,
+    previewCourseImport,
+} from '@/features/admin-cms/lib/import-framework/import-course-workbook';
 
 export type CmsImportPreviewResult = {
     ok: boolean;
     preview: CourseImportPreview;
 };
 
-export async function previewSenseiCourseAction(base64: string): Promise<CmsImportPreviewResult> {
+export async function previewCourseImportAction(base64: string): Promise<CmsImportPreviewResult> {
     await requireAdminAction();
     const buffer = Buffer.from(base64, 'base64');
-    const preview = await previewSenseiCourseImport(buffer);
+    const preview = await previewCourseImport(buffer);
     return { ok: preview.ok, preview };
 }
+
+/** @deprecated Use previewCourseImportAction */
+export const previewSenseiCourseAction = previewCourseImportAction;
 
 export type CmsImportCommitResult = {
     ok: boolean;
     message: string;
     preview: CourseImportPreview;
     imported?: Array<{ courseId: string; moduleCount: number; lessonCount: number }>;
-    errors?: Array<{ row: number; message: string }>;
+    errors?: Array<{ row: number; message: string; sheet?: string; code?: string }>;
 };
 
-export async function importSenseiCourseAction(base64: string): Promise<CmsImportCommitResult> {
+export async function importCourseWorkbookAction(base64: string): Promise<CmsImportCommitResult> {
     await requireAdminAction();
     const buffer = Buffer.from(base64, 'base64');
-    const result = await importSenseiCourseXlsx(prisma, buffer);
+    const result = await importCourseWorkbook(prisma, buffer);
 
     if (result.ok) {
         revalidateStudentLearningSurfaces();
@@ -61,10 +64,17 @@ export async function importSenseiCourseAction(base64: string): Promise<CmsImpor
         };
     }
 
+    const templateLabel = result.preview.template
+        ? `${result.preview.template.key} ${result.preview.template.version}`
+        : 'workbook';
+
     return {
         ok: false,
-        message: 'Impor gagal. Perbaiki error pada workbook sensei lalu coba lagi.',
+        message: `Impor gagal. Perbaiki error pada ${templateLabel} lalu coba lagi.`,
         preview: result.preview,
         errors: result.errors,
     };
 }
+
+/** @deprecated Use importCourseWorkbookAction */
+export const importSenseiCourseAction = importCourseWorkbookAction;

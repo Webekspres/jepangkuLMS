@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
+import { fetchClerkPrimaryEmail } from '@/lib/auth/clerk-user-email';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
@@ -45,6 +46,7 @@ export type AdminUserDetail = {
   id: string;
   displayName: string | null;
   ssoDisplayName: string | null;
+  ssoEmail: string | null;
   resolvedDisplayName: string;
   avatarUrl: string | null;
   role: 'LMS_STUDENT' | 'LMS_ADMIN';
@@ -85,6 +87,23 @@ export async function loadAdminCourseOptions(): Promise<
     orderBy: { title: 'asc' },
     select: { id: true, title: true, slug: true },
   });
+}
+
+async function resolveAdminUserEmail(userId: string, cached: string | null): Promise<string | null> {
+  const trimmed = cached?.trim();
+  if (trimmed) return trimmed;
+
+  const fetched = await fetchClerkPrimaryEmail(userId);
+  if (!fetched) return null;
+
+  await prisma.user
+    .update({
+      where: { id: userId },
+      data: { ssoEmail: fetched },
+    })
+    .catch(() => undefined);
+
+  return fetched;
 }
 
 export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
@@ -181,11 +200,13 @@ export const loadAdminUserDetail = cache(async function loadAdminUserDetail(
   }
 
   const allEnrollments = [...courseEnrollments, ...liveClassEnrollments, ...tryoutEnrollments];
+  const ssoEmail = await resolveAdminUserEmail(user.id, user.ssoEmail);
 
   return {
     id: user.id,
     displayName: user.displayName,
     ssoDisplayName: user.ssoDisplayName,
+    ssoEmail,
     resolvedDisplayName: resolvePublicDisplayName({
       displayName: user.displayName,
       ssoDisplayName: user.ssoDisplayName,

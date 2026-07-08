@@ -91,4 +91,43 @@ describe('sensei-course-import', () => {
         const preview = await previewSenseiCourseImport(corrupted);
         expect(preview.ok).toBe(false);
     });
+
+    test('preview requires exact legacy sheet names for level detection', async () => {
+        const buffer = await buildSenseiTestWorkbookBuffer({ level: 'N5' });
+        const workbook = await readXlsxBuffer(buffer);
+        const sheet = workbook.getWorksheet('N5 - 漢字 (Kanji)');
+        if (!sheet) throw new Error('Expected N5 kanji sheet');
+        sheet.name = 'N5 - Kanji';
+        const mutated = Buffer.from(await workbook.xlsx.writeBuffer());
+
+        const preview = await previewSenseiCourseImport(mutated);
+
+        expect(preview.ok).toBe(false);
+        expect(preview.errors[0]?.message).toContain('Format workbook tidak dikenali');
+    });
+
+    test('preview counts only numbered quiz rows when instructional rows are present', async () => {
+        const buffer = await buildSenseiTestWorkbookBuffer({
+            level: 'N5',
+            prependInstructionRowsToQuiz: true,
+        });
+
+        const preview = await previewSenseiCourseImport(buffer);
+
+        expect(preview.ok).toBe(true);
+        expect(preview.questionCount).toBe(4);
+    });
+
+    test('import skips quiz rows with fewer than two answer options', async () => {
+        const buffer = await buildSenseiTestWorkbookBuffer({
+            level: 'N5',
+            invalidQuizOptions: true,
+        });
+        const { prisma, createdQuestions } = createMockSenseiImportPrisma();
+
+        const result = await importSenseiCourseXlsx(prisma, buffer);
+
+        expect(result.ok).toBe(true);
+        expect(createdQuestions).toHaveLength(3);
+    });
 });

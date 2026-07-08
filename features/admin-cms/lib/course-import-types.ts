@@ -1,9 +1,16 @@
 import type { ImportSyllabusTreeResult } from '@/prisma/lib/import-syllabus-tree';
 
+export type CourseImportTemplateInfo = {
+    key: string;
+    version: string;
+    detectedBy: string;
+};
+
 export type CourseImportRowError = {
     row: number;
     message: string;
     sheet?: string;
+    code?: string;
 };
 
 export type CourseImportPreview = {
@@ -26,6 +33,7 @@ export type CourseImportPreview = {
     }>;
     errors: CourseImportRowError[];
     warnings: string[];
+    template?: CourseImportTemplateInfo;
 };
 
 export type CourseImportResult = {

@@ -42,6 +42,7 @@ export function AdminUsersPage({ users }: { users: AdminUserRow[] }) {
         (user.resolvedDisplayName ?? '').toLowerCase().includes(q) ||
         (user.displayName ?? '').toLowerCase().includes(q) ||
         (user.ssoDisplayName ?? '').toLowerCase().includes(q) ||
+        (user.ssoEmail ?? '').toLowerCase().includes(q) ||
         user.role.toLowerCase().includes(q),
     );
   }, [users, query]);
