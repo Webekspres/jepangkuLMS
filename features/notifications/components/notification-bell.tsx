@@ -21,6 +21,7 @@ import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from '@/features/notifications/actions/notification-actions';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -79,6 +80,12 @@ async function fetchNotificationList(): Promise<NotificationItem[]> {
   if (!res.ok) return [];
   const data = (await res.json()) as { items: NotificationItem[] };
   return data.items;
+}
+
+/** Legacy href stored before route was standardized to /dashboard/achievements. */
+function normalizeNotificationHref(href: string | null): string | null {
+  if (href === '/dashboard/pencapaian') return STUDENT_ROUTES.achievements;
+  return href;
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -186,7 +193,7 @@ export function NotificationBell({
       }
       if (item.href) {
         setOpen(false);
-        router.push(item.href);
+        router.push(normalizeNotificationHref(item.href)!);
       }
     });
   }

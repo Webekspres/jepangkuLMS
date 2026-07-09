@@ -11,6 +11,7 @@ import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@
 import type { LmsBadgeUnlockRule, LevelJLPT, CategoryType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseLmsBadgeRarity } from '@/lib/lms/badge-rarity';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 export type CmsBadgeActionResult =
   | { ok: true; id?: string }
@@ -157,7 +158,7 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
   });
 
   revalidatePath('/admin/badges');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   return { ok: true, id: badge.id };
 }
 
@@ -216,7 +217,7 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
   });
 
   revalidatePath('/admin/badges');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   return { ok: true, id };
 }
 
@@ -232,6 +233,6 @@ export async function deleteBadgeAction(id: string): Promise<CmsBadgeActionResul
   await prisma.lmsBadge.delete({ where: { id } });
 
   revalidatePath('/admin/badges');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   return { ok: true };
 }

@@ -13,6 +13,7 @@ import {
   lmsTryoutCompletedSourceKey,
   lmsTryoutCorrectSourceKey,
 } from '@/lib/lms/point-rules';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
@@ -207,7 +208,7 @@ export async function submitTryoutAttempt(input: {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/tryout');
   revalidatePath('/dashboard/leaderboard');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
 
   tryoutLog.info(
     { userId, sessionCode: session.code, level, score, correct },

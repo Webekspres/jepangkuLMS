@@ -21,6 +21,7 @@ import {
   GAMIFICATION_REWARDS,
   resolveQuizXp,
 } from '@/features/student/lib/gamification-rewards';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -185,7 +186,7 @@ export async function markLessonComplete(
   revalidatePath('/dashboard/belajar');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, lessonId, xpReward, shouldAwardReward }, 'Lesson marked complete');
   return {
@@ -304,7 +305,7 @@ export async function submitQuizAnswers(input: {
   revalidatePath('/dashboard/kursus');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     {
