@@ -3,10 +3,10 @@
 import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
+  courseMatchesTypeFilter,
   type CatalogCourse,
-  type CourseCategory,
-  type CourseFeatureFilter,
   type CourseLevel,
+  type CourseTypeFilter,
 } from '@/features/learning/components/courses-data';
 import type { StudentEnrollmentView } from '@/features/learning/lib/queries';
 import {
@@ -22,26 +22,26 @@ export type StudentKursusPageProps = {
 
 export function StudentKursusPage({ courses, enrollmentBySlug }: StudentKursusPageProps) {
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
-  const [activeCategory, setActiveCategory] = useState<CourseCategory>('Semua');
-  const [activeFeature, setActiveFeature] = useState<CourseFeatureFilter>('Semua');
+  const [activeType, setActiveType] = useState<CourseTypeFilter>('Semua');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return courses.filter((course) => {
       const levelMatch = activeLevel === 'Semua' || course.level === activeLevel;
-      const categoryMatch =
-        activeCategory === 'Semua' || course.tags.includes(activeCategory);
-      const featureMatch =
-        activeFeature === 'Semua' || (activeFeature === 'Unggulan' && course.featured);
+      const typeMatch = courseMatchesTypeFilter(
+        course.categoryType,
+        activeType,
+        course.tags,
+      );
       const searchMatch =
         !query ||
         course.title.toLowerCase().includes(query) ||
         course.desc.toLowerCase().includes(query) ||
         course.tags.some((tag) => tag.toLowerCase().includes(query));
-      return levelMatch && categoryMatch && featureMatch && searchMatch;
+      return levelMatch && typeMatch && searchMatch;
     });
-  }, [activeCategory, activeFeature, activeLevel, courses, search]);
+  }, [activeLevel, activeType, courses, search]);
 
   function getEnrollmentView(slug: string) {
     const enrollment = enrollmentBySlug[slug];
@@ -53,6 +53,8 @@ export function StudentKursusPage({ courses, enrollmentBySlug }: StudentKursusPa
     };
   }
 
+  const hasActiveFilters = activeLevel !== 'Semua' || activeType !== 'Semua' || search.length > 0;
+
   return (
     <div className="pb-10">
       <CourseCatalogHero search={search} onSearchChange={setSearch} />
@@ -60,10 +62,8 @@ export function StudentKursusPage({ courses, enrollmentBySlug }: StudentKursusPa
       <CourseCatalogToolbar
         activeLevel={activeLevel}
         onLevelChange={setActiveLevel}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        activeFeature={activeFeature}
-        onFeatureChange={setActiveFeature}
+        activeType={activeType}
+        onTypeChange={setActiveType}
         resultCount={filtered.length}
       />
 
@@ -84,22 +84,14 @@ export function StudentKursusPage({ courses, enrollmentBySlug }: StudentKursusPa
           title={search ? `Tidak ada kursus untuk "${search}"` : 'Tidak ada kursus ditemukan'}
           description="Coba ubah kata kunci atau filter untuk menemukan kursus lainnya."
           action={
-            search ? (
-              <button
-                type="button"
-                className="text-sm font-semibold text-primary hover:underline underline-offset-4"
-                onClick={() => setSearch('')}
-              >
-                Hapus pencarian
-              </button>
-            ) : activeLevel !== 'Semua' || activeCategory !== 'Semua' || activeFeature !== 'Semua' ? (
+            hasActiveFilters ? (
               <button
                 type="button"
                 className="text-sm font-semibold text-primary hover:underline underline-offset-4"
                 onClick={() => {
+                  setSearch('');
                   setActiveLevel('Semua');
-                  setActiveCategory('Semua');
-                  setActiveFeature('Semua');
+                  setActiveType('Semua');
                 }}
               >
                 Reset filter

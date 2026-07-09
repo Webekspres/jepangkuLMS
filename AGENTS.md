@@ -111,8 +111,8 @@ Halaman katalog **satu sumber kebenaran** — semua kursus publik dalam satu gri
 
 | Komponen | Lokasi |
 | :--- | :--- |
-| `CourseCatalogHero` | Badge + judul gradient + search prominent (full-bleed) |
-| `CourseCatalogToolbar` | Filter level JLPT + unggulan/kategori + hitungan hasil |
+| `CourseCatalogHero` | Badge + hero full-bleed (`CourseCatalogHeroSection`) + search |
+| `CourseCatalogToolbar` | Filter level JLPT + tipe kursus (Utama/Gratis/Tambahan) |
 | `CourseCatalogCard` | Kartu kursus — badge Terdaftar, progress, CTA dinamis |
 | `StudentKursusPage` | Orkestrator halaman (`features/student/components/student-kursus-page.tsx`) |
 

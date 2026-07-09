@@ -61,7 +61,7 @@ export const getCachedCoursesWithDbIds = unstable_cache(
       };
     });
   },
-  ['learning-courses-catalog-v6'],
+  ['learning-courses-catalog-v7'],
   { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
 );
 

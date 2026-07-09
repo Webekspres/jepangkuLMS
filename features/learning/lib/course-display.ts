@@ -53,6 +53,7 @@ export function mergeCourseDisplay(
     accent,
     badge: level,
     tags: [categoryLabel],
+    categoryType: db.category ?? 'KURSUS_UTAMA',
     featured: db.isFeatured ?? false,
     isPublished: db.isPublished,
     lessonCount: db.lessonCount,
