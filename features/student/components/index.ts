@@ -15,3 +15,10 @@ export {
 } from './dashboard-data';
 export { GamifiedEventProvider, useGamifiedEvent } from './gamified-event-context';
 export { GamifiedEventToaster } from './gamified-event-toaster';
+export {
+  DailyLoginRewardBridge,
+  RewardNotification,
+  RewardNotificationProvider,
+  showReward,
+  useRewardNotification,
+} from './reward-notification';

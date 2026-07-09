@@ -46,6 +46,7 @@ import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
+import { showReward } from '@/features/student/components/reward-notification/show-reward';
 import { cn } from '@/lib/utils';
 
 type MaterialKanji = {
@@ -437,18 +438,13 @@ export function LessonWorkspace({
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if (result && 'success' in result) {
                 setCompleted(true);
-                const event = new CustomEvent('gamified-event', {
-                    detail: {
-                        type: 'REWARD_EARNED',
-                        payload: {
-                            xpGained: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
-                            pointsGained: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
-                            title: 'Pelajaran Selesai! 🎉',
-                            description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
-                        },
-                    },
+                showReward({
+                    type: 'lesson-complete',
+                    xp: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
+                    points: result.pointsReward ?? REWARDS.LESSON_COMPLETED.points,
+                    title: 'Pelajaran Selesai! 🎉',
+                    description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
                 });
-                window.dispatchEvent(event);
                 requestStudentCoreDataRefresh();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
@@ -485,18 +481,13 @@ export function LessonWorkspace({
             startTransition(async () => {
                 const result = await recordFlashcardVisit(lesson.id);
                 if (result && result.awarded && !completed) {
-                    const event = new CustomEvent('gamified-event', {
-                      detail: {
-                        type: 'REWARD_EARNED',
-                        payload: {
-                          xpGained: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
-                          pointsGained: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
-                          title: 'Materi Dijelajahi!',
-                          description: `Kamu menjelajahi flashcard "${lesson.title}"`,
-                        },
-                      },
+                    showReward({
+                      type: 'flashcard-complete',
+                      xp: result.xpReward ?? REWARDS.FLASHCARD_EXPLORED.xp,
+                      points: result.pointsReward ?? REWARDS.FLASHCARD_EXPLORED.points,
+                      title: 'Materi Dijelajahi!',
+                      description: `Kamu menjelajahi flashcard "${lesson.title}"`,
                     });
-                    window.dispatchEvent(event);
                     requestStudentCoreDataRefresh();
                 }
                 router.refresh();
