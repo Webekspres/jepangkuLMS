@@ -21,6 +21,7 @@ import {
   GAMIFICATION_REWARDS,
   resolveQuizXp,
 } from '@/features/student/lib/gamification-rewards';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -42,6 +43,7 @@ export async function requestEnrollment(courseId: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -95,6 +97,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -121,6 +124,7 @@ export async function enrollInCourse(courseSlug: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -182,10 +186,11 @@ export async function markLessonComplete(
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/belajar');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info({ userId, lessonId, xpReward, shouldAwardReward }, 'Lesson marked complete');
   return {
@@ -302,9 +307,10 @@ export async function submitQuizAnswers(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
-  revalidatePath('/dashboard/pencapaian');
+  revalidatePath(STUDENT_ROUTES.achievements);
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   learningLog.info(
     {
@@ -409,6 +415,7 @@ export async function submitQuizAttempt(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');

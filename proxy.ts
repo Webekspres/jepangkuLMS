@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_ROUTES, CORE_JWT_COOKIE } from '@/lib/auth/constants';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
 import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
 import { getClerkSignInUrl, getClerkSignUpUrl } from '@/lib/auth/clerk-urls';
@@ -55,6 +56,10 @@ export default clerkMiddleware(
 
         if (userId && pathname === AUTH_ROUTES.authComplete) {
             return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
+        }
+
+        if (pathname === '/dashboard/pencapaian') {
+            return NextResponse.redirect(new URL(STUDENT_ROUTES.achievements, request.url));
         }
 
         if (userId && isAuthEntryPath(pathname)) {

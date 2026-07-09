@@ -13,9 +13,14 @@ export const metadata: Metadata = {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
+  let dailyLoginReward = null;
+
   if (userId) {
-    await syncUserAnchor(userId).catch(() => undefined);
+    const syncResult = await syncUserAnchor(userId).catch(() => undefined);
+    dailyLoginReward = syncResult?.dailyLoginAward ?? null;
   }
 
-  return <StudentCoreDataBoundary>{children}</StudentCoreDataBoundary>;
+  return (
+    <StudentCoreDataBoundary dailyLoginReward={dailyLoginReward}>{children}</StudentCoreDataBoundary>
+  );
 }

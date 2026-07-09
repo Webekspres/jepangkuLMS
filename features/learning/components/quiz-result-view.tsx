@@ -52,7 +52,7 @@ export function QuizResultView({
               <Link href={STUDENT_ROUTES.belajar(courseSlug, lessonSlug)}>Kembali ke materi</Link>
             </Button>
             <Button asChild>
-              <Link href={STUDENT_ROUTES.kursus}>Ke kursus saya</Link>
+              <Link href={STUDENT_ROUTES.kursusSaya}>Ke kursus saya</Link>
             </Button>
           </div>
         </CardContent>

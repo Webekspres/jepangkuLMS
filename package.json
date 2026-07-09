@@ -99,5 +99,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "overrides": {
+    "@clerk/shared": "4.23.0"
+  }
 }

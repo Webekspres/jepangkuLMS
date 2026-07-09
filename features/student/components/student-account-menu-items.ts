@@ -11,7 +11,7 @@ export type StudentAccountMenuItem = {
 /** Menu akun siswa — dipakai dropdown desktop & drawer mobile (sumber tunggal). */
 export const STUDENT_ACCOUNT_MENU_ITEMS: StudentAccountMenuItem[] = [
   { href: STUDENT_ROUTES.profil, label: 'Profil Saya', icon: User },
-  { href: STUDENT_ROUTES.kursus, label: 'Kursus Saya', icon: BookOpen },
+  { href: STUDENT_ROUTES.kursusSaya, label: 'Kursus Saya', icon: BookOpen },
   { href: STUDENT_ROUTES.tryout, label: 'JLPT Try Out', icon: Target },
   { href: STUDENT_ROUTES.achievements, label: 'Pencapaian', icon: Trophy },
 ];

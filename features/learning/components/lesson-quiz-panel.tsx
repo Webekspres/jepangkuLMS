@@ -21,6 +21,7 @@ import {
 import { shuffleArray } from '@/lib/shuffle';
 import { cn } from '@/lib/utils';
 import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
+import { showReward } from '@/features/student/components/reward-notification/show-reward';
 
 export type LessonQuizQuestion = {
   id: string;
@@ -121,18 +122,13 @@ export function LessonQuizPanel({
       setPhase('result');
 
       if (!suppressRewardToast) {
-        const event = new CustomEvent('gamified-event', {
-          detail: {
-            type: 'REWARD_EARNED',
-            payload: {
-              xpGained: payload.xpReward,
-              pointsGained: payload.pointsReward,
-              title: payload.score >= 70 ? 'Quiz Lulus! 🎉' : 'Quiz Selesai!',
-              description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
-            },
-          },
+        showReward({
+          type: payload.score >= 70 ? 'quiz-pass' : 'quiz-complete',
+          xp: payload.xpReward,
+          points: payload.pointsReward,
+          title: payload.score >= 70 ? 'Quiz Lulus! 🎉' : 'Quiz Selesai!',
+          description: `Skor kamu: ${payload.score}% (${payload.correct}/${payload.total} benar)`,
         });
-        window.dispatchEvent(event);
       }
       requestStudentCoreDataRefresh();
 

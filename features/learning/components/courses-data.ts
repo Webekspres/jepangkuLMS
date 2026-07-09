@@ -1,20 +1,39 @@
+import type { CourseCategoryType } from '@prisma/client';
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
 
 export const COURSE_LEVELS = ['Semua', 'N5', 'N4', 'N3', 'N2', 'N1'] as const;
 export type CourseLevel = (typeof COURSE_LEVELS)[number];
 
-export const COURSE_FEATURE_FILTERS = ['Semua', 'Unggulan'] as const;
-export type CourseFeatureFilter = (typeof COURSE_FEATURE_FILTERS)[number];
-
-export const COURSE_CATEGORIES = [
+/** Filter UI label — maps to `CourseCategoryType` di database. */
+export const COURSE_TYPE_FILTERS = [
   'Semua',
-  'Kosa Kata',
-  'Tata Bahasa',
-  'Kanji',
-  'Listening',
-  'Speaking',
+  'Kursus Utama',
+  'Kursus Gratis',
+  'Kursus Tambahan',
 ] as const;
-export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
+export type CourseTypeFilter = (typeof COURSE_TYPE_FILTERS)[number];
+
+export const COURSE_TYPE_FILTER_TO_ENUM: Record<
+  Exclude<CourseTypeFilter, 'Semua'>,
+  CourseCategoryType
+> = {
+  'Kursus Utama': 'KURSUS_UTAMA',
+  'Kursus Gratis': 'KURSUS_GRATIS',
+  'Kursus Tambahan': 'KURSUS_TAMBAHAN',
+};
+
+export function courseMatchesTypeFilter(
+  categoryType: CourseCategoryType | undefined,
+  filter: CourseTypeFilter,
+  tags: string[] = [],
+): boolean {
+  if (filter === 'Semua') return true;
+  if (categoryType) {
+    return categoryType === COURSE_TYPE_FILTER_TO_ENUM[filter];
+  }
+  // Fallback untuk data cache lama — tags berisi label kategori dari DB
+  return tags.includes(filter);
+}
 
 export type CourseAvailability = 'tersedia' | 'segera';
 
@@ -31,7 +50,9 @@ export type CatalogCourse = {
   thumb: string;
   accent: JlptAccent;
   badge: string;
+  /** Label tampilan kategori kursus (Utama / Gratis / Tambahan). */
   tags: string[];
+  categoryType: CourseCategoryType;
   featured: boolean;
 };
 
@@ -57,7 +78,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1613817048356-ef14b4acc3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'emerald',
     badge: '入門',
-    tags: ['Kosa Kata', 'Tata Bahasa', 'Kanji'],
+    tags: ['Kursus Utama'],
+    categoryType: 'KURSUS_UTAMA',
     featured: true,
   },
   {
@@ -73,7 +95,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1593839154339-377e24b3ba32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'blue',
     badge: '基礎',
-    tags: ['Tata Bahasa'],
+    tags: ['Kursus Tambahan'],
+    categoryType: 'KURSUS_TAMBAHAN',
     featured: true,
   },
   {
@@ -89,7 +112,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1681317474675-494bd8e91d7d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'amber',
     badge: '漢字',
-    tags: ['Kanji'],
+    tags: ['Kursus Tambahan'],
+    categoryType: 'KURSUS_TAMBAHAN',
     featured: false,
   },
   {
@@ -105,7 +129,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1542052125323-e69ad37a47c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'blue',
     badge: '語彙',
-    tags: ['Kosa Kata'],
+    tags: ['Kursus Gratis'],
+    categoryType: 'KURSUS_GRATIS',
     featured: false,
   },
   {
@@ -121,7 +146,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1670233449318-2ddb73e062e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'amber',
     badge: '中級',
-    tags: ['Kosa Kata', 'Tata Bahasa', 'Kanji'],
+    tags: ['Kursus Utama'],
+    categoryType: 'KURSUS_UTAMA',
     featured: true,
   },
   {
@@ -137,7 +163,8 @@ export const CATALOG_COURSES: CatalogCourse[] = [
     thumb: 'https://images.unsplash.com/photo-1595672410691-67ca64d681d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
     accent: 'violet',
     badge: '会話',
-    tags: ['Listening', 'Speaking'],
+    tags: ['Kursus Tambahan'],
+    categoryType: 'KURSUS_TAMBAHAN',
     featured: false,
   },
 ];

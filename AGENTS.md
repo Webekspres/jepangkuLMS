@@ -105,6 +105,29 @@ Semua **tabel data** di dashboard admin (`/admin/*`) wajib memakai pagination cl
 
 Tabel admin **baru** (pembayaran, bank soal, dll.) harus mengikuti pola yang sama — jangan buat komponen pagination terpisah.
 
+### Katalog Kursus siswa (`/dashboard/kursus`)
+
+Halaman katalog **satu sumber kebenaran** — semua kursus publik dalam satu grid; status enrollment hanya mengubah state kartu (bukan section terpisah). Layout mengikuti halaman marketing `/kursus` (hero centered + search + filter badge).
+
+| Komponen | Lokasi |
+| :--- | :--- |
+| `CourseCatalogHero` | Badge + hero full-bleed (`CourseCatalogHeroSection`) + search |
+| `CourseCatalogToolbar` | Filter level JLPT + tipe kursus (Utama/Gratis/Tambahan) |
+| `CourseCatalogCard` | Kartu kursus — badge Terdaftar, progress, CTA dinamis |
+| `StudentKursusPage` | Orkestrator halaman (`features/student/components/student-kursus-page.tsx`) |
+
+**Kursus terdaftar:** `/dashboard/kursus-saya` (`StudentKursusSayaPage`) — hanya enrollment user; menu profil "Kursus Saya" mengarah ke sini, bukan katalog.
+
+**CTA kartu (jangan duplikasi logik di tempat lain):**
+
+| State | Tombol | Navigasi |
+| :--- | :--- | :--- |
+| Belum terdaftar | Daftar Kursus | `/dashboard/kursus/[slug]` (detail + enrollment) |
+| Terdaftar, progress 0% | Mulai Belajar | lesson pertama atau detail |
+| Terdaftar, progress > 0% | Lanjutkan Belajar | `continueLessonSlug` |
+
+Data: `loadStudentKursusData()` → `courses` + `enrollmentBySlug`. Filter/search client-side di `StudentKursusPage`.
+
 3. **Shared Components & Core:**
    * Komponen UI primitif / reusable non-domain ditaruh di `components/ui/` (misalnya tombol, dialog, input).
    * Database LMS: `prisma/schema.prisma` + `lib/prisma.ts`. Integrasi Core: `lib/core/`.

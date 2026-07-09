@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-08                                                  |
+| **Terakhir diperbarui**   | 2026-07-09                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (63 item terlacak)                                  |
 
@@ -101,7 +101,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route                                           | Status | Catatan                                                                                 |
 | :---------------------------------------------- | :----: | :-------------------------------------------------------------------------------------- |
 | `/dashboard`                                    |   ✅   | Continue learning + JLPT path + **XP mingguan real** + live preview                     |
-| `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Enrollment + pembayaran                                                                 |
+| `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
+| `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (reply + @mention)**                              |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
@@ -134,7 +135,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :--------------- | :----: | :----------------------------------------------------------------------------- |
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries                                      |
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
-| **student**      |   ✅   | Dashboard, profil, achievements, loaders                                       |
+| **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
 | **tryout**       |   ✅   | Bagian terpisah + focus navbar + simpan jawaban + halaman analisa              |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
@@ -192,6 +193,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | 2026-07-07 | Admin daftar peserta per program: kolom Peserta di tabel Kursus/Live Class/Tryout (klik → dialog siswa + approve/cabut); detail pengguna wire enrollment Live Class & Tryout; sync `filledSlots` live class dari enrollment ACTIVE |
 | 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |
 | 2026-06-30 | Refactor monetisasi & metadata: `CourseCategoryType` (Utama/Gratis/Tambahan) + dropdown CMS + kolom Excel outcomes; `TryoutSession.level` (satu sesi = satu JLPT), hapus `Question.tryoutLevel`, bank soal tanpa tab level, enrollment gate tryout by session id, `logLmsXpEvent` upsert anti-P2002 |
+| 2026-07-09 | `/dashboard/kursus` layout marketing-style (hero centered + filter badge); halaman baru `/dashboard/kursus-saya` untuk enrollment user; menu profil "Kursus Saya" → kursus-saya; fix progress kartu katalog (fresh DB merge ke `enrollmentBySlug`) |
+| 2026-07-09 | Redesign `/dashboard/kursus` → Katalog Kursus terpadu: hapus section duplikat Kursus Saya/Jelajahi, hero + search prominent + grid responsif; komponen `course-catalog/*` |
+| 2026-07-09 | Unified Reward Notification System (`features/student/components/reward-notification/`): tier small/medium/large, `showReward()` API, daily-login dialog/bottom-sheet terhubung `syncUserAnchor` → `DailyLoginRewardBridge`, lesson/quiz/flashcard pakai toast |
 | 2026-06-29 | Fitur "Bagikan Pencapaian" (Share Achievement) pada halaman koleksi badge siswa: modal interaktif berdesain glassmorphism premium dengan pulsing glow sesuai rarity, integrasi Web Share API dan link sharing sosial media (WhatsApp, X/Twitter, Threads, Facebook), serta fitur "Simpan Kartu" (Unduh Gambar) 1080x1920 berbasis html-to-image |
 | 2026-06-29 | Dukungan otomatisasi penyelesaian tingkat kursus (SPECIFIC_COURSE_COMPLETE) pada sistem badge: penambahan relasi targetCourseId/targetCourse pada skema Prisma LmsBadge, form input Dropdown dinamis memilih Course di admin panel, validasi Zod targetCourseId, dan format label syarat siswa dinamis |
 | 2026-06-29 | Penguatan form admin badge: kondisional fields gating (reactive form) berdasarkan unlock rule, validasi Zod klien & pesan error presisi, tooltip & deskripsi economy standard, serta penambahan kolom targetLevel dan targetCategory ke skema Prisma LmsBadge |
