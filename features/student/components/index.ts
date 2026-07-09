@@ -4,6 +4,11 @@ export { StudentNav } from './student-nav';
 export { StudentShell } from './student-shell';
 export { StudentProfilPage } from './student-profil-page';
 export { StudentKursusPage } from './student-kursus-page';
+export {
+  CourseCatalogCard,
+  CourseCatalogHero,
+  CourseCatalogToolbar,
+} from './course-catalog';
 export { StudentLeaderboardPage } from './student-leaderboard-page';
 export { StudentAchievementsPage } from './student-achievements-page';
 export { StudentUserProfile } from './student-user-profile';
@@ -15,3 +20,10 @@ export {
 } from './dashboard-data';
 export { GamifiedEventProvider, useGamifiedEvent } from './gamified-event-context';
 export { GamifiedEventToaster } from './gamified-event-toaster';
+export {
+  DailyLoginRewardBridge,
+  RewardNotification,
+  RewardNotificationProvider,
+  showReward,
+  useRewardNotification,
+} from './reward-notification';

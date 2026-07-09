@@ -35,7 +35,7 @@ export default async function BelajarPage({ params, searchParams }: BelajarPageP
           Kursus atau lesson yang diminta tidak ada.
         </p>
         <Button asChild className="mt-6">
-          <Link href={STUDENT_ROUTES.kursus}>Ke kursus saya</Link>
+          <Link href={STUDENT_ROUTES.kursusSaya}>Ke kursus saya</Link>
         </Button>
       </div>
     );

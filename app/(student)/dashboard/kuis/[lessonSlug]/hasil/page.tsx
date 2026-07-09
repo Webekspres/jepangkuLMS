@@ -27,7 +27,7 @@ export default async function KuisHasilPage({ params, searchParams }: KuisHasilP
 
   const quiz = await getLessonQuizBySlug(lessonSlug, userId);
   if (!quiz || quiz.accessDenied || quiz.empty) {
-    redirect(STUDENT_ROUTES.kursus);
+    redirect(STUDENT_ROUTES.kursusSaya);
   }
 
   const total = quiz.questions.length;

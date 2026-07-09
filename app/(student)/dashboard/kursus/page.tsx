@@ -3,8 +3,8 @@ import { StudentKursusPage } from '@/features/student/components/student-kursus-
 import { loadStudentKursusData } from '@/features/student/lib/load-student-learning-data';
 
 export const metadata: Metadata = {
-  title: 'Kursus Saya — JepangKu LMS',
-  description: 'Kursus terdaftar dan katalog JLPT area siswa.',
+  title: 'Katalog Kursus — JepangKu LMS',
+  description: 'Jelajahi dan daftar kursus JLPT N5–N1 di JepangKu LMS.',
 };
 
 export default async function DashboardKursusRoutePage() {
@@ -14,8 +14,6 @@ export default async function DashboardKursusRoutePage() {
     <StudentKursusPage
       courses={data.courses}
       enrollmentBySlug={data.enrollmentBySlug}
-      enrolledCards={data.enrolledCards}
-      stats={data.stats}
     />
   );
 }

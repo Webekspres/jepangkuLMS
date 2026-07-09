@@ -1,5 +1,5 @@
 import type { LmsCoreSyncStatus } from '@prisma/client';
-import { getJakartaDateKey } from '@/lib/jakarta-calendar';
+import { getJakartaDateKey, getPreviousJakartaDateKey } from '@/lib/jakarta-calendar';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import {
   awardLmsXp,
@@ -100,8 +100,36 @@ export async function getUserLmsPoints(userId: string): Promise<number> {
   return stats?.lmsPoints ?? 0;
 }
 
+export type DailyLoginAward = {
+  xpGained: number;
+  pointsGained: number;
+  streak: number;
+};
+
+async function getDailyLoginStreak(userId: string): Promise<number> {
+  const events = await prisma.lmsPointEvent.findMany({
+    where: { userId, sourceType: 'DAILY_LOGIN' },
+    select: { sourceId: true },
+    orderBy: { createdAt: 'desc' },
+    take: 120,
+  });
+
+  const dateKeys = new Set(
+    events.map((event) => event.sourceId).filter((value): value is string => Boolean(value)),
+  );
+
+  let streak = 0;
+  let cursor = getJakartaDateKey();
+  while (dateKeys.has(cursor)) {
+    streak += 1;
+    cursor = getPreviousJakartaDateKey(cursor);
+  }
+
+  return streak;
+}
+
 /** Daily login reward — idempotent per calendar day (Asia/Jakarta). */
-export async function checkDailyLoginLms(userId: string): Promise<boolean> {
+export async function checkDailyLoginLms(userId: string): Promise<DailyLoginAward | null> {
   const today = getJakartaDateKey();
   const result = await awardLmsPoints({
     userId,
@@ -139,5 +167,12 @@ export async function checkDailyLoginLms(userId: string): Promise<boolean> {
     });
   }
 
-  return awarded;
+  if (!awarded) return null;
+
+  const streak = await getDailyLoginStreak(userId);
+  return {
+    xpGained: dailyLoginXp,
+    pointsGained: LMS_POINTS.DAILY_LOGIN,
+    streak,
+  };
 }

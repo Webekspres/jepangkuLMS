@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveInitialLmsRole } from '@/lib/auth/lms-roles';
 import { resolveClerkIdentity } from '@/features/auth/lib/clerk-user-display';
 import { trimSsoDisplayName } from '@/lib/lms/display-name';
-import { checkDailyLoginLms } from '@/lib/lms/points';
+import { checkDailyLoginLms, type DailyLoginAward } from '@/lib/lms/points';
 import { loggers, serializeError } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
 
@@ -104,7 +104,7 @@ function inheritedAnchorFields(
 export async function syncUserAnchor(
   userId: string,
   clerkProfile?: ClerkAnchorProfile,
-): Promise<void> {
+): Promise<{ dailyLoginAward?: DailyLoginAward }> {
   const profile = await resolveClerkAnchorProfile(userId, clerkProfile);
   const ssoDisplayName = trimSsoDisplayName(profile?.ssoDisplayName);
   const ssoEmail = profile?.ssoEmail?.trim() || null;
@@ -179,10 +179,11 @@ export async function syncUserAnchor(
       }
 
       authLog.info({ userId, attempt }, 'User anchor synced to LMS database');
-      await checkDailyLoginLms(userId).catch((error) => {
+      const dailyLoginAward = await checkDailyLoginLms(userId).catch((error) => {
         authLog.warn({ userId, ...serializeError(error) }, 'Daily login LMS points skipped');
+        return null;
       });
-      return;
+      return { dailyLoginAward: dailyLoginAward ?? undefined };
     } catch (error) {
       lastError = error;
       const retry = attempt < MAX_ATTEMPTS && isTransientDbError(error);

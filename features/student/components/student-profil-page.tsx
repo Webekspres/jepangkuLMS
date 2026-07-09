@@ -228,7 +228,7 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
           <QuickAction
             icon={BookOpen}
             label="Kursus Saya"
-            href={STUDENT_ROUTES.kursus}
+            href={STUDENT_ROUTES.kursusSaya}
             accent="bg-blue-500/10 text-blue-600"
           />
           <QuickAction

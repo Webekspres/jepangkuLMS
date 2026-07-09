@@ -1,5 +1,6 @@
 import type { LmsNotificationType } from '@prisma/client';
 import { createClerkClient } from '@clerk/nextjs/server';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { prisma } from '@/lib/prisma';
 
 export type CreateLmsNotificationInput = {
@@ -126,7 +127,7 @@ export async function notifyBadgeUnlocked(input: {
       input.xpBonus > 0
         ? `Kamu mendapatkan badge "${input.badgeTitle}" (+${input.xpBonus} XP).`
         : `Kamu mendapatkan badge "${input.badgeTitle}".`,
-    href: '/dashboard/pencapaian',
+    href: STUDENT_ROUTES.achievements,
     dedupeKey: `badge-unlock:${input.userId}:${input.badgeId}`,
   });
 }

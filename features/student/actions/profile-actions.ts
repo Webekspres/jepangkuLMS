@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { clearEquippedBadge, equipLmsBadge } from '@/lib/lms/badges';
 import { updateLmsAvatarFromUpload, updateLmsBio, updateLmsDisplayName, updateLmsPhone } from '@/lib/lms/user-profile';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 const displayNameSchema = z
   .string()
@@ -26,7 +27,7 @@ export async function updateStudentDisplayName(
     revalidatePath('/dashboard/profil');
     revalidatePath('/dashboard/profil/edit');
     revalidatePath('/dashboard/leaderboard');
-    revalidatePath('/dashboard/pencapaian');
+    revalidatePath(STUDENT_ROUTES.achievements);
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal menyimpan nama tampilan.';
@@ -129,7 +130,7 @@ export async function equipStudentBadge(
     }
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/profil');
-    revalidatePath('/dashboard/pencapaian');
+    revalidatePath(STUDENT_ROUTES.achievements);
     revalidatePath('/dashboard/leaderboard');
     return { ok: true };
   } catch (error) {
@@ -144,7 +145,7 @@ export async function unequipStudentBadge(): Promise<{ ok: true } | { ok: false;
     await clearEquippedBadge(userId);
     revalidatePath('/dashboard');
     revalidatePath('/dashboard/profil');
-    revalidatePath('/dashboard/pencapaian');
+    revalidatePath(STUDENT_ROUTES.achievements);
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal melepas badge.';

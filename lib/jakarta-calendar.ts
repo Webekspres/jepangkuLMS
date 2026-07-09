@@ -17,3 +17,10 @@ export function isWithinJakartaDay(date: Date, now = new Date()): boolean {
   const { start, end } = getJakartaDayBounds(now);
   return date >= start && date <= end;
 }
+
+/** Previous calendar day in Asia/Jakarta as `YYYY-MM-DD`. */
+export function getPreviousJakartaDateKey(dateKey: string): string {
+  const date = new Date(`${dateKey}T12:00:00+07:00`);
+  date.setDate(date.getDate() - 1);
+  return getJakartaDateKey(date);
+}

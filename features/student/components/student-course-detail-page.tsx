@@ -115,7 +115,7 @@ export function StudentCourseDetailPage({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href={STUDENT_ROUTES.kursus} className="inline-flex items-center gap-1 hover:text-primary">
           <ArrowLeft className="size-4" />
-          Kursus Saya
+          Katalog Kursus
         </Link>
         <ChevronRight className="size-3.5" />
         <span className="line-clamp-1 font-medium text-foreground">{course.title}</span>

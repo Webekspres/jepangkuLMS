@@ -28,7 +28,7 @@ export default async function KuisWorkspacePage({ params }: KuisWorkspaceProps) 
       <div className="rounded-2xl border border-border bg-card p-8 text-center">
         <h1 className="text-xl font-bold text-foreground">Kuis tidak ditemukan</h1>
         <Button asChild className="mt-6">
-          <Link href={STUDENT_ROUTES.kursus}>Ke kursus saya</Link>
+          <Link href={STUDENT_ROUTES.kursusSaya}>Ke kursus saya</Link>
         </Button>
       </div>
     );
@@ -39,7 +39,7 @@ export default async function KuisWorkspacePage({ params }: KuisWorkspaceProps) 
       <div className="rounded-2xl border border-border bg-card p-8 text-center">
         <h1 className="text-xl font-bold text-foreground">Akses kursus diperlukan</h1>
         <Button asChild className="mt-6">
-          <Link href={STUDENT_ROUTES.kursus}>Ke kursus saya</Link>
+          <Link href={STUDENT_ROUTES.kursusSaya}>Ke kursus saya</Link>
         </Button>
       </div>
     );
@@ -53,7 +53,7 @@ export default async function KuisWorkspacePage({ params }: KuisWorkspaceProps) 
           Lesson ini belum memiliki bank soal.
         </p>
         <Button asChild className="mt-6">
-          <Link href={STUDENT_ROUTES.kursus}>Ke kursus saya</Link>
+          <Link href={STUDENT_ROUTES.kursusSaya}>Ke kursus saya</Link>
         </Button>
       </div>
     );
