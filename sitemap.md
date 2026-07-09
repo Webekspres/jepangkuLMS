@@ -66,6 +66,11 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 ├── Section: Kursus yang Sedang Diikuti (Continue Learning)
 └── Section: Shortcut ke Leaderboard & Tryout
 
+/dashboard/kursus *              → Katalog Kursus (jelajahi + daftar)
+└── /[courseSlug] *              → Detail kursus + enrollment
+
+/dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
+
 /dashboard/live-class *          → Jadwal Live Class (Zoom)
 ├── Filter kategori + pencarian
 └── Kartu kelas + link meeting

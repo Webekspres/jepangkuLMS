@@ -114,10 +114,25 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
     );
     freshProgressByCourseSlug.set(c.slug, computeCourseProgressFromLessons(flatLessons, completedSlugs));
   }
-  // ─────────────────────────────────────────────────────────────────────────
+
+  function withFreshProgress(enrollment: StudentEnrollmentView): StudentEnrollmentView {
+    const fresh = freshProgressByCourseSlug.get(enrollment.courseSlug);
+    if (!fresh) return enrollment;
+    return {
+      ...enrollment,
+      progress: {
+        ...enrollment.progress,
+        completedCount: fresh.completedCount,
+        totalCount: fresh.totalCount,
+        percent: fresh.percent,
+        status: fresh.status,
+        continueLessonSlug: fresh.continueLessonSlug,
+      },
+    };
+  }
 
   const enrollmentBySlug = Object.fromEntries(
-    effectiveEnrollments.map((e) => [e.courseSlug, e]),
+    effectiveEnrollments.map((e) => [e.courseSlug, withFreshProgress(e)]),
   );
 
   const enrolledCards: KursusEnrollmentCard[] = effectiveEnrollments
@@ -125,21 +140,17 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
       const course = courses.find((c) => c.slug === enrollment.courseSlug);
       if (!course) return null;
 
-      // Prefer fresh DB-computed progress; fall back to cached enrollment progress
-      const freshProgress = freshProgressByCourseSlug.get(enrollment.courseSlug);
-      const progressPercent = freshProgress?.percent ?? enrollment.progress.percent;
-      const continueLessonSlug =
-        freshProgress?.continueLessonSlug ?? enrollment.progress.continueLessonSlug ?? '';
-      const progressStatus = freshProgress?.status ?? enrollment.progress.status;
+      const synced = withFreshProgress(enrollment);
+      const { progress } = synced;
 
       return {
         course,
         enrollment: {
           courseSlug: enrollment.courseSlug,
-          continueLessonSlug,
-          progress: progressPercent,
-          status: progressStatus,
-          lastAccessLabel: progressPercent > 0 ? 'Baru-baru ini' : 'Belum dimulai',
+          continueLessonSlug: progress.continueLessonSlug ?? '',
+          progress: progress.percent,
+          status: progress.status,
+          lastAccessLabel: progress.percent > 0 ? 'Baru-baru ini' : 'Belum dimulai',
         },
       };
     })

@@ -43,6 +43,7 @@ export async function requestEnrollment(courseId: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -96,6 +97,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -122,6 +124,7 @@ export async function enrollInCourse(courseSlug: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
@@ -183,6 +186,7 @@ export async function markLessonComplete(
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/belajar');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
@@ -303,6 +307,7 @@ export async function submitQuizAnswers(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidatePath(STUDENT_ROUTES.achievements);
@@ -410,6 +415,7 @@ export async function submitQuizAttempt(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus');
+  revalidatePath('/dashboard/kursus-saya');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath('/dashboard/profil');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');

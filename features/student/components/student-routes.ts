@@ -2,6 +2,7 @@
 export const STUDENT_ROUTES = {
   home: '/dashboard',
   kursus: '/dashboard/kursus',
+  kursusSaya: '/dashboard/kursus-saya',
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
   leaderboard: '/dashboard/leaderboard',
   tryout: '/dashboard/tryout',

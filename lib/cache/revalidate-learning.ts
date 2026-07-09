@@ -15,6 +15,7 @@ export function revalidateStudentLearningSurfaces(options?: { lessonId?: string;
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/kursus', 'layout');
+  revalidatePath('/dashboard/kursus-saya', 'layout');
   revalidatePath('/dashboard/belajar', 'layout');
   revalidatePath('/kursus');
 }
