@@ -673,7 +673,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
 
       <p className="mt-4 text-xs text-muted-foreground">
         Banyak soal sekaligus?{' '}
-        <Link className="underline" href={ADMIN_ROUTES.tryoutPaketImport}>
+        <Link className="underline text-primary" href={ADMIN_ROUTES.tryoutPaketImport}>
           Import ZIP
         </Link>
       </p>
