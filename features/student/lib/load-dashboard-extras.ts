@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import type { LevelJLPT } from '@prisma/client';
+import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 import type { JlptPathItem } from '@/features/student/components/dashboard-data';
@@ -10,6 +10,7 @@ import {
   type LiveSessionStatus,
 } from '@/features/live-class/lib/session-access';
 import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
+import { countTryoutCompositionQuestions } from '@/features/tryout/lib/count-tryout-paper-questions';
 import { loadTryoutExamPaper } from '@/features/tryout/lib/load-tryout-exam-paper';
 import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
 
@@ -177,18 +178,49 @@ export type TryoutSessionView = {
   isAccessible: boolean;
   /** Pesan jika belum bisa diakses (mis. di luar jadwal). */
   accessMessage: string | null;
+  enrollmentStatus: 'none' | EnrollmentStatus;
 };
 
 export const loadTryoutSessions = cache(async function loadTryoutSessions(): Promise<
   TryoutSessionView[]
 > {
+  const userId = await requireAuthUserId();
+
   const sessions = await prisma.tryoutSession.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
     include: {
+      questionSet: {
+        select: {
+          items: {
+            select: {
+              jlptQuestionId: true,
+              listeningStimulus: { select: { _count: { select: { questions: true } } } },
+            },
+          },
+        },
+      },
+      items: {
+        select: {
+          jlptQuestionId: true,
+          listeningStimulus: { select: { _count: { select: { questions: true } } } },
+        },
+      },
       _count: { select: { questions: true } },
     },
   });
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId,
+      type: 'TRYOUT',
+      tryoutSessionId: { in: sessions.map((session) => session.id) },
+    },
+    select: { tryoutSessionId: true, status: true },
+  });
+  const enrollmentBySessionId = new Map(
+    enrollments.map((row) => [row.tryoutSessionId!, row.status]),
+  );
 
   const now = new Date();
 
@@ -200,6 +232,13 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
       now,
     });
 
+    const fromSet = session.questionSet
+      ? countTryoutCompositionQuestions(session.questionSet.items)
+      : 0;
+    const composed =
+      fromSet > 0 ? fromSet : countTryoutCompositionQuestions(session.items);
+    const questionCount = composed > 0 ? composed : session._count.questions;
+
     return {
       id: session.id,
       code: session.code,
@@ -209,11 +248,12 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
       description: session.description,
       scheduledAt: session.scheduledAt?.toISOString() ?? null,
       timeLimitMinutes: session.timeLimitMinutes,
-      questionCount: session._count.questions,
+      questionCount,
       priceIdr: session.priceIdr,
       isStrictTimeBound: session.isStrictTimeBound,
       isAccessible: access.ok,
       accessMessage: access.ok ? null : access.message,
+      enrollmentStatus: enrollmentBySessionId.get(session.id) ?? 'none',
     };
   });
 });

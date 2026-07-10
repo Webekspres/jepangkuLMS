@@ -217,10 +217,21 @@ jobs:
           fi
 
           docker pull "\$MIGRATE_IMAGE"
+
+          # Removed from repo after failed first apply (JlptQuestionSet did not exist yet).
           docker run --rm \
             --network jepangku_staging_net \
             -e DATABASE_URL="postgresql://\${DB_USER}:\${DB_PASSWORD}@jepangku_staging_db:5432/stg_jepangku_lms" \
-            "\$MIGRATE_IMAGE"
+            --entrypoint bunx \
+            "\$MIGRATE_IMAGE" \
+            prisma migrate resolve --rolled-back 20260710030027_refactor_bank_soal_arsitektur \
+            || echo "migrate resolve skipped (not in failed state)"
+
+          docker run --rm \
+            --network jepangku_staging_net \
+            -e DATABASE_URL="postgresql://\${DB_USER}:\${DB_PASSWORD}@jepangku_staging_db:5432/stg_jepangku_lms" \
+            "\$MIGRATE_IMAGE" \
+            || { echo "::error::prisma migrate deploy failed — check migrator logs above"; exit 1; }
 
           docker run --rm \
             --network jepangku_staging_net \
@@ -325,10 +336,20 @@ jobs:
           fi
 
           docker pull "\$MIGRATE_IMAGE"
+
           docker run --rm \
             --network jepangku_net \
             -e DATABASE_URL="postgresql://\${DB_USER}:\${DB_PASSWORD}@jepangku_db:5432/jepangku_lms" \
-            "\$MIGRATE_IMAGE"
+            --entrypoint bunx \
+            "\$MIGRATE_IMAGE" \
+            prisma migrate resolve --rolled-back 20260710030027_refactor_bank_soal_arsitektur \
+            || echo "migrate resolve skipped (not in failed state)"
+
+          docker run --rm \
+            --network jepangku_net \
+            -e DATABASE_URL="postgresql://\${DB_USER}:\${DB_PASSWORD}@jepangku_db:5432/jepangku_lms" \
+            "\$MIGRATE_IMAGE" \
+            || { echo "::error::prisma migrate deploy failed — check migrator logs above"; exit 1; }
 
           docker run --rm \
             --network jepangku_net \

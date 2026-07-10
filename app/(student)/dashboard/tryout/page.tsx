@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { TryoutSelectionPage } from '@/features/tryout/components/tryout-selection-page';
 import { loadTryoutSessions } from '@/features/student/lib/load-dashboard-extras';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { requireAuthUserId } from '@/lib/auth/require-auth-user';
+import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import { getPaymentSettings } from '@/lib/payment/settings';
 
 export const metadata: Metadata = {
   title: 'Tryout JLPT — JepangKu LMS',
@@ -22,6 +25,17 @@ export default async function DashboardTryoutRoutePage({ searchParams }: PagePro
     redirect(STUDENT_ROUTES.tryoutExam(sessionCode));
   }
 
-  const sessions = await loadTryoutSessions();
-  return <TryoutSelectionPage sessions={sessions} />;
+  const userId = await requireAuthUserId();
+  const [sessions, studentDisplayName] = await Promise.all([
+    loadTryoutSessions(),
+    resolveLmsDisplayName(userId, null),
+  ]);
+
+  return (
+    <TryoutSelectionPage
+      sessions={sessions}
+      paymentSettings={getPaymentSettings()}
+      studentDisplayName={studentDisplayName}
+    />
+  );
 }
