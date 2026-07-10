@@ -44,21 +44,27 @@ export type TryoutSubmitResult =
     }
   | { ok: false; message: string };
 
+export type RequestTryoutEnrollmentResult =
+  | { ok: true; status: 'PENDING' | 'ACTIVE'; sessionCode: string }
+  | { ok: false; message: string };
+
 /** Request enrollment for a paid tryout session (PENDING) or instant ACTIVE when free. */
-export async function requestTryoutEnrollment(sessionCode: string) {
+export async function requestTryoutEnrollment(
+  sessionCode: string,
+): Promise<RequestTryoutEnrollmentResult> {
   const userId = await requireAuthUserWithAnchor();
 
   const session = await prisma.tryoutSession.findUnique({
     where: { code: sessionCode, isActive: true },
   });
-  if (!session) throw new Error('Sesi tryout tidak ditemukan');
+  if (!session) return { ok: false, message: 'Sesi tryout tidak ditemukan.' };
 
   const existing = await prisma.enrollment.findUnique({
     where: { userId_tryoutSessionId: { userId, tryoutSessionId: session.id } },
   });
 
   if (existing?.status === 'ACTIVE') {
-    return { enrollmentId: existing.id, sessionCode, status: existing.status };
+    return { ok: true, sessionCode, status: 'ACTIVE' };
   }
 
   const status = session.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
@@ -96,7 +102,11 @@ export async function requestTryoutEnrollment(sessionCode: string) {
   revalidatePath('/dashboard/tryout');
   revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
 
-  return { enrollmentId: enrollment.id, sessionCode, status: enrollment.status };
+  return {
+    ok: true,
+    sessionCode,
+    status: enrollment.status as 'PENDING' | 'ACTIVE',
+  };
 }
 
 export async function submitTryoutAttempt(input: {

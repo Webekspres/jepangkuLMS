@@ -1,22 +1,42 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { requestTryoutEnrollment } from '@/features/tryout/actions/tryout-actions';
 import type { TryoutSessionView } from '@/features/student/lib/load-dashboard-extras';
+import {
+  ProgramPaymentPanel,
+  type ProgramEnrollmentStatus,
+} from '@/features/student/components/program-payment-panel';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { isFreeCourse } from '@/lib/lms/format-price';
+import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
 import { cn } from '@/lib/utils';
 
 type TryoutSelectionPageProps = {
   sessions: TryoutSessionView[];
+  paymentSettings: PaymentSettings;
+  studentDisplayName: string | null;
 };
 
-export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
+function mapEnrollmentStatus(status: TryoutSessionView['enrollmentStatus']): ProgramEnrollmentStatus {
+  if (status === 'ACTIVE' || status === 'PENDING') return status;
+  return 'none';
+}
+
+export function TryoutSelectionPage({
+  sessions,
+  paymentSettings,
+  studentDisplayName,
+}: TryoutSelectionPageProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [selectedSession, setSelectedSession] = useState(sessions[0]?.code ?? '');
 
   const activeSession = useMemo(
@@ -24,9 +44,39 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
     [sessions, selectedSession],
   );
 
+  const hasQuestions = Boolean(activeSession && activeSession.questionCount > 0);
+  const isEnrolled =
+    !activeSession ||
+    isFreeCourse(activeSession.priceIdr) ||
+    activeSession.enrollmentStatus === 'ACTIVE';
+  const needsPayment =
+    Boolean(activeSession && activeSession.priceIdr > 0) &&
+    activeSession?.enrollmentStatus !== 'ACTIVE';
+
   const canStart = Boolean(
-    activeSession && activeSession.questionCount > 0 && activeSession.isAccessible,
+    activeSession && hasQuestions && activeSession.isAccessible && isEnrolled,
   );
+
+  const handleRequestEnrollment = () => {
+    if (!activeSession) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      startTransition(async () => {
+        const result = await requestTryoutEnrollment(activeSession.code);
+        if (!result.ok) {
+          toast.error(result.message);
+          reject(new Error(result.message));
+          return;
+        }
+        toast.success(
+          result.status === 'ACTIVE'
+            ? 'Akses tryout aktif. Selamat berlatih!'
+            : 'Pendaftaran dikirim — menunggu verifikasi pembayaran.',
+        );
+        router.refresh();
+        resolve();
+      });
+    });
+  };
 
   return (
     <div className="space-y-8 pb-10">
@@ -71,6 +121,8 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
           {sessions.map((session) => {
             const active = selectedSession === session.code;
             const accent = JLPT_ACCENT[LEVEL_ACCENT[session.level]];
+            const enrolled =
+              isFreeCourse(session.priceIdr) || session.enrollmentStatus === 'ACTIVE';
             return (
               <button
                 key={session.id}
@@ -105,6 +157,16 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
                   >
                     {session.isStrictTimeBound ? 'Terjadwal' : 'Latihan'}
                   </span>
+                  {session.priceIdr > 0 && session.enrollmentStatus === 'PENDING' ? (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-600">
+                      Menunggu bayar
+                    </span>
+                  ) : null}
+                  {enrolled && session.priceIdr > 0 ? (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">
+                      Terdaftar
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {session.isStrictTimeBound && session.scheduledAt
@@ -147,10 +209,23 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
         </ul>
       </section>
 
+      {activeSession && needsPayment ? (
+        <ProgramPaymentPanel
+          kind="tryout"
+          productTitle={activeSession.title}
+          productDetail={`${activeSession.code} · ${activeSession.level}`}
+          priceIdr={activeSession.priceIdr}
+          enrollmentStatus={mapEnrollmentStatus(activeSession.enrollmentStatus)}
+          studentDisplayName={studentDisplayName}
+          paymentSettings={paymentSettings}
+          onRequestEnrollment={handleRequestEnrollment}
+        />
+      ) : null}
+
       <div className="flex flex-col items-center gap-3">
         <Button
           size="lg"
-          disabled={!canStart}
+          disabled={!canStart || isPending}
           className="h-12 min-w-[220px] gap-2 px-8 text-base font-bold"
           onClick={() => {
             if (!canStart) return;
@@ -164,9 +239,14 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
           <p className="text-xs font-medium text-amber-600">
             {activeSession.accessMessage ?? 'Tryout belum dapat diakses saat ini.'}
           </p>
-        ) : !canStart ? (
+        ) : needsPayment && hasQuestions ? (
           <p className="text-xs text-muted-foreground">
-            Soal untuk sesi ini belum tersedia. Coba sesi Fase 1 N5.
+            Selesaikan pembayaran dan tunggu verifikasi admin untuk mengakses ujian ini.
+          </p>
+        ) : !hasQuestions ? (
+          <p className="text-xs text-muted-foreground">
+            Soal untuk sesi ini belum tersedia. Pastikan paket soal sudah READY dan terhubung ke
+            sesi.
           </p>
         ) : (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">

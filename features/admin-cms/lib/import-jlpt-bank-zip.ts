@@ -515,12 +515,18 @@ export async function previewJlptBankZip(
 
     const level = parseLevel(pick(row, ['level', 'tingkat', 'level_jlpt']));
     const audioFile = pick(row, ['nama_file_audio', 'audio_file', 'audio']);
-    if (!level) errors.push(`Stimuli ${code}: level wajib.`);
-    if (!audioFile) errors.push(`Stimuli ${code}: nama file audio wajib.`);
-    else if (!findZipFile(zip, 'audio', audioFile)) {
-      errors.push(`Audio tidak ditemukan: audio/${audioFile}`);
-    }
+    const instruction = pick(row, ['instruksi', 'instruction']);
     const imageFile = pick(row, ['nama_file_gambar', 'image_file', 'image']);
+    if (!level) errors.push(`Stimuli ${code}: level wajib.`);
+    if (audioFile) {
+      if (!findZipFile(zip, 'audio', audioFile)) {
+        errors.push(`Audio tidak ditemukan: audio/${audioFile}`);
+      }
+    } else if (!imageFile && !instruction) {
+      warnings.push(
+        `Stimuli ${code}: tanpa audio — pastikan ada gambar/instruksi atau soal Choukai terkait.`,
+      );
+    }
     if (imageFile && !findZipFile(zip, 'images', imageFile)) {
       errors.push(`Gambar tidak ditemukan: images/${imageFile}`);
     }
@@ -556,8 +562,7 @@ export async function previewJlptBankZip(
     const stimCode = pick(row, ['kode_audio', 'stimulus_code']).toUpperCase();
     if (section === 'CHOKAI') {
       chokaiQuestionCount += 1;
-      if (!stimCode) errors.push(`Soal ${code}: Choukai wajib isi kode audio.`);
-      else {
+      if (stimCode) {
         chokaiStimuliInQuestions.add(stimCode);
         if (!stimulusCodes.has(stimCode)) {
           warnings.push(
@@ -866,9 +871,6 @@ export async function importJlptBankZip(
     const sectionRaw = pick(row, ['bagian', 'section']);
     const section = normalizeTryoutSection(sectionRaw);
     const stimCode = pick(row, ['kode_audio', 'stimulus_code']).toUpperCase();
-    if (section === 'CHOKAI' && !stimCode) {
-      errors.push(`Soal ${pick(row, ['kode_soal', 'question_code'])}: Choukai wajib kode audio.`);
-    }
     if (section && section !== 'CHOKAI' && stimCode) {
       errors.push(`Soal ${pick(row, ['kode_soal', 'question_code'])}: kode audio hanya untuk Choukai.`);
     }
@@ -914,6 +916,8 @@ export async function importJlptBankZip(
       if (stimCode && !plannedStimuli.has(stimCode)) {
         plannedStimuli.add(stimCode);
         compositionPlan.push({ kind: 'stimulus', stimulusCode: stimCode });
+      } else if (!stimCode) {
+        compositionPlan.push({ kind: 'question', section: 'CHOKAI', questionCode: qCode });
       }
     } else {
       compositionPlan.push({ kind: 'question', section, questionCode: qCode });
@@ -946,8 +950,8 @@ export async function importJlptBankZip(
         const code = pick(row, ['kode_audio', 'stimulus_code', 'code']).toUpperCase();
         const level = parseLevel(pick(row, ['level', 'tingkat', 'level_jlpt']));
         const audioFile = pick(row, ['nama_file_audio', 'audio_file', 'audio']);
-        if (!level || !audioFile) {
-          throw new Error(`Audio Chokai ${code}: level dan nama file audio wajib.`);
+        if (!level) {
+          throw new Error(`Audio Chokai ${code}: level wajib.`);
         }
         const mulaiRaw = pick(row, ['mulai', 'start']);
         const selesaiRaw = pick(row, ['selesai', 'end']);
@@ -959,8 +963,12 @@ export async function importJlptBankZip(
           throw new Error(`Audio Chokai ${code}: selesai harus > mulai.`);
         }
 
-        const audio = await ensureAudio(level, code, audioFile);
-        if (audio.durationMs != null && endSec != null && endSec * 1000 > audio.durationMs + 500) {
+        const audio = audioFile ? await ensureAudio(level, code, audioFile) : null;
+        if (
+          audio?.durationMs != null &&
+          endSec != null &&
+          endSec * 1000 > audio.durationMs + 500
+        ) {
           throw new Error(`Audio Chokai ${code}: selesai melebihi durasi audio.`);
         }
 
@@ -983,10 +991,10 @@ export async function importJlptBankZip(
           status: parseStatus(pick(row, ['status', 'status_item'])),
           instructionText: pick(row, ['instruksi', 'instruction']) || null,
           internalNote: pick(row, ['catatan', 'internal_note']) || null,
-          audioObjectKey: audio.objectKey,
-          audioUrl: audio.url,
-          audioDurationMs: audio.durationMs,
-          audioOriginalName: audio.originalName,
+          audioObjectKey: audio?.objectKey ?? null,
+          audioUrl: audio?.url ?? null,
+          audioDurationMs: audio?.durationMs ?? null,
+          audioOriginalName: audio?.originalName ?? null,
           audioStartMs: Math.round((startSec ?? 0) * 1000),
           audioEndMs: endSec != null ? Math.round(endSec * 1000) : null,
           imageObjectKey: image?.objectKey ?? null,
@@ -1038,7 +1046,7 @@ export async function importJlptBankZip(
 
         const stimCode = pick(row, ['kode_audio', 'stimulus_code']).toUpperCase();
         const listeningStimulusId = stimCode ? stimulusIdByCode.get(stimCode) ?? null : null;
-        if (section === 'CHOKAI' && !listeningStimulusId) {
+        if (section === 'CHOKAI' && stimCode && !listeningStimulusId) {
           throw new Error(`Soal ${code}: kode audio Choukai tidak ditemukan.`);
         }
         if (listeningStimulusId) questionsWithStimulus.add(stimCode);
@@ -1051,11 +1059,13 @@ export async function importJlptBankZip(
         if (kind === 'IMAGE' && !gambarStimulus) {
           throw new Error(`Soal ${code}: Tipe Jawaban Gambar wajib isi Gambar Stimulus.`);
         }
-        // Choukai scene image lives on ListeningStimulus; non-Choukai uses stem image on the question.
+        // Choukai scene image lives on ListeningStimulus when grouped; standalone Choukai uses stem image.
         const stemFile =
           section !== 'CHOKAI'
             ? gambarStimulus || pick(row, ['gambar_soal', 'stem_image_file', 'stem_image'])
-            : '';
+            : !listeningStimulusId
+              ? gambarStimulus || pick(row, ['gambar_soal', 'stem_image_file', 'stem_image'])
+              : '';
         const stem = stemFile ? await ensureImage(level, code, stemFile, 'stem-image') : null;
         const sortInStimulus =
           Number(pick(row, ['urutan_dalam_audio', 'sort_in_stimulus', 'urutan']) || '0') || 0;

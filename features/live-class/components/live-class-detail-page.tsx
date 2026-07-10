@@ -28,9 +28,12 @@ import type {
   LiveClassDetailSession,
   LiveClassDetailView,
 } from '@/features/live-class/lib/load-live-class-detail';
-import { formatIdr } from '@/lib/lms/format-price';
+import {
+  ProgramPaymentPanel,
+  type ProgramEnrollmentStatus,
+} from '@/features/student/components/program-payment-panel';
+import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { cn } from '@/lib/utils';
-import { buildWhatsAppUrl } from '@/lib/admin-contact';
 
 const STATUS_DOT: Record<LiveSessionStatus, string> = {
   live: 'bg-emerald-500',
@@ -147,7 +150,13 @@ function SessionTimelineRow({
   );
 }
 
-export function LiveClassDetailPage({ liveClass }: { liveClass: LiveClassDetailView }) {
+export function LiveClassDetailPage({
+  liveClass,
+  studentDisplayName,
+}: {
+  liveClass: LiveClassDetailView;
+  studentDisplayName: string | null;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
@@ -164,21 +173,29 @@ export function LiveClassDetailPage({ liveClass }: { liveClass: LiveClassDetailV
     Math.round((liveClass.filledSlots / Math.max(1, liveClass.maxSlots)) * 100),
   );
 
-  const handleEnroll = () => {
-    startTransition(async () => {
-      const result = await requestLiveClassEnrollment(liveClass.id);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
-      toast.success(
-        result.status === 'ACTIVE'
-          ? 'Berhasil terdaftar! Selamat belajar 🎉'
-          : 'Pendaftaran dikirim — menunggu verifikasi pembayaran.',
-      );
-      router.refresh();
+  const handleEnroll = () =>
+    new Promise<void>((resolve, reject) => {
+      startTransition(async () => {
+        const result = await requestLiveClassEnrollment(liveClass.id);
+        if (!result.ok) {
+          toast.error(result.message);
+          reject(new Error(result.message));
+          return;
+        }
+        toast.success(
+          result.status === 'ACTIVE'
+            ? 'Berhasil terdaftar! Selamat belajar 🎉'
+            : 'Pendaftaran dikirim — menunggu verifikasi pembayaran.',
+        );
+        router.refresh();
+        resolve();
+      });
     });
-  };
+
+  const enrollmentStatus: ProgramEnrollmentStatus =
+    liveClass.enrollmentStatus === 'ACTIVE' || liveClass.enrollmentStatus === 'PENDING'
+      ? liveClass.enrollmentStatus
+      : 'none';
 
   return (
     <div className="space-y-8 pb-10">
@@ -267,88 +284,49 @@ export function LiveClassDetailPage({ liveClass }: { liveClass: LiveClassDetailV
       </section>
 
       {/* Action area */}
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="space-y-4">
         {liveClass.enrollmentStatus === 'ACTIVE' ? (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-            <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-              Kamu sudah terdaftar di program ini 🎉
-            </p>
-          </div>
-        ) : liveClass.enrollmentStatus === 'PENDING' ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-              <Clock className="size-5 shrink-0 text-amber-600" />
-              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                Pendaftaran sedang diverifikasi admin.
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+              <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                Kamu sudah terdaftar di program ini 🎉
               </p>
             </div>
-            {liveClass.priceIdr > 0 && (
-              <div className="rounded-xl border border-border bg-muted/20 p-5 space-y-4">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-foreground">Selesaikan Pembayaran</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Silakan lakukan pembayaran sebesar <span className="font-bold text-foreground">{formatIdr(liveClass.priceIdr)}</span> melalui salah satu metode di bawah ini.
-                  </p>
-                </div>
-
-                {liveClass.paymentLink ? (
-                  <div className="pt-2">
-                    <Button asChild className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold">
-                      <a href={liveClass.paymentLink} target="_blank" rel="noopener noreferrer">
-                        Bayar Sekarang <ExternalLink className="size-4" />
-                      </a>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-border bg-background p-4 space-y-2 max-w-md">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tujuan Transfer Manual</p>
-                    <div className="grid grid-cols-[80px_1fr] text-xs gap-y-1">
-                      <span className="text-muted-foreground">Bank:</span>
-                      <span className="font-bold text-foreground">{liveClass.paymentSettings.bankName}</span>
-                      <span className="text-muted-foreground">No. Rek:</span>
-                      <span className="font-mono font-bold text-foreground">{liveClass.paymentSettings.accountNumber}</span>
-                      <span className="text-muted-foreground">Nama:</span>
-                      <span className="font-bold text-foreground">{liveClass.paymentSettings.accountName}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-                  <Button asChild variant="outline" className="w-full sm:w-auto border-emerald-500 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 gap-2 font-bold">
-                    <a
-                      href={buildWhatsAppUrl(
-                        `Halo Admin JepangKu, saya sudah mendaftar kelas live "${liveClass.title}" (ID: ${liveClass.id}) dan ingin mengonfirmasi pembayaran.`
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Konfirmasi via WhatsApp
-                    </a>
-                  </Button>
-                </div>
+          </div>
+        ) : isFreeCourse(liveClass.priceIdr) ? (
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Program gratis</p>
+                <p className="text-xs text-muted-foreground">
+                  Daftar sekali — akses langsung aktif setelah pendaftaran.
+                </p>
               </div>
-            )}
+              <Button
+                onClick={() => void handleEnroll()}
+                disabled={isPending || liveClass.isFull}
+                size="lg"
+                className="gap-2"
+              >
+                {liveClass.isFull ? 'Kelas Penuh' : isPending ? 'Memproses…' : 'Daftar Gratis'}
+              </Button>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Tertarik mengikuti program ini?</p>
-              <p className="text-xs text-muted-foreground">
-                {liveClass.priceIdr > 0
-                  ? 'Daftar lalu selesaikan pembayaran untuk diverifikasi admin.'
-                  : 'Program gratis — akses langsung aktif setelah mendaftar.'}
-              </p>
-            </div>
-            <Button
-              onClick={handleEnroll}
-              disabled={isPending || liveClass.isFull}
-              size="lg"
-              className="gap-2"
-            >
-              {liveClass.isFull ? 'Kelas Penuh' : isPending ? 'Memproses…' : 'Daftar Kelas Ini'}
-            </Button>
-          </div>
+          <ProgramPaymentPanel
+            kind="live-class"
+            productTitle={liveClass.title}
+            productDetail={liveClass.id}
+            priceIdr={liveClass.priceIdr}
+            enrollmentStatus={enrollmentStatus}
+            studentDisplayName={studentDisplayName}
+            paymentSettings={liveClass.paymentSettings}
+            paymentLink={liveClass.paymentLink}
+            onRequestEnrollment={handleEnroll}
+            disabled={liveClass.isFull}
+            disabledMessage={liveClass.isFull ? 'Kelas sudah penuh.' : undefined}
+          />
         )}
       </section>
 

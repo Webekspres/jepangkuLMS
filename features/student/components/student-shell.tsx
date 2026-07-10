@@ -17,7 +17,8 @@ function isTryoutReviewPath(pathname: string) {
 
 /** Exam path uses TryoutFocusShell inside workspace — no dashboard nav. */
 function isTryoutExamPath(pathname: string) {
-  return /^\/dashboard\/tryout\/[^/]+\/[^/]+$/.test(pathname) && !pathname.includes('/hasil');
+  if (pathname.startsWith('/dashboard/tryout/hasil')) return false;
+  return /^\/dashboard\/tryout\/[^/]+(?:\/[^/]+)?$/.test(pathname);
 }
 
 export function StudentShell({ children }: StudentShellProps) {

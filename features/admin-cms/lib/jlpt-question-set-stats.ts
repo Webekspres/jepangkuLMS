@@ -127,10 +127,7 @@ export async function validateQuestionSetForReady(
       return { ok: false, message: 'Setiap item harus tepat satu: soal ATAU stimulus.' };
     }
 
-    if (item.section === 'CHOKAI') {
-      if (!item.listeningStimulusId || !item.listeningStimulus) {
-        return { ok: false, message: 'Item CHOKAI wajib stimulus.' };
-      }
+    if (item.section === 'CHOKAI' && item.listeningStimulusId && item.listeningStimulus) {
       if (item.listeningStimulus.status === 'RETIRED') {
         return { ok: false, message: `Stimulus ${item.listeningStimulus.code} sudah RETIRED.` };
       }
