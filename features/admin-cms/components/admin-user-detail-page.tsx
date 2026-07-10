@@ -490,10 +490,10 @@ export function AdminUserDetailPage({ user, grantOptions }: AdminUserDetailPageP
                       {row.phaseLabel} · <code>{row.code}</code>
                     </p>
                     <Link
-                      href={ADMIN_ROUTES.tryoutSessionQuestions(row.tryoutSessionId)}
+                      href={ADMIN_ROUTES.tryoutSessionFormEdit(row.tryoutSessionId)}
                       className="mt-1 inline-block text-xs font-semibold text-primary hover:underline"
                     >
-                      Kelola soal →
+                      Edit sesi →
                     </Link>
                   </TableCell>
                   <TableCell>

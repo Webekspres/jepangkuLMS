@@ -53,6 +53,33 @@ enum QuestionType {
     TRYOUT
 }
 
+/// Fixed JLPT tryout sections — not a configurable exam builder.
+enum TryoutSectionCode {
+    MOJI_GOI
+    BUNPOU_DOKKAI
+    CHOKAI
+}
+
+/// Lifecycle for reusable JLPT bank assets (questions / listening stimuli).
+enum JlptBankStatus {
+    DRAFT
+    ACTIVE
+    RETIRED
+}
+
+/// Choukai answer presentation: text labels (incl. 1–4) or image choices.
+enum JlptAnswerOptionKind {
+    TEXT
+    IMAGE
+}
+
+/// Paket Soal lifecycle — READY = selectable; full JLPT check is at Session activate.
+enum JlptQuestionSetStatus {
+    DRAFT
+    READY
+    ARCHIVED
+}
+
 enum CategoryType {
     KANJI
     KOSAKATA
@@ -477,8 +504,121 @@ model MaterialTataBahasa {
 }
 
 // ====================================================================
-// 6. BANK SOAL, KUIS & TRYOUT (NORMALISASI OPSI JAWABAN)
+// 6. BANK SOAL JLPT TRYOUT + KUIS PELAJARAN
 // ====================================================================
+
+/// Choukai mondai — shared audio (+ optional timestamps), shared image, N questions.
+model ListeningStimulus {
+    id                 String         @id @default(uuid())
+    /// Business code e.g. N4-CH-S001 — upsert key for bank import.
+    code               String         @unique
+    level              LevelJLPT
+    status             JlptBankStatus @default(ACTIVE)
+    instructionText    String?        @db.Text
+    internalNote       String?        @db.Text
+    /// R2 object key for master audio (jlpt-bank/...).
+    audioObjectKey     String?
+    audioUrl           String?
+    audioDurationMs    Int?
+    audioOriginalName  String?
+    /// Inclusive start / exclusive end for seek playback; null end = play to finish.
+    audioStartMs       Int            @default(0)
+    audioEndMs         Int?
+    imageObjectKey     String?
+    imageUrl           String?
+    createdAt          DateTime       @default(now())
+    updatedAt          DateTime       @updatedAt
+
+    questions    JlptQuestion[]
+    sessionItems TryoutSessionItem[]
+    setItems     JlptQuestionSetItem[]
+
+    @@index([level, status])
+}
+
+/// Reusable JLPT tryout question (not owned by a session).
+model JlptQuestion {
+    id                   String               @id @default(uuid())
+    /// Business code e.g. N5-MG-001.
+    code                 String               @unique
+    level                LevelJLPT
+    section              TryoutSectionCode
+    status               JlptBankStatus       @default(ACTIVE)
+    questionText         String               @db.Text
+    explanation          String?              @db.Text
+    internalNote         String?              @db.Text
+    answerOptionKind     JlptAnswerOptionKind @default(TEXT)
+    /// Rare per-question stem image (shared Choukai scene lives on ListeningStimulus).
+    stemImageObjectKey   String?
+    stemImageUrl         String?
+    listeningStimulusId  String?
+    /// Order within a Choukai stimulus (ignored for Moji/Bunpou).
+    stimulusSortOrder    Int                  @default(0)
+    createdAt            DateTime             @default(now())
+    updatedAt            DateTime             @updatedAt
+
+    listeningStimulus ListeningStimulus?  @relation(fields: [listeningStimulusId], references: [id], onDelete: SetNull)
+    options           JlptQuestionOption[]
+    sessionItems      TryoutSessionItem[]
+    setItems          JlptQuestionSetItem[]
+
+    @@index([level, section, status])
+    @@index([listeningStimulusId, stimulusSortOrder])
+}
+
+model JlptQuestionOption {
+    id               String  @id @default(uuid())
+    questionId       String
+    text             String
+    imageObjectKey   String?
+    imageUrl         String?
+    isCorrect        Boolean @default(false)
+    sortOrder        Int     @default(0)
+
+    question JlptQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@index([questionId, sortOrder])
+}
+
+/// Paket Soal — reusable JLPT paper package (primary exam-authoring aggregate).
+model JlptQuestionSet {
+    id          String                @id @default(uuid())
+    /// Business code e.g. N5-PKG-A — upsert key for package import.
+    code        String                @unique
+    title       String
+    level       LevelJLPT
+    description String?               @db.Text
+    source      String?
+    year        Int?
+    status      JlptQuestionSetStatus @default(DRAFT)
+    createdAt   DateTime              @default(now())
+    updatedAt   DateTime              @updatedAt
+
+    items    JlptQuestionSetItem[]
+    sessions TryoutSession[]
+
+    @@index([level, status])
+}
+
+/// Ordered refs inside a Paket Soal. Moji/Bunpou: jlptQuestionId; Chokai: listeningStimulusId.
+model JlptQuestionSetItem {
+    id                  String            @id @default(uuid())
+    questionSetId       String
+    section             TryoutSectionCode
+    sortOrder           Int               @default(0)
+    jlptQuestionId      String?
+    listeningStimulusId String?
+
+    questionSet       JlptQuestionSet    @relation(fields: [questionSetId], references: [id], onDelete: Cascade)
+    jlptQuestion      JlptQuestion?      @relation(fields: [jlptQuestionId], references: [id], onDelete: Restrict)
+    listeningStimulus ListeningStimulus? @relation(fields: [listeningStimulusId], references: [id], onDelete: Restrict)
+
+    @@unique([questionSetId, section, sortOrder])
+    @@index([questionSetId, section])
+    @@index([jlptQuestionId])
+    @@index([listeningStimulusId])
+}
+
 model TryoutSession {
     id                String    @id @default(uuid())
     code              String    @unique
@@ -487,6 +627,8 @@ model TryoutSession {
     description       String?   @db.Text
     /// JLPT level for this session — one session = one level exam event.
     level             LevelJLPT @default(N5)
+    /// Paket Soal offered by this exam event.
+    questionSetId     String?
     /// Harga dalam Rupiah (0 = gratis); siap untuk bundling e-commerce.
     priceIdr          Int       @default(0)
     /// true = event terjadwal ketat (time-gated); false = open practice (akses kapan saja).
@@ -497,10 +639,35 @@ model TryoutSession {
     timeLimitMinutes  Int       @default(120)
     createdAt         DateTime  @default(now())
 
+    questionSet  JlptQuestionSet?    @relation(fields: [questionSetId], references: [id], onDelete: Restrict)
+    /// @deprecated Prefer questionSetId — kept for dual-read migration.
+    items        TryoutSessionItem[]
+    /// @deprecated Legacy session-owned questions — kept for migration dual-read; do not write.
     questions    Question[]
     attempts     QuizAttempt[]
     examProgress TryoutExamProgress[]
     enrollments  Enrollment[]
+
+    @@index([questionSetId])
+}
+
+/// @deprecated Prefer JlptQuestionSetItem — session-level composition during dual-read.
+model TryoutSessionItem {
+    id                  String            @id @default(uuid())
+    tryoutSessionId     String
+    section             TryoutSectionCode
+    sortOrder           Int               @default(0)
+    jlptQuestionId      String?
+    listeningStimulusId String?
+
+    tryoutSession     TryoutSession      @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+    jlptQuestion      JlptQuestion?      @relation(fields: [jlptQuestionId], references: [id], onDelete: Restrict)
+    listeningStimulus ListeningStimulus? @relation(fields: [listeningStimulusId], references: [id], onDelete: Restrict)
+
+    @@unique([tryoutSessionId, section, sortOrder])
+    @@index([tryoutSessionId, section])
+    @@index([jlptQuestionId])
+    @@index([listeningStimulusId])
 }
 
 model LiveClass {
@@ -545,9 +712,10 @@ model LiveClassSession {
 
 model Question {
     id              String       @id @default(uuid())
-    lessonId        String? // Optional: kosong jika ini soal Tryout
+    lessonId        String? // Optional: kosong jika ini soal Tryout (legacy)
+    /// @deprecated Prefer JlptQuestion + TryoutSessionItem. Kept for dual-read migration.
     tryoutSessionId String?
-    /// MOJI_GOI | BUNPOU_DOKKAI | CHOKAI
+    /// @deprecated Prefer JlptQuestion.section (TryoutSectionCode).
     tryoutSection   String?
     sortOrder       Int          @default(0)
     type            QuestionType @default(QUIZ)
@@ -555,13 +723,13 @@ model Question {
     explanation     String?      @db.Text
     xpReward        Int          @default(10) // Nilai usulan reward; pemberian XP ke user via Core Service
 
-    /// CHOKAI — URL absolut audio clip di R2 (.mp3)
+    /// CHOKAI (legacy) — URL absolut audio clip di R2 (.mp3)
     audioUrl         String?
-    /// CHOKAI — kode grup: beberapa soal pakai satu pemutar audio global
+    /// CHOKAI (legacy) — kode grup: beberapa soal pakai satu pemutar audio global
     audioGroupId     String?
-    /// CHOKAI — ilustrasi stem (opsional, tipe jawaban Teks)
+    /// CHOKAI (legacy) — ilustrasi stem
     imageUrl         String?
-    /// CHOKAI — TEXT | IMAGE (bentuk opsi jawaban)
+    /// CHOKAI (legacy) — TEXT | IMAGE
     answerOptionKind String?
 
     lesson        Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -629,6 +797,8 @@ model QuizAttempt {
     totalQuestions  Int?
     /// JSON: { [questionId]: selectedOptionId }
     answersJson     String?      @db.Text
+    /// Tryout — immutable paper snapshot at submit (codes, stems, options, correctness).
+    paperSnapshotJson String?    @db.Text
     createdAt       DateTime     @default(now())
 
     user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)

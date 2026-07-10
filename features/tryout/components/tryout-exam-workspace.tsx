@@ -26,7 +26,11 @@ import {
     type TryoutExamProgressState,
 } from '@/features/tryout/actions/tryout-exam-progress-actions';
 import { resolveTryoutAudioPlayKey } from '@/features/tryout/lib/chokai-audio';
-import { ChokaiAudioPlayer, ChokaiImageOption } from '@/features/tryout/components/chokai-media';
+import {
+    ChokaiAudioPlayer,
+    ChokaiImageOption,
+    ChokaiStimulusImage,
+} from '@/features/tryout/components/chokai-media';
 import { TryoutFocusShell } from '@/features/tryout/components/tryout-focus-shell';
 import { TryoutSectionIntro } from '@/features/tryout/components/tryout-section-intro';
 import { TryoutSubmitLoading } from '@/features/tryout/components/tryout-submit-loading';
@@ -65,22 +69,34 @@ function formatTime(seconds: number) {
     return `${m}:${s}`;
 }
 
-function resolveExamAudio(
-    sectionQuestions: TryoutExamQuestion[],
-    current: TryoutExamQuestion,
-): { url: string | null; playerKey: string; isGroup: boolean } {
+function resolveExamAudio(current: TryoutExamQuestion): {
+    url: string | null;
+    playerKey: string;
+    isGroup: boolean;
+    startMs: number;
+    endMs: number | null;
+} {
     if (current.section !== 'CHOKAI') {
-        return { url: null, playerKey: current.id, isGroup: false };
+        return { url: null, playerKey: current.id, isGroup: false, startMs: 0, endMs: null };
+    }
+
+    if (current.stimulus) {
+        return {
+            url: current.stimulus.audioUrl,
+            playerKey: `stimulus-${current.stimulus.id}`,
+            isGroup: true,
+            startMs: current.stimulus.audioStartMs,
+            endMs: current.stimulus.audioEndMs,
+        };
     }
 
     if (current.audioGroupId) {
-        const carrier =
-            sectionQuestions.find((q) => q.audioGroupId === current.audioGroupId && q.audioUrl) ??
-            current;
         return {
-            url: carrier.audioUrl,
+            url: current.audioUrl,
             playerKey: `group-${current.audioGroupId}`,
             isGroup: true,
+            startMs: 0,
+            endMs: null,
         };
     }
 
@@ -88,6 +104,8 @@ function resolveExamAudio(
         url: current.audioUrl,
         playerKey: current.id,
         isGroup: false,
+        startMs: 0,
+        endMs: null,
     };
 }
 
@@ -207,11 +225,12 @@ export function TryoutExamWorkspace({
     );
 
     const current = sectionQuestions[questionIndex];
-    const examAudio = current ? resolveExamAudio(sectionQuestions, current) : null;
+    const examAudio = current ? resolveExamAudio(current) : null;
     const chokaiPlayKey =
         current?.section === 'CHOKAI' && examAudio?.url
             ? resolveTryoutAudioPlayKey({
                 questionId: current.id,
+                stimulusId: current.stimulusId,
                 audioGroupId: current.audioGroupId,
             })
             : null;
@@ -402,9 +421,11 @@ export function TryoutExamWorkspace({
                                         playKey={chokaiPlayKey!}
                                         progressId={examProgress.id}
                                         alreadyPlayed={chokaiAudioPlayed}
+                                        startMs={examAudio.startMs}
+                                        endMs={examAudio.endMs}
                                         label={
                                             examAudio.isGroup
-                                                ? `Putar audio (grup ${current.audioGroupId})`
+                                                ? 'Putar audio (satu grup listening)'
                                                 : 'Putar audio'
                                         }
                                         onPlayed={(key) =>
@@ -414,13 +435,15 @@ export function TryoutExamWorkspace({
                                 ) : null}
 
                                 <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-8">
-                                    {current.imageUrl && resolveMediaUrl(current.imageUrl) ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={resolveMediaUrl(current.imageUrl)!}
-                                            alt=""
-                                            className="mx-auto mb-4 max-h-48 object-contain"
-                                        />
+                                    {current.stimulus?.instructionText ? (
+                                        <p className="mb-3 text-sm text-muted-foreground whitespace-pre-line">
+                                            {current.stimulus.instructionText}
+                                        </p>
+                                    ) : null}
+                                    {current.stimulus?.imageUrl ? (
+                                        <ChokaiStimulusImage imageUrl={current.stimulus.imageUrl} />
+                                    ) : current.imageUrl && resolveMediaUrl(current.imageUrl) ? (
+                                        <ChokaiStimulusImage imageUrl={current.imageUrl} />
                                     ) : null}
                                     <p
                                         className="mb-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-line sm:mb-4"

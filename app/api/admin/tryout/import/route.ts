@@ -1,194 +1,26 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
 import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-action';
-import JSZip from 'jszip';
-import { importTryoutWorkbook, previewTryoutWorkbookImport } from '@/features/admin-cms/lib/import-tryout-workbook';
-import { importUnifiedTryoutZip, previewUnifiedTryoutZip } from '@/features/admin-cms/lib/import-unified-tryout';
-import { previewChokaiZipImport, importChokaiZip } from '@/features/admin-cms/lib/import-chokai-zip';
+import { LEGACY_TRYOUT_IMPORT_DISABLED_MESSAGE } from '@/features/admin-cms/lib/tryout-phase2-guards';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { prisma } from '@/lib/prisma';
 
-export async function POST(request: Request) {
-    try {
-        await requireAdminAccess();
-    } catch {
-        return NextResponse.json({ ok: false, message: 'Forbidden' }, { status: 403 });
-    }
+/**
+ * Phase 2: session-bound tryout import is disabled.
+ * Use POST /api/admin/tryout/bank-import instead.
+ */
+export async function POST() {
+  try {
+    await requireAdminAccess();
+  } catch {
+    return NextResponse.json({ ok: false, message: 'Forbidden' }, { status: 403 });
+  }
 
-    try {
-        const url = new URL(request.url);
-        const dryRun = url.searchParams.get('dryRun') === '1';
-
-        const formData = await request.formData();
-        const file = formData.get('file');
-        const sessionId = String(formData.get('sessionId') ?? '').trim();
-
-        if (!(file instanceof File) || file.size === 0) {
-            return NextResponse.json({ ok: false, message: 'File wajib diunggah.' }, { status: 400 });
-        }
-
-        // Security: batasi ukuran file (ZIP maks 50MB, XLSX maks 10MB)
-        const filename = file.name.toLowerCase();
-        const isZip = filename.endsWith('.zip');
-        const isXlsx = filename.endsWith('.xlsx') || filename.endsWith('.xls');
-        const maxBytes = isZip ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-        if (file.size > maxBytes) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    message: isZip
-                        ? 'Ukuran file ZIP maksimal 50 MB.'
-                        : 'Ukuran file XLSX maksimal 10 MB.',
-                    imported: 0,
-                },
-                { status: 400 }
-            );
-        }
-
-        const buffer = Buffer.from(await file.arrayBuffer());
-
-        // If sessionId is provided, expect ZIP format (unified import)
-        if (sessionId) {
-            if (!isZip) {
-                return NextResponse.json(
-                    {
-                        ok: false,
-                        message: 'Format file harus .zip. Untuk impor ke sesi, gunakan format ZIP dengan jlpt.xlsx di dalamnya.',
-                        imported: 0,
-                    },
-                    { status: 400 }
-                );
-            }
-
-            const session = await prisma.tryoutSession.findUnique({ where: { id: sessionId } });
-            if (!session) {
-                return NextResponse.json({ ok: false, message: 'Sesi tryout tidak ditemukan.' }, { status: 404 });
-            }
-
-            // Dry-run: preview unified import
-            if (dryRun) {
-                const preview = await previewUnifiedTryoutZip(buffer);
-                return NextResponse.json({
-                    ok: preview.ok,
-                    preview,
-                    message: preview.ok ? 'Paket JLPT valid.' : 'Paket perlu diperbaiki.',
-                });
-            }
-
-            // Import unified ZIP
-            const result = await importUnifiedTryoutZip(prisma, {
-                sessionId,
-                sessionCode: session.code,
-                buffer,
-            });
-
-            revalidatePath(ADMIN_ROUTES.tryoutSessionQuestions(sessionId));
-            revalidatePath(ADMIN_ROUTES.tryoutSessions);
-            revalidatePath('/dashboard/tryout');
-
-            const sections = [];
-            if (result.moji.imported > 0) sections.push(`MOJI GOI: ${result.moji.imported}`);
-            if (result.bunpou.imported > 0) sections.push(`BUNPOU: ${result.bunpou.imported}`);
-            if (result.chokai.imported > 0) sections.push(`CHOKAI: ${result.chokai.imported}`);
-
-            return NextResponse.json({
-                ok: true,
-                message: `${result.totalImported} soal berhasil diimpor (${sections.join(', ')}).`,
-                imported: result.totalImported,
-            });
-        }
-
-        // No sessionId: expect ZIP or XLSX (workbook import to create new session)
-        let workbookBuffer = buffer;
-
-        if (isZip) {
-            // Extract jlpt.xlsx from ZIP
-            let zip: JSZip;
-            try {
-                zip = await JSZip.loadAsync(buffer);
-            } catch {
-                return NextResponse.json({ ok: false, message: 'File ZIP tidak bisa dibaca.', imported: 0 }, { status: 400 });
-            }
-
-            // ponytail: use JSZip's built-in filtering instead of manual iteration
-            const jlptFiles = zip.file(/^jlpt\.xlsx$/i);
-            if (jlptFiles.length === 0) {
-                return NextResponse.json({ ok: false, message: 'jlpt.xlsx tidak ditemukan di akar ZIP.', imported: 0 }, { status: 400 });
-            }
-            // Take the first file (should be only one)
-            const jlptFile = jlptFiles[0];
-            workbookBuffer = Buffer.from(await jlptFile.async('arraybuffer'));
-        } else if (!isXlsx) {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    message: 'Format file harus .zip atau .xlsx.',
-                    imported: 0,
-                },
-                { status: 400 }
-            );
-        }
-
-        if (dryRun) {
-            const preview = await previewTryoutWorkbookImport(workbookBuffer);
-            if (isZip) {
-                const chokaiPreview = await previewChokaiZipImport(buffer);
-                if (chokaiPreview.rowCount > 0) {
-                    preview.questionPreview.sectionCounts.CHOKAI = chokaiPreview.rowCount;
-                    preview.questionPreview.errors.push(...chokaiPreview.errors);
-                    preview.questionPreview.rowCount += chokaiPreview.rowCount;
-                    if (!chokaiPreview.ok) preview.ok = false;
-                }
-            }
-            return NextResponse.json({
-                ok: preview.ok,
-                preview,
-                message: preview.ok ? 'Formulir valid.' : 'Validasi gagal.',
-            });
-        }
-
-        const result = await importTryoutWorkbook(prisma, workbookBuffer);
-        if (!result.ok) {
-            return NextResponse.json({ ok: false, message: result.message, imported: 0 }, { status: 422 });
-        }
-
-        let chokaiImported = 0;
-        if (isZip && result.sessionId) {
-            const session = await prisma.tryoutSession.findUnique({ where: { id: result.sessionId } });
-            if (session) {
-                try {
-                    const chokaiResult = await importChokaiZip(prisma, {
-                        sessionId: session.id,
-                        sessionCode: session.code,
-                        buffer,
-                    });
-                    chokaiImported = chokaiResult.imported;
-                } catch (err) {
-                    // Ignore error if sheet doesn't exist, otherwise we should log it
-                    if (err instanceof Error && !err.message.includes('chokai.xlsx') && !err.message.includes('File Excel') && !err.message.includes('kosong')) {
-                        console.error('Failed to import chokai on new session:', err);
-                    }
-                }
-            }
-        }
-
-        revalidatePath(ADMIN_ROUTES.tryoutSessions);
-        if (result.sessionId) {
-            revalidatePath(ADMIN_ROUTES.tryoutSessionQuestions(result.sessionId));
-        }
-        revalidatePath('/dashboard/tryout');
-
-        const totalImported = result.imported + chokaiImported;
-        const msgSuffix = chokaiImported > 0 ? ` Termasuk ${chokaiImported} soal Chokai.` : '';
-
-        return NextResponse.json({
-            ok: true,
-            message: result.message.replace(result.imported.toString(), totalImported.toString()) + msgSuffix,
-            imported: totalImported,
-            sessionId: result.sessionId,
-        });
-    } catch (error) {
-        const message = error instanceof Error ? error.message : 'Impor gagal.';
-        return NextResponse.json({ ok: false, message, imported: 0, errors: [] }, { status: 500 });
-    }
+  return NextResponse.json(
+    {
+      ok: false,
+      message: LEGACY_TRYOUT_IMPORT_DISABLED_MESSAGE,
+      imported: 0,
+      redirectTo: ADMIN_ROUTES.tryoutBank,
+    },
+    { status: 410 },
+  );
 }

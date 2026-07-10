@@ -32,7 +32,7 @@ export default function AppProviders({
               <CoreSessionSync />
               {children}
             </AppSplash>
-            <Toaster richColors closeButton position="top-right" />
+            <Toaster closeButton position="top-right" />
           </TooltipProvider>
         </QueryProvider>
       </ClerkProviderThemed>

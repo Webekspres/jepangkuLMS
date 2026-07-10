@@ -17,6 +17,13 @@ function segmentLabel(segment: string, segments: string[], index: number): strin
   if (segments[index - 1] === 'users' && index === segments.length - 1) {
     return 'Detail';
   }
+  // /admin/tryout/paket/import — "import" under paket ≠ Import Kursus
+  if (segment === 'import' && segments[index - 1] === 'paket') {
+    return 'Import Paket';
+  }
+  if (segment === 'import' && segments[index - 1] === 'tryout') {
+    return 'Import Tryout (legacy)';
+  }
   return ADMIN_BREADCRUMB_LABELS[segment] ?? segment.replace(/-/g, ' ');
 }
 

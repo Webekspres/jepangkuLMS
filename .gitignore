@@ -64,6 +64,9 @@ docs/*.pptx
 # urgent quest tracker — local sprint/deadline notes (not shared via repo)
 docs/urgent_quest/
 
+# Generated JLPT sample import packages (ZIP + audio stubs) — regenerate locally, do not commit
+docs/sample-imports/
+
 # clerk configuration (can include secrets)
 /.clerk/
 
