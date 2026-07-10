@@ -435,7 +435,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
       (map[item.section] ??= []).push(item);
     }
     return map;
-  }, [detail.items]);
+  }, [detail]);
 
   function handleMeta(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
