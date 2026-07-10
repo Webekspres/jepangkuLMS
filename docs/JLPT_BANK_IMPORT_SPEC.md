@@ -79,3 +79,12 @@ Soal **dipisah per section ujian**. Kolom «Bagian» tidak perlu — section dia
 Sama seperti sebelumnya: upsert by code, replace package items, soft-lock sesi aktif, transactional.
 
 Primary UI: `/admin/tryout/paket/import`. Template: `GET /api/admin/tryout/bank-template`.
+
+## Dev sample packages (local only)
+
+N5/N4 sample ZIPs live under `docs/sample-imports/` (**gitignored** — do not commit). Regenerate:
+
+```bash
+bun scripts/generate-jlpt-sample-import-packages.ts
+bun scripts/validate-jlpt-sample-import-packages.ts
+```
