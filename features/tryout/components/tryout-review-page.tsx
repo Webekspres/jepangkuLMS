@@ -5,10 +5,15 @@ import { useMemo } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { TryoutAttemptReview } from '@/features/tryout/lib/load-tryout-review';
 import {
+  buildJlptCefrAnalysis,
   buildSectionAnalysisRows,
-  getTryoutStatusTier,
-  getWeakestSectionLabel,
+  buildTryoutFeedback,
 } from '@/features/tryout/lib/tryout-result-insights';
+import {
+  formatCefrBandRange,
+  getJlptLevelCefrConfig,
+  JLPT_TOTAL_MAX_SCORE,
+} from '@/features/tryout/lib/jlpt-cefr-reference';
 import { TryoutResultRevealModal } from '@/features/tryout/components/tryout-result-reveal-modal';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { Button } from '@/components/ui/button';
@@ -35,6 +40,14 @@ const TIER_STYLES = {
   SOS: 'text-primary',
 } as const;
 
+const CEFR_STYLES: Record<string, string> = {
+  A1: 'text-pink-600',
+  A2: 'text-amber-600',
+  B1: 'text-emerald-600',
+  B2: 'text-blue-600',
+  C1: 'text-violet-600',
+};
+
 type TryoutReviewPageProps = {
   review: TryoutAttemptReview;
 };
@@ -45,9 +58,31 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
     timeStyle: 'short',
   });
 
-  const tier = useMemo(() => getTryoutStatusTier(review.score), [review.score]);
   const sectionRows = useMemo(() => buildSectionAnalysisRows(review), [review]);
-  const weakestSection = useMemo(() => getWeakestSectionLabel(sectionRows), [sectionRows]);
+  const jlptCefr = useMemo(
+    () =>
+      buildJlptCefrAnalysis({
+        level: review.level,
+        correct: review.correct,
+        total: review.total,
+        sectionBreakdown: review.sectionBreakdown,
+      }),
+    [review],
+  );
+  const feedback = useMemo(
+    () =>
+      buildTryoutFeedback({
+        scorePercent: review.score,
+        correct: review.correct,
+        total: review.total,
+        sectionRows,
+        jlptPassOverall: jlptCefr.jlptPassOverall,
+        indicatedCefr: jlptCefr.indicatedCefr,
+        level: review.level,
+      }),
+    [review, sectionRows, jlptCefr],
+  );
+  const levelConfig = useMemo(() => getJlptLevelCefrConfig(review.level), [review.level]);
 
   return (
     <>
@@ -74,7 +109,7 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
             </p>
           </div>
 
-          <div className="grid gap-px border-b border-border bg-border sm:grid-cols-2">
+          <div className="grid gap-px border-b border-border bg-border sm:grid-cols-3">
             <div className="bg-card p-5 text-center sm:p-6">
               <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 Status Simulasi
@@ -82,36 +117,71 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
               <p
                 className={cn(
                   'mt-2 text-3xl font-extrabold sm:text-4xl',
-                  TIER_STYLES[tier.code],
+                  TIER_STYLES[feedback.tier.code],
                 )}
               >
-                {tier.label}
+                {feedback.tier.label}
               </p>
             </div>
             <div className="bg-card p-5 text-center sm:p-6">
               <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                Perkiraan Tingkat Kelulusan
+                Skor Setara JLPT
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-primary sm:text-4xl">
-                {tier.passRateEstimate}%
+              <p className="mt-2 text-3xl font-extrabold text-foreground sm:text-4xl tabular-nums">
+                {jlptCefr.scaledTotalScore}
+                <span className="text-lg font-semibold text-muted-foreground">
+                  /{JLPT_TOTAL_MAX_SCORE}
+                </span>
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Estimasi berdasarkan pola simulasi internal JepangKu
+                Proyeksi dari {review.correct}/{review.total} benar ({review.score}%)
               </p>
+            </div>
+            <div className="bg-card p-5 text-center sm:p-6">
+              <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                Level CEFR Terindikasi
+              </p>
+              {jlptCefr.indicatedCefr ? (
+                <>
+                  <p
+                    className={cn(
+                      'mt-2 text-3xl font-extrabold sm:text-4xl',
+                      CEFR_STYLES[jlptCefr.indicatedCefr],
+                    )}
+                  >
+                    {jlptCefr.indicatedCefr}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {jlptCefr.cefrBandDescription} · JLPT {review.level}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-lg font-bold text-muted-foreground">Di bawah ambang</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Minimal {jlptCefr.totalPassScore}/{JLPT_TOTAL_MAX_SCORE} untuk indikasi CEFR
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
           <div className="border-b border-primary/15 bg-primary/5 p-4 sm:p-6">
-            <p className="text-sm font-semibold text-foreground">{tier.headline}</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{tier.feedback}</p>
-            {weakestSection ? (
+            <p className="text-sm font-semibold text-foreground">{feedback.headline}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feedback.feedback}</p>
+            {feedback.sectionNote ? (
               <p className="mt-2 text-sm text-muted-foreground">
-                Bagian paling perlu diperkuat:{' '}
-                <strong className="text-foreground">{weakestSection}</strong>
+                {feedback.sectionNote}
+                {feedback.sectionNoteEmphasis ? (
+                  <>
+                    {' '}
+                    <strong className="text-foreground">{feedback.sectionNoteEmphasis}</strong>
+                  </>
+                ) : null}
               </p>
             ) : null}
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-              {tier.tips.map((tip) => (
+              {feedback.tips.map((tip) => (
                 <li key={tip} className="flex gap-2">
                   <span className="text-primary">·</span>
                   <span>{tip}</span>
@@ -119,108 +189,208 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
               ))}
             </ul>
           </div>
-
-          <div className="p-4 sm:p-6">
-            <h2 className="mb-3 text-sm font-bold tracking-wide text-muted-foreground uppercase">
-              Ringkasan Skor per Bagian
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="font-bold">Bagian</TableHead>
-                    <TableHead className="text-center font-bold">Benar</TableHead>
-                    <TableHead className="text-center font-bold">Total</TableHead>
-                    <TableHead className="text-center font-bold">Persentase</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sectionRows.map((row) => {
-                    const pct =
-                      row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
-                    return (
-                      <TableRow key={row.section}>
-                        <TableCell className="font-medium">
-                          <span className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                'size-2 rounded-full',
-                                SECTION_COLORS[row.section] ?? 'bg-muted',
-                              )}
-                            />
-                            {row.sectionLabel}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center tabular-nums">
-                          {row.correct}
-                        </TableCell>
-                        <TableCell className="text-center tabular-nums">{row.total}</TableCell>
-                        <TableCell className="text-center font-semibold tabular-nums">
-                          {pct}%
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  <TableRow className="bg-muted/20 font-bold hover:bg-muted/20">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-center tabular-nums">{review.correct}</TableCell>
-                    <TableCell className="text-center tabular-nums">{review.total}</TableCell>
-                    <TableCell className="text-center tabular-nums text-primary">
-                      {review.score}%
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </div>
         </section>
 
         <section>
           <h2 className="mb-3 text-sm font-bold tracking-wide text-muted-foreground uppercase">
-            Analisis per Bagian JLPT
+            Analisis Kelulusan JLPT × CEFR
           </h2>
           <Card className="overflow-hidden border-border">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="font-bold">Bagian</TableHead>
-                    <TableHead className="text-center font-bold">Jawaban Benar Kamu</TableHead>
-                    <TableHead className="text-center font-bold">Minimal Lulus</TableHead>
-                    <TableHead className="text-center font-bold">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sectionRows.map((row) => (
-                    <TableRow key={row.section}>
-                      <TableCell className="font-medium">{row.sectionLabel}</TableCell>
-                      <TableCell className="text-center tabular-nums">
-                        {row.correct}/{row.total}
-                      </TableCell>
-                      <TableCell className="text-center tabular-nums">{row.minToPass}</TableCell>
-                      <TableCell className="text-center">
-                        {row.passed ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                            <CheckCircle2 className="size-3.5" />
-                            Memenuhi
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive">
-                            <XCircle className="size-3.5" />
-                            Kurang
-                          </span>
-                        )}
+            <CardHeader className="border-b border-border bg-muted/20 py-4">
+              <CardTitle className="text-base font-semibold">
+                Referensi standar JLPT {review.level} — CEFR
+              </CardTitle>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                JepangKu memetakan hasil simulasi ke skala resmi JLPT (0–180) dan level CEFR yang
+                digunakan dalam sertifikasi JLPT saat ini. Kelulusan JLPT mensyaratkan skor total
+                dan ambang per bagian ujian.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-border bg-muted/20 p-4">
+                  <p className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                    Batas minimum lulus (total)
+                  </p>
+                  <p className="mt-1 text-lg font-bold tabular-nums">
+                    {jlptCefr.totalPassScore} / {JLPT_TOTAL_MAX_SCORE}
+                    <span className="ml-2 text-sm font-medium text-muted-foreground">
+                      (~{jlptCefr.totalPassPercent}% benar)
+                    </span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Skor kamu:{' '}
+                    <strong className="text-foreground">{jlptCefr.scaledTotalScore}</strong>
+                    {jlptCefr.meetsJlptTotalPass ? (
+                      <span className="ml-1 text-emerald-600">· Memenuhi</span>
+                    ) : (
+                      <span className="ml-1 text-destructive">· Belum memenuhi</span>
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-muted/20 p-4">
+                  <p className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                    Kelulusan JLPT keseluruhan
+                  </p>
+                  <p className="mt-1 text-lg font-bold">
+                    {jlptCefr.jlptPassOverall ? (
+                      <span className="text-emerald-600">Memenuhi syarat</span>
+                    ) : (
+                      <span className="text-destructive">Belum memenuhi syarat</span>
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Total + semua bagian ujian harus memenuhi ambang minimal.
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="font-bold">Level CEFR</TableHead>
+                      <TableHead className="text-center font-bold">Rentang skor JLPT</TableHead>
+                      <TableHead className="text-center font-bold">Status kamu</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-sm text-muted-foreground" colSpan={3}>
+                        Di bawah {jlptCefr.totalPassScore} poin — di luar indikasi CEFR
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                    {jlptCefr.cefrBands.map((band) => {
+                      const active = jlptCefr.indicatedCefr === band.cefr;
+                      return (
+                        <TableRow
+                          key={band.cefr}
+                          className={active ? 'bg-primary/5 hover:bg-primary/5' : undefined}
+                        >
+                          <TableCell
+                            className={cn(
+                              'font-bold',
+                              CEFR_STYLES[band.cefr],
+                            )}
+                          >
+                            {band.cefr}
+                          </TableCell>
+                          <TableCell className="text-center text-sm tabular-nums">
+                            {formatCefrBandRange(band)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {active ? (
+                              <span className="text-xs font-semibold text-primary">Terindikasi</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div>
+                <h3 className="mb-3 text-sm font-bold tracking-wide text-muted-foreground uppercase">
+                  Kelulusan per Bagian Ujian
+                </h3>
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="font-bold">Bagian resmi JLPT</TableHead>
+                        <TableHead className="text-center font-bold">Benar</TableHead>
+                        <TableHead className="text-center font-bold">%</TableHead>
+                        <TableHead className="text-center font-bold">Skor setara</TableHead>
+                        <TableHead className="text-center font-bold">Minimal lulus</TableHead>
+                        <TableHead className="text-center font-bold">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jlptCefr.officialSectionRows.map((row) => {
+                        const group = levelConfig.sectionGroups.find((g) => g.key === row.key);
+                        const pct =
+                          row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0;
+                        return (
+                          <TableRow key={row.key}>
+                            <TableCell>
+                              <p className="font-medium">{row.label}</p>
+                              {group && group.sections.length > 1 ? (
+                                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                  {group.sections
+                                    .map((section) => {
+                                      const meta = sectionRows.find((s) => s.section === section);
+                                      return meta?.sectionLabel ?? section;
+                                    })
+                                    .join(' + ')}
+                                </p>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {row.correct}/{row.total}
+                            </TableCell>
+                            <TableCell className="text-center font-semibold tabular-nums">
+                              {pct}%
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {row.scaledScore}/{row.scaledMax}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {row.scaledMinPass}/{row.scaledMax}
+                              <span className="block text-[10px] text-muted-foreground">
+                                (min. {row.minToPass} benar)
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {row.passed ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                                  <CheckCircle2 className="size-3.5" />
+                                  Memenuhi
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-destructive">
+                                  <XCircle className="size-3.5" />
+                                  Kurang
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      <TableRow className="bg-muted/20 font-bold hover:bg-muted/20">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {review.correct}/{review.total}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums text-primary">
+                          {review.score}%
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {jlptCefr.scaledTotalScore}/{JLPT_TOTAL_MAX_SCORE}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {jlptCefr.totalPassScore}/{JLPT_TOTAL_MAX_SCORE}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {jlptCefr.jlptPassOverall ? (
+                            <span className="text-xs font-semibold text-emerald-600">Memenuhi</span>
+                          ) : (
+                            <span className="text-xs font-semibold text-destructive">Kurang</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  N5/N4 menggabungkan MOJI GOI + BUNPOU DOKKAI sebagai satu bagian (120 poin).
+                  N3–N1 memisahkan ketiga bagian (masing-masing 60 poin).
+                </p>
+              </div>
             </CardContent>
           </Card>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ambang minimal per bagian = 60% dari jumlah soal bagian tersebut (simulasi belajar, bukan
-            skor JLPT resmi).
-          </p>
         </section>
 
         <section>
