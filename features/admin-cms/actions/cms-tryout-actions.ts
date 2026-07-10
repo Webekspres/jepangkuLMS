@@ -3,6 +3,7 @@
 import type { LevelJLPT } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { validateSessionActivate } from '@/features/admin-cms/lib/jlpt-question-set-stats';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { generateSlug } from '@/lib/string-helpers';
@@ -15,7 +16,8 @@ export type CmsTryoutActionResult =
 function parseTryoutForm(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim();
   const codeRaw = String(formData.get('code') ?? '').trim();
-  const phaseLabel = String(formData.get('phaseLabel') ?? '').trim();
+  // phaseLabel kept in DB for student UI compat — default to title (no separate admin field).
+  const phaseLabel = String(formData.get('phaseLabel') ?? '').trim() || title;
   const description = String(formData.get('description') ?? '').trim() || null;
   const scheduledAtRaw = String(formData.get('scheduledAt') ?? '').trim();
   const timeLimitMinutes = Number(formData.get('timeLimitMinutes') ?? 120) || 120;
@@ -28,6 +30,8 @@ function parseTryoutForm(formData: FormData) {
   const level: LevelJLPT = levelParsed.success ? levelParsed.data : 'N5';
   const code = generateSlug(codeRaw || title);
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
+  const questionSetRaw = String(formData.get('questionSetId') ?? '').trim();
+  const questionSetId = questionSetRaw && questionSetRaw !== '__none__' ? questionSetRaw : null;
 
   return {
     title,
@@ -41,15 +45,29 @@ function parseTryoutForm(formData: FormData) {
     isStrictTimeBound,
     priceIdr,
     level,
+    questionSetId,
   };
 }
 
 function validateTryout(data: ReturnType<typeof parseTryoutForm>): string | null {
   if (!data.title) return 'Judul sesi wajib diisi.';
   if (!data.code) return 'Kode sesi tidak valid.';
-  if (!data.phaseLabel) return 'Label fase wajib diisi.';
   if (data.timeLimitMinutes < 10) return 'Durasi minimal 10 menit.';
   if (!levelJlptSchema.safeParse(data.level).success) return 'Level JLPT wajib dipilih.';
+  return null;
+}
+
+async function assertPackageAttachable(
+  questionSetId: string | null,
+  level: LevelJLPT,
+): Promise<string | null> {
+  if (!questionSetId) return null;
+  const set = await prisma.jlptQuestionSet.findUnique({ where: { id: questionSetId } });
+  if (!set) return 'Paket Soal tidak ditemukan.';
+  if (set.status !== 'READY') return `Paket harus READY (sekarang: ${set.status}).`;
+  if (set.level !== level) {
+    return `Level paket (${set.level}) harus sama dengan level sesi (${level}).`;
+  }
   return null;
 }
 
@@ -62,6 +80,42 @@ export async function createTryoutSessionAction(formData: FormData): Promise<Cms
   const existing = await prisma.tryoutSession.findUnique({ where: { code: data.code } });
   if (existing) return { ok: false, message: `Kode "${data.code}" sudah dipakai.` };
 
+  const attachError = await assertPackageAttachable(data.questionSetId, data.level);
+  if (attachError) return { ok: false, message: attachError };
+
+  if (data.isActive) {
+    if (!data.questionSetId) {
+      return { ok: false, message: 'Pilih Paket Soal sebelum mengaktifkan sesi.' };
+    }
+    // Create inactive first, then validate activate against the new id — validate by package fields.
+    const probe = await prisma.tryoutSession.create({
+      data: {
+        code: data.code,
+        title: data.title,
+        phaseLabel: data.phaseLabel,
+        description: data.description,
+        scheduledAt: data.scheduledAt,
+        timeLimitMinutes: data.timeLimitMinutes,
+        sortOrder: data.sortOrder,
+        isActive: false,
+        isStrictTimeBound: data.isStrictTimeBound,
+        priceIdr: data.priceIdr,
+        level: data.level,
+        questionSetId: data.questionSetId,
+      },
+    });
+    const gate = await validateSessionActivate(probe.id);
+    if (!gate.ok) {
+      await prisma.tryoutSession.delete({ where: { id: probe.id } });
+      return { ok: false, message: gate.message };
+    }
+    await prisma.tryoutSession.update({ where: { id: probe.id }, data: { isActive: true } });
+    revalidatePath(ADMIN_ROUTES.tryoutSessions);
+    revalidatePath(ADMIN_ROUTES.tryoutPaket);
+    revalidatePath('/dashboard/tryout');
+    return { ok: true, id: probe.id };
+  }
+
   const row = await prisma.tryoutSession.create({
     data: {
       code: data.code,
@@ -71,14 +125,16 @@ export async function createTryoutSessionAction(formData: FormData): Promise<Cms
       scheduledAt: data.scheduledAt,
       timeLimitMinutes: data.timeLimitMinutes,
       sortOrder: data.sortOrder,
-      isActive: data.isActive,
+      isActive: false,
       isStrictTimeBound: data.isStrictTimeBound,
       priceIdr: data.priceIdr,
       level: data.level,
+      questionSetId: data.questionSetId,
     },
   });
 
   revalidatePath(ADMIN_ROUTES.tryoutSessions);
+  revalidatePath(ADMIN_ROUTES.tryoutPaket);
   revalidatePath('/dashboard/tryout');
   return { ok: true, id: row.id };
 }
@@ -100,6 +156,27 @@ export async function updateTryoutSessionAction(
     if (duplicate) return { ok: false, message: `Kode "${data.code}" sudah dipakai.` };
   }
 
+  if (
+    existing.isActive &&
+    data.questionSetId !== existing.questionSetId
+  ) {
+    return {
+      ok: false,
+      message: 'Tidak bisa ganti Paket Soal pada sesi aktif. Nonaktifkan sesi dulu.',
+    };
+  }
+
+  const attachError = await assertPackageAttachable(data.questionSetId, data.level);
+  if (attachError) return { ok: false, message: attachError };
+
+  if (data.isActive) {
+    const gate = await validateSessionActivate(id, {
+      questionSetId: data.questionSetId,
+      level: data.level,
+    });
+    if (!gate.ok) return { ok: false, message: gate.message };
+  }
+
   await prisma.tryoutSession.update({
     where: { id },
     data: {
@@ -114,26 +191,22 @@ export async function updateTryoutSessionAction(
       isStrictTimeBound: data.isStrictTimeBound,
       priceIdr: data.priceIdr,
       level: data.level,
+      questionSetId: data.questionSetId,
     },
   });
 
   revalidatePath(ADMIN_ROUTES.tryoutSessions);
+  revalidatePath(ADMIN_ROUTES.tryoutPaket);
   revalidatePath('/dashboard/tryout');
   return { ok: true, id };
 }
 
 export async function deleteTryoutSessionAction(id: string): Promise<CmsTryoutActionResult> {
   await requireAdminAction();
-  const questionCount = await prisma.question.count({ where: { tryoutSessionId: id } });
-  if (questionCount > 0) {
-    return {
-      ok: false,
-      message:
-        'Tidak dapat menghapus Tryout! Sesi ini masih memiliki soal aktif. Hapus semua soal terlebih dahulu.',
-    };
-  }
   await prisma.tryoutSession.delete({ where: { id } });
   revalidatePath(ADMIN_ROUTES.tryoutSessions);
+  revalidatePath(ADMIN_ROUTES.tryoutBank);
+  revalidatePath(ADMIN_ROUTES.tryoutPaket);
   revalidatePath('/dashboard/tryout');
   return { ok: true };
 }
@@ -143,8 +216,13 @@ export async function toggleTryoutSessionActiveAction(
   isActive: boolean,
 ): Promise<CmsTryoutActionResult> {
   await requireAdminAction();
+  if (isActive) {
+    const gate = await validateSessionActivate(id);
+    if (!gate.ok) return { ok: false, message: gate.message };
+  }
   await prisma.tryoutSession.update({ where: { id }, data: { isActive } });
   revalidatePath(ADMIN_ROUTES.tryoutSessions);
+  revalidatePath(ADMIN_ROUTES.tryoutPaket);
   revalidatePath('/dashboard/tryout');
   return { ok: true };
 }

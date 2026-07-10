@@ -4,13 +4,13 @@ import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 import type { JlptPathItem } from '@/features/student/components/dashboard-data';
 import type { AchievementMilestone } from '@/features/student/components/student-achievements-data';
-import { resolveTryoutQuestionDisplay, sortTryoutExamQuestions, assignTryoutExamNumbers } from '@/features/admin-cms/lib/tryout-sections';
 import { loadDashboardJlptPath } from '@/features/student/lib/load-student-learning-data';
 import {
   resolveLiveSessionStatus,
   type LiveSessionStatus,
 } from '@/features/live-class/lib/session-access';
 import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
+import { loadTryoutExamPaper } from '@/features/tryout/lib/load-tryout-exam-paper';
 import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
@@ -218,26 +218,7 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
   });
 });
 
-export type TryoutExamQuestion = {
-  id: string;
-  sortOrder: number;
-  examNumber: number;
-  section: string;
-  sectionLabel: string;
-  questionText: string;
-  explanation: string | null;
-  audioUrl: string | null;
-  audioGroupId: string | null;
-  imageUrl: string | null;
-  answerOptionKind: 'TEXT' | 'IMAGE' | null;
-  options: { id: string; text: string; imageUrl: string | null }[];
-};
-
-const SECTION_LABELS: Record<string, string> = {
-  MOJI_GOI: 'MOJI GOI',
-  BUNPOU_DOKKAI: 'BUNPOU DOKKAI',
-  CHOKAI: 'CHOKAI',
-};
+export type { TryoutPaperQuestion as TryoutExamQuestion } from '@/features/tryout/lib/load-tryout-exam-paper';
 
 export async function loadTryoutExam(sessionCode: string, userId: string) {
   const session = await prisma.tryoutSession.findUnique({
@@ -256,57 +237,14 @@ export async function loadTryoutExam(sessionCode: string, userId: string) {
     };
   }
 
-  const questions = await prisma.question.findMany({
-    where: {
-      type: 'TRYOUT',
-      tryoutSessionId: session.id,
-    },
-    include: { options: { orderBy: { id: 'asc' } } },
-    orderBy: { sortOrder: 'asc' },
-  });
+  const questions = await loadTryoutExamPaper(session.id);
 
   if (questions.length === 0) return { session, questions: [], empty: true as const };
-
-  const ordered = assignTryoutExamNumbers(
-    sortTryoutExamQuestions(
-      questions.map((q) => {
-        const display = resolveTryoutQuestionDisplay({
-          questionText: q.questionText,
-          audioUrl: q.audioUrl,
-          audioGroupId: q.audioGroupId,
-        });
-
-        return {
-          id: q.id,
-          sortOrder: q.sortOrder,
-          section: q.tryoutSection ?? 'MOJI_GOI',
-          sectionLabel:
-            SECTION_LABELS[q.tryoutSection ?? 'MOJI_GOI'] ?? q.tryoutSection ?? 'Soal',
-          questionText: display.body,
-          explanation: q.explanation,
-          audioUrl: display.audioUrl,
-          audioGroupId: display.audioGroupId,
-          imageUrl: q.imageUrl,
-          answerOptionKind:
-            q.answerOptionKind === 'IMAGE'
-              ? 'IMAGE'
-              : q.answerOptionKind === 'TEXT'
-                ? 'TEXT'
-                : null,
-          options: q.options.map((o) => ({
-            id: o.id,
-            text: o.text,
-            imageUrl: o.imageUrl,
-          })),
-        };
-      }),
-    ),
-  );
 
   return {
     session,
     empty: false as const,
-    questions: ordered as TryoutExamQuestion[],
+    questions,
   };
 }
 

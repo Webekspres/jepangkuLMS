@@ -38,8 +38,15 @@ export const ADMIN_ROUTES = {
     liveClassForm: '/admin/live-class/form',
     liveClassFormEdit: (id: string) => `/admin/live-class/form?id=${id}`,
     tryoutSessions: '/admin/tryout',
+    tryoutBank: '/admin/tryout/bank',
+    tryoutPaket: '/admin/tryout/paket',
+    tryoutPaketDetail: (setId: string) => `/admin/tryout/paket/${setId}`,
+    tryoutPaketForm: '/admin/tryout/paket/form',
+    tryoutPaketImport: '/admin/tryout/paket/import',
     tryoutImport: '/admin/tryout/import',
     tryoutSessionForm: '/admin/tryout/form',
     tryoutSessionFormEdit: (id: string) => `/admin/tryout/form?id=${id}`,
     tryoutSessionQuestions: (sessionId: string) => `/admin/tryout/${sessionId}/soal`,
+    /** @deprecated Prefer Paket Soal — redirects to package editor. */
+    tryoutSessionCompose: (sessionId: string) => `/admin/tryout/${sessionId}/susun`,
 } as const;

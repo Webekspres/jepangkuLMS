@@ -84,7 +84,7 @@ export function TryoutSelectionPage({ sessions }: TryoutSelectionPageProps) {
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-foreground">{session.phaseLabel}</p>
+                  <p className="text-sm font-bold text-foreground">{session.title}</p>
                   <span
                     className={cn(
                       'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white',

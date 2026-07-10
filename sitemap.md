@@ -123,9 +123,15 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 │   ├── /import                  → Impor kursus dari workbook sensei N4/N5
 │   └── … modul / pelajaran / workspace
 │
-├── /tryout                      → CMS JLPT Tryout
-│   ├── /import                  → Impor sesi + soal MOJI/BUNPOU (workbook Excel)
-│   └── /[sessionId]/soal        → Kelola soal per sesi · tab CHOKAI: impor ZIP
+├── /tryout                      → CMS JLPT Tryout (sesi = event)
+│   ├── /paket                   → Paket Soal (buat & isi soal Moji/Bunpou/Choukai)
+│   │   ├── /form                → Buat paket baru
+│   │   ├── /import              → Import ZIP (pratinjau dry-run → impor ke DB)
+│   │   └── /[setId]             → Edit paket + tambah soal (terkunci jika sesi aktif)
+│   ├── /bank                    → Redirect → /paket (menu bank dihapus)
+│   ├── /import                  → Legacy notice → arahkan ke /paket/import
+│   ├── /[sessionId]/susun       → Redirect → paket sesi / /paket
+│   └── /[sessionId]/soal        → Redirect → /susun (legacy)
 │
 └── /quiz                        → Info bank soal (kelola per pelajaran di lesson workspace)
 ```

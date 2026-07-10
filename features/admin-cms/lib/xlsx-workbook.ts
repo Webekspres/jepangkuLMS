@@ -24,7 +24,10 @@ export function normalizeHeaderKey(raw: unknown): string {
 }
 
 export function stripSheetPrefix(name: string): string {
-    return name.replace(/^\d+\.\s*/, '').trim();
+    return name
+        .replace(/^\d+[._]\s*/u, '')
+        .replace(/^\d+\s+/u, '')
+        .trim();
 }
 
 export async function readXlsxFile(filePath: string): Promise<ExcelJS.Workbook> {

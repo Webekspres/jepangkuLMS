@@ -20,8 +20,11 @@ import {
   resolveTryoutXp,
   TRYOUT_PASS_SCORE_PERCENT,
 } from '@/features/student/lib/gamification-rewards';
-import { sortTryoutExamQuestions } from '@/features/admin-cms/lib/tryout-sections';
 import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
+import {
+  buildPaperSnapshot,
+  loadTryoutExamPaper,
+} from '@/features/tryout/lib/load-tryout-exam-paper';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
@@ -126,20 +129,7 @@ export async function submitTryoutAttempt(input: {
 
   const level: LevelJLPT = session.level;
 
-  const rows = await prisma.question.findMany({
-    where: {
-      type: 'TRYOUT',
-      tryoutSessionId: session.id,
-    },
-    include: { options: true },
-  });
-
-  const questions = sortTryoutExamQuestions(
-    rows.map((q) => ({
-      ...q,
-      section: q.tryoutSection ?? 'MOJI_GOI',
-    })),
-  );
+  const questions = await loadTryoutExamPaper(session.id);
 
   if (questions.length === 0) {
     return { ok: false, message: 'Soal untuk sesi ini belum tersedia.' };
@@ -155,6 +145,7 @@ export async function submitTryoutAttempt(input: {
   const score = Math.round((correct / questions.length) * 100);
   const scored = calculateTryoutPoints(correct);
   const tryoutXp = resolveTryoutXp(score);
+  const paperSnapshot = buildPaperSnapshot(session.id, questions);
 
   const attempt = await prisma.quizAttempt.create({
     data: {
@@ -167,6 +158,7 @@ export async function submitTryoutAttempt(input: {
       correctCount: correct,
       totalQuestions: questions.length,
       answersJson: JSON.stringify(input.answers),
+      paperSnapshotJson: JSON.stringify(paperSnapshot),
     },
   });
 
