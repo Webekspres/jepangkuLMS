@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ListChecks, Pencil, Plus, Search, Target } from 'lucide-react';
+import { Pencil, Plus, Search, Target, Package } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
@@ -92,14 +92,22 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
     <AdminPageShell
       label="Program"
       title="Kelola JLPT Tryout"
-      subtitle="Kelola sesi simulasi JLPT — soal per sesi & level JLPT."
+      subtitle="Sesi = jadwal ujian. Isi soal di Paket Soal, lalu pilih di sini."
       action={
-        <Button asChild>
-          <Link href={ADMIN_ROUTES.tryoutSessionForm}>
-            <Plus className="size-4" />
-            Sesi Baru
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={ADMIN_ROUTES.tryoutPaket}>
+              <Package className="size-4" />
+              Paket Soal
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={ADMIN_ROUTES.tryoutSessionForm}>
+              <Plus className="size-4" />
+              Sesi Baru
+            </Link>
+          </Button>
+        </div>
       }
     >
       <Card className="overflow-hidden border-border">
@@ -120,8 +128,8 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
           <TableHeader>
             <TableRow>
               <TableHead>Sesi</TableHead>
-              <TableHead>Kode</TableHead>
-              <TableHead>Fase</TableHead>
+              <TableHead>Level</TableHead>
+              <TableHead>Paket</TableHead>
               <TableHead>Soal</TableHead>
               <TableHead>Durasi</TableHead>
               <TableHead>Peserta</TableHead>
@@ -153,9 +161,15 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
                     ) : null}
                   </TableCell>
                   <TableCell>
-                    <code className="text-xs">{row.code}</code>
+                    <Badge variant="outline">{row.level}</Badge>
                   </TableCell>
-                  <TableCell>{row.phaseLabel}</TableCell>
+                  <TableCell>
+                    {row.questionSetTitle ? (
+                      <p className="max-w-48 truncate text-sm">{row.questionSetTitle}</p>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{row.questionCount}</TableCell>
                   <TableCell>{row.timeLimitMinutes} mnt</TableCell>
                   <TableCell>
@@ -181,12 +195,13 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
                   </TableCell>
                   <TableCell className="text-right">
                     <AdminTableActions>
-                      <AdminTableAction
-                        label="Kelola soal"
-                        icon={ListChecks}
-                        href={ADMIN_ROUTES.tryoutSessionQuestions(row.id)}
-                        showLabel
-                      />
+                      {row.questionSetId ? (
+                        <AdminTableAction
+                          label="Lihat paket"
+                          icon={Package}
+                          href={ADMIN_ROUTES.tryoutPaketDetail(row.questionSetId)}
+                        />
+                      ) : null}
                       <AdminTableAction
                         label="Edit sesi tryout"
                         icon={Pencil}
@@ -221,7 +236,7 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
         title="Hapus sesi tryout?"
         description={
           deleteTarget
-            ? `"${deleteTarget.title}" akan dihapus. Sesi dengan soal terhubung tidak bisa dihapus.`
+            ? `"${deleteTarget.title}" akan dihapus. Paket Soal & bank tetap aman.`
             : 'Sesi tryout akan dihapus permanen.'
         }
         confirmLabel="Hapus"

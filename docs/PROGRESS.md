@@ -7,9 +7,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-09                                                  |
+| **Terakhir diperbarui**   | 2026-07-10                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **91%** (63 item terlacak)                                  |
+| **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
 ### Progres global
 
@@ -20,15 +20,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      16 |     12 |     4 |     0 |     85% |
-| Halaman & routing        |      25 |     23 |     2 |     0 |     95% |
+| Halaman & routing        |      26 |     24 |     2 |     0 |     95% |
 | Domain `features/`       |       8 |      7 |     1 |     0 |     92% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **63** | **54** | **8** | **1** | **91%** |
+| **Total**                |  **64** | **55** | **8** | **1** | **91%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(54 + 3.2) ÷ 63 ≈ 91%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(55 + 3.2) ÷ 64 ≈ 91%`.
 
 ---
 
@@ -48,7 +48,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      12 |        4 |     0 |
-| Halaman & routing        |      23 |        2 |     0 |
+| Halaman & routing        |      24 |        2 |     0 |
 | Domain `features/`       |       7 |        1 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       5 |        1 |     0 |
@@ -119,8 +119,12 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
 | `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
 | `/admin/live-class`                        |   ✅   | CRUD jadwal live class + kolom peserta (enrollment) + dialog daftar siswa        |
-| `/admin/tryout`                            |   ✅   | CRUD sesi + CMS soal + impor + kolom peserta + dialog daftar siswa               |
-| `/admin/tryout/import`                     |   ✅   | Impor sesi tryout + soal MOJI_GOI/BUNPOU_DOKKAI dari formulir Excel              |
+| `/admin/tryout`                            |   ✅   | CRUD sesi + pilih Paket Soal + peserta                                               |
+| `/admin/tryout/paket`                      |   ✅   | Paket Soal: buat & isi Moji/Bunpou/Choukai (audio+gambar) di dalam paket              |
+| `/admin/tryout/paket/import`               |   ✅   | UI seperti impor kursus: dropzone + Pratinjau (`dryRun`) + Impor ke DB; panduan + template ZIP |
+| `/admin/tryout/bank`                       |   ✅   | Redirect → `/paket` (menu bank dihapus dari nav)                                      |
+| `/admin/tryout/[sessionId]/susun`          |   ✅   | Redirect → paket sesi (compose per-sesi retired)                                     |
+| `/admin/tryout/import`                     |   ✅   | Notice legacy; import paket di `/paket/import`                                       |
 | `/admin/pembayaran`                        |   ✅   | Antrian enrollment + tab Riwayat (`EnrollmentLog`: approve/reject/grant/request) |
 | `/admin/kursus` + modul + lesson workspace |   ✅   | CRUD + bank soal **per pelajaran** + kolom peserta + dialog daftar siswa          |
 | `/admin/kursus/import`                     |   ✅   | Impor multi-template (`official-course-v1` + sensei N4/N5); pratinjau struktur modul/pelajaran, kode error/warning, unduh laporan `.txt`; integration test official + rollback validasi |
@@ -136,7 +140,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries                                      |
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
-| **tryout**       |   ✅   | Bagian terpisah + focus navbar + simpan jawaban + halaman analisa              |
+| **tryout**       |   ✅   | Bank + Paket Soal (`JlptQuestionSet`) + sesi event + seek Choukai + paper snapshot |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
 | **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
@@ -150,7 +154,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :-------------------------------------------------------------------- | :----: | --------------------------------------------------------- |
 | Schema Course/Module/Lesson/Materi/Question                           |   ✅   |
 | Schema Enrollment, UserProgress, QuizAttempt                          |   ✅   |
-| Schema LiveClass, TryoutSession                                       |   ✅   |
+| Schema LiveClass, TryoutSession, JLPT bank + Paket Soal (`JlptQuestionSet`) |   ✅   |
 | Seed N5 + materi XLSX + tryout N5 Fase 1 + live class + badge starter |   ✅   |
 | Marketing katalog dari Prisma                                         |   ✅   |
 | Server Actions write paths                                            |   ✅   |
@@ -184,6 +188,14 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-10 | Template Paket Soal: pecah sheet soal per section (`004. Moji Goi`, `005. Bunpou Dokkai`, `006. Choukai`); parser merge + legacy Soal terpadu |
+| 2026-07-10 | Template Paket Soal: pilihan A–D + Jawaban Benar + Gambar Stimulus digabung ke sheet Soal; hapus sheet 005; klarifikasi pengisian Audio Chokai |
+| 2026-07-10 | Template ZIP Paket Soal: sheet `001. Panduan` ramah admin, kolom Indonesia + dropdown enum, kode bisnis sederhana (`n5-paket-1`); parser alias header/sheet baru |
+| 2026-07-10 | Import Paket Soal: UI mirror impor kursus (dropzone, Pratinjau dry-run, Impor ke DB, panduan + template); breadcrumb Import Paket |
+| 2026-07-10 | UX paket-first: hapus menu Bank Soal; form sesi/paket minimal; buat soal (Moji/Bunpou/Choukai+audio+gambar) langsung di detail paket |
+| 2026-07-10 | JLPT Paket Soal: `JlptQuestionSet`/`SetItem` + `session.questionSetId`, dual-read paper loader, CMS `/admin/tryout/paket`, session dropdown + activate gate (3 bagian), ZIP→paket replace, soft-lock + duplicate kode admin, retire `/susun` |
+| 2026-07-10 | JLPT Tryout Phase 2 cutover: legacy soal/import writes disabled; `/soal` redirects to `/susun`; composition freeze on active sessions; bank retire/activate |
+| 2026-07-10 | JLPT Tryout Question Bank Phase 1: `ListeningStimulus`/`JlptQuestion`/`TryoutSessionItem`, migrasi backfill, bank ZIP import, CMS `/admin/tryout/bank` + `/susun`, Choukai timestamp seek, `paperSnapshotJson` on submit; hapus sesi tidak menghapus bank |
 | 2026-07-08 | Course Import V1 fase 5 & 10 selesai: `modulePreview` + tabel struktur modul/pelajaran di UI admin, kode error/warning terstruktur, unduh laporan `.txt` (`build-course-import-report-text`), integration test official template + rollback saat validasi gagal |
 | 2026-07-08 | Course Import V1 fase 8–11: template resmi `official-course-v1` (builder + download), deteksi multi-template (`detect-course-import-template`), adapter resmi, entry point `previewCourseImport`/`importCourseWorkbook`, UX pratinjau (template badge + error sheet/baris), re-export legacy `import-sensei-course-xlsx` |
 | 2026-07-08 | Course Import V1 fase 5: persistence transaksional REPLACE + external ID nullable (`courseExternalId`/`moduleExternalId`/`lessonExternalId`), backfill script `course-import:backfill-external-ids`, integration test DB-optional |

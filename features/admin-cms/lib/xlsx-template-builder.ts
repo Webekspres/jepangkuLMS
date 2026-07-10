@@ -69,13 +69,17 @@ function applyHeaderStyle(cell: ExcelJS.Cell, required: boolean) {
     };
 }
 
-export function addGuideSheet(workbook: ExcelJS.Workbook, lines: string[]) {
-    const sheet = workbook.addWorksheet('0. Panduan', {
+export function addGuideSheet(
+    workbook: ExcelJS.Workbook,
+    lines: string[],
+    options?: { sheetName?: string; title?: string },
+) {
+    const sheet = workbook.addWorksheet(options?.sheetName ?? '0. Panduan', {
         properties: { tabColor: { argb: 'FFF59E0B' } },
     });
     sheet.mergeCells('A1:F1');
     const title = sheet.getCell('A1');
-    title.value = 'Panduan Pengisian';
+    title.value = options?.title ?? 'Panduan Pengisian';
     title.font = { bold: true, size: 14, color: { argb: XLSX_COLORS.mainHeaderBg } };
     title.alignment = { vertical: 'middle' };
 
@@ -100,7 +104,7 @@ export function addDataSheet(
     tabColor: string,
     guideLine: string,
     columns: ColDef[],
-    exampleRow: Record<string, string | number>,
+    exampleRow: Record<string, string | number> | Array<Record<string, string | number>>,
 ) {
     const sheet = workbook.addWorksheet(tabName, {
         properties: { tabColor: { argb: tabColor } },
@@ -129,11 +133,18 @@ export function addDataSheet(
         sheet.getColumn(idx + 1).width = col.width;
     });
 
-    const example = sheet.getRow(4);
-    columns.forEach((col, idx) => {
-        const cell = example.getCell(idx + 1);
-        cell.value = exampleRow[col.key] ?? '';
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_COLORS.exampleRowBg } };
+    const examples = Array.isArray(exampleRow) ? exampleRow : [exampleRow];
+    examples.forEach((exampleData, exampleIndex) => {
+        const example = sheet.getRow(4 + exampleIndex);
+        columns.forEach((col, idx) => {
+            const cell = example.getCell(idx + 1);
+            cell.value = exampleData[col.key] ?? '';
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: XLSX_COLORS.exampleRowBg },
+            };
+        });
     });
 
     columns.forEach((col, idx) => {

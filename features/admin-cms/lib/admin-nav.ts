@@ -26,6 +26,8 @@ function segmentLabel(segment: string, previous?: string): string {
   if (segment === 'lesson') return 'Pelajaran';
   if (previous === 'kursus' && isUuid(segment)) return 'Detail Kursus';
   if (previous === 'modul' && isUuid(segment)) return 'Detail Modul';
+  if (segment === 'import' && previous === 'paket') return 'Import Paket';
+  if (segment === 'import' && previous === 'tryout') return 'Import Tryout (legacy)';
   return ADMIN_BREADCRUMB_LABELS[segment] ?? segment;
 }
 

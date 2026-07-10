@@ -2,12 +2,13 @@ import { cache } from 'react';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import {
-  assignTryoutExamNumbers,
   getTryoutSectionMeta,
-  resolveTryoutQuestionDisplay,
-  sortTryoutExamQuestions,
   type TryoutSectionValue,
 } from '@/features/admin-cms/lib/tryout-sections';
+import {
+  loadTryoutExamPaper,
+  type PaperSnapshotPayload,
+} from '@/features/tryout/lib/load-tryout-exam-paper';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
@@ -81,40 +82,52 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     }
   }
 
-  const rows = await prisma.question.findMany({
-    where: {
-      type: 'TRYOUT',
-      tryoutSessionId: attempt.tryoutSessionId!,
-    },
-    include: { options: { orderBy: { id: 'asc' } } },
-  });
+  let snapshot: PaperSnapshotPayload | null = null;
+  if (attempt.paperSnapshotJson) {
+    try {
+      snapshot = JSON.parse(attempt.paperSnapshotJson) as PaperSnapshotPayload;
+    } catch {
+      snapshot = null;
+    }
+  }
 
-  const ordered = assignTryoutExamNumbers(
-    sortTryoutExamQuestions(
-      rows.map((q) => ({
-        ...q,
-        section: q.tryoutSection ?? 'MOJI_GOI',
-      })),
-    ),
-  );
+  const paper =
+    snapshot?.questions?.length
+      ? snapshot.questions.map((q, index) => ({
+          id: q.id,
+          examNumber: index + 1,
+          section: q.section,
+          sectionLabel: getTryoutSectionMeta(q.section).labelRomaji,
+          questionText: q.questionText,
+          explanation: q.explanation,
+          options: q.options,
+        }))
+      : (await loadTryoutExamPaper(attempt.tryoutSessionId!)).map((q) => ({
+          id: q.id,
+          examNumber: q.examNumber,
+          section: String(q.section),
+          sectionLabel: getTryoutSectionMeta(String(q.section)).labelRomaji,
+          questionText: q.questionText,
+          explanation: q.explanation,
+          options: q.options.map((o) => ({
+            id: o.id,
+            text: o.text,
+            isCorrect: Boolean(o.isCorrect),
+          })),
+        }));
 
-  const questions: TryoutReviewQuestion[] = ordered.map((q, index) => {
-    const display = resolveTryoutQuestionDisplay({
-      questionText: q.questionText,
-      audioUrl: q.audioUrl,
-      audioGroupId: q.audioGroupId,
-    });
-    const section = (q.tryoutSection ?? 'MOJI_GOI') as TryoutSectionValue;
+  const questions: TryoutReviewQuestion[] = paper.map((q) => {
+    const section = q.section as TryoutSectionValue;
     const selectedOptionId = answers[q.id] ?? null;
     const selected = q.options.find((o) => o.id === selectedOptionId);
     const correctOpt = q.options.find((o) => o.isCorrect);
 
     return {
       id: q.id,
-      examNumber: index + 1,
+      examNumber: q.examNumber,
       section,
-      sectionLabel: getTryoutSectionMeta(section).labelRomaji,
-      questionText: display.body,
+      sectionLabel: q.sectionLabel,
+      questionText: q.questionText,
       explanation: q.explanation,
       options: q.options.map((o) => ({
         id: o.id,

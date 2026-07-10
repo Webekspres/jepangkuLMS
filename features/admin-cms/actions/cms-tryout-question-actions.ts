@@ -4,210 +4,63 @@ import { revalidatePath } from 'next/cache';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { prisma } from '@/lib/prisma';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
-import { renumberTryoutQuestionsForSession } from '@/features/admin-cms/lib/renumber-tryout-questions';
+import { LEGACY_TRYOUT_WRITE_DISABLED_MESSAGE } from '@/features/admin-cms/lib/tryout-phase2-guards';
 import { type TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
-import { tryoutQuestionSchema, type TryoutQuestionInput } from '@/features/admin-cms/lib/validations';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 
-function revalidateTryout(sessionId: string) {
-  revalidatePath(ADMIN_ROUTES.tryoutSessionQuestions(sessionId));
-  revalidatePath(ADMIN_ROUTES.tryoutSessions);
-  revalidatePath('/dashboard/tryout');
-}
-
-async function assertTryoutSession(sessionId: string) {
-  const session = await prisma.tryoutSession.findUnique({ where: { id: sessionId } });
-  if (!session) throw new Error('Sesi tryout tidak ditemukan.');
-  return session;
-}
-
-async function nextSortOrder(
-  sessionId: string,
-  section: TryoutSectionValue,
-): Promise<number> {
-  const agg = await prisma.question.aggregate({
-    where: {
-      tryoutSessionId: sessionId,
-      tryoutSection: section,
-      type: 'TRYOUT',
-    },
-    _max: { sortOrder: true },
-  });
-  return (agg._max.sortOrder ?? 0) + 1;
-}
-
-function resolveChokaiAudioFields(data: TryoutQuestionInput) {
-  if (data.tryoutSection !== 'CHOKAI') {
-    return { audioUrl: null, audioGroupId: null };
-  }
-
-  const audioUrl = data.audioUrl?.trim() || null;
-  const audioGroupId =
-    data.audioMode === 'group' ? data.audioGroupId?.trim() || null : null;
-
-  return { audioUrl, audioGroupId };
+/**
+ * Phase 2: all legacy session-owned Question mutations are disabled.
+ * Bank + TryoutSessionItem composition is the only write path.
+ */
+function disabled(): CmsActionResult {
+  return { ok: false, message: LEGACY_TRYOUT_WRITE_DISABLED_MESSAGE };
 }
 
 export async function createTryoutQuestionAction(
-  input: unknown,
+  _input: unknown,
 ): Promise<CmsActionResult & { id?: string }> {
   await requireAdminAction();
-  const parsed = tryoutQuestionSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
-  }
-
-  const data = parsed.data;
-  await assertTryoutSession(data.tryoutSessionId);
-
-  const correctCount = data.options.filter((opt) => opt.isCorrect).length;
-  if (correctCount !== 1) {
-    return { ok: false, message: 'Pilih tepat satu jawaban benar.' };
-  }
-
-  const sortOrder = await nextSortOrder(data.tryoutSessionId, data.tryoutSection);
-  const audio = resolveChokaiAudioFields(data);
-
-  const row = await prisma.question.create({
-    data: {
-      type: 'TRYOUT',
-      tryoutSessionId: data.tryoutSessionId,
-      tryoutSection: data.tryoutSection,
-      sortOrder,
-      questionText: data.questionText,
-      explanation: data.explanation || null,
-      audioUrl: audio.audioUrl,
-      audioGroupId: audio.audioGroupId,
-      xpReward: 0,
-      options: {
-        create: data.options.map((opt) => ({
-          text: opt.text,
-          isCorrect: opt.isCorrect,
-        })),
-      },
-    },
-  });
-
-  revalidateTryout(data.tryoutSessionId);
-  return { ok: true, id: row.id };
+  return disabled();
 }
 
 export async function updateTryoutQuestionAction(
-  questionId: string,
-  input: unknown,
+  _questionId: string,
+  _input: unknown,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  const parsed = tryoutQuestionSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
-  }
-
-  const data = parsed.data;
-  await assertTryoutSession(data.tryoutSessionId);
-
-  const existing = await prisma.question.findFirst({
-    where: { id: questionId, tryoutSessionId: data.tryoutSessionId, type: 'TRYOUT' },
-  });
-  if (!existing) return { ok: false, message: 'Soal tryout tidak ditemukan.' };
-
-  const correctCount = data.options.filter((opt) => opt.isCorrect).length;
-  if (correctCount !== 1) {
-    return { ok: false, message: 'Pilih tepat satu jawaban benar.' };
-  }
-
-  const audio = resolveChokaiAudioFields(data);
-
-  await prisma.$transaction([
-    prisma.questionOption.deleteMany({ where: { questionId } }),
-    prisma.question.update({
-      where: { id: questionId },
-      data: {
-        tryoutSection: data.tryoutSection,
-        questionText: data.questionText,
-        explanation: data.explanation || null,
-        audioUrl: audio.audioUrl,
-        audioGroupId: audio.audioGroupId,
-        options: {
-          create: data.options.map((opt) => ({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-          })),
-        },
-      },
-    }),
-  ]);
-
-  revalidateTryout(data.tryoutSessionId);
-  return { ok: true };
+  return disabled();
 }
 
 export async function reorderTryoutQuestionsAction(
-  sessionId: string,
-  section: TryoutSectionValue,
-  orderedIds: string[],
+  _sessionId: string,
+  _section: TryoutSectionValue,
+  _orderedIds: string[],
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  await assertTryoutSession(sessionId);
-
-  const rows = await prisma.question.findMany({
-    where: {
-      tryoutSessionId: sessionId,
-      tryoutSection: section,
-      type: 'TRYOUT',
-    },
-    select: { id: true },
-    orderBy: { sortOrder: 'asc' },
-  });
-
-  if (orderedIds.length !== rows.length) {
-    return { ok: false, message: 'Daftar urutan soal tidak lengkap.' };
-  }
-
-  const validIds = new Set(rows.map((row) => row.id));
-  if (!orderedIds.every((id) => validIds.has(id))) {
-    return { ok: false, message: 'Soal tidak valid untuk bagian ini.' };
-  }
-
-  await prisma.$transaction(
-    orderedIds.map((id, index) =>
-      prisma.question.update({ where: { id }, data: { sortOrder: index + 1 } }),
-    ),
-  );
-
-  revalidateTryout(sessionId);
-  return { ok: true };
+  return disabled();
 }
 
-/** Renumber sortOrder 1..n per section — fixes legacy global numbering. */
 export async function normalizeTryoutQuestionSortOrdersAction(
-  sessionId: string,
+  _sessionId: string,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  await assertTryoutSession(sessionId);
-
-  const updated = await renumberTryoutQuestionsForSession(sessionId);
-  if (updated > 0) {
-    revalidateTryout(sessionId);
-  }
-
-  return { ok: true };
+  return disabled();
 }
 
 export async function deleteTryoutQuestionAction(
-  sessionId: string,
-  questionId: string,
+  _sessionId: string,
+  _questionId: string,
 ): Promise<CmsActionResult> {
   await requireAdminAction();
-  await assertTryoutSession(sessionId);
+  return disabled();
+}
 
-  const existing = await prisma.question.findFirst({
-    where: { id: questionId, tryoutSessionId: sessionId, type: 'TRYOUT' },
-  });
-  if (!existing) return { ok: false, message: 'Soal tryout tidak ditemukan.' };
-
-  await prisma.question.delete({ where: { id: questionId } });
-  await renumberTryoutQuestionsForSession(sessionId);
-
-  revalidateTryout(sessionId);
-  return { ok: true };
+/** Kept for any leftover callers that only need revalidation after compose. */
+export async function revalidateTryoutSessionPaths(sessionId: string) {
+  revalidatePath(ADMIN_ROUTES.tryoutSessionCompose(sessionId));
+  revalidatePath(ADMIN_ROUTES.tryoutSessions);
+  revalidatePath(ADMIN_ROUTES.tryoutBank);
+  revalidatePath('/dashboard/tryout');
+  // Touch prisma so the module stays a valid server action file if tree-shaken oddly.
+  void prisma;
 }
