@@ -232,10 +232,10 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
             accent="bg-blue-500/10 text-blue-600"
           />
           <QuickAction
-            icon={Pencil}
-            label="Edit Profil"
-            href={`${STUDENT_ROUTES.profil}/edit`}
-            accent="bg-muted text-muted-foreground"
+            icon={BarChart3}
+            label="Tryout JLPT Saya"
+            href={STUDENT_ROUTES.tryoutHistory}
+            accent="bg-emerald-500/10 text-emerald-600"
           />
         </div>
       </section>

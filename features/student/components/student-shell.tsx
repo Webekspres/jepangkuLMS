@@ -15,10 +15,15 @@ function isTryoutReviewPath(pathname: string) {
   return /^\/dashboard\/tryout\/hasil\/[^/]+$/.test(pathname);
 }
 
+/** Static tryout routes that are not exam sessions. */
+const TRYOUT_STATIC_SEGMENTS = new Set(['hasil', 'riwayat']);
+
 /** Exam path uses TryoutFocusShell inside workspace — no dashboard nav. */
 function isTryoutExamPath(pathname: string) {
-  if (pathname.startsWith('/dashboard/tryout/hasil')) return false;
-  return /^\/dashboard\/tryout\/[^/]+(?:\/[^/]+)?$/.test(pathname);
+  const match = pathname.match(/^\/dashboard\/tryout\/([^/]+)(?:\/([^/]+))?$/);
+  if (!match) return false;
+  if (TRYOUT_STATIC_SEGMENTS.has(match[1])) return false;
+  return true;
 }
 
 export function StudentShell({ children }: StudentShellProps) {

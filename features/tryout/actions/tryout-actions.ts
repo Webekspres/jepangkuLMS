@@ -209,6 +209,7 @@ export async function submitTryoutAttempt(input: {
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/tryout');
+  revalidatePath('/dashboard/tryout/riwayat');
   revalidatePath('/dashboard/leaderboard');
   revalidatePath(STUDENT_ROUTES.achievements);
 
