@@ -1,12 +1,29 @@
 import type { TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
 import type { TryoutAttemptReview } from '@/features/tryout/lib/load-tryout-review';
+import {
+  buildJlptCefrAnalysis,
+  type CefrLevel,
+  type JlptCefrAnalysis,
+  simulationSectionMinToPass,
+} from '@/features/tryout/lib/jlpt-cefr-reference';
+
+export type { CefrLevel, JlptCefrAnalysis };
+export { buildJlptCefrAnalysis };
 
 export type TryoutStatusTier = {
   code: 'AMAN' | 'PERLU_LATIHAN' | 'SOS';
   label: string;
-  passRateEstimate: number;
+};
+
+/** Ambang lulus simulasi internal (XP/badge) — terpisah dari standar JLPT resmi. */
+export const SIMULATION_PASS_PERCENT = 60;
+
+export type TryoutFeedback = {
+  tier: TryoutStatusTier;
   headline: string;
   feedback: string;
+  sectionNote: string | null;
+  sectionNoteEmphasis: string | null;
   tips: string[];
 };
 
@@ -20,55 +37,108 @@ export type TryoutSectionAnalysisRow = {
   wrongCount: number;
 };
 
-/** Ambang minimal benar per bagian — simulasi 60% (bukan skor JLPT resmi). */
+/** Ambang minimal benar per bagian simulasi (~32%, selaras JLPT 19/60). */
 export function sectionMinToPass(total: number): number {
-  if (total <= 0) return 0;
-  return Math.ceil(total * 0.6);
+  return simulationSectionMinToPass(total);
 }
 
 export function getTryoutStatusTier(scorePercent: number): TryoutStatusTier {
-  if (scorePercent >= 60) {
+  if (scorePercent >= SIMULATION_PASS_PERCENT) {
+    return { code: 'AMAN', label: 'Aman' };
+  }
+  if (scorePercent >= 40) {
+    return { code: 'PERLU_LATIHAN', label: 'Perlu Latihan' };
+  }
+  return { code: 'SOS', label: 'SOS' };
+}
+
+export function buildTryoutFeedback(input: {
+  scorePercent: number;
+  correct: number;
+  total: number;
+  sectionRows: TryoutSectionAnalysisRow[];
+  jlptPassOverall: boolean;
+  indicatedCefr: CefrLevel | null;
+  level: string;
+}): TryoutFeedback {
+  const tier = getTryoutStatusTier(input.scorePercent);
+  const wrongCount = input.total - input.correct;
+  const isPerfect = input.total > 0 && wrongCount === 0;
+  const weakestSection = getWeakestSectionLabel(input.sectionRows);
+  const failedSections = input.sectionRows.filter((row) => !row.passed);
+
+  if (isPerfect) {
     return {
-      code: 'AMAN',
-      label: 'Aman',
-      passRateEstimate: 78,
+      tier,
+      headline: 'Skor sempurna — performa luar biasa!',
+      feedback: input.indicatedCefr
+        ? `Kamu menjawab semua soal benar. Skor setara JLPT memenuhi indikasi CEFR ${input.indicatedCefr} untuk level ${input.level}.`
+        : `Kamu menjawab semua soal benar dalam simulasi ini. Pertahankan konsistensi saat menghadapi ujian dengan jumlah soal penuh.`,
+      sectionNote: 'Semua bagian simulasi terjawab benar.',
+      sectionNoteEmphasis: null,
+      tips: input.jlptPassOverall
+        ? [
+            'Pertahankan ritme belajar dan pertimbangkan tryout level berikutnya.',
+            'Gunakan referensi CEFR di bawah untuk memantau perkembangan kemampuan.',
+          ]
+        : [
+            'Skor simulasi sempurna — lanjutkan latihan rutin agar konsisten di ujian sesungguhnya.',
+            'Periksa analisa kelulusan per bagian JLPT di bawah untuk memastikan semua ambang resmi terpenuhi.',
+          ],
+    };
+  }
+
+  if (tier.code === 'AMAN') {
+    return {
+      tier,
       headline: 'Skor kamu berada pada tingkat aman untuk simulasi ini.',
-      feedback:
-        'Performa keseluruhan sudah mendekati target kelulusan simulasi (≥60%). Pertahankan konsistensi per bagian JLPT.',
+      feedback: input.jlptPassOverall
+        ? `Performa keseluruhan memenuhi ambang simulasi (≥${SIMULATION_PASS_PERCENT}%) dan syarat kelulusan JLPT untuk level ${input.level}.`
+        : `Performa keseluruhan memenuhi ambang simulasi (≥${SIMULATION_PASS_PERCENT}%), namun masih ada bagian yang belum memenuhi ambang kelulusan JLPT resmi.`,
+      sectionNote: weakestSection
+        ? 'Bagian paling perlu diperkuat:'
+        : failedSections.length === 0
+          ? 'Semua bagian simulasi memenuhi ambang minimal.'
+          : null,
+      sectionNoteEmphasis: weakestSection,
       tips: [
-        'Review soal yang masih salah di bawah untuk memperkuat area lemah.',
-        'Coba sesi tryout level berikutnya atau ulangi dengan timer lebih ketat.',
+        ...(wrongCount > 0
+          ? ['Review soal yang masih salah di bawah untuk memperkuat area lemah.']
+          : []),
+        'Pertahankan konsistensi di setiap bagian JLPT.',
+        'Coba sesi tryout berikutnya atau ulangi dengan timer lebih ketat.',
       ],
     };
   }
 
-  if (scorePercent >= 40) {
+  if (tier.code === 'PERLU_LATIHAN') {
     return {
-      code: 'PERLU_LATIHAN',
-      label: 'Perlu Latihan',
-      passRateEstimate: 48,
+      tier,
       headline: 'Skor kamu masih di zona perlu latihan intensif.',
-      feedback:
-        'Berdasarkan pola simulasi internal, peserta dengan skor serupa membutuhkan penguatan 1–2 bagian utama sebelum ujian sesungguhnya.',
+      feedback: `Hasil di bawah ambang aman simulasi (${SIMULATION_PASS_PERCENT}%). Fokuskan penguatan pada bagian yang masih di bawah ambang minimal.`,
+      sectionNote: weakestSection ? 'Bagian paling perlu diperkuat:' : null,
+      sectionNoteEmphasis: weakestSection,
       tips: [
-        'Fokuskan belajar pada bagian dengan benar di bawah ambang minimal.',
         'Kerjakan ulang materi kursus yang terkait bagian terlemah.',
-        'Gunakan mode tryout lagi setelah review penjelasan tiap soal.',
+        ...(wrongCount > 0
+          ? ['Pelajari penjelasan tiap soal salah sebelum mencoba lagi.']
+          : []),
+        'Gunakan mode tryout lagi setelah review.',
       ],
     };
   }
 
   return {
-    code: 'SOS',
-    label: 'SOS',
-    passRateEstimate: 28,
+    tier,
     headline: 'Skor kamu saat ini berada pada tingkat SOS.',
     feedback:
-      'Hasil ini menunjukkan fondasi di beberapa bagian masih perlu dibangun. Simulasi ini untuk belajar — manfaatkan analisa di bawah sebagai peta latihan.',
+      'Fondasi di beberapa bagian masih perlu dibangun. Manfaatkan analisa di bawah sebagai peta latihan.',
+    sectionNote: weakestSection ? 'Mulai perbaikan dari:' : null,
+    sectionNoteEmphasis: weakestSection,
     tips: [
-      'Mulai dari MOJI GOI: kuasakan kosakata & kanji dasar level ini.',
-      'Untuk BUNPOU DOKKAI, baca penjelasan setiap soal salah dan catat pola tata bahasa.',
-      'CHOKAI: dengarkan ulang audio dan latih menangkap kata kunci.',
+      'Kuatkan kosakata & kanji dasar di MOJI GOI terlebih dahulu.',
+      'Untuk BUNPOU DOKKAI, catat pola tata bahasa dari soal yang salah.',
+      'CHOKAI: latih menangkap kata kunci dari audio atau konteks soal.',
     ],
   };
 }
@@ -95,10 +165,15 @@ export function buildSectionAnalysisRows(
 
 export function getWeakestSectionLabel(rows: TryoutSectionAnalysisRow[]): string | null {
   if (rows.length === 0) return null;
-  const sorted = [...rows].sort((a, b) => {
+
+  const withIssues = rows.filter((row) => row.wrongCount > 0 || !row.passed);
+  if (withIssues.length === 0) return null;
+
+  const sorted = [...withIssues].sort((a, b) => {
     const ratioA = a.total > 0 ? a.correct / a.total : 0;
     const ratioB = b.total > 0 ? b.correct / b.total : 0;
-    return ratioA - ratioB;
+    if (ratioA !== ratioB) return ratioA - ratioB;
+    return b.wrongCount - a.wrongCount;
   });
   return sorted[0]?.sectionLabel ?? null;
 }

@@ -1,6 +1,7 @@
 import type { LevelJLPT } from '@prisma/client';
 import { cache } from 'react';
 import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
+import { countTryoutCompositionQuestions } from '@/features/tryout/lib/count-tryout-paper-questions';
 import { prisma } from '@/lib/prisma';
 
 export type AdminTryoutSessionRow = {
@@ -20,23 +21,6 @@ export type AdminTryoutSessionRow = {
   activeEnrollments: number;
   pendingEnrollments: number;
 };
-
-function countPaperQuestions(
-  items: Array<{
-    jlptQuestionId: string | null;
-    listeningStimulus: { _count: { questions: number } } | null;
-  }>,
-): number {
-  let n = 0;
-  for (const item of items) {
-    if (item.listeningStimulus) {
-      n += item.listeningStimulus._count.questions;
-    } else if (item.jlptQuestionId) {
-      n += 1;
-    }
-  }
-  return n;
-}
 
 export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessions(): Promise<
   AdminTryoutSessionRow[]
@@ -74,8 +58,8 @@ export const loadAdminTryoutSessions = cache(async function loadAdminTryoutSessi
   );
 
   return rows.map((row) => {
-    const fromSet = row.questionSet ? countPaperQuestions(row.questionSet.items) : 0;
-    const composed = fromSet > 0 ? fromSet : countPaperQuestions(row.items);
+    const fromSet = row.questionSet ? countTryoutCompositionQuestions(row.questionSet.items) : 0;
+    const composed = fromSet > 0 ? fromSet : countTryoutCompositionQuestions(row.items);
     return {
       id: row.id,
       code: row.code,

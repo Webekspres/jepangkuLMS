@@ -272,7 +272,7 @@ function ChokaiForm({
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
       <div className="space-y-2">
-        <Label>Audio (.mp3) *</Label>
+        <Label>Audio (.mp3)</Label>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -304,7 +304,9 @@ function ChokaiForm({
             <track kind="captions" />
           </audio>
         ) : (
-          <p className="text-xs text-muted-foreground">Wajib — siswa mendengar dari sini.</p>
+          <p className="text-xs text-muted-foreground">
+            Opsional — kosongkan jika soal Choukai tanpa audio.
+          </p>
         )}
       </div>
 

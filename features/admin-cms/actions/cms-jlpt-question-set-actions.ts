@@ -396,7 +396,7 @@ export async function createQuestionInSetAction(input: {
 }
 
 /**
- * Create a Choukai stimulus + one question inside a package (audio + optional image).
+ * Create Choukai inside a package: stimulus path (optional audio/image/instruction) or standalone question.
  */
 export async function createChokaiInSetAction(input: {
   questionSetId: string;
@@ -418,9 +418,6 @@ export async function createChokaiInSetAction(input: {
 
   const questionText = input.questionText.trim();
   if (!questionText) return { ok: false, message: 'Teks soal wajib diisi.' };
-  if (!input.audioUrl?.trim()) {
-    return { ok: false, message: 'Audio Choukai wajib diunggah.' };
-  }
   if (input.options.length < 2) return { ok: false, message: 'Minimal 2 opsi.' };
   if (input.options.some((o) => !o.text.trim())) {
     return { ok: false, message: 'Semua opsi wajib diisi.' };
@@ -448,26 +445,61 @@ export async function createChokaiInSetAction(input: {
   }
 
   const sortOrder = await nextItemSort(input.questionSetId, 'CHOKAI');
+  const hasAudio = Boolean(input.audioUrl?.trim());
+  const hasImage = Boolean(input.imageUrl?.trim());
+  const hasInstruction = Boolean(input.instructionText?.trim());
+  const useStimulus = hasAudio || hasImage || hasInstruction;
+
   const startMs = Math.max(0, Math.trunc(input.audioStartMs ?? 0));
   const endMs =
     input.audioEndMs != null && Number.isFinite(input.audioEndMs)
       ? Math.trunc(input.audioEndMs)
       : null;
-  if (endMs != null && endMs <= startMs) {
+  if (hasAudio && endMs != null && endMs <= startMs) {
     return { ok: false, message: 'Waktu selesai audio harus lebih besar dari mulai.' };
   }
 
+  const optionCreates = input.options.map((opt, index) => ({
+    text: opt.text.trim(),
+    isCorrect: opt.isCorrect,
+    sortOrder: index,
+  }));
+
   await prisma.$transaction(async (tx) => {
+    if (!useStimulus) {
+      const question = await tx.jlptQuestion.create({
+        data: {
+          code: qCode,
+          level: set.level,
+          section: 'CHOKAI',
+          status: 'ACTIVE',
+          questionText,
+          explanation: input.explanation?.trim() || null,
+          answerOptionKind: 'TEXT',
+          options: { create: optionCreates },
+        },
+      });
+      await tx.jlptQuestionSetItem.create({
+        data: {
+          questionSetId: input.questionSetId,
+          section: 'CHOKAI',
+          sortOrder,
+          jlptQuestionId: question.id,
+        },
+      });
+      return;
+    }
+
     const stim = await tx.listeningStimulus.create({
       data: {
         code: stimCode,
         level: set.level,
         status: 'ACTIVE',
         instructionText: input.instructionText?.trim() || null,
-        audioUrl: input.audioUrl!.trim(),
-        audioObjectKey: input.audioObjectKey?.trim() || null,
+        audioUrl: hasAudio ? input.audioUrl!.trim() : null,
+        audioObjectKey: hasAudio ? input.audioObjectKey?.trim() || null : null,
         audioStartMs: startMs,
-        audioEndMs: endMs,
+        audioEndMs: hasAudio ? endMs : null,
         imageUrl: input.imageUrl?.trim() || null,
         imageObjectKey: input.imageObjectKey?.trim() || null,
       },
@@ -483,13 +515,7 @@ export async function createChokaiInSetAction(input: {
         answerOptionKind: 'TEXT',
         listeningStimulusId: stim.id,
         stimulusSortOrder: 1,
-        options: {
-          create: input.options.map((opt, index) => ({
-            text: opt.text.trim(),
-            isCorrect: opt.isCorrect,
-            sortOrder: index,
-          })),
-        },
+        options: { create: optionCreates },
       },
     });
     await tx.jlptQuestionSetItem.create({

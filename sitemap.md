@@ -76,6 +76,7 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 └── Kartu kelas + link meeting
 
 /dashboard/tryout *              → Simulasi JLPT (pilih sesi + level)
+├── /riwayat *                   → Riwayat tryout siswa + buka analisa ulang
 └── Mode ujian (?session=&level=) → Ruang ujian + timer + navigator soal
 
 /belajar/[courseSlug]/[lessonSlug] * → Course Workspace & Lesson View Page
