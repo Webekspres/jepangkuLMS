@@ -16,6 +16,10 @@ import {
   resolveJlptBankImageMime,
   uploadJlptBankAsset,
 } from '@/lib/media/jlpt-bank-assets';
+import {
+  deleteJlptBankObjectKeysIfOrphaned,
+  trackReplacedJlptBankKey,
+} from '@/lib/media/jlpt-bank-r2-cleanup';
 import { probeAudioDurationSec } from '@/lib/media/ffmpeg';
 import { normalizeHeaderKey, stripSheetPrefix } from '@/features/admin-cms/lib/xlsx-workbook';
 import { addDataSheet, addGuideSheet } from '@/features/admin-cms/lib/xlsx-template-builder';
@@ -888,6 +892,7 @@ export async function importJlptBankZip(
   let questionsUpserted = 0;
   let optionsUpserted = 0;
   let packageId: string | undefined;
+  const replacedJlptBankKeys: string[] = [];
 
   const stimulusIdByCode = new Map<string, string>();
   const questionIdByCode = new Map<string, string>();
@@ -968,6 +973,11 @@ export async function importJlptBankZip(
           gambarFromSoal || pick(row, ['nama_file_gambar', 'image_file', 'image']);
         const image = imageFile ? await ensureImage(level, code, imageFile, 'image') : null;
 
+        const existingStim = await tx.listeningStimulus.findUnique({
+          where: { code },
+          select: { audioObjectKey: true, imageObjectKey: true },
+        });
+
         const data = {
           level,
           status: parseStatus(pick(row, ['status', 'status_item'])),
@@ -982,6 +992,17 @@ export async function importJlptBankZip(
           imageObjectKey: image?.objectKey ?? null,
           imageUrl: image?.url ?? null,
         };
+
+        trackReplacedJlptBankKey(
+          replacedJlptBankKeys,
+          existingStim?.audioObjectKey,
+          data.audioObjectKey,
+        );
+        trackReplacedJlptBankKey(
+          replacedJlptBankKeys,
+          existingStim?.imageObjectKey,
+          data.imageObjectKey,
+        );
 
         const rowDb = await tx.listeningStimulus.upsert({
           where: { code },
@@ -1039,6 +1060,11 @@ export async function importJlptBankZip(
         const sortInStimulus =
           Number(pick(row, ['urutan_dalam_audio', 'sort_in_stimulus', 'urutan']) || '0') || 0;
 
+        const existingQuestion = await tx.jlptQuestion.findUnique({
+          where: { code },
+          select: { stemImageObjectKey: true },
+        });
+
         const qData = {
           level,
           section,
@@ -1054,6 +1080,12 @@ export async function importJlptBankZip(
         };
         if (!qData.questionText) throw new Error(`Soal ${code}: pertanyaan wajib.`);
 
+        trackReplacedJlptBankKey(
+          replacedJlptBankKeys,
+          existingQuestion?.stemImageObjectKey,
+          qData.stemImageObjectKey,
+        );
+
         const qRow = await tx.jlptQuestion.upsert({
           where: { code },
           create: { code, ...qData },
@@ -1064,6 +1096,15 @@ export async function importJlptBankZip(
         // If Choukai + Gambar Stimulus but stimulus had no image yet (e.g. audio already in DB), patch it.
         if (section === 'CHOKAI' && listeningStimulusId && gambarStimulus) {
           const stimImg = await ensureImage(level, stimCode || code, gambarStimulus, 'image');
+          const stimBeforeImage = await tx.listeningStimulus.findUnique({
+            where: { id: listeningStimulusId },
+            select: { imageObjectKey: true },
+          });
+          trackReplacedJlptBankKey(
+            replacedJlptBankKeys,
+            stimBeforeImage?.imageObjectKey,
+            stimImg.objectKey,
+          );
           await tx.listeningStimulus.update({
             where: { id: listeningStimulusId },
             data: {
@@ -1080,6 +1121,14 @@ export async function importJlptBankZip(
 
         const inlineCheck = optionsFromQuestionRow(row);
         const isInline = Array.isArray(inlineCheck);
+
+        const priorOptions = await tx.jlptQuestionOption.findMany({
+          where: { questionId: qRow.id },
+          select: { imageObjectKey: true },
+        });
+        for (const priorOption of priorOptions) {
+          trackReplacedJlptBankKey(replacedJlptBankKeys, priorOption.imageObjectKey, null);
+        }
 
         await tx.jlptQuestionOption.deleteMany({ where: { questionId: qRow.id } });
         for (const o of resolvedOpts) {
@@ -1221,6 +1270,8 @@ export async function importJlptBankZip(
       errors: [message, ...errors],
     };
   }
+
+  await deleteJlptBankObjectKeysIfOrphaned(replacedJlptBankKeys);
 
   return {
     ok: true,
