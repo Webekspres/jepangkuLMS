@@ -12,7 +12,7 @@ CREATE TABLE "JlptQuestionSet" (
     "year" INTEGER,
     "status" "JlptQuestionSetStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "JlptQuestionSet_pkey" PRIMARY KEY ("id")
 );
