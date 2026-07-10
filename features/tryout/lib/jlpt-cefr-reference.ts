@@ -251,7 +251,10 @@ export function buildJlptOfficialSectionRows(
     .map((group) => {
       const rows = group.sections
         .map((section) => bySection.get(section))
-        .filter((row): row is NonNullable<typeof row> => Boolean(row) && row.total > 0);
+        .filter(
+          (row): row is (typeof sectionBreakdown)[number] =>
+            row !== undefined && row.total > 0,
+        );
 
       if (rows.length === 0) return null;
 

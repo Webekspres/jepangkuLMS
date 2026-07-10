@@ -38,7 +38,7 @@ export const loadStudentTryoutHistory = cache(async function loadStudentTryoutHi
     orderBy: { createdAt: 'desc' },
     include: {
       tryoutSession: {
-        select: { title: true, code: true, phaseLabel: true },
+        select: { title: true, code: true, phaseLabel: true, level: true },
       },
     },
   });
