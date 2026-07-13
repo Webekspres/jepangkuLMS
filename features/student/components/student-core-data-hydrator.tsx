@@ -29,19 +29,42 @@ function defaultContextValue(): StudentCoreDataContextValue {
 }
 
 async function fetchCoreData(): Promise<StudentCoreData> {
-    const response = await fetch('/api/student/core-data', { credentials: 'same-origin' });
-    return response.ok ? ((await response.json()) as StudentCoreData) : EMPTY_STUDENT_CORE_DATA;
+    try {
+        const response = await fetch('/api/student/core-data', { credentials: 'same-origin' });
+        return response.ok ? ((await response.json()) as StudentCoreData) : EMPTY_STUDENT_CORE_DATA;
+    } catch {
+        return EMPTY_STUDENT_CORE_DATA;
+    }
 }
 
 /** Core gamification dimuat client-side agar halaman LMS tidak menunggu HTTP Core di SSR. */
 export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorProps) {
-    const { userId: clerkUserId } = useAuth();
+    const { userId: clerkUserId, isLoaded } = useAuth();
     const [value, setValue] = useState<StudentCoreDataContextValue>(() => defaultContextValue());
     const syncAttempted = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
         syncAttempted.current = false;
+
+        if (!isLoaded) {
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        // Guest / session belum siap — jangan spam /api/auth/core-token.
+        if (!clerkUserId) {
+            queueMicrotask(() => {
+                if (!cancelled) {
+                    setValue(toStudentCoreDataContextValue(EMPTY_STUDENT_CORE_DATA, 'ready', false));
+                    notifyStudentCoreDataReady();
+                }
+            });
+            return () => {
+                cancelled = true;
+            };
+        }
 
         queueMicrotask(() => {
             const cached = readCachedStudentCoreData(clerkUserId);
@@ -74,32 +97,47 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
         };
 
         const tryCoreSyncThenLoad = async () => {
-            const integrationOn = isCoreIntegrationEnabled();
-            if (!integrationOn) {
+            try {
+                const integrationOn = isCoreIntegrationEnabled();
+                if (!integrationOn) {
+                    await load(false);
+                    return;
+                }
+
+                if (!syncAttempted.current) {
+                    syncAttempted.current = true;
+                    const synced = await ensureCoreSessionWithRetry();
+                    const json = await fetchCoreData();
+                    if (cancelled) return;
+                    markReady(json, !json.coreConnected && !synced);
+                    return;
+                }
+
                 await load(false);
-                return;
+            } catch {
+                if (!cancelled) {
+                    setValue((current) => ({
+                        ...current,
+                        status: 'ready',
+                        coreSyncWarning: isCoreIntegrationEnabled(),
+                    }));
+                    notifyStudentCoreDataReady();
+                }
             }
-
-            if (!syncAttempted.current) {
-                syncAttempted.current = true;
-                const synced = await ensureCoreSessionWithRetry();
-                const json = await fetchCoreData();
-                if (cancelled) return;
-                markReady(json, !json.coreConnected && !synced);
-                return;
-            }
-
-            await load(false);
         };
 
         void tryCoreSyncThenLoad();
 
         const onRefresh = () => {
             void (async () => {
-                if (isCoreIntegrationEnabled()) {
-                    await ensureCoreSessionWithRetry();
+                try {
+                    if (isCoreIntegrationEnabled()) {
+                        await ensureCoreSessionWithRetry();
+                    }
+                    await load(false);
+                } catch {
+                    // Ignore transient network errors on refresh.
                 }
-                await load(false);
             })();
         };
         window.addEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
@@ -108,7 +146,7 @@ export function StudentCoreDataHydrator({ children }: StudentCoreDataHydratorPro
             cancelled = true;
             window.removeEventListener(STUDENT_CORE_DATA_REFRESH_EVENT, onRefresh);
         };
-    }, [clerkUserId]);
+    }, [clerkUserId, isLoaded]);
 
     return <StudentCoreDataProvider value={value}>{children}</StudentCoreDataProvider>;
 }

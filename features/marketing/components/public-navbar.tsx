@@ -88,14 +88,14 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         onClose={() => setMenuOpen(false)}
         panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
       >
-        <nav className="flex flex-col p-2">
+        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
           {MARKETING_NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
                 isActive(link.href)
                   ? 'bg-primary/10 font-semibold text-primary'
                   : 'text-foreground hover:bg-muted',
@@ -106,19 +106,19 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
             </Link>
           ))}
         </nav>
-        <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/30 px-4 pt-3 pb-safe-lg">
           {THEME_SWITCHING_ENABLED ? (
             <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-xs font-medium text-muted-foreground">Tema tampilan</span>
+              <span className="text-[11px] font-medium text-muted-foreground">Tema tampilan</span>
               <ThemeToggle size="icon-sm" />
             </div>
           ) : null}
-          <Button asChild variant="outline" className="h-11 w-full">
+          <Button asChild variant="outline" className="h-10 w-full text-[0.875rem]">
             <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
               Masuk
             </Link>
           </Button>
-          <Button asChild className="h-11 w-full">
+          <Button asChild className="h-10 w-full text-[0.875rem]">
             <Link href="/sign-up" onClick={() => setMenuOpen(false)}>
               Daftar Gratis
             </Link>

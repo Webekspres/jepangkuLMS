@@ -22,7 +22,7 @@ type StudentProfileMenuHeaderProps = {
 
 function EquippedBadgePill({ title }: { title: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground dark:border-brand-yellow/30 dark:bg-brand-yellow/15 dark:text-brand-yellow">
+    <span className="inline-flex shrink-0 items-center rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[11px] font-bold text-secondary-foreground dark:border-brand-yellow/30 dark:bg-brand-yellow/15 dark:text-brand-yellow">
       {title}
     </span>
   );
@@ -45,23 +45,25 @@ export function StudentProfileMenuHeader({
   const levelSubtitle = levelTitle ? `${levelTitle} • Lv.${level}` : `Pemula • Lv.${level}`;
 
   return (
-    <div className={cn('border-b border-border bg-primary/5 p-4 dark:bg-primary/10', className)}>
-      <div className="mb-3 flex items-start gap-3">
+    <div className={cn('border-b border-border bg-primary/5 p-3.5 dark:bg-primary/10', className)}>
+      <div className="mb-2.5 flex items-start gap-3">
         <ProfileAvatar size="lg" imageUrl={imageUrl} initial={initial} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
+            <p className="truncate text-[0.875rem] font-bold leading-snug text-foreground">
+              {displayName}
+            </p>
             {badgeTitle ? (
               <EquippedBadgePill title={badgeTitle} />
             ) : (
-              <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+              <span className="shrink-0 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-bold text-primary-foreground">
                 Level {level}
               </span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{levelSubtitle}</p>
+          <p className="mt-0.5 truncate text-[0.75rem] text-muted-foreground">{levelSubtitle}</p>
           {email ? (
-            <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{email}</p>
+            <p className="mt-0.5 truncate text-[0.75rem] text-muted-foreground/80">{email}</p>
           ) : null}
         </div>
         {onClose ? (
@@ -77,7 +79,7 @@ export function StudentProfileMenuHeader({
       </div>
 
       <div>
-        <div className="mb-1.5 flex justify-between text-xs">
+        <div className="mb-1.5 flex justify-between text-[0.75rem]">
           <span className="text-muted-foreground">
             {levelProgress.isMaxLevel ? 'Level maksimum' : `XP ke Lv.${nextLevel}`}
           </span>
@@ -91,7 +93,7 @@ export function StudentProfileMenuHeader({
             transition={{ duration: 0.8, ease: 'easeOut' }}
           />
         </div>
-        <p className="mt-1.5 text-[10px] text-muted-foreground">
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
           {levelProgress.isMaxLevel ? (
             <>{formatDisplayNumber(totalXp)} XP total</>
           ) : (
