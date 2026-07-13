@@ -225,6 +225,23 @@
   .container {
     max-width: 80rem;
   }
+
+  /**
+   * Mobile browser chrome (iOS home indicator + Android/iOS toolbar).
+   * Use on sticky/fixed footers, sheets, and drawer actions like logout.
+   * Extra 0.75–1rem buffer helps when safe-area-inset-bottom is 0 (Chrome toolbar).
+   */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .pb-safe-lg {
+    padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
+  }
+
+  .mb-safe {
+    margin-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Clerk SignIn/SignUp — samakan tombol dengan `components/ui/button.tsx` */

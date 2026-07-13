@@ -54,9 +54,10 @@ export function MarketingMobileMenu({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'fixed right-4 left-4 overflow-hidden rounded-2xl shadow-2xl md:hidden',
+              // Keep panel above iOS home indicator + mobile browser bottom chrome.
+              'fixed right-3 left-3 z-101 flex max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-2xl shadow-2xl md:hidden',
+              'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
               panelTop,
-              'z-101',
               panelClassName,
             )}
             onClick={(e) => e.stopPropagation()}

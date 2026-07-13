@@ -24,8 +24,8 @@ export function StudentAccountMenuLinks({
   const linkClass = (href: string) =>
     cn(
       variant === 'plain'
-        ? 'rounded-xl px-4 py-3.5 text-sm font-medium transition-colors'
-        : 'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+        ? 'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors'
+        : 'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
       isActive(href)
         ? 'bg-primary/10 font-semibold text-primary'
         : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',

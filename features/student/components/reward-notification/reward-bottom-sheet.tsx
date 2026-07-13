@@ -58,12 +58,12 @@ export function RewardBottomSheet({ reward, open, onContinue }: RewardBottomShee
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="max-h-[45vh] rounded-t-3xl border-t px-0 pb-0"
+        className="max-h-[min(45vh,28rem)] rounded-t-3xl border-t px-0 pb-0"
       >
         <RewardAnimation variant="sheet" className="flex h-full flex-col">
           <div className="mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-muted" aria-hidden />
 
-          <SheetHeader className="items-center px-6 pt-2 text-center">
+          <SheetHeader className="items-center px-5 pt-2 text-center sm:px-6">
             {reward.badgeImageUrl ? (
               <div className="relative mx-auto mb-3 flex size-16 items-center justify-center rounded-full border border-brand-yellow/40 bg-card p-2 shadow-sm">
                 <Image
@@ -85,33 +85,36 @@ export function RewardBottomSheet({ reward, open, onContinue }: RewardBottomShee
               </div>
             )}
 
-            <SheetTitle className="font-heading text-lg text-brand-navy">
+            <SheetTitle className="font-heading text-base text-brand-navy sm:text-lg">
               {presentation.title}
             </SheetTitle>
             {presentation.description ? (
-              <SheetDescription className="text-sm leading-relaxed">
+              <SheetDescription className="text-[0.875rem] leading-relaxed">
                 {presentation.description}
               </SheetDescription>
             ) : null}
           </SheetHeader>
 
           {(xp > 0 || points > 0) && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2 px-6">
+            <div className="mt-4 flex flex-wrap justify-center gap-2 px-5 sm:px-6">
               {points > 0 ? (
-                <span className="rounded-full border border-brand-yellow/30 bg-brand-yellow/10 px-3 py-1 text-sm font-semibold text-yellow-700">
+                <span className="rounded-full border border-brand-yellow/30 bg-brand-yellow/10 px-3 py-1 text-[0.875rem] font-semibold text-yellow-700">
                   +{points} Poin
                 </span>
               ) : null}
               {xp > 0 ? (
-                <span className="rounded-full border border-brand-red/20 bg-brand-red/10 px-3 py-1 text-sm font-semibold text-brand-red">
+                <span className="rounded-full border border-brand-red/20 bg-brand-red/10 px-3 py-1 text-[0.875rem] font-semibold text-brand-red">
                   +{xp} EXP
                 </span>
               ) : null}
             </div>
           )}
 
-          <SheetFooter className="mt-auto border-t border-border/70 px-6 py-4">
-            <Button className="w-full bg-brand-red hover:bg-brand-orange" onClick={onContinue}>
+          <SheetFooter className="mt-auto border-t border-border/70 px-5 pt-3 pb-safe-lg sm:px-6">
+            <Button
+              className="h-10 w-full bg-brand-red text-[0.875rem] hover:bg-brand-orange"
+              onClick={onContinue}
+            >
               Lanjutkan
             </Button>
           </SheetFooter>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -52,6 +53,42 @@ export const NOTIF_KEYS = {
   list: ['notifications', 'list'] as const,
 };
 
+const PANEL_WIDTH_PX = 320;
+const VIEWPORT_GUTTER_PX = 12;
+
+type PanelCoords = {
+  top: number;
+  left: number;
+  width: number;
+  /** Mobile: stretch to viewport gutters instead of fixed width under the bell. */
+  mobile: boolean;
+};
+
+function computePanelCoords(anchor: DOMRect): PanelCoords {
+  const viewportWidth = window.innerWidth;
+  const mobile = viewportWidth < 768;
+  if (mobile) {
+    return {
+      top: Math.max(anchor.bottom + 8, 72),
+      left: VIEWPORT_GUTTER_PX,
+      width: Math.max(0, viewportWidth - VIEWPORT_GUTTER_PX * 2),
+      mobile: true,
+    };
+  }
+
+  // Prefer right-align under the bell; clamp so the panel never leaves the viewport.
+  const preferredLeft = anchor.right - PANEL_WIDTH_PX;
+  const maxLeft = viewportWidth - PANEL_WIDTH_PX - VIEWPORT_GUTTER_PX;
+  const left = Math.min(Math.max(VIEWPORT_GUTTER_PX, preferredLeft), Math.max(VIEWPORT_GUTTER_PX, maxLeft));
+
+  return {
+    top: anchor.bottom + 8,
+    left,
+    width: PANEL_WIDTH_PX,
+    mobile: false,
+  };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(date: Date | string): string {
@@ -69,17 +106,25 @@ function formatRelativeTime(date: Date | string): string {
 }
 
 async function fetchUnreadCount(): Promise<number> {
-  const res = await fetch('/api/notifications/unread-count', { cache: 'no-store' });
-  if (!res.ok) return 0;
-  const data = (await res.json()) as { count: number };
-  return data.count;
+  try {
+    const res = await fetch('/api/notifications/unread-count', { cache: 'no-store' });
+    if (!res.ok) return 0;
+    const data = (await res.json()) as { count: number };
+    return data.count;
+  } catch {
+    return 0;
+  }
 }
 
 async function fetchNotificationList(): Promise<NotificationItem[]> {
-  const res = await fetch('/api/notifications', { cache: 'no-store' });
-  if (!res.ok) return [];
-  const data = (await res.json()) as { items: NotificationItem[] };
-  return data.items;
+  try {
+    const res = await fetch('/api/notifications', { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { items: NotificationItem[] };
+    return data.items;
+  } catch {
+    return [];
+  }
 }
 
 /** Legacy href stored before route was standardized to /dashboard/achievements. */
@@ -112,7 +157,15 @@ export function NotificationBell({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [panelCoords, setPanelCoords] = useState<PanelCoords | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   // ── Query 1: Eager unread COUNT — fetches on mount, no dropdown needed ──
   const { data: unreadCount = 0 } = useQuery({
@@ -138,21 +191,46 @@ export function NotificationBell({
     ? notifications.filter((item) => !item.readAt).length
     : unreadCount;
 
-  // ── Close on outside click / Escape ──────────────────────────────────────
+  const updatePanelCoords = () => {
+    const anchor = buttonRef.current?.getBoundingClientRect();
+    if (!anchor) return;
+    setPanelCoords(computePanelCoords(anchor));
+  };
+
+  // ── Position panel in viewport (portal) + close on outside / Escape ────────
   useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    if (!open) {
+      setPanelCoords(null);
+      return;
+    }
+
+    updatePanelCoords();
+
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
     };
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
+    const onReposition = () => updatePanelCoords();
+
     document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
     document.addEventListener('keydown', onEscape);
+    window.addEventListener('resize', onReposition);
+    window.addEventListener('scroll', onReposition, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onEscape);
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reposition reads refs
   }, [open]);
 
   // ── Sync badge count after list loads so it stays accurate ───────────────
@@ -165,7 +243,13 @@ export function NotificationBell({
   // ── Actions ───────────────────────────────────────────────────────────────
 
   function handleToggle() {
-    setOpen((prev) => !prev);
+    setOpen((prev) => {
+      const next = !prev;
+      if (next && buttonRef.current) {
+        setPanelCoords(computePanelCoords(buttonRef.current.getBoundingClientRect()));
+      }
+      return next;
+    });
   }
 
   function markAllRead() {
@@ -226,9 +310,162 @@ export function NotificationBell({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  const panel =
+    open && panelCoords && mounted
+      ? createPortal(
+          <AnimatePresence>
+            <motion.button
+              key="notif-backdrop"
+              type="button"
+              aria-label="Tutup notifikasi"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 z-100 bg-foreground/20 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              key="notif-panel"
+              ref={panelRef}
+              role="dialog"
+              aria-label="Notifikasi"
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              style={{
+                top: panelCoords.top,
+                left: panelCoords.left,
+                width: panelCoords.width,
+              }}
+              className={cn(
+                'fixed z-101 flex max-h-[min(70dvh,28rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl',
+                panelCoords.mobile && 'max-h-[min(70dvh,28rem)]',
+              )}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b border-border px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-[0.875rem] font-bold text-foreground">Notifikasi</span>
+                  {liveUnreadCount > 0 ? (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                      {liveUnreadCount} baru
+                    </span>
+                  ) : null}
+                </div>
+                {liveUnreadCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={markAllRead}
+                    disabled={isPending}
+                    className="shrink-0 text-[11px] font-semibold text-primary hover:underline underline-offset-4 sm:text-xs"
+                  >
+                    Tandai semua dibaca
+                  </button>
+                ) : null}
+              </div>
+
+              {loading ? (
+                <div className="px-4 py-8 text-center text-[0.875rem] text-muted-foreground">
+                  Memuat…
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <Bell className="mx-auto mb-2 size-8 text-muted-foreground/40" />
+                  <p className="text-[0.875rem] text-muted-foreground">Tidak ada notifikasi baru.</p>
+                </div>
+              ) : (
+                <div className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain">
+                  {notifications.map((item) => {
+                    const meta = TYPE_ICONS[item.type] ?? TYPE_ICONS.XP_EARNED;
+                    const Icon = meta.icon;
+                    const content = (
+                      <>
+                        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted">
+                          <Icon className={cn('size-4', meta.color)} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-foreground">{item.title}</p>
+                          {item.body ? (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                              {item.body}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-[10px] text-muted-foreground/70">
+                            {formatRelativeTime(item.createdAt)}
+                          </p>
+                        </div>
+                      </>
+                    );
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          'group flex gap-3 px-3 py-3 transition-colors hover:bg-muted/30 sm:px-4',
+                          !item.readAt && 'bg-primary/5',
+                        )}
+                      >
+                        {item.href ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenItem(item)}
+                            className="flex min-w-0 flex-1 gap-3 text-left"
+                          >
+                            {content}
+                          </button>
+                        ) : (
+                          <div className="flex min-w-0 flex-1 gap-3">{content}</div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => dismiss(item.id)}
+                          disabled={isPending}
+                          className="mt-0.5 shrink-0 rounded-md p-0.5 text-muted-foreground opacity-100 transition-opacity hover:text-foreground md:opacity-0 md:group-hover:opacity-100"
+                          aria-label="Hapus notifikasi"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {footerMode === 'clear-read'
+                ? notifications.length > 0 && (
+                    <div className="shrink-0 border-t border-border px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom,0px))] text-center md:pb-2.5">
+                      <button
+                        type="button"
+                        onClick={clearRead}
+                        disabled={isPending || readCount === 0}
+                        className="cursor-pointer text-[10px] font-semibold text-destructive transition-colors hover:underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                      >
+                        Hapus semua
+                      </button>
+                    </div>
+                  )
+                : (
+                    <div className="shrink-0 border-t border-border px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom,0px))] text-center md:pb-2.5">
+                      <Link
+                        href={footerHref}
+                        onClick={() => setOpen(false)}
+                        className="text-[10px] font-semibold text-primary hover:underline underline-offset-4"
+                      >
+                        {footerLabel}
+                      </Link>
+                    </div>
+                  )}
+            </motion.div>
+          </AnimatePresence>,
+          document.body,
+        )
+      : null;
+
   return (
     <div ref={rootRef} className={cn('relative', className)}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleToggle}
         aria-expanded={open}
@@ -245,133 +482,7 @@ export function NotificationBell({
           </span>
         ) : null}
       </button>
-
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-foreground">Notifikasi</span>
-                {liveUnreadCount > 0 ? (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                    {liveUnreadCount} baru
-                  </span>
-                ) : null}
-              </div>
-              {liveUnreadCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={markAllRead}
-                  disabled={isPending}
-                  className="text-xs font-semibold text-primary hover:underline underline-offset-4"
-                >
-                  Tandai semua dibaca
-                </button>
-              ) : null}
-            </div>
-
-            {loading ? (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">Memuat…</div>
-            ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <Bell className="mx-auto mb-2 size-8 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Tidak ada notifikasi baru.</p>
-              </div>
-            ) : (
-              <div className="max-h-80 divide-y divide-border overflow-y-auto">
-                {notifications.map((item) => {
-                  const meta = TYPE_ICONS[item.type] ?? TYPE_ICONS.XP_EARNED;
-                  const Icon = meta.icon;
-                  const content = (
-                    <>
-                      <div
-                        className={cn(
-                          'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted',
-                        )}
-                      >
-                        <Icon className={cn('size-4', meta.color)} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-foreground">{item.title}</p>
-                        {item.body ? (
-                          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                            {item.body}
-                          </p>
-                        ) : null}
-                        <p className="mt-1 text-[10px] text-muted-foreground/70">
-                          {formatRelativeTime(item.createdAt)}
-                        </p>
-                      </div>
-                    </>
-                  );
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        'group flex gap-3 px-4 py-3 transition-colors hover:bg-muted/30',
-                        !item.readAt && 'bg-primary/5',
-                      )}
-                    >
-                      {item.href ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenItem(item)}
-                          className="flex min-w-0 flex-1 gap-3 text-left"
-                        >
-                          {content}
-                        </button>
-                      ) : (
-                        <div className="flex min-w-0 flex-1 gap-3">{content}</div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => dismiss(item.id)}
-                        disabled={isPending}
-                        className="mt-0.5 shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                        aria-label="Hapus notifikasi"
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {footerMode === 'clear-read'
-              ? notifications.length > 0 && (
-                  <div className="border-t border-border px-4 py-2.5 text-center">
-                    <button
-                      type="button"
-                      onClick={clearRead}
-                      disabled={isPending || readCount === 0}
-                      className="cursor-pointer text-[10px] font-semibold text-destructive transition-colors hover:underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
-                    >
-                      Hapus semua
-                    </button>
-                  </div>
-                )
-              : (
-                  <div className="border-t border-border px-4 py-2.5 text-center">
-                    <Link
-                      href={footerHref}
-                      onClick={() => setOpen(false)}
-                      className="text-[10px] font-semibold text-primary hover:underline underline-offset-4"
-                    >
-                      {footerLabel}
-                    </Link>
-                  </div>
-                )}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {panel}
     </div>
   );
 }
