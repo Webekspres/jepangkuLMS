@@ -191,20 +191,9 @@ export function NotificationBell({
     ? notifications.filter((item) => !item.readAt).length
     : unreadCount;
 
-  const updatePanelCoords = () => {
-    const anchor = buttonRef.current?.getBoundingClientRect();
-    if (!anchor) return;
-    setPanelCoords(computePanelCoords(anchor));
-  };
-
   // ── Position panel in viewport (portal) + close on outside / Escape ────────
   useEffect(() => {
-    if (!open) {
-      setPanelCoords(null);
-      return;
-    }
-
-    updatePanelCoords();
+    if (!open) return;
 
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node;
@@ -216,7 +205,14 @@ export function NotificationBell({
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
-    const onReposition = () => updatePanelCoords();
+    const onReposition = () => {
+      const anchor = buttonRef.current?.getBoundingClientRect();
+      if (!anchor) return;
+      setPanelCoords(computePanelCoords(anchor));
+    };
+
+    // Defer initial measure so layout after open is settled.
+    const frame = window.requestAnimationFrame(onReposition);
 
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -224,13 +220,13 @@ export function NotificationBell({
     window.addEventListener('resize', onReposition);
     window.addEventListener('scroll', onReposition, true);
     return () => {
+      window.cancelAnimationFrame(frame);
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onEscape);
       window.removeEventListener('resize', onReposition);
       window.removeEventListener('scroll', onReposition, true);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reposition reads refs
   }, [open]);
 
   // ── Sync badge count after list loads so it stays accurate ───────────────
@@ -247,6 +243,8 @@ export function NotificationBell({
       const next = !prev;
       if (next && buttonRef.current) {
         setPanelCoords(computePanelCoords(buttonRef.current.getBoundingClientRect()));
+      } else {
+        setPanelCoords(null);
       }
       return next;
     });
