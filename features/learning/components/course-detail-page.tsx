@@ -26,13 +26,20 @@ import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { CourseSyllabusAccordion } from './course-syllabus-accordion';
-import { PAYMENT_BCA, type CourseDetail } from './course-detail-data';
+import type { CourseDetail } from './course-detail-data';
+
+type PaymentSettingsProp = {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+};
 
 type CourseDetailPageProps = {
   course: CourseDetail;
+  paymentSettings: PaymentSettingsProp;
 };
 
-export function CourseDetailPage({ course }: CourseDetailPageProps) {
+export function CourseDetailPage({ course, paymentSettings }: CourseDetailPageProps) {
   const [copied, setCopied] = useState(false);
   const accent = JLPT_ACCENT[course.accent];
   const isFree = course.priceNum === 0;
@@ -69,7 +76,7 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
   );
 
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText(PAYMENT_BCA.accountNumber).catch(() => {});
+    navigator.clipboard.writeText(paymentSettings.accountNumber).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -253,30 +260,35 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                 )}
 
                 {isAvailable && isFree ? (
-                  <Button asChild className="h-11 w-full gap-2 font-bold">
-                    <Link href="/sign-in">
-                      <Play className="size-4" />
-                      Mulai Belajar Gratis
-                    </Link>
-                  </Button>
+                  <>
+                    <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
+                      <Link href="/sign-up">
+                        <UserPlus className="size-4" />
+                        Daftar Gratis
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
+                      <Link href="/sign-in">Masuk</Link>
+                    </Button>
+                  </>
                 ) : isAvailable && !isFree ? (
                   <>
                     <div className="mb-4">
                       <p className="mb-3 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                        Transfer via {PAYMENT_BCA.bank}
+                        Transfer via {paymentSettings.bankName}
                       </p>
                       <div className="space-y-2 rounded-xl bg-muted/50 p-3.5">
                         <div>
                           <p className="text-xs text-muted-foreground">Nama Rekening</p>
                           <p className="text-sm font-semibold text-foreground">
-                            {PAYMENT_BCA.accountName}
+                            {paymentSettings.accountName}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Nomor Rekening</p>
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-base font-bold tracking-widest text-foreground">
-                              {PAYMENT_BCA.accountNumber}
+                              {paymentSettings.accountNumber}
                             </p>
                             <Button
                               type="button"
@@ -313,6 +325,9 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                         <UserPlus className="size-4" />
                         Daftar Sekarang
                       </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="mb-3 h-11 w-full gap-2 font-bold">
+                      <Link href="/sign-in">Masuk</Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
                       <a

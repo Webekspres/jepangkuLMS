@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-10                                                  |
+| **Terakhir diperbarui**   | 2026-07-14                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
@@ -86,7 +86,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :--------------------------------------------- | :----: | :---------------------------------------------------- |
 | `/`                                            |   🟡   | Landing lengkap; data marketing statis                |
 | `/kursus`                                      |   ✅   | **Prisma** published + filter level/kategori/unggulan |
-| `/kursus/[slug]`                               |   ✅   | **Prisma** detail + silabus dari modul DB             |
+| `/kursus/[slug]`                               |   ✅   | Detail marketing + CTA Daftar/Masuk; login → dashboard detail |
 | `/tryout`                                      |   🟡   | Halaman info publik (bukan ujian interaktif)          |
 | `/tentang`, `/cara-belajar`, `/hubungi`, legal |   ✅   |                                                       |
 
@@ -188,6 +188,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-14 | Fix `/kursus/[slug]`: hapus `PAYMENT_BCA` client IIFE (crash production), payment settings via RSC prop, CTA Daftar/Masuk, redirect login → `/dashboard/kursus/[slug]` |
 | 2026-07-10 | Template Paket Soal: pecah sheet soal per section (`004. Moji Goi`, `005. Bunpou Dokkai`, `006. Choukai`); parser merge + legacy Soal terpadu |
 | 2026-07-10 | Template Paket Soal: pilihan A–D + Jawaban Benar + Gambar Stimulus digabung ke sheet Soal; hapus sheet 005; klarifikasi pengisian Audio Chokai |
 | 2026-07-10 | Template ZIP Paket Soal: sheet `001. Panduan` ramah admin, kolom Indonesia + dropdown enum, kode bisnis sederhana (`n5-paket-1`); parser alias header/sheet baru |
