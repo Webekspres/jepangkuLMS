@@ -32,8 +32,9 @@ function MobileMenuSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-2 py-1">
-      <p className="px-4 py-2 text-xs font-extrabold tracking-wide text-brand-navy uppercase dark:text-foreground">
+    <div className="px-2 py-0.5">
+      {/* Caption / label — ~11px on mobile */}
+      <p className="px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase dark:text-foreground">
         {title}
       </p>
       <div className="flex flex-col">{children}</div>
@@ -143,7 +144,7 @@ export function StudentNav() {
       <MarketingMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none max-h-[min(90vh,720px)] overflow-hidden flex flex-col"
+        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
       >
         <StudentProfileMenuHeader
           displayName={displayName}
@@ -157,7 +158,7 @@ export function StudentNav() {
           onClose={() => setMenuOpen(false)}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <MobileMenuSection title="Akun Saya">
             <StudentAccountMenuLinks
               isActive={isActive}
@@ -165,7 +166,7 @@ export function StudentNav() {
             />
           </MobileMenuSection>
 
-          <div className="mx-4 border-t border-border" />
+          <div className="mx-3 border-t border-border" />
 
           <MobileMenuSection title="Navigasi">
             {STUDENT_NAV_LINKS.map((link) => (
@@ -174,7 +175,8 @@ export function StudentNav() {
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className={cn(
-                  'rounded-xl px-4 py-3.5 text-sm font-medium transition-colors',
+                  // Body ~14px; compact tap targets so logout stays visible
+                  'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
                   isActive(link.href)
                     ? 'bg-primary/10 font-semibold text-primary'
                     : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -186,12 +188,12 @@ export function StudentNav() {
           </MobileMenuSection>
         </div>
 
-        <div className="shrink-0 border-t border-border p-2">
+        <div className="shrink-0 border-t border-border px-2 pt-2 pb-safe-lg">
           <Button
             type="button"
             variant="ghost"
             disabled={signingOut}
-            className="h-11 w-full justify-start gap-3 px-4 text-sm font-medium text-primary hover:bg-primary/5"
+            className="h-10 w-full justify-start gap-3 px-3 text-[0.875rem] font-medium text-primary hover:bg-primary/5"
             onClick={() => {
               setMenuOpen(false);
               setSigningOut(true);

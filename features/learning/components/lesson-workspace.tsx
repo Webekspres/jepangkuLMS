@@ -550,7 +550,7 @@ export function LessonWorkspace({
     );
 
     return (
-        <div className="space-y-3 pb-[calc(5.25rem+env(safe-area-inset-bottom,0))] sm:space-y-4 md:space-y-5 lg:pb-10">
+            <div className="space-y-3 pb-[calc(5.25rem+max(1.25rem,env(safe-area-inset-bottom,0px)+0.75rem))] sm:space-y-4 md:space-y-5 lg:pb-10">
             <nav
                 aria-label="Breadcrumb"
                 className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground sm:gap-1.5 sm:text-sm"
@@ -794,13 +794,13 @@ export function LessonWorkspace({
                         Selesaikan materi untuk menandai pelajaran ini selesai
                     </p>
                 )}
-                <div className="px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0))] sm:px-6">
+                <div className="px-4 pt-3 pb-safe-lg sm:px-6">
                     <div className="mx-auto flex max-w-2xl items-center gap-2.5 sm:gap-3">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-10 min-w-0 flex-1 text-xs sm:h-9 sm:text-sm"
+                            className="h-10 min-w-0 flex-1 text-[0.875rem] sm:h-9 sm:text-sm"
                             onClick={() => setMobileCurriculumOpen(true)}
                         >
                             <List className="size-4 shrink-0" />
@@ -825,7 +825,7 @@ export function LessonWorkspace({
                         className="absolute inset-0 bg-black/50"
                         onClick={() => setMobileCurriculumOpen(false)}
                     />
-                    <div className="absolute inset-x-0 bottom-0 flex max-h-[min(88vh,640px)] flex-col rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom,0)] shadow-2xl">
+                    <div className="absolute inset-x-0 bottom-0 flex max-h-[min(88dvh,640px)] flex-col rounded-t-2xl border border-border bg-card pb-safe-lg shadow-2xl">
                         <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-3.5">
                             <div>
                                 <p className="text-sm font-semibold text-foreground sm:text-base">Konten kursus</p>

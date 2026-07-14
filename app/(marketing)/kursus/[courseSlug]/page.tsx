@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { notFound, redirect } from 'next/navigation';
 import { CourseDetailPage } from '@/features/learning/components/course-detail-page';
 import { loadMarketingCourseDetail } from '@/features/learning/lib/load-marketing-courses';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { getPaymentSettings } from '@/lib/payment/settings';
 
 type PageProps = {
   params: Promise<{ courseSlug: string }>;
@@ -26,11 +29,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function KursusDetailRoute({ params }: PageProps) {
   const { courseSlug } = await params;
+  const { userId } = await auth();
+
+  if (userId) {
+    redirect(STUDENT_ROUTES.kursusDetail(courseSlug));
+  }
+
   const course = await loadMarketingCourseDetail(courseSlug);
 
   if (!course) {
     notFound();
   }
 
-  return <CourseDetailPage course={course} />;
+  const paymentSettings = getPaymentSettings();
+
+  return <CourseDetailPage course={course} paymentSettings={paymentSettings} />;
 }
