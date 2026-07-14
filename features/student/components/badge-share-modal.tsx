@@ -134,18 +134,18 @@ export function BadgeShareModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="relative max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card/95 p-6 text-center text-foreground shadow-2xl backdrop-blur-md"
+          className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-card/95 px-5 py-4 text-center text-foreground shadow-2xl backdrop-blur-md"
         >
           <div
             className={cn(
-              'absolute -left-1/4 -top-1/4 -z-10 size-96 rounded-full bg-linear-to-br opacity-40 blur-[90px] animate-pulse dark:opacity-35',
+              'absolute -left-1/4 -top-1/4 -z-10 size-64 rounded-full bg-linear-to-br opacity-40 blur-[70px] animate-pulse dark:opacity-35',
               glowClass,
             )}
           />
@@ -153,32 +153,30 @@ export function BadgeShareModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="absolute top-3 right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Tutup"
           >
-            <X className="size-5" />
+            <X className="size-4" />
           </button>
 
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="mb-1"
+            className="mb-2"
           >
-            <span className={cn('text-xs font-black tracking-widest uppercase', textColorClass)}>
+            <span className={cn('text-[10px] font-black tracking-widest uppercase', textColorClass)}>
               Pencapaian Baru Diraih!
             </span>
           </motion.div>
 
-          <div className="relative my-6 flex justify-center">
-            <div className="absolute inset-0 m-auto size-32 animate-ping rounded-full border border-primary/10 bg-primary/5 blur-md dark:border-white/10 dark:bg-white/5" />
-
+          <div className="relative mb-3 flex justify-center">
             <motion.div
               initial={{ rotate: -10, scale: 0.5, opacity: 0 }}
               animate={{ rotate: 0, scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 100, delay: 0.2 }}
               className={cn(
-                'relative z-10 flex size-36 items-center justify-center overflow-hidden rounded-3xl border-2 bg-slate-950 shadow-2xl transition-all',
+                'relative z-10 flex size-24 items-center justify-center overflow-hidden rounded-2xl border-2 bg-slate-950 shadow-lg',
                 rarityLabel === 'Legendary'
                   ? 'border-amber-400'
                   : rarityLabel === 'Epic'
@@ -192,91 +190,91 @@ export function BadgeShareModal({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={badge.imageUrl} alt={badge.name} className="size-full object-cover" />
               ) : (
-                <span className="text-6xl">{badge.icon}</span>
+                <span className="text-4xl">{badge.icon}</span>
               )}
             </motion.div>
           </div>
 
-          <div className="space-y-2">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-[10px] font-bold tracking-wider uppercase">
+          <div className="space-y-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase">
               🏅 {rarityLabel}
             </span>
-            <h3 className="text-2xl font-black tracking-tight text-foreground">{badge.name}</h3>
-            <p className="text-xs text-muted-foreground">
+            <h3 className="text-lg font-black tracking-tight text-foreground">{badge.name}</h3>
+            <p className="text-[11px] text-muted-foreground">
               Berhasil diraih pada {badge.date || 'Juni 2026'}
             </p>
-            <p className="mx-auto max-w-sm rounded-xl border border-border/50 bg-muted/50 p-3 text-sm leading-relaxed text-foreground">
+            <p className="mx-auto max-w-sm rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-xs leading-snug text-foreground">
               {requirement}
             </p>
           </div>
 
           {badge.xp > 0 ? (
-            <div className="mx-auto mt-4 flex w-max items-center justify-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-600 dark:text-amber-300">
+            <div className="mx-auto mt-2 flex w-max items-center justify-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-black text-amber-600 dark:text-amber-300">
               <Zap className="size-3 fill-amber-500 dark:fill-amber-300" />+{badge.xp} XP BONUS
             </div>
           ) : null}
 
-          <div className="mt-6 space-y-4 border-t border-border pt-5">
-            <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+          <div className="mt-3 space-y-2.5 border-t border-border pt-3">
+            <p className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               Bagikan Ke Sosial Media
             </p>
 
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/10 p-3 text-foreground transition-all hover:bg-[#25D366]/20"
+                className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-[#25D366]/20 bg-[#25D366]/10 p-2 text-foreground transition-all hover:bg-[#25D366]/20"
               >
-                <WhatsAppIcon className="text-[#25D366] transition-transform group-hover:scale-110" />
-                <span className="text-[10px] font-bold">WA</span>
+                <WhatsAppIcon className="size-4 text-[#25D366] transition-transform group-hover:scale-110" />
+                <span className="text-[9px] font-bold">WA</span>
               </a>
 
               <a
                 href={xUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-muted p-3 text-foreground transition-all hover:bg-muted/80"
+                className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted p-2 text-foreground transition-all hover:bg-muted/80"
               >
-                <XBrandIcon className="text-foreground transition-transform group-hover:scale-110" />
-                <span className="text-[10px] font-bold">X</span>
+                <XBrandIcon className="size-4 text-foreground transition-transform group-hover:scale-110" />
+                <span className="text-[9px] font-bold">X</span>
               </a>
 
               <a
                 href={threadsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-muted p-3 text-foreground transition-all hover:bg-muted/80"
+                className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted p-2 text-foreground transition-all hover:bg-muted/80"
               >
-                <ThreadsIcon className="text-foreground transition-transform group-hover:scale-110" />
-                <span className="text-[10px] font-bold">Threads</span>
+                <ThreadsIcon className="size-4 text-foreground transition-transform group-hover:scale-110" />
+                <span className="text-[9px] font-bold">Threads</span>
               </a>
 
               <a
                 href={facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-[#1877F2]/20 bg-[#1877F2]/10 p-3 text-foreground transition-all hover:bg-[#1877F2]/20"
+                className="group flex flex-col items-center justify-center gap-1 rounded-xl border border-[#1877F2]/20 bg-[#1877F2]/10 p-2 text-foreground transition-all hover:bg-[#1877F2]/20"
               >
-                <FacebookIcon className="text-[#1877F2] transition-transform group-hover:scale-110" />
-                <span className="text-[10px] font-bold">Facebook</span>
+                <FacebookIcon className="size-4 text-[#1877F2] transition-transform group-hover:scale-110" />
+                <span className="text-[9px] font-bold">FB</span>
               </a>
             </div>
 
             {onEquip ? (
-              <div className="pt-1">
+              <div>
                 {!badge.isEquipped ? (
                   <Button
                     type="button"
                     variant="default"
-                    className="w-full gap-2 py-3 text-sm font-semibold"
+                    className="h-9 w-full gap-2 text-xs font-semibold"
                     disabled={isEquipping}
                     onClick={() => onEquip(badge.id)}
                   >
                     Pasang badge sebagai Title Profil
                   </Button>
                 ) : (
-                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                     ✓ Aktif sebagai Title Profil Anda
                   </p>
                 )}
