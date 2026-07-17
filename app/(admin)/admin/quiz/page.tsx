@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { BookOpen, ClipboardList } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { cn } from '@/lib/utils';
 
 export default function AdminQuizPage() {
   return (
@@ -11,7 +13,7 @@ export default function AdminQuizPage() {
       title="Bank Soal — Kelola per Pelajaran"
       subtitle="Halaman bank soal global tidak dipakai. Soal kuis dikelola langsung di workspace setiap pelajaran."
     >
-      <div className="max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className={cn(ADMIN_FORM_CARD_CLASS, 'space-y-6 rounded-2xl bg-card p-6 shadow-sm')}>
         <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <ClipboardList className="size-6" />
         </div>

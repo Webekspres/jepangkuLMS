@@ -9,11 +9,13 @@ import {
   updateModuleAction,
 } from '@/features/admin-cms/actions/cms-module-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type ModuleFormValues = {
   title: string;
@@ -82,7 +84,7 @@ export function AdminModuleForm({
       subtitle="Modul adalah bab/kontainer utama di dalam kursus. Urutan diatur via drag & drop di halaman modul."
       backHref={ADMIN_ROUTES.kursusModules(courseId)}
     >
-      <Card className="max-w-3xl border-border">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS)}>
         <CardHeader className="border-b border-border bg-muted/30">
           <CardTitle className="text-base font-bold">Informasi Modul</CardTitle>
         </CardHeader>

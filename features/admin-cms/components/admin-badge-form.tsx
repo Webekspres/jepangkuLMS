@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
+import { cn } from '@/lib/utils';
 import {
   createBadgeAction,
   updateBadgeAction,
@@ -362,8 +364,8 @@ export function AdminBadgeFormPage({
         </Card>
       ) : null}
 
-      <Card className="max-w-xl border-border p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'p-6')}>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input type="hidden" name="unlockRule" value={unlockRule} />
           <input type="hidden" name="rarity" value={rarity} />
           <input type="hidden" name="targetLevel" value={targetLevel} />
@@ -372,36 +374,38 @@ export function AdminBadgeFormPage({
           <input type="hidden" name="targetModuleId" value={targetModuleId} />
           <input type="hidden" name="targetLessonId" value={targetLessonId} />
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Judul</Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={badge?.title ?? ''}
-              className={validationErrors.title ? 'border-destructive' : ''}
-              required
-            />
-            {validationErrors.title && (
-              <p className="text-xs text-destructive">{validationErrors.title}</p>
-            )}
-          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Judul</Label>
+              <Input
+                id="title"
+                name="title"
+                defaultValue={badge?.title ?? ''}
+                className={validationErrors.title ? 'border-destructive' : ''}
+                required
+              />
+              {validationErrors.title && (
+                <p className="text-xs text-destructive">{validationErrors.title}</p>
+              )}
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="code">Kode (slug)</Label>
-            <Input
-              id="code"
-              name="code"
-              defaultValue={badge?.code ?? ''}
-              placeholder="first-lesson"
-              disabled={isEdit}
-              required={!isEdit}
-              className={validationErrors.code ? 'border-destructive' : ''}
-            />
-            {validationErrors.code ? (
-              <p className="text-xs text-destructive">{validationErrors.code}</p>
-            ) : isEdit ? (
-              <p className="text-xs text-muted-foreground">Kode tidak bisa diubah setelah dibuat.</p>
-            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="code">Kode (slug)</Label>
+              <Input
+                id="code"
+                name="code"
+                defaultValue={badge?.code ?? ''}
+                placeholder="first-lesson"
+                disabled={isEdit}
+                required={!isEdit}
+                className={validationErrors.code ? 'border-destructive' : ''}
+              />
+              {validationErrors.code ? (
+                <p className="text-xs text-destructive">{validationErrors.code}</p>
+              ) : isEdit ? (
+                <p className="text-xs text-muted-foreground">Kode tidak bisa diubah setelah dibuat.</p>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-2">

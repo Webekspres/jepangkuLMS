@@ -188,6 +188,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-17 | Klarifikasi hasil tryout JLPT: hapus Status Simulasi (Aman/SOS) dari UI; hero & riwayat fokus kelulusan JLPT resmi + indikasi CEFR |
 | 2026-07-17 | Cover image kursus & live class: field `coverImageUrl`, upload admin CMS (R2), fallback `bg-courses.webp` / `bg-live_class.webp` di kartu & detail |
 | 2026-07-17 | Jalur JLPT Saya berbasis tryout: agregasi skor tertinggi per level, kelulusan resmi total + per-seksi, roadmap terkunci sebelum attempt pertama, dan CTA mulai tryout |
 | 2026-07-17 | UX meeting poin 2: edit materi/kuis inline di admin lesson workspace, sidebar konten kursus pertahankan scroll + optimistic selesai, hero Dashboard Lanjutkan Belajar urut kursus dari progres terakhir |

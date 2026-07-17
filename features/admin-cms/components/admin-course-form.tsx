@@ -13,6 +13,7 @@ import {
   updateCourseAction,
 } from '@/features/admin-cms/actions/cms-course-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ import type { CourseCategoryType } from '@prisma/client';
 import {
   COURSE_CATEGORY_TYPE_OPTIONS,
 } from '@/lib/lms/course-category';
+import { cn } from '@/lib/utils';
 
 type CourseFormValues = {
   title: string;
@@ -121,7 +123,7 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       subtitle="Isi metadata kursus. Modul dan pelajaran ditambahkan setelah kursus dibuat."
       backHref={ADMIN_ROUTES.kursus}
     >
-      <Card className="max-w-3xl border-border">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS)}>
         <CardHeader className="border-b border-border bg-muted/30">
           <CardTitle className="text-base font-bold">Informasi Kursus</CardTitle>
         </CardHeader>

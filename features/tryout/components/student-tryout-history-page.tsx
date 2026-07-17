@@ -79,11 +79,11 @@ export function StudentTryoutHistoryPage({ items }: StudentTryoutHistoryPageProp
                         </Badge>
                         {item.passed ? (
                           <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10">
-                            Lulus simulasi
+                            Lulus JLPT
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-muted-foreground">
-                            Belum lulus simulasi
+                            Belum lulus JLPT
                           </Badge>
                         )}
                         {item.indicatedCefr ? (
