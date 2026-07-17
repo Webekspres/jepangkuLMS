@@ -116,6 +116,33 @@ type LessonCurriculumListProps = {
     onLessonSelect?: () => void;
 };
 
+function curriculumScrollStorageKey(courseSlug: string) {
+    return `jepangku:curriculum-scroll:${courseSlug}`;
+}
+
+function readStoredCurriculumScroll(courseSlug: string): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+        const raw = window.sessionStorage.getItem(curriculumScrollStorageKey(courseSlug));
+        const value = Number(raw);
+        return Number.isFinite(value) && value > 0 ? value : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function writeStoredCurriculumScroll(courseSlug: string, scrollTop: number) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.sessionStorage.setItem(
+            curriculumScrollStorageKey(courseSlug),
+            String(Math.max(0, Math.round(scrollTop))),
+        );
+    } catch {
+        // Ignore quota / private-mode failures.
+    }
+}
+
 function LessonCurriculumList({
     syllabusGroups,
     expandedModuleIds,
@@ -317,29 +344,51 @@ export function LessonWorkspace({
     const desktopCurriculumScrollRef = useRef<HTMLDivElement>(null);
     const mobileCurriculumScrollRef = useRef<HTMLDivElement>(null);
     const savedCurriculumScrollRef = useRef(0);
+    const curriculumScrollCourseRef = useRef(course.slug);
 
     const saveCurriculumScroll = useCallback(() => {
         const el = desktopCurriculumScrollRef.current ?? mobileCurriculumScrollRef.current;
         if (el) savedCurriculumScrollRef.current = el.scrollTop;
-    }, []);
+        writeStoredCurriculumScroll(course.slug, savedCurriculumScrollRef.current);
+    }, [course.slug]);
 
     const restoreCurriculumScroll = useCallback(() => {
-        requestAnimationFrame(() => {
+        const apply = () => {
+            const top = savedCurriculumScrollRef.current;
             for (const el of [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current]) {
-                if (el) el.scrollTop = savedCurriculumScrollRef.current;
+                if (el) el.scrollTop = top;
             }
+        };
+        // Apply immediately and again after accordion height settles.
+        requestAnimationFrame(() => {
+            apply();
+            requestAnimationFrame(apply);
         });
+        const t1 = window.setTimeout(apply, 50);
+        const t2 = window.setTimeout(apply, 320);
+        return () => {
+            window.clearTimeout(t1);
+            window.clearTimeout(t2);
+        };
     }, []);
 
     useLayoutEffect(() => {
-        restoreCurriculumScroll();
-    }, [localSyllabus, completed, restoreCurriculumScroll]);
+        if (curriculumScrollCourseRef.current !== course.slug) {
+            curriculumScrollCourseRef.current = course.slug;
+            savedCurriculumScrollRef.current = 0;
+        }
+        if (savedCurriculumScrollRef.current <= 0) {
+            savedCurriculumScrollRef.current = readStoredCurriculumScroll(course.slug);
+        }
+        return restoreCurriculumScroll();
+    }, [course.slug, lesson.slug, localSyllabus, completed, restoreCurriculumScroll]);
 
     useEffect(() => {
         const nodes = [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current].filter(Boolean);
         const onScroll = (event: Event) => {
             const target = event.currentTarget as HTMLDivElement;
             savedCurriculumScrollRef.current = target.scrollTop;
+            writeStoredCurriculumScroll(course.slug, target.scrollTop);
         };
         for (const node of nodes) {
             node?.addEventListener('scroll', onScroll, { passive: true });
@@ -349,7 +398,7 @@ export function LessonWorkspace({
                 node?.removeEventListener('scroll', onScroll);
             }
         };
-    }, [mobileCurriculumOpen]);
+    }, [course.slug, mobileCurriculumOpen]);
 
     const currentLessonIndex = localSyllabus.findIndex((item) => item.slug === lesson.slug);
     const prevLesson = currentLessonIndex > 0 ? localSyllabus[currentLessonIndex - 1] : null;
@@ -406,6 +455,22 @@ export function LessonWorkspace({
         currentInitialView === 'video' || currentInitialView === 'text',
     );
 
+    const syllabusGroups = useMemo(() => {
+        if (modules && modules.length > 0) {
+            return groupSyllabusWithDbModules(modules, localSyllabus);
+        }
+        return groupLessonsFlat(localSyllabus);
+    }, [modules, localSyllabus]);
+
+    const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
+        getDefaultExpandedModuleIds(
+            modules && modules.length > 0
+                ? groupSyllabusWithDbModules(modules, syllabus)
+                : groupLessonsFlat(syllabus),
+            lesson.slug,
+        ),
+    );
+
     // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
@@ -415,6 +480,15 @@ export function LessonWorkspace({
         setFlashcardVisited(currentInitialView === 'flashcard');
         setQuizCompleted(false);
         setContentViewed(currentInitialView === 'video' || currentInitialView === 'text');
+        setExpandedModuleIds((prev) => {
+            const nextDefaults = getDefaultExpandedModuleIds(
+                modules && modules.length > 0
+                    ? groupSyllabusWithDbModules(modules, syllabus)
+                    : groupLessonsFlat(syllabus),
+                lesson.slug,
+            );
+            return Array.from(new Set([...prev, ...nextDefaults]));
+        });
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
@@ -436,17 +510,6 @@ export function LessonWorkspace({
             document.body.style.overflow = previousOverflow;
         };
     }, [mobileCurriculumOpen]);
-
-    const syllabusGroups = useMemo(() => {
-        if (modules && modules.length > 0) {
-            return groupSyllabusWithDbModules(modules, localSyllabus);
-        }
-        return groupLessonsFlat(localSyllabus);
-    }, [modules, localSyllabus]);
-
-    const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
-        getDefaultExpandedModuleIds(syllabusGroups, lesson.slug),
-    );
 
     const toggleModule = (moduleId: string) => {
         setExpandedModuleIds((prev) =>
@@ -599,7 +662,10 @@ export function LessonWorkspace({
             onToggleModule={toggleModule}
             courseSlug={course.slug}
             currentLessonSlug={lesson.slug}
-            onLessonSelect={() => setMobileCurriculumOpen(false)}
+            onLessonSelect={() => {
+                saveCurriculumScroll();
+                setMobileCurriculumOpen(false);
+            }}
         />
     );
 
@@ -775,6 +841,7 @@ export function LessonWorkspace({
                         {prevLesson ? (
                             <Link
                                 href={STUDENT_ROUTES.belajar(course.slug, prevLesson.slug)}
+                                onClick={saveCurriculumScroll}
                                 className="group flex flex-col items-start gap-1 max-w-[45%] text-left"
                             >
                                 <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
@@ -792,6 +859,7 @@ export function LessonWorkspace({
                         {nextLesson ? (
                             <Link
                                 href={STUDENT_ROUTES.belajar(course.slug, nextLesson.slug)}
+                                onClick={saveCurriculumScroll}
                                 className="group flex flex-col items-end gap-1 max-w-[45%] text-right"
                             >
                                 <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
