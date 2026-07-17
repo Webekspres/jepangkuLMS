@@ -21,21 +21,17 @@ export function normalizeLmsPhone(value: string): string {
 }
 
 export function formatLmsPhoneForStorage(value: string): string {
-    const normalized = normalizeLmsPhone(value);
-    if (normalized.startsWith('0')) return `+62${normalized.slice(1)}`;
-    if (normalized.startsWith('62') && !normalized.startsWith('+')) return `+${normalized}`;
-    if (normalized.startsWith('+')) return normalized;
-    return `+62${normalized}`;
+    return normalizeLmsPhone(value);
 }
 
 export function validateLmsPhone(value: string): string | null {
     const normalized = normalizeLmsPhone(value);
     if (!normalized) return 'Nomor ponsel wajib diisi.';
-    if (!/^(\+?62|0)[0-9]{8,14}$/.test(normalized)) {
-        return 'Format nomor tidak valid. Contoh: 08123456789 atau +628123456789.';
+    // E.164-ish: optional +, then 8–15 digits (bebas negara).
+    if (!/^\+?[0-9]{8,15}$/.test(normalized)) {
+        return 'Format nomor tidak valid. Contoh: 08123456789, +628123456789, atau +819012345678.';
     }
-    const stored = formatLmsPhoneForStorage(normalized);
-    if (stored.length > PHONE_MAX) {
+    if (normalized.length > PHONE_MAX) {
         return `Nomor ponsel maksimal ${PHONE_MAX} karakter.`;
     }
     return null;

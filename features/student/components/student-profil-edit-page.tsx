@@ -293,11 +293,12 @@ export function StudentProfilEditPage() {
                 setDisplayNameSaved(false);
                 setDisplayNameError(null);
               }}
-              placeholder="Contoh: 08123456789"
+              placeholder="Contoh: 08123456789 atau +819012345678"
               className="max-w-sm"
             />
             <p className="text-xs text-muted-foreground">
-              Digunakan admin untuk info kelas dan grup belajar. Format: 08xx atau +62xx.
+              Digunakan admin untuk info kelas dan grup belajar. Boleh nomor Indonesia atau luar negeri
+              (contoh: 08…, +62…, +81…).
             </p>
           </div>
 
