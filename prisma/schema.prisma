@@ -429,18 +429,22 @@ model LessonComment {
 }
 
 model LessonCommentReply {
-    id           String   @id @default(uuid())
-    commentId    String
-    userId       String
-    content      String   @db.Text
-    likes        Int      @default(0)
-    isInstructor Boolean  @default(false)
-    createdAt    DateTime @default(now())
+    id            String   @id @default(uuid())
+    commentId     String
+    parentReplyId String?
+    userId        String
+    content       String   @db.Text
+    likes         Int      @default(0)
+    isInstructor  Boolean  @default(false)
+    createdAt     DateTime @default(now())
 
-    comment LessonComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-    user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    comment      LessonComment        @relation(fields: [commentId], references: [id], onDelete: Cascade)
+    parentReply  LessonCommentReply?  @relation("ReplyThread", fields: [parentReplyId], references: [id], onDelete: Cascade)
+    childReplies LessonCommentReply[] @relation("ReplyThread")
+    user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([commentId, createdAt(sort: Asc)])
+    @@index([commentId, parentReplyId, createdAt(sort: Asc)])
 }
 
 // ====================================================================

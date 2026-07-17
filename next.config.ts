@@ -14,6 +14,7 @@ const FRAME_SRC_ORIGINS = [
   "https://*.clerk.accounts.dev",
   "https://challenges.cloudflare.com",
   "https://accounts.google.com",
+  "https://www.youtube.com",
   "https://www.youtube-nocookie.com",
 ].join(" ");
 
@@ -25,7 +26,7 @@ const CONTENT_SECURITY_POLICY = [
    * browser modern akan mengabaikan 'unsafe-inline' dan memblokir semua script.
    * Lihat SECURITY_AUDIT.md H-01 untuk rencana migrasi ke nonce-based CSP.
    */
-  `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${CLERK_CSP_ORIGINS}`,
+  `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com ${CLERK_CSP_ORIGINS}`,
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
@@ -91,7 +92,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
 
   experimental: {
-    optimizePackageImports: ["lucide-react", "motion/react", "@vidstack/react"],
+    optimizePackageImports: ["lucide-react", "motion/react", "react-player"],
     // Biar Server Actions aman pas nerima kiriman form lewat Ngrok
     serverActions: {
       allowedOrigins: ["walk-ravine-smuggler.ngrok-free.dev"],
@@ -117,7 +118,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value:
+              'camera=(), microphone=(), geolocation=(), clipboard-write=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
           },
         ],
       },

@@ -4,7 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { getCoreSession } from '@/lib/core/get-core-session';
 import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
-import { buildReplyWithMention } from '@/features/learning/lib/lesson-qa-utils';
+import {
+  buildReplyTree,
+  buildReplyWithMention,
+  stripReplyMention,
+} from '@/features/learning/lib/lesson-qa-utils';
 import { LMS_POINTS, lmsLessonCommentSourceKey } from '@/lib/lms/point-rules';
 import { awardLmsPoints } from '@/lib/lms/points';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
@@ -19,6 +23,8 @@ export type LessonCommentReplyView = {
   likes: number;
   isInstructor: boolean;
   isYou: boolean;
+  canDelete: boolean;
+  replies: LessonCommentReplyView[];
 };
 
 export type LessonCommentView = {
@@ -29,7 +35,19 @@ export type LessonCommentView = {
   time: string;
   likes: number;
   isYou: boolean;
+  canDelete: boolean;
   replies: LessonCommentReplyView[];
+};
+
+type LessonCommentReplyRow = {
+  id: string;
+  userId: string;
+  parentReplyId: string | null;
+  content: string;
+  likes: number;
+  isInstructor: boolean;
+  createdAt: Date;
+  user: { displayName: string | null; ssoDisplayName: string | null };
 };
 
 function getInitial(name: string): string {
@@ -73,10 +91,51 @@ export async function loadLessonComments(
   });
 
   const viewer = viewerId ?? (await requireAuthUserWithAnchor().catch(() => null));
+  const session = viewer ? await getCoreSession().catch(() => null) : null;
+  const canModerate = viewer
+    ? await userHasLmsAdminAccess(viewer, session?.roles ?? [])
+    : false;
+
+  async function toReplyView(
+    reply: ReturnType<typeof buildReplyTree<LessonCommentReplyRow>>[number],
+  ): Promise<LessonCommentReplyView> {
+    const replyAuthor = await resolveDisplayName(
+      reply.user.displayName,
+      reply.user.ssoDisplayName,
+    );
+    return {
+      id: reply.id,
+      author: replyAuthor,
+      avatarInitial: getInitial(replyAuthor),
+      content: reply.content,
+      time: formatRelativeTime(reply.createdAt),
+      likes: reply.likes,
+      isInstructor: reply.isInstructor,
+      isYou: viewer === reply.userId,
+      canDelete: canModerate || viewer === reply.userId,
+      replies: await Promise.all(reply.replies.map(toReplyView)),
+    };
+  }
 
   return Promise.all(
     rows.map(async (row) => {
       const author = await resolveDisplayName(row.user.displayName, row.user.ssoDisplayName);
+      const replyTree = buildReplyTree(
+        row.replies.map((reply) => ({
+          id: reply.id,
+          userId: reply.userId,
+          parentReplyId: reply.parentReplyId,
+          content: reply.content,
+          likes: reply.likes,
+          isInstructor: reply.isInstructor,
+          createdAt: reply.createdAt,
+          user: {
+            displayName: reply.user.displayName,
+            ssoDisplayName: reply.user.ssoDisplayName,
+          },
+        })),
+      );
+
       return {
         id: row.id,
         author,
@@ -85,24 +144,8 @@ export async function loadLessonComments(
         time: formatRelativeTime(row.createdAt),
         likes: row.likes,
         isYou: viewer === row.userId,
-        replies: await Promise.all(
-          row.replies.map(async (reply) => {
-            const replyAuthor = await resolveDisplayName(
-              reply.user.displayName,
-              reply.user.ssoDisplayName,
-            );
-            return {
-              id: reply.id,
-              author: replyAuthor,
-              avatarInitial: getInitial(replyAuthor),
-              content: reply.content,
-              time: formatRelativeTime(reply.createdAt),
-              likes: reply.likes,
-              isInstructor: reply.isInstructor,
-              isYou: viewer === reply.userId,
-            };
-          }),
-        ),
+        canDelete: canModerate || viewer === row.userId,
+        replies: await Promise.all(replyTree.map(toReplyView)),
       };
     }),
   );
@@ -165,21 +208,19 @@ export async function likeLessonCommentReply(replyId: string) {
 export async function postLessonCommentReply(
   commentId: string,
   content: string,
-  replyToAuthor?: string,
+  options?: { replyToAuthor?: string; parentReplyId?: string | null },
 ) {
   const userId = await requireAuthUserWithAnchor();
   const session = await getCoreSession();
   const isInstructor = await userHasLmsAdminAccess(userId, session?.roles ?? []);
 
-  let trimmed = content.trim();
-  if (replyToAuthor) {
-    trimmed = buildReplyWithMention(replyToAuthor, trimmed);
-  }
+  const replyToAuthor = options?.replyToAuthor;
+  const bodyText = replyToAuthor ? stripReplyMention(replyToAuthor, content) : content.trim();
 
-  if (trimmed.length < 3) {
+  if (bodyText.length < 3) {
     return { ok: false as const, message: 'Balasan minimal 3 karakter.' };
   }
-  if (trimmed.length > 2000) {
+  if (bodyText.length > 2000) {
     return { ok: false as const, message: 'Balasan terlalu panjang (maks. 2000 karakter).' };
   }
 
@@ -189,9 +230,67 @@ export async function postLessonCommentReply(
   });
   if (!comment) return { ok: false as const, message: 'Komentar tidak ditemukan.' };
 
+  const parentReplyId = options?.parentReplyId ?? null;
+  if (parentReplyId) {
+    const parentReply = await prisma.lessonCommentReply.findUnique({
+      where: { id: parentReplyId },
+      select: { commentId: true },
+    });
+    if (!parentReply || parentReply.commentId !== commentId) {
+      return { ok: false as const, message: 'Balasan induk tidak ditemukan.' };
+    }
+  }
+
+  const trimmed = replyToAuthor
+    ? buildReplyWithMention(replyToAuthor, bodyText)
+    : bodyText;
+
   await prisma.lessonCommentReply.create({
-    data: { commentId, userId, content: trimmed, isInstructor },
+    data: { commentId, parentReplyId, userId, content: trimmed, isInstructor },
   });
+
+  revalidatePath('/dashboard/belajar');
+  return { ok: true as const };
+}
+
+async function canDeleteComment(ownerId: string, viewerId: string): Promise<boolean> {
+  if (ownerId === viewerId) return true;
+
+  const session = await getCoreSession();
+  return userHasLmsAdminAccess(viewerId, session?.roles ?? []);
+}
+
+export async function deleteLessonComment(commentId: string) {
+  const userId = await requireAuthUserWithAnchor();
+  const comment = await prisma.lessonComment.findUnique({
+    where: { id: commentId },
+    select: { userId: true },
+  });
+  if (!comment) return { ok: false as const, message: 'Komentar tidak ditemukan.' };
+
+  if (!(await canDeleteComment(comment.userId, userId))) {
+    return { ok: false as const, message: 'Kamu tidak memiliki izin menghapus komentar ini.' };
+  }
+
+  await prisma.lessonComment.delete({ where: { id: commentId } });
+
+  revalidatePath('/dashboard/belajar');
+  return { ok: true as const };
+}
+
+export async function deleteLessonCommentReply(replyId: string) {
+  const userId = await requireAuthUserWithAnchor();
+  const reply = await prisma.lessonCommentReply.findUnique({
+    where: { id: replyId },
+    select: { userId: true },
+  });
+  if (!reply) return { ok: false as const, message: 'Balasan tidak ditemukan.' };
+
+  if (!(await canDeleteComment(reply.userId, userId))) {
+    return { ok: false as const, message: 'Kamu tidak memiliki izin menghapus balasan ini.' };
+  }
+
+  await prisma.lessonCommentReply.delete({ where: { id: replyId } });
 
   revalidatePath('/dashboard/belajar');
   return { ok: true as const };
