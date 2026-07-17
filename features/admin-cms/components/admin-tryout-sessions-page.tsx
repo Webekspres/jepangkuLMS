@@ -7,6 +7,7 @@ import { Pencil, Plus, Search, Target, Package } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
+import { AdminStatusToggleButton } from '@/features/admin-cms/components/admin-status-toggle-button';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import {
   AdminTableAction,
@@ -182,16 +183,15 @@ export function AdminTryoutSessionsPage({ sessions }: { sessions: AdminTryoutSes
                     />
                   </TableCell>
                   <TableCell>
-                    <button
-                      type="button"
+                    <AdminStatusToggleButton
+                      active={row.isActive}
+                      activeLabel="Aktif"
+                      inactiveLabel="Nonaktif"
+                      activeHint="Klik nonaktifkan"
+                      inactiveHint="Klik aktifkan"
                       disabled={isPending}
                       onClick={() => handleToggleActive(row.id, row.isActive)}
-                      className="inline-flex"
-                    >
-                      <Badge variant={row.isActive ? 'default' : 'outline'}>
-                        {row.isActive ? 'Aktif' : 'Nonaktif'}
-                      </Badge>
-                    </button>
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <AdminTableActions>

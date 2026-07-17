@@ -7,6 +7,7 @@ import { Eye, EyeOff, Layers, Pencil, Plus, Search } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
+import { AdminStatusToggleButton } from '@/features/admin-cms/components/admin-status-toggle-button';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import {
     AdminTableAction,
@@ -143,15 +144,23 @@ export function AdminCoursesPage({ courses }: { courses: AdminCourseRow[] }) {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            className={
-                                                course.isPublished
-                                                    ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10'
-                                                    : 'bg-muted text-muted-foreground hover:bg-muted'
+                                        <AdminStatusToggleButton
+                                            active={course.isPublished}
+                                            activeLabel="Published"
+                                            inactiveLabel="Draft"
+                                            activeHint="Klik jadikan Draft"
+                                            inactiveHint="Klik publikasikan"
+                                            disabled={isPending}
+                                            onClick={() =>
+                                                startTransition(async () => {
+                                                    await toggleCoursePublishedAction(
+                                                        course.id,
+                                                        !course.isPublished,
+                                                    );
+                                                    router.refresh();
+                                                })
                                             }
-                                        >
-                                            {course.isPublished ? 'Published' : 'Draft'}
-                                        </Badge>
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         <AdminTableActions>
