@@ -114,7 +114,16 @@ export function AdminCoverImageField({
     setZoom(1);
     setRotation(0);
     setCrop({ x: 0, y: 0 });
-    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  /** Batal crop — jangan hapus file yang sudah ter-commit (nativeForm butuh file di input). */
+  const handleCropCancel = () => {
+    closeCropModal();
+    if (nativeForm) {
+      syncNativeFileInput(inputRef.current, file);
+    } else if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
   const openCropModal = (picked: File) => {
@@ -174,6 +183,8 @@ export function AdminCoverImageField({
       }
       commitFile(croppedFile);
       closeCropModal();
+      // Pastikan file hasil crop tetap di input native (jangan dikosongkan).
+      if (nativeForm) syncNativeFileInput(inputRef.current, croppedFile);
     } catch {
       setError('Gagal memproses potongan gambar.');
     } finally {
@@ -185,7 +196,6 @@ export function AdminCoverImageField({
     const picked = files?.[0];
     if (!picked) return;
     openCropModal(picked);
-    if (inputRef.current) inputRef.current.value = '';
   };
 
   const handleRemove = () => {
@@ -379,7 +389,7 @@ export function AdminCoverImageField({
             </div>
 
             <div className="mt-6 flex justify-end gap-3 border-t border-border pt-4">
-              <Button type="button" variant="ghost" disabled={isApplyingCrop} onClick={closeCropModal}>
+              <Button type="button" variant="ghost" disabled={isApplyingCrop} onClick={handleCropCancel}>
                 Batal
               </Button>
               <Button
