@@ -44,11 +44,11 @@ const MILESTONE_META: Record<
   JlptPathItem['level'],
   { label: string; icon: string; desc: string }
 > = {
-  N5: { label: 'Pemula', icon: '🌱', desc: 'Kuasai hiragana, katakana, dan kanji dasar N5' },
-  N4: { label: 'Dasar', icon: '📚', desc: 'Tata bahasa menengah dan kosakata N4' },
-  N3: { label: 'Menengah', icon: '🗺️', desc: 'Percakapan kompleks dan reading N3' },
-  N2: { label: 'Lanjutan', icon: '🏔️', desc: 'Teks formal & akademik N2' },
-  N1: { label: 'Mahir', icon: '👑', desc: 'Level tertinggi JLPT — N1' },
+  N5: { label: 'Pemula', icon: '🌱', desc: 'Lulus tryout resmi JLPT N5' },
+  N4: { label: 'Dasar', icon: '📚', desc: 'Lulus tryout resmi JLPT N4' },
+  N3: { label: 'Menengah', icon: '🗺️', desc: 'Lulus tryout resmi JLPT N3' },
+  N2: { label: 'Lanjutan', icon: '🏔️', desc: 'Lulus tryout resmi JLPT N2' },
+  N1: { label: 'Mahir', icon: '👑', desc: 'Lulus tryout resmi level tertinggi JLPT N1' },
 };
 
 function formatLiveClassSchedule(date: Date): string {
@@ -82,9 +82,9 @@ export function mapJlptPathToMilestones(path: JlptPathItem[]): AchievementMilest
             : 'locked',
       date:
         item.status === 'done'
-          ? 'Selesai'
+          ? 'Lulus tryout'
           : item.status === 'active'
-            ? 'Sedang belajar'
+            ? 'Persiapan tryout'
             : 'Terkunci',
       desc: meta.desc,
       xp: item.progress ?? 0,
@@ -158,8 +158,8 @@ export const loadDashboardLivePreview = cache(async function loadDashboardLivePr
 export const loadAchievementMilestones = cache(async function loadAchievementMilestones(): Promise<
   AchievementMilestone[]
 > {
-  const path = await loadDashboardJlptPath();
-  return mapJlptPathToMilestones(path);
+  const data = await loadDashboardJlptPath();
+  return mapJlptPathToMilestones(data.path);
 });
 
 export type TryoutSessionView = {

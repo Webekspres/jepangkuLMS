@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -311,12 +311,50 @@ export function LessonWorkspace({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [completed, setCompleted] = useState(lesson.isCompleted);
+    const [localSyllabus, setLocalSyllabus] = useState(syllabus);
     const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
     const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
+    const desktopCurriculumScrollRef = useRef<HTMLDivElement>(null);
+    const mobileCurriculumScrollRef = useRef<HTMLDivElement>(null);
+    const savedCurriculumScrollRef = useRef(0);
 
-    const currentLessonIndex = syllabus.findIndex((item) => item.slug === lesson.slug);
-    const prevLesson = currentLessonIndex > 0 ? syllabus[currentLessonIndex - 1] : null;
-    const nextLesson = currentLessonIndex < syllabus.length - 1 ? syllabus[currentLessonIndex + 1] : null;
+    const saveCurriculumScroll = useCallback(() => {
+        const el = desktopCurriculumScrollRef.current ?? mobileCurriculumScrollRef.current;
+        if (el) savedCurriculumScrollRef.current = el.scrollTop;
+    }, []);
+
+    const restoreCurriculumScroll = useCallback(() => {
+        requestAnimationFrame(() => {
+            for (const el of [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current]) {
+                if (el) el.scrollTop = savedCurriculumScrollRef.current;
+            }
+        });
+    }, []);
+
+    useLayoutEffect(() => {
+        restoreCurriculumScroll();
+    }, [localSyllabus, completed, restoreCurriculumScroll]);
+
+    useEffect(() => {
+        const nodes = [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current].filter(Boolean);
+        const onScroll = (event: Event) => {
+            const target = event.currentTarget as HTMLDivElement;
+            savedCurriculumScrollRef.current = target.scrollTop;
+        };
+        for (const node of nodes) {
+            node?.addEventListener('scroll', onScroll, { passive: true });
+        }
+        return () => {
+            for (const node of nodes) {
+                node?.removeEventListener('scroll', onScroll);
+            }
+        };
+    }, [mobileCurriculumOpen]);
+
+    const currentLessonIndex = localSyllabus.findIndex((item) => item.slug === lesson.slug);
+    const prevLesson = currentLessonIndex > 0 ? localSyllabus[currentLessonIndex - 1] : null;
+    const nextLesson =
+        currentLessonIndex < localSyllabus.length - 1 ? localSyllabus[currentLessonIndex + 1] : null;
 
     const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
 
@@ -371,6 +409,7 @@ export function LessonWorkspace({
     // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
+        setLocalSyllabus(syllabus);
         setCompleted(lesson.isCompleted);
         setActiveTab(isLegacyLesson ? resolvedInitialTab : null);
         setFlashcardVisited(currentInitialView === 'flashcard');
@@ -400,10 +439,10 @@ export function LessonWorkspace({
 
     const syllabusGroups = useMemo(() => {
         if (modules && modules.length > 0) {
-            return groupSyllabusWithDbModules(modules, syllabus);
+            return groupSyllabusWithDbModules(modules, localSyllabus);
         }
-        return groupLessonsFlat(syllabus);
-    }, [modules, syllabus]);
+        return groupLessonsFlat(localSyllabus);
+    }, [modules, localSyllabus]);
 
     const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
         getDefaultExpandedModuleIds(syllabusGroups, lesson.slug),
@@ -431,6 +470,14 @@ export function LessonWorkspace({
                     ? contentSectionDone
                     : hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
 
+    function markLessonCompleteOptimistic() {
+        setLocalSyllabus((prev) =>
+            prev.map((item) =>
+                item.slug === lesson.slug ? { ...item, isCompleted: true } : item,
+            ),
+        );
+    }
+
     // Explicit mark-complete handler — only called when user clicks the button.
     function handleMarkComplete() {
         if (completed || isPending) return;
@@ -438,6 +485,7 @@ export function LessonWorkspace({
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if (result && 'success' in result) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
                 showReward({
                     type: 'lesson-complete',
                     xp: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
@@ -446,9 +494,12 @@ export function LessonWorkspace({
                     description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
                 });
                 requestStudentCoreDataRefresh();
+                saveCurriculumScroll();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
+                saveCurriculumScroll();
                 router.refresh();
             }
         });
@@ -462,10 +513,14 @@ export function LessonWorkspace({
             });
             if (result && 'success' in result) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
                 requestStudentCoreDataRefresh();
+                saveCurriculumScroll();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
+                saveCurriculumScroll();
                 router.refresh();
             }
         });
@@ -490,7 +545,6 @@ export function LessonWorkspace({
                     });
                     requestStudentCoreDataRefresh();
                 }
-                router.refresh();
             });
         }
     }
@@ -774,7 +828,12 @@ export function LessonWorkspace({
                             </span>
                             <span className="text-xs text-muted-foreground">{syllabusGroups.length} modul</span>
                         </div>
-                        <div className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div
+                            ref={desktopCurriculumScrollRef}
+                            className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2"
+                        >
+                            {curriculumPanel}
+                        </div>
                         <div className="border-t border-border bg-muted/25 px-4 py-3.5">
                             <LessonCompleteAction
                                 completed={completed}
@@ -830,7 +889,7 @@ export function LessonWorkspace({
                             <div>
                                 <p className="text-sm font-semibold text-foreground sm:text-base">Konten kursus</p>
                                 <p className="text-xs text-muted-foreground sm:text-sm">
-                                    {syllabus.length} pelajaran · {syllabusGroups.length} modul
+                                    {localSyllabus.length} pelajaran · {syllabusGroups.length} modul
                                 </p>
                             </div>
                             <Button
@@ -843,7 +902,10 @@ export function LessonWorkspace({
                                 <X className="size-4" />
                             </Button>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+                        <div
+                            ref={mobileCurriculumScrollRef}
+                            className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
+                        >
                             {curriculumPanel}
                         </div>
                     </div>

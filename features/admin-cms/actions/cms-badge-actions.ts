@@ -29,9 +29,7 @@ function parseBadgeMeta(formData: FormData) {
   const unlockRule = String(formData.get('unlockRule') ?? 'MANUAL');
   const unlockValueRaw = String(formData.get('unlockValue') ?? '').trim();
   const unlockValue =
-    (unlockRule === 'QUIZ_SCORE_THRESHOLD' ||
-      unlockRule === 'TRYOUT_SCORE_THRESHOLD' ||
-      unlockRule === 'TRYOUT_PASS') &&
+    (unlockRule === 'QUIZ_SCORE_THRESHOLD' || unlockRule === 'TRYOUT_SCORE_THRESHOLD') &&
     unlockValueRaw
       ? Number(unlockValueRaw)
       : null;
@@ -56,8 +54,25 @@ function parseBadgeMeta(formData: FormData) {
 
   const targetCourseIdRaw = String(formData.get('targetCourseId') ?? '').trim();
   const targetCourseId =
-    unlockRule === 'SPECIFIC_COURSE_COMPLETE' && targetCourseIdRaw
+    (unlockRule === 'SPECIFIC_COURSE_COMPLETE' ||
+      unlockRule === 'SPECIFIC_MODULE_COMPLETE' ||
+      unlockRule === 'SPECIFIC_LESSON_COMPLETE') &&
+    targetCourseIdRaw
       ? targetCourseIdRaw
+      : null;
+
+  const targetModuleIdRaw = String(formData.get('targetModuleId') ?? '').trim();
+  const targetModuleId =
+    (unlockRule === 'SPECIFIC_MODULE_COMPLETE' ||
+      unlockRule === 'SPECIFIC_LESSON_COMPLETE') &&
+    targetModuleIdRaw
+      ? targetModuleIdRaw
+      : null;
+
+  const targetLessonIdRaw = String(formData.get('targetLessonId') ?? '').trim();
+  const targetLessonId =
+    unlockRule === 'SPECIFIC_LESSON_COMPLETE' && targetLessonIdRaw
+      ? targetLessonIdRaw
       : null;
 
   return {
@@ -69,7 +84,56 @@ function parseBadgeMeta(formData: FormData) {
     targetLevel,
     targetCategory,
     targetCourseId,
+    targetModuleId,
+    targetLessonId,
   };
+}
+
+async function validateBadgeTargets(meta: ReturnType<typeof parseBadgeMeta>): Promise<string | null> {
+  if (meta.unlockRule === 'SPECIFIC_COURSE_COMPLETE' && !meta.targetCourseId) {
+    return 'Target kursus wajib dipilih.';
+  }
+
+  if (meta.unlockRule === 'SPECIFIC_MODULE_COMPLETE') {
+    if (!meta.targetCourseId) return 'Pilih kursus terlebih dahulu.';
+    if (!meta.targetModuleId) return 'Target modul wajib dipilih.';
+
+    const module = await prisma.module.findUnique({
+      where: { id: meta.targetModuleId },
+      select: { courseId: true },
+    });
+
+    if (!module) return 'Target modul tidak ditemukan.';
+    if (module.courseId !== meta.targetCourseId) {
+      return 'Target modul harus berasal dari kursus yang dipilih.';
+    }
+
+    return null;
+  }
+
+  if (meta.unlockRule !== 'SPECIFIC_LESSON_COMPLETE') return null;
+
+  if (!meta.targetCourseId) return 'Pilih kursus terlebih dahulu.';
+  if (!meta.targetModuleId) return 'Pilih modul terlebih dahulu.';
+  if (!meta.targetLessonId) return 'Target lesson wajib dipilih.';
+
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: meta.targetLessonId },
+    select: {
+      moduleId: true,
+      module: { select: { courseId: true } },
+    },
+  });
+
+  if (!lesson) return 'Target lesson tidak ditemukan.';
+  if (lesson.moduleId !== meta.targetModuleId) {
+    return 'Target lesson harus berasal dari modul yang dipilih.';
+  }
+  if (lesson.module.courseId !== meta.targetCourseId) {
+    return 'Target modul harus berasal dari kursus yang dipilih.';
+  }
+
+  return null;
 }
 
 async function parseBadgeImage(formData: FormData): Promise<{ buffer: Buffer; mime: string; ext: string } | null> {
@@ -126,6 +190,9 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
   if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
   if (!code) return { ok: false, message: 'Kode badge tidak valid.' };
 
+  const targetError = await validateBadgeTargets(meta);
+  if (targetError) return { ok: false, message: targetError };
+
   const existing = await prisma.lmsBadge.findUnique({ where: { code } });
   if (existing) return { ok: false, message: `Kode "${code}" sudah dipakai.` };
 
@@ -154,6 +221,8 @@ export async function createBadgeAction(formData: FormData): Promise<CmsBadgeAct
       targetLevel: meta.targetLevel,
       targetCategory: meta.targetCategory,
       targetCourseId: meta.targetCourseId,
+      targetModuleId: meta.targetModuleId,
+      targetLessonId: meta.targetLessonId,
     },
   });
 
@@ -175,6 +244,9 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
   const removeImage = formData.get('removeImage') === 'true';
 
   if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
+
+  const targetError = await validateBadgeTargets(meta);
+  if (targetError) return { ok: false, message: targetError };
 
   let imageUrl = badge.imageUrl;
 
@@ -213,6 +285,8 @@ export async function updateBadgeAction(id: string, formData: FormData): Promise
       targetLevel: meta.targetLevel,
       targetCategory: meta.targetCategory,
       targetCourseId: meta.targetCourseId,
+      targetModuleId: meta.targetModuleId,
+      targetLessonId: meta.targetLessonId,
     },
   });
 

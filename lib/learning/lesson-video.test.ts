@@ -13,13 +13,11 @@ describe('extractYouTubeVideoId', () => {
   });
 });
 
-describe('toVidstackYouTubeSrc privacy params', () => {
-  test('includes modestbranding and disablekb', async () => {
-    const { toVidstackYouTubeSrc } = await import('@/features/learning/lib/lesson-video');
-    const src = toVidstackYouTubeSrc('abc123', { origin: 'https://kursus.jepangku.com' });
-    expect(src).toContain('youtube/abc123?');
-    expect(src).toContain('modestbranding=1');
-    expect(src).toContain('disablekb=1');
-    expect(src).toContain('origin=https%3A%2F%2Fkursus.jepangku.com');
+describe('getYouTubeWatchUrl', () => {
+  test('builds standard watch URL', async () => {
+    const { getYouTubeWatchUrl } = await import('@/features/learning/lib/lesson-video');
+    expect(getYouTubeWatchUrl('abc123')).toBe(
+      'https://www.youtube-nocookie.com/watch?v=abc123',
+    );
   });
 });

@@ -203,7 +203,7 @@ export async function submitTryoutAttempt(input: {
     ],
   });
 
-  await evaluateBadgeUnlocks(userId, { type: 'TRYOUT_PASS', score });
+  await evaluateBadgeUnlocks(userId, { type: 'TRYOUT_SCORE_THRESHOLD', score });
 
   await clearTryoutExamProgress(session.id);
 

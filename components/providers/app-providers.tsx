@@ -1,7 +1,5 @@
 'use client';
 
-import '@/lib/vidstack/suppress-provider-destroyed-rejection';
-
 import { AppSplash } from '@/components/app-splash';
 import { AppTopLoader } from '@/components/providers/app-top-loader';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';

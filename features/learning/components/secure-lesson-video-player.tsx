@@ -16,15 +16,15 @@ type VideoPayload = {
   title: string;
 };
 
-const LessonVidstackPlayer = dynamic(
+const LessonYoutubePlayer = dynamic(
   () =>
-    import('@/features/learning/components/lesson-vidstack-player').then(
-      (mod) => mod.LessonVidstackPlayer,
+    import('@/features/learning/components/lesson-youtube-player').then(
+      (mod) => mod.LessonYoutubePlayer,
     ),
   {
     ssr: false,
     loading: () => (
-      <div className="flex aspect-video items-center justify-center rounded-2xl border border-border bg-black/90">
+      <div className="flex aspect-video max-h-[min(70vh,720px)] items-center justify-center rounded-2xl border border-border bg-black/90">
         <p className="text-sm text-muted-foreground">Memuat pemutar video…</p>
       </div>
     ),
@@ -81,7 +81,7 @@ export function SecureLessonVideoPlayer({
 
   if (loading) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-2xl border border-border bg-muted/30">
+      <div className="flex aspect-video max-h-[min(70vh,720px)] items-center justify-center rounded-2xl border border-border bg-muted/30">
         <Loader2 className="size-8 animate-spin text-primary" aria-hidden />
         <span className="sr-only">Memuat video terproteksi…</span>
       </div>
@@ -90,7 +90,7 @@ export function SecureLessonVideoPlayer({
 
   if (error || !payload) {
     return (
-      <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-muted/20 px-6 text-center">
+      <div className="flex aspect-video max-h-[min(70vh,720px)] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-muted/20 px-6 text-center">
         <ShieldAlert className="size-8 text-muted-foreground" aria-hidden />
         <p className="text-sm font-medium text-foreground">Video tidak tersedia</p>
         <p className="text-xs text-muted-foreground">
@@ -103,7 +103,7 @@ export function SecureLessonVideoPlayer({
   }
 
   return (
-    <LessonVidstackPlayer
+    <LessonYoutubePlayer
       videoId={payload.videoId}
       title={title || payload.title}
       isActive={isActive}
