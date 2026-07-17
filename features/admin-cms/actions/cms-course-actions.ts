@@ -15,7 +15,10 @@ import {
   courseCreateFormSchema,
   courseUpdateFormSchema,
 } from '@/features/admin-cms/lib/validations';
-
+import {
+  deletePreviousCoverIfManaged,
+  resolveCoverImageUrl,
+} from '@/lib/media/cover-image';
 export type CmsActionResult = {
   ok: boolean;
   message?: string;
@@ -69,6 +72,21 @@ export async function createCourseAction(formData: FormData): Promise<CmsActionR
   const base = resolveSlugInput(data.slug, data.title, 'kursus');
   const slug = await ensureUniqueCourseSlug(prisma, base);
 
+  let coverImageUrl: string | null = null;
+  try {
+    const cover = await resolveCoverImageUrl({
+      kind: 'courses',
+      slug: base,
+      formData,
+    });
+    coverImageUrl = cover.url;
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Gagal mengunggah cover kursus.',
+    };
+  }
+
   try {
     const course = await prisma.course.create({
       data: {
@@ -80,6 +98,7 @@ export async function createCourseAction(formData: FormData): Promise<CmsActionR
         category: data.category,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,
+        coverImageUrl,
       },
     });
     revalidateStudentLearningSurfaces();
@@ -103,7 +122,32 @@ export async function updateCourseAction(
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
+  const existing = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { coverImageUrl: true },
+  });
+  if (!existing) return { ok: false, message: 'Kursus tidak ditemukan.' };
+
   const data = parsed.data;
+  let coverImageUrl = existing.coverImageUrl;
+  try {
+    const cover = await resolveCoverImageUrl({
+      kind: 'courses',
+      slug: data.slug,
+      formData,
+      existingUrl: existing.coverImageUrl,
+    });
+    coverImageUrl = cover.url;
+    if (cover.replaced || cover.url !== existing.coverImageUrl) {
+      await deletePreviousCoverIfManaged(existing.coverImageUrl);
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Gagal mengunggah cover kursus.',
+    };
+  }
+
   try {
     await prisma.course.update({
       where: { id: courseId },
@@ -116,6 +160,7 @@ export async function updateCourseAction(
         category: data.category,
         priceIdr: data.priceIdr,
         isPublished: data.isPublished,
+        coverImageUrl,
       },
     });
     revalidateStudentLearningSurfaces();
@@ -132,7 +177,12 @@ export async function updateCourseAction(
 
 export async function deleteCourseAction(courseId: string): Promise<CmsActionResult> {
   await requireAdminAction();
+  const existing = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { coverImageUrl: true },
+  });
   await prisma.course.delete({ where: { id: courseId } });
+  await deletePreviousCoverIfManaged(existing?.coverImageUrl);
   revalidateStudentLearningSurfaces();
   revalidatePath(ADMIN_ROUTES.kursus);
   return { ok: true };

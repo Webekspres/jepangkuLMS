@@ -1,8 +1,5 @@
 import type { LevelJLPT, PrismaClient } from '@prisma/client';
 
-const DEFAULT_THUMB =
-  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600';
-
 type LiveSessionSeed = {
   title: string;
   daysFromNow: number;
@@ -147,7 +144,7 @@ export async function seedLiveClasses(prisma: PrismaClient): Promise<void> {
       priceIdr: program.priceIdr,
       maxSlots: program.maxSlots,
       filledSlots: program.filledSlots,
-      thumbUrl: DEFAULT_THUMB,
+      coverImageUrl: null,
       isPublished: true,
     };
 

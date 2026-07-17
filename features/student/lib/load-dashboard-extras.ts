@@ -313,7 +313,7 @@ export type LiveClassView = {
   priceIdr: number;
   maxSlots: number;
   filledSlots: number;
-  thumbUrl: string | null;
+  coverImageUrl: string | null;
   isFull: boolean;
   sessionCount: number;
   /** Label sesi terjadwal terdekat untuk ringkasan kartu. */
@@ -370,7 +370,7 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
       priceIdr: row.priceIdr,
       maxSlots: row.maxSlots,
       filledSlots: row.filledSlots,
-      thumbUrl: row.thumbUrl,
+      coverImageUrl: row.coverImageUrl,
       isFull: row.filledSlots >= row.maxSlots,
       sessionCount: row.sessions.length,
       nextSessionLabel: nextSession ? formatLiveClassSchedule(nextSession.scheduledAt) : null,

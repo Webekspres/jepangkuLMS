@@ -83,7 +83,7 @@ export async function loadAdminLiveClassById(id: string) {
     priceIdr: row.priceIdr,
     maxSlots: row.maxSlots,
     filledSlots: row.filledSlots,
-    thumbUrl: row.thumbUrl,
+    coverImageUrl: row.coverImageUrl,
     paymentLink: row.paymentLink,
     isPublished: row.isPublished,
     sessions: row.sessions.map((session) => ({

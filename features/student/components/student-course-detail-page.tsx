@@ -21,6 +21,7 @@ import {
 } from '@/features/learning/lib/n5-lesson-modules';
 import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course-tree';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
@@ -125,7 +126,15 @@ export function StudentCourseDetailPage({
         <div className="space-y-6 lg:col-span-2">
           <div className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
             <div className="relative h-52 sm:h-64">
-              <Image src={course.thumb} alt="" fill className="object-cover" sizes="800px" priority />
+              <Image
+                src={course.thumb}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="800px"
+                priority
+                unoptimized={isUnoptimizedImageSrc(course.thumb)}
+              />
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
               <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
                 <Badge className={cn('border-0 text-white', accent.badge)}>{course.level}</Badge>

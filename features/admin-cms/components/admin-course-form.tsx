@@ -3,6 +3,10 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
+import {
+  AdminCoverImageField,
+  type AdminCoverImageFieldState,
+} from '@/features/admin-cms/components/admin-cover-image-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createCourseAction,
@@ -36,6 +40,7 @@ type CourseFormValues = {
   category: CourseCategoryType;
   priceIdr: number;
   isPublished: boolean;
+  coverImageUrl: string | null;
 };
 
 type AdminCourseFormProps = {
@@ -61,13 +66,16 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       category: 'KURSUS_UTAMA',
       priceIdr: 0,
       isPublished: false,
+      coverImageUrl: null,
     },
   );
-  // Raw textarea buffer (one outcome per line) — split into an array only on submit
-  // so admins can type freely, including transient blank lines.
   const [outcomesText, setOutcomesText] = useState<string>(
     (initial?.outcomes ?? []).join('\n'),
   );
+  const [coverState, setCoverState] = useState<AdminCoverImageFieldState>({
+    file: null,
+    removeCover: false,
+  });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +93,8 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
     formData.set('category', values.category);
     formData.set('priceIdr', String(values.priceIdr));
     if (values.isPublished) formData.set('isPublished', 'on');
+    if (coverState.removeCover) formData.set('removeCover', 'on');
+    if (coverState.file) formData.set('coverImage', coverState.file);
 
     startTransition(async () => {
       const result =
@@ -252,6 +262,13 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
                 placeholder="Ringkasan singkat kursus untuk katalog..."
               />
             </div>
+
+            <AdminCoverImageField
+              id="coverImage"
+              existingUrl={values.coverImageUrl}
+              disabled={isPending}
+              onChange={setCoverState}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="outcomes">Yang akan kamu pelajari</Label>

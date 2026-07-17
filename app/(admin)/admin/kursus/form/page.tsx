@@ -33,6 +33,7 @@ export default async function AdminKursusFormPage({ searchParams }: AdminKursusF
         category: course.category,
         priceIdr: course.priceIdr,
         isPublished: course.isPublished,
+        coverImageUrl: course.coverImageUrl,
       }}
     />
   );

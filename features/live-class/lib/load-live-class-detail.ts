@@ -36,7 +36,7 @@ export type LiveClassDetailView = {
   priceIdr: number;
   maxSlots: number;
   filledSlots: number;
-  thumbUrl: string | null;
+  coverImageUrl: string | null;
   paymentLink: string | null;
   paymentSettings: {
     bankName: string;
@@ -102,7 +102,7 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     priceIdr: row.priceIdr,
     maxSlots: row.maxSlots,
     filledSlots: row.filledSlots,
-    thumbUrl: row.thumbUrl,
+    coverImageUrl: row.coverImageUrl,
     paymentLink: row.paymentLink,
     paymentSettings: getPaymentSettings(),
     isFull: row.filledSlots >= row.maxSlots,

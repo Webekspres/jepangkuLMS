@@ -4,8 +4,12 @@ import { revalidatePath } from 'next/cache';
 import type { LevelJLPT, Prisma } from '@prisma/client';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import {
+  deletePreviousCoverIfManaged,
+  resolveCoverImageUrl,
+} from '@/lib/media/cover-image';
 import { prisma } from '@/lib/prisma';
-
+import { slugifyTitle } from '@/lib/lms/slug';
 export type CmsLiveClassActionResult =
   | { ok: true; id?: string }
   | { ok: false; message: string };
@@ -62,7 +66,6 @@ function parseLiveClassForm(formData: FormData) {
   const priceIdr = Math.max(0, Math.trunc(Number(formData.get('priceIdr') ?? 0) || 0));
   const maxSlots = Number(formData.get('maxSlots') ?? 30) || 30;
   const filledSlots = Number(formData.get('filledSlots') ?? 0) || 0;
-  const thumbUrl = String(formData.get('thumbUrl') ?? '').trim() || null;
   const paymentLink = String(formData.get('paymentLink') ?? '').trim() || null;
   const isPublished = formData.get('isPublished') === 'on';
   const sessions = parseSessions(formData);
@@ -77,7 +80,6 @@ function parseLiveClassForm(formData: FormData) {
     priceIdr,
     maxSlots,
     filledSlots,
-    thumbUrl,
     paymentLink,
     isPublished,
     sessions,
@@ -118,7 +120,6 @@ function toScalarData(data: ReturnType<typeof parseLiveClassForm>) {
     priceIdr: data.priceIdr,
     maxSlots: data.maxSlots,
     filledSlots: data.filledSlots,
-    thumbUrl: data.thumbUrl,
     paymentLink: data.paymentLink,
     isPublished: data.isPublished,
   };
@@ -142,9 +143,25 @@ export async function createLiveClassAction(formData: FormData): Promise<CmsLive
   const error = validateLiveClass(data);
   if (error) return { ok: false, message: error };
 
+  let coverImageUrl: string | null = null;
+  try {
+    const cover = await resolveCoverImageUrl({
+      kind: 'live-class',
+      slug: slugifyTitle(data.title) || 'live-class',
+      formData,
+    });
+    coverImageUrl = cover.url;
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+    };
+  }
+
   const row = await prisma.liveClass.create({
     data: {
       ...toScalarData(data),
+      coverImageUrl,
       sessions: { create: toSessionCreateData(data.sessions) },
     },
   });
@@ -166,9 +183,31 @@ export async function updateLiveClassAction(
   const error = validateLiveClass(data);
   if (error) return { ok: false, message: error };
 
+  let coverImageUrl = existing.coverImageUrl;
+  try {
+    const cover = await resolveCoverImageUrl({
+      kind: 'live-class',
+      slug: slugifyTitle(data.title) || id,
+      formData,
+      existingUrl: existing.coverImageUrl,
+    });
+    coverImageUrl = cover.url;
+    if (cover.replaced || cover.url !== existing.coverImageUrl) {
+      await deletePreviousCoverIfManaged(existing.coverImageUrl);
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+    };
+  }
+
   // Reconcile sesi secara idempotent: ganti penuh dengan definisi terbaru.
   await prisma.$transaction([
-    prisma.liveClass.update({ where: { id }, data: toScalarData(data) }),
+    prisma.liveClass.update({
+      where: { id },
+      data: { ...toScalarData(data), coverImageUrl },
+    }),
     prisma.liveClassSession.deleteMany({ where: { liveClassId: id } }),
     prisma.liveClassSession.createMany({
       data: data.sessions.map((session) => ({
@@ -189,7 +228,12 @@ export async function updateLiveClassAction(
 
 export async function deleteLiveClassAction(id: string): Promise<CmsLiveClassActionResult> {
   await requireAdminAction();
+  const existing = await prisma.liveClass.findUnique({
+    where: { id },
+    select: { coverImageUrl: true },
+  });
   await prisma.liveClass.delete({ where: { id } });
+  await deletePreviousCoverIfManaged(existing?.coverImageUrl);
   revalidatePath(ADMIN_ROUTES.liveClass);
   revalidatePath('/dashboard/live-class');
   return { ok: true };
