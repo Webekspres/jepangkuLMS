@@ -11,6 +11,19 @@ export type WelcomeEmailInput = {
   userId?: string;
 };
 
+export type LiveClassReminderEmailInput = {
+  email: string;
+  name: string;
+  userId: string;
+  sessionId: string;
+  jakartaDateKey: string;
+  liveClassTitle: string;
+  senseiName: string;
+  dateLabel: string;
+  sessions: { title: string; timeLabel: string }[];
+  liveClassId: string;
+};
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
