@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,6 +42,18 @@ type BadgeFormData = {
   targetLevel?: string | null;
   targetCategory?: string | null;
   targetCourseId?: string | null;
+  targetModuleId?: string | null;
+  targetLessonId?: string | null;
+};
+
+type BadgeTargetCourse = {
+  id: string;
+  title: string;
+  modules: {
+    id: string;
+    title: string;
+    lessons: { id: string; title: string }[];
+  }[];
 };
 
 // Zod schema for client-side form validation
@@ -64,13 +76,14 @@ const badgeFormSchema = z
     targetLevel: z.string().nullable().optional(),
     targetCategory: z.string().nullable().optional(),
     targetCourseId: z.string().nullable().optional(),
+    targetModuleId: z.string().nullable().optional(),
+    targetLessonId: z.string().nullable().optional(),
   })
   .refine(
     (data) => {
       const needsScore = [
         'QUIZ_SCORE_THRESHOLD',
         'TRYOUT_SCORE_THRESHOLD',
-        'TRYOUT_PASS',
       ].includes(data.unlockRule);
       if (needsScore) {
         return data.unlockValue !== null;
@@ -87,7 +100,6 @@ const badgeFormSchema = z
       const needsScore = [
         'QUIZ_SCORE_THRESHOLD',
         'TRYOUT_SCORE_THRESHOLD',
-        'TRYOUT_PASS',
       ].includes(data.unlockRule);
       if (needsScore && data.unlockValue !== null) {
         return data.unlockValue >= 0 && data.unlockValue <= 100;
@@ -104,11 +116,74 @@ const badgeFormSchema = z
       if (data.unlockRule === 'SPECIFIC_COURSE_COMPLETE') {
         return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
       }
+      if (data.unlockRule === 'SPECIFIC_MODULE_COMPLETE') {
+        return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
+      }
       return true;
     },
     {
       message: 'Target Kursus Spesifik wajib dipilih untuk kriteria ini.',
       path: ['targetCourseId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_MODULE_COMPLETE') {
+        return Boolean(data.targetModuleId && data.targetModuleId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Target modul wajib dipilih.',
+      path: ['targetModuleId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_LESSON_COMPLETE') {
+        return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Pilih kursus terlebih dahulu.',
+      path: ['targetCourseId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_LESSON_COMPLETE') {
+        return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Pilih kursus terlebih dahulu.',
+      path: ['targetCourseId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_LESSON_COMPLETE') {
+        return Boolean(data.targetModuleId && data.targetModuleId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Pilih modul terlebih dahulu.',
+      path: ['targetModuleId'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.unlockRule === 'SPECIFIC_LESSON_COMPLETE') {
+        return Boolean(data.targetLessonId && data.targetLessonId.trim() !== '');
+      }
+      return true;
+    },
+    {
+      message: 'Target lesson wajib dipilih.',
+      path: ['targetLessonId'],
     },
   );
 
@@ -119,7 +194,7 @@ export function AdminBadgeFormPage({
 }: {
   badge?: BadgeFormData;
   r2Configured: boolean;
-  courses?: { id: string; title: string }[];
+  courses?: BadgeTargetCourse[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -131,6 +206,8 @@ export function AdminBadgeFormPage({
   const [targetLevel, setTargetLevel] = useState<string>(badge?.targetLevel ?? '');
   const [targetCategory, setTargetCategory] = useState<string>(badge?.targetCategory ?? '');
   const [targetCourseId, setTargetCourseId] = useState<string>(badge?.targetCourseId ?? '');
+  const [targetModuleId, setTargetModuleId] = useState<string>(badge?.targetModuleId ?? '');
+  const [targetLessonId, setTargetLessonId] = useState<string>(badge?.targetLessonId ?? '');
   const [imagePreview, setImagePreview] = useState<string | null>(
     badge?.imageUrl && !removeImage ? badge.imageUrl : null,
   );
@@ -141,6 +218,17 @@ export function AdminBadgeFormPage({
   const previewBlobRef = useRef<string | null>(null);
   const isEdit = Boolean(badge?.id);
   const r2Ready = r2Configured;
+
+  const selectedCourse = useMemo(
+    () => courses.find((course) => course.id === targetCourseId) ?? null,
+    [courses, targetCourseId],
+  );
+  const moduleOptions = selectedCourse?.modules ?? [];
+  const selectedModule = useMemo(
+    () => moduleOptions.find((module) => module.id === targetModuleId) ?? null,
+    [moduleOptions, targetModuleId],
+  );
+  const lessonOptions = selectedModule?.lessons ?? [];
 
   useEffect(() => {
     return () => {
@@ -218,6 +306,8 @@ export function AdminBadgeFormPage({
       targetLevel: targetLevel || null,
       targetCategory: targetCategory || null,
       targetCourseId: targetCourseId || null,
+      targetModuleId: targetModuleId || null,
+      targetLessonId: targetLessonId || null,
     };
 
     const validation = badgeFormSchema.safeParse(rawData);
@@ -276,6 +366,8 @@ export function AdminBadgeFormPage({
           <input type="hidden" name="targetLevel" value={targetLevel} />
           <input type="hidden" name="targetCategory" value={targetCategory} />
           <input type="hidden" name="targetCourseId" value={targetCourseId} />
+          <input type="hidden" name="targetModuleId" value={targetModuleId} />
+          <input type="hidden" name="targetLessonId" value={targetLessonId} />
 
           <div className="space-y-2">
             <Label htmlFor="title">Judul</Label>
@@ -361,8 +453,15 @@ export function AdminBadgeFormPage({
                     delete copy.targetLevel;
                     delete copy.targetCategory;
                     delete copy.targetCourseId;
+                    delete copy.targetModuleId;
+                    delete copy.targetLessonId;
                     return copy;
                   });
+                  if (!['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(val)) {
+                    setTargetCourseId('');
+                    setTargetModuleId('');
+                    setTargetLessonId('');
+                  }
                 }}
               >
                 <SelectTrigger id="unlockRule">
@@ -376,7 +475,8 @@ export function AdminBadgeFormPage({
                   <SelectItem value="CATEGORY_COMPLETE">Selesaikan kategori materi</SelectItem>
                   <SelectItem value="TRYOUT_SCORE_THRESHOLD">Skor tryout minimum</SelectItem>
                   <SelectItem value="SPECIFIC_COURSE_COMPLETE">Selesaikan kursus spesifik</SelectItem>
-                  <SelectItem value="TRYOUT_PASS">Tryout lulus (Legacy)</SelectItem>
+                  <SelectItem value="SPECIFIC_MODULE_COMPLETE">Selesaikan modul spesifik</SelectItem>
+                  <SelectItem value="SPECIFIC_LESSON_COMPLETE">Selesaikan lesson spesifik</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
@@ -385,12 +485,12 @@ export function AdminBadgeFormPage({
             </div>
 
             {/* Conditional Fields Container */}
-            {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS', 'SPECIFIC_COURSE_COMPLETE'].includes(
+            {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(
               unlockRule,
             ) && (
               <div className="grid gap-4 pt-4 sm:grid-cols-2 border-t border-border/50">
                 {/* Nilai Unlock (Skor Min %) */}
-                {['QUIZ_SCORE_THRESHOLD', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS'].includes(
+                {['QUIZ_SCORE_THRESHOLD', 'TRYOUT_SCORE_THRESHOLD'].includes(
                   unlockRule,
                 ) && (
                   <div className="space-y-2">
@@ -420,7 +520,7 @@ export function AdminBadgeFormPage({
                 )}
 
                 {/* Target Level (JLPT) */}
-                {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'TRYOUT_PASS'].includes(
+                {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD'].includes(
                   unlockRule,
                 ) && (
                   <div className="space-y-2">
@@ -466,12 +566,19 @@ export function AdminBadgeFormPage({
                 )}
 
                 {/* Target Kursus Spesifik */}
-                {unlockRule === 'SPECIFIC_COURSE_COMPLETE' && (
+                {['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(unlockRule) && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="targetCourseId">
-                      Target Kursus Spesifik <span className="text-destructive">*</span>
+                      Target Kursus <span className="text-destructive">*</span>
                     </Label>
-                    <Select value={targetCourseId} onValueChange={setTargetCourseId}>
+                    <Select
+                      value={targetCourseId}
+                      onValueChange={(value) => {
+                        setTargetCourseId(value);
+                        setTargetModuleId('');
+                        setTargetLessonId('');
+                      }}
+                    >
                       <SelectTrigger
                         id="targetCourseId"
                         className={validationErrors.targetCourseId ? 'border-destructive' : ''}
@@ -490,10 +597,107 @@ export function AdminBadgeFormPage({
                       <p className="text-xs text-destructive">{validationErrors.targetCourseId}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Pilih kursus yang harus diselesaikan siswa untuk membuka badge ini.
+                        Pilih kursus sumber aturan badge.
                       </p>
                     )}
                   </div>
+                )}
+
+                {['SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(unlockRule) && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="targetModuleId">
+                        Target Modul <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={targetModuleId}
+                        disabled={!targetCourseId}
+                        onValueChange={(value) => {
+                          setTargetModuleId(value);
+                          setTargetLessonId('');
+                        }}
+                      >
+                        <SelectTrigger
+                          id="targetModuleId"
+                          className={validationErrors.targetModuleId ? 'border-destructive' : ''}
+                        >
+                          <SelectValue
+                            placeholder={
+                              targetCourseId ? 'Pilih Modul' : 'Pilih kursus terlebih dahulu'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {moduleOptions.length > 0 ? (
+                            moduleOptions.map((module) => (
+                              <SelectItem key={module.id} value={module.id}>
+                                {module.title}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="__no_module" disabled>
+                              {targetCourseId
+                                ? 'Kursus ini belum punya modul'
+                                : 'Pilih kursus terlebih dahulu'}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {validationErrors.targetModuleId ? (
+                        <p className="text-xs text-destructive">{validationErrors.targetModuleId}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Modul hanya ditampilkan dari kursus yang dipilih.
+                        </p>
+                      )}
+                    </div>
+
+                    {unlockRule === 'SPECIFIC_LESSON_COMPLETE' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="targetLessonId">
+                        Target Lesson <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={targetLessonId}
+                        disabled={!targetModuleId}
+                        onValueChange={setTargetLessonId}
+                      >
+                        <SelectTrigger
+                          id="targetLessonId"
+                          className={validationErrors.targetLessonId ? 'border-destructive' : ''}
+                        >
+                          <SelectValue
+                            placeholder={
+                              targetModuleId ? 'Pilih Lesson' : 'Pilih modul terlebih dahulu'
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lessonOptions.length > 0 ? (
+                            lessonOptions.map((lesson) => (
+                              <SelectItem key={lesson.id} value={lesson.id}>
+                                {lesson.title}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="__no_lesson" disabled>
+                              {targetModuleId
+                                ? 'Modul ini belum punya lesson'
+                                : 'Pilih modul terlebih dahulu'}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {validationErrors.targetLessonId ? (
+                        <p className="text-xs text-destructive">{validationErrors.targetLessonId}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Lesson hanya ditampilkan dari modul yang dipilih.
+                        </p>
+                      )}
+                    </div>
+                    ) : null}
+                  </>
                 )}
               </div>
             )}

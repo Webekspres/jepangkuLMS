@@ -13,6 +13,8 @@ const UNLOCK_RULE_LABELS: Record<LmsBadgeUnlockRule, string> = {
     CATEGORY_COMPLETE: 'Selesaikan kategori materi',
     TRYOUT_SCORE_THRESHOLD: 'Skor tryout minimum',
     SPECIFIC_COURSE_COMPLETE: 'Selesaikan kursus spesifik',
+    SPECIFIC_MODULE_COMPLETE: 'Selesaikan modul spesifik',
+    SPECIFIC_LESSON_COMPLETE: 'Selesaikan lesson spesifik',
 };
 
 function formatBadgeDate(date: Date): string {
@@ -30,6 +32,8 @@ function requirementLabel(
     targetLevel?: string | null,
     targetCategory?: string | null,
     targetCourseTitle?: string | null,
+    targetModuleTitle?: string | null,
+    targetLessonTitle?: string | null,
 ): string {
     if (requirementText?.trim()) return requirementText.trim();
     if (rule === 'TRYOUT_PASS' || rule === 'TRYOUT_SCORE_THRESHOLD') {
@@ -48,6 +52,16 @@ function requirementLabel(
     if (rule === 'SPECIFIC_COURSE_COMPLETE') {
         return `Selesaikan kursus: ${targetCourseTitle ?? 'Kursus Terpilih'}`;
     }
+    if (rule === 'SPECIFIC_MODULE_COMPLETE') {
+        return `Selesaikan modul: ${targetModuleTitle ?? 'Modul Terpilih'}${
+            targetCourseTitle ? ` (${targetCourseTitle})` : ''
+        }`;
+    }
+    if (rule === 'SPECIFIC_LESSON_COMPLETE') {
+        return `Selesaikan lesson: ${targetLessonTitle ?? 'Lesson Terpilih'}${
+            targetModuleTitle ? ` (${targetModuleTitle})` : ''
+        }`;
+    }
     return UNLOCK_RULE_LABELS[rule];
 }
 
@@ -59,7 +73,11 @@ export async function loadLmsBadgesForUser(
     const [catalog, unlocked, user] = await Promise.all([
         prisma.lmsBadge.findMany({
             orderBy: { sortOrder: 'asc' },
-            include: { targetCourse: { select: { title: true } } },
+            include: {
+                targetCourse: { select: { title: true } },
+                targetModule: { select: { title: true } },
+                targetLesson: { select: { title: true } },
+            },
         }),
         prisma.userBadge.findMany({
             where: { userId },
@@ -98,6 +116,8 @@ export async function loadLmsBadgesForUser(
                 badge.targetLevel,
                 badge.targetCategory,
                 badge.targetCourse?.title,
+                badge.targetModule?.title,
+                badge.targetLesson?.title,
             ),
             isEquipped: activeEquippedId === badge.id,
         };

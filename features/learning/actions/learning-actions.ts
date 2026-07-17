@@ -162,6 +162,24 @@ export async function markLessonComplete(
     where: { userId, isCompleted: true },
   });
 
+  const lessonContext = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: {
+      id: true,
+      moduleId: true,
+      module: {
+        select: {
+          courseId: true,
+          lessons: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
   if (shouldAwardReward) {
     await awardLmsActivity({
       userId,
@@ -177,6 +195,64 @@ export async function markLessonComplete(
 
   if (completedCount === 1) {
     await evaluateBadgeUnlocks(userId, { type: 'FIRST_LESSON' });
+  }
+
+  if (lessonContext) {
+    const moduleLessonIds = lessonContext.module.lessons.map((lesson) => lesson.id);
+    const completedModuleLessonsCount =
+      moduleLessonIds.length > 0
+        ? await prisma.userProgress.count({
+            where: {
+              userId,
+              isCompleted: true,
+              lessonId: { in: moduleLessonIds },
+            },
+          })
+        : 0;
+
+    const courseModules = await prisma.module.findMany({
+      where: { courseId: lessonContext.module.courseId },
+      select: {
+        id: true,
+        lessons: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const courseLessonIds = courseModules.flatMap((module) => module.lessons.map((lesson) => lesson.id));
+    const completedCourseLessonsCount =
+      courseLessonIds.length > 0
+        ? await prisma.userProgress.count({
+            where: {
+              userId,
+              isCompleted: true,
+              lessonId: { in: courseLessonIds },
+            },
+          })
+        : 0;
+
+    await evaluateBadgeUnlocks(userId, {
+      type: 'SPECIFIC_LESSON_COMPLETE',
+      courseId: lessonContext.module.courseId,
+      moduleId: lessonContext.moduleId,
+      lessonId: lessonContext.id,
+    });
+
+    if (moduleLessonIds.length > 0 && completedModuleLessonsCount === moduleLessonIds.length) {
+      await evaluateBadgeUnlocks(userId, {
+        type: 'SPECIFIC_MODULE_COMPLETE',
+        courseId: lessonContext.module.courseId,
+        moduleId: lessonContext.moduleId,
+      });
+    }
+
+    if (courseLessonIds.length > 0 && completedCourseLessonsCount === courseLessonIds.length) {
+      await evaluateBadgeUnlocks(userId, {
+        type: 'SPECIFIC_COURSE_COMPLETE',
+        courseId: lessonContext.module.courseId,
+      });
+    }
   }
 
   // Self-healing: re-dispatch any of this user's XP that failed to reach Core.

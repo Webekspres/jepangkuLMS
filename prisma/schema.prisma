@@ -107,6 +107,8 @@ enum LmsBadgeUnlockRule {
     CATEGORY_COMPLETE
     TRYOUT_SCORE_THRESHOLD
     SPECIFIC_COURSE_COMPLETE
+    SPECIFIC_MODULE_COMPLETE
+    SPECIFIC_LESSON_COMPLETE
 }
 
 /// Status sinkronisasi XP ke Core (outbox). PENDING = perlu retry, SYNCED = sukses,
@@ -267,7 +269,11 @@ model LmsBadge {
     targetLevel    LevelJLPT?
     targetCategory CategoryType?
     targetCourseId String?
+    targetModuleId String?
+    targetLessonId String?
     targetCourse   Course?       @relation(fields: [targetCourseId], references: [id], onDelete: SetNull)
+    targetModule   Module?       @relation(fields: [targetModuleId], references: [id], onDelete: SetNull)
+    targetLesson   Lesson?       @relation(fields: [targetLessonId], references: [id], onDelete: SetNull)
 
     userBadges      UserBadge[]
     equippedByUsers User[]      @relation("EquippedBadge")
@@ -325,6 +331,7 @@ model Module {
 
     course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
     lessons Lesson[]
+    badges  LmsBadge[]
 
     @@unique([courseId, slug])
     @@unique([courseId, moduleExternalId])
@@ -398,6 +405,7 @@ model Lesson {
     progress  UserProgress[]
     attempts  QuizAttempt[]
     comments  LessonComment[]
+    badges    LmsBadge[]
 
     @@unique([moduleId, slug])
     @@unique([moduleId, lessonExternalId])

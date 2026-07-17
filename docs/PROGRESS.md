@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-14                                                  |
+| **Terakhir diperbarui**   | 2026-07-17                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
@@ -188,6 +188,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-17 | Badge LMS: hapus opsi unlock legacy dari form admin, tambah rule `SPECIFIC_LESSON_COMPLETE` dan `SPECIFIC_MODULE_COMPLETE` dengan target Kursus → Modul → Lesson bertingkat, serta unlock otomatis untuk lesson/modul/kursus target saat progres belajar selesai |
 | 2026-07-14 | Fix `/kursus/[slug]`: hapus `PAYMENT_BCA` client IIFE (crash production), payment settings via RSC prop, CTA Daftar/Masuk, redirect login → `/dashboard/kursus/[slug]` |
 | 2026-07-10 | Template Paket Soal: pecah sheet soal per section (`004. Moji Goi`, `005. Bunpou Dokkai`, `006. Choukai`); parser merge + legacy Soal terpadu |
 | 2026-07-10 | Template Paket Soal: pilihan A–D + Jawaban Benar + Gambar Stimulus digabung ke sheet Soal; hapus sheet 005; klarifikasi pengisian Audio Chokai |

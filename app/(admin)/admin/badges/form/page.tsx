@@ -14,7 +14,21 @@ export default async function AdminBadgeFormRoutePage({
   if (id && !badge) notFound();
 
   const courses = await prisma.course.findMany({
-    select: { id: true, title: true },
+    select: {
+      id: true,
+      title: true,
+      modules: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          lessons: {
+            orderBy: { order: 'asc' },
+            select: { id: true, title: true },
+          },
+        },
+      },
+    },
     orderBy: { title: 'asc' },
   });
 
@@ -39,6 +53,8 @@ export default async function AdminBadgeFormRoutePage({
               targetLevel: badge.targetLevel,
               targetCategory: badge.targetCategory,
               targetCourseId: badge.targetCourseId,
+              targetModuleId: badge.targetModuleId,
+              targetLessonId: badge.targetLessonId,
             }
           : undefined
       }
