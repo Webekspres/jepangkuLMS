@@ -223,9 +223,12 @@ export function AdminBadgeFormPage({
     () => courses.find((course) => course.id === targetCourseId) ?? null,
     [courses, targetCourseId],
   );
-  const moduleOptions = selectedCourse?.modules ?? [];
+  const moduleOptions = useMemo(
+    () => selectedCourse?.modules ?? [],
+    [selectedCourse],
+  );
   const selectedModule = useMemo(
-    () => moduleOptions.find((module) => module.id === targetModuleId) ?? null,
+    () => moduleOptions.find((courseModule) => courseModule.id === targetModuleId) ?? null,
     [moduleOptions, targetModuleId],
   );
   const lessonOptions = selectedModule?.lessons ?? [];
