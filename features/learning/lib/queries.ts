@@ -75,6 +75,7 @@ export const getCourseBySlug = cache(async function getCourseBySlug(slug: string
       isPublished: course.isPublished,
       lessonCount: lessons.length,
       priceIdr: course.priceIdr,
+      coverImageUrl: course.coverImageUrl,
     }),
     dbId: course.id,
     modules,

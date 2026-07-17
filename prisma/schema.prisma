@@ -309,6 +309,8 @@ model Course {
     category    CourseCategoryType @default(KURSUS_UTAMA)
     /// Harga dalam Rupiah (0 = gratis)
     priceIdr    Int                @default(0)
+    /// Cover image URL (R2 atau path lokal); UI fallback ke /assets/bg-courses.webp
+    coverImageUrl String?
     isPublished Boolean            @default(false)
     isFeatured  Boolean            @default(false)
     createdAt   DateTime           @default(now())
@@ -695,7 +697,8 @@ model LiveClass {
     priceIdr    Int       @default(0)
     maxSlots    Int       @default(30)
     filledSlots Int       @default(0)
-    thumbUrl    String?
+    /// Cover image URL (R2); UI fallback ke /assets/bg-live_class.webp
+    coverImageUrl String?
     paymentLink String?
     isPublished Boolean   @default(true)
     createdAt   DateTime  @default(now())

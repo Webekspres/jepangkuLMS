@@ -12,6 +12,7 @@ import { CourseCatalogHeroSection } from '@/features/learning/components/course-
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import {
   courseMatchesTypeFilter,
@@ -91,6 +92,7 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                       width={600}
                       height={176}
                       className="h-44 w-full object-cover"
+                      unoptimized={isUnoptimizedImageSrc(course.thumb)}
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                     <div

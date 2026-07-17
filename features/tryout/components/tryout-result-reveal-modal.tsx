@@ -108,7 +108,7 @@ export function TryoutResultRevealModal({
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.32 }}
                 >
-                  {pass ? 'Lulus Simulasi' : 'Belum Lulus Simulasi'}
+                  {pass ? 'Lulus JLPT' : 'Belum Lulus JLPT'}
                 </motion.p>
                 <p className="text-xs text-muted-foreground">JLPT {level}</p>
 
@@ -131,7 +131,7 @@ export function TryoutResultRevealModal({
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  {getRevealMessage(pass, score)}
+                  {getRevealMessage(pass)}
                 </motion.p>
 
                 <motion.div

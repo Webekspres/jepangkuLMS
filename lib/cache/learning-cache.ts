@@ -31,6 +31,7 @@ export const getCachedCoursesWithDbIds = unstable_cache(
         level: true,
         category: true,
         priceIdr: true,
+        coverImageUrl: true,
         isPublished: true,
         isFeatured: true,
         modules: {
@@ -55,13 +56,14 @@ export const getCachedCoursesWithDbIds = unstable_cache(
           priceIdr: course.priceIdr,
           category: course.category,
           isFeatured: course.isFeatured,
+          coverImageUrl: course.coverImageUrl,
         }),
         dbId: course.id,
         lessonCount,
       };
     });
   },
-  ['learning-courses-catalog-v7'],
+  ['learning-courses-catalog-v8'],
   { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
 );
 
@@ -187,6 +189,7 @@ export function getCachedCourseWithLessons(slug: string) {
           priceIdr: course.priceIdr,
           category: course.category,
           isFeatured: course.isFeatured,
+          coverImageUrl: course.coverImageUrl,
         }),
         dbId: course.id,
         outcomes: course.outcomes,
@@ -201,7 +204,7 @@ export function getCachedCourseWithLessons(slug: string) {
         })),
       };
     },
-    ['learning-course-with-lessons-v6', slug],
+    ['learning-course-with-lessons-v7', slug],
     { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
   )(slug);
 }

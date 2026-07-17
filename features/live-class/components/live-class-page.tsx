@@ -18,9 +18,11 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
+import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 
 const CATEGORIES = ['Semua', 'Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
 
@@ -135,12 +137,18 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-secondary/50 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
               >
                 <div className="relative h-40 overflow-hidden">
-                  <Image
-                    src={cls.thumbUrl ?? 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=600'}
-                    alt={cls.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+                  {(() => {
+                    const coverSrc = resolveLiveClassCoverUrl(cls.coverImageUrl);
+                    return (
+                      <Image
+                        src={coverSrc}
+                        alt={cls.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        unoptimized={isUnoptimizedImageSrc(coverSrc)}
+                      />
+                    );
+                  })()}
                   <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute top-3 left-3 flex gap-1.5">
                     <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>

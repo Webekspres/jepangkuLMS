@@ -531,3 +531,166 @@ export async function createChokaiInSetAction(input: {
   revalidatePaket(input.questionSetId);
   return { ok: true };
 }
+
+function validateQuestionOptions(options: { text: string; isCorrect: boolean }[]) {
+  if (options.length < 2) return 'Minimal 2 opsi.';
+  if (options.some((o) => !o.text.trim())) return 'Semua opsi wajib diisi.';
+  if (options.filter((o) => o.isCorrect).length !== 1) return 'Pilih tepat satu jawaban benar.';
+  return null;
+}
+
+/**
+ * Update Moji/Bunpou (atau Choukai soal tunggal) untuk item yang menunjuk jlptQuestionId.
+ */
+export async function updateQuestionInSetAction(input: {
+  itemId: string;
+  questionText: string;
+  explanation?: string;
+  options: { text: string; isCorrect: boolean }[];
+}): Promise<CmsQuestionSetActionResult> {
+  await requireAdminAction();
+
+  const item = await prisma.jlptQuestionSetItem.findUnique({
+    where: { id: input.itemId },
+    include: { jlptQuestion: { select: { id: true, section: true } } },
+  });
+  if (!item?.jlptQuestionId || !item.jlptQuestion) {
+    return { ok: false, message: 'Item soal tidak ditemukan atau bukan soal tunggal.' };
+  }
+
+  const gate = await assertContentEditable(item.questionSetId);
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const questionText = input.questionText.trim();
+  if (!questionText) return { ok: false, message: 'Teks soal wajib diisi.' };
+  const optError = validateQuestionOptions(input.options);
+  if (optError) return { ok: false, message: optError };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.jlptQuestion.update({
+      where: { id: item.jlptQuestionId! },
+      data: {
+        questionText,
+        explanation: input.explanation?.trim() || null,
+      },
+    });
+    await tx.jlptQuestionOption.deleteMany({ where: { questionId: item.jlptQuestionId! } });
+    await tx.jlptQuestionOption.createMany({
+      data: input.options.map((opt, index) => ({
+        questionId: item.jlptQuestionId!,
+        text: opt.text.trim(),
+        isCorrect: opt.isCorrect,
+        sortOrder: index,
+      })),
+    });
+  });
+
+  revalidatePaket(item.questionSetId);
+  return { ok: true };
+}
+
+/**
+ * Update Choukai set item (stimulus + soal pertama, atau soal Choukai standalone).
+ */
+export async function updateChokaiSetItemAction(input: {
+  itemId: string;
+  instructionText?: string;
+  questionText: string;
+  explanation?: string;
+  options: { text: string; isCorrect: boolean }[];
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+}): Promise<CmsQuestionSetActionResult> {
+  await requireAdminAction();
+
+  const item = await prisma.jlptQuestionSetItem.findUnique({
+    where: { id: input.itemId },
+    include: {
+      listeningStimulus: {
+        include: {
+          questions: {
+            where: { status: { not: 'RETIRED' } },
+            orderBy: { stimulusSortOrder: 'asc' },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      },
+      jlptQuestion: { select: { id: true, section: true } },
+    },
+  });
+  if (!item) return { ok: false, message: 'Item tidak ditemukan.' };
+
+  const gate = await assertContentEditable(item.questionSetId);
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const questionText = input.questionText.trim();
+  if (!questionText) return { ok: false, message: 'Teks soal wajib diisi.' };
+  const optError = validateQuestionOptions(input.options);
+  if (optError) return { ok: false, message: optError };
+
+  if (item.jlptQuestionId && item.jlptQuestion?.section === 'CHOKAI') {
+    await prisma.$transaction(async (tx) => {
+      await tx.jlptQuestion.update({
+        where: { id: item.jlptQuestionId! },
+        data: {
+          questionText,
+          explanation: input.explanation?.trim() || null,
+        },
+      });
+      await tx.jlptQuestionOption.deleteMany({ where: { questionId: item.jlptQuestionId! } });
+      await tx.jlptQuestionOption.createMany({
+        data: input.options.map((opt, index) => ({
+          questionId: item.jlptQuestionId!,
+          text: opt.text.trim(),
+          isCorrect: opt.isCorrect,
+          sortOrder: index,
+        })),
+      });
+    });
+    revalidatePaket(item.questionSetId);
+    return { ok: true };
+  }
+
+  if (!item.listeningStimulusId || !item.listeningStimulus) {
+    return { ok: false, message: 'Item Choukai tidak valid.' };
+  }
+
+  const questionId = item.listeningStimulus.questions[0]?.id;
+  if (!questionId) {
+    return { ok: false, message: 'Stimulus belum punya soal aktif untuk diedit.' };
+  }
+
+  const audioUrl = input.audioUrl?.trim() || null;
+  const imageUrl = input.imageUrl?.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.listeningStimulus.update({
+      where: { id: item.listeningStimulusId! },
+      data: {
+        instructionText: input.instructionText?.trim() || null,
+        audioUrl,
+        imageUrl,
+      },
+    });
+    await tx.jlptQuestion.update({
+      where: { id: questionId },
+      data: {
+        questionText,
+        explanation: input.explanation?.trim() || null,
+      },
+    });
+    await tx.jlptQuestionOption.deleteMany({ where: { questionId } });
+    await tx.jlptQuestionOption.createMany({
+      data: input.options.map((opt, index) => ({
+        questionId,
+        text: opt.text.trim(),
+        isCorrect: opt.isCorrect,
+        sortOrder: index,
+      })),
+    });
+  });
+
+  revalidatePaket(item.questionSetId);
+  return { ok: true };
+}

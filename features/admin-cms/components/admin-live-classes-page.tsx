@@ -7,6 +7,7 @@ import { Pencil, Plus, Search, Video } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminPesertaCell } from '@/features/admin-cms/components/admin-peserta-cell';
+import { AdminStatusToggleButton } from '@/features/admin-cms/components/admin-status-toggle-button';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
 import {
   AdminTableAction,
@@ -173,16 +174,15 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
                     />
                   </TableCell>
                   <TableCell>
-                    <button
-                      type="button"
+                    <AdminStatusToggleButton
+                      active={row.isPublished}
+                      activeLabel="Publik"
+                      inactiveLabel="Draft"
+                      activeHint="Klik untuk draft"
+                      inactiveHint="Klik untuk publik"
                       disabled={isPending}
                       onClick={() => handleTogglePublished(row.id, row.isPublished)}
-                      className="inline-flex"
-                    >
-                      <Badge variant={row.isPublished ? 'default' : 'outline'}>
-                        {row.isPublished ? 'Publik' : 'Draft'}
-                      </Badge>
-                    </button>
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <AdminTableActions>

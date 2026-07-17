@@ -10,6 +10,7 @@ import {
   updateTryoutSessionAction,
 } from '@/features/admin-cms/actions/cms-tryout-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { generateSlug } from '@/lib/string-helpers';
+import { cn } from '@/lib/utils';
 import type { LevelJLPT } from '@prisma/client';
 import { toast } from 'sonner';
 
@@ -113,7 +115,7 @@ export function AdminTryoutSessionFormPage({
         </Button>
       }
     >
-      <Card className="max-w-lg border-border p-6">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'p-6')}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="title">Judul</Label>

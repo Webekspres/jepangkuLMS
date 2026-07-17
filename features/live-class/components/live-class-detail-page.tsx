@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
+import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import { requestLiveClassEnrollment } from '@/features/live-class/actions/live-class-actions';
 import {
   resolveLiveSessionStatus,
@@ -33,6 +34,7 @@ import {
   type ProgramEnrollmentStatus,
 } from '@/features/student/components/program-payment-panel';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 
 const STATUS_DOT: Record<LiveSessionStatus, string> = {
@@ -196,6 +198,7 @@ export function LiveClassDetailPage({
     liveClass.enrollmentStatus === 'ACTIVE' || liveClass.enrollmentStatus === 'PENDING'
       ? liveClass.enrollmentStatus
       : 'none';
+  const coverSrc = resolveLiveClassCoverUrl(liveClass.coverImageUrl);
 
   return (
     <div className="space-y-8 pb-10">
@@ -210,20 +213,14 @@ export function LiveClassDetailPage({
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl border border-border">
         <div className="absolute inset-0">
-          {liveClass.thumbUrl ? (
-            <Image
-              src={liveClass.thumbUrl}
-              alt={liveClass.title}
-              fill
-              priority
-              className="object-cover"
-            />
-          ) : (
-            <div
-              className="size-full"
-              style={{ background: 'linear-gradient(135deg, #1E1B57 0%, #1a2d5a 60%, #2a1b4e 100%)' }}
-            />
-          )}
+          <Image
+            src={coverSrc}
+            alt={liveClass.title}
+            fill
+            priority
+            className="object-cover"
+            unoptimized={isUnoptimizedImageSrc(coverSrc)}
+          />
           <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/55 to-black/30 backdrop-blur-[1px]" />
         </div>
 

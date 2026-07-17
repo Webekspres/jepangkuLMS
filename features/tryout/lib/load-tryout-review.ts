@@ -2,7 +2,7 @@ import { cache } from 'react';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import type { TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
-import { TRYOUT_PASS_SCORE_PERCENT } from '@/features/student/lib/gamification-rewards';
+import { buildJlptCefrAnalysis } from '@/features/tryout/lib/jlpt-cefr-reference';
 import { buildTryoutAttemptDetails } from '@/features/tryout/lib/tryout-attempt-analysis';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
@@ -72,6 +72,14 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
   if (!details) return null;
 
   const questions: TryoutReviewQuestion[] = details.questions;
+  const correct = attempt.correctCount ?? questions.filter((q) => q.isCorrect).length;
+  const total = attempt.totalQuestions ?? questions.length;
+  const jlpt = buildJlptCefrAnalysis({
+    level: attemptLevel,
+    correct,
+    total,
+    sectionBreakdown: details.sectionBreakdown,
+  });
 
   return {
     attemptId: attempt.id,
@@ -80,9 +88,9 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     phaseLabel: attempt.tryoutSession.phaseLabel,
     level: attemptLevel,
     score: attempt.score,
-    correct: attempt.correctCount ?? questions.filter((q) => q.isCorrect).length,
-    total: attempt.totalQuestions ?? questions.length,
-    pass: attempt.score >= TRYOUT_PASS_SCORE_PERCENT,
+    correct,
+    total,
+    pass: jlpt.jlptPassOverall,
     submittedAt: attempt.createdAt.toISOString(),
     displayName: resolvePublicDisplayName({
       displayName: user?.displayName,

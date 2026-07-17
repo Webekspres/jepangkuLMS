@@ -3,12 +3,17 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminAdvancedSlugField } from '@/features/admin-cms/components/admin-advanced-slug-field';
+import {
+  AdminCoverImageField,
+  type AdminCoverImageFieldState,
+} from '@/features/admin-cms/components/admin-cover-image-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createCourseAction,
   updateCourseAction,
 } from '@/features/admin-cms/actions/cms-course-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +31,7 @@ import type { CourseCategoryType } from '@prisma/client';
 import {
   COURSE_CATEGORY_TYPE_OPTIONS,
 } from '@/lib/lms/course-category';
+import { cn } from '@/lib/utils';
 
 type CourseFormValues = {
   title: string;
@@ -36,6 +42,7 @@ type CourseFormValues = {
   category: CourseCategoryType;
   priceIdr: number;
   isPublished: boolean;
+  coverImageUrl: string | null;
 };
 
 type AdminCourseFormProps = {
@@ -61,13 +68,16 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       category: 'KURSUS_UTAMA',
       priceIdr: 0,
       isPublished: false,
+      coverImageUrl: null,
     },
   );
-  // Raw textarea buffer (one outcome per line) — split into an array only on submit
-  // so admins can type freely, including transient blank lines.
   const [outcomesText, setOutcomesText] = useState<string>(
     (initial?.outcomes ?? []).join('\n'),
   );
+  const [coverState, setCoverState] = useState<AdminCoverImageFieldState>({
+    file: null,
+    removeCover: false,
+  });
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +95,8 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
     formData.set('category', values.category);
     formData.set('priceIdr', String(values.priceIdr));
     if (values.isPublished) formData.set('isPublished', 'on');
+    if (coverState.removeCover) formData.set('removeCover', 'on');
+    if (coverState.file) formData.set('coverImage', coverState.file);
 
     startTransition(async () => {
       const result =
@@ -111,7 +123,7 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
       subtitle="Isi metadata kursus. Modul dan pelajaran ditambahkan setelah kursus dibuat."
       backHref={ADMIN_ROUTES.kursus}
     >
-      <Card className="max-w-3xl border-border">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS)}>
         <CardHeader className="border-b border-border bg-muted/30">
           <CardTitle className="text-base font-bold">Informasi Kursus</CardTitle>
         </CardHeader>
@@ -252,6 +264,13 @@ export function AdminCourseForm({ mode, courseId, initial }: AdminCourseFormProp
                 placeholder="Ringkasan singkat kursus untuk katalog..."
               />
             </div>
+
+            <AdminCoverImageField
+              id="coverImage"
+              existingUrl={values.coverImageUrl}
+              disabled={isPending}
+              onChange={setCoverState}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="outcomes">Yang akan kamu pelajari</Label>

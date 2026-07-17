@@ -8,6 +8,7 @@ import {
   buildJlptCefrAnalysis,
   buildSectionAnalysisRows,
   buildTryoutFeedback,
+  getJlptPassFailReason,
 } from '@/features/tryout/lib/tryout-result-insights';
 import {
   formatCefrBandRange,
@@ -33,12 +34,6 @@ const SECTION_COLORS: Record<string, string> = {
   BUNPOU_DOKKAI: 'bg-violet-500',
   CHOKAI: 'bg-emerald-500',
 };
-
-const TIER_STYLES = {
-  AMAN: 'text-emerald-600',
-  PERLU_LATIHAN: 'text-brand-orange',
-  SOS: 'text-primary',
-} as const;
 
 const CEFR_STYLES: Record<string, string> = {
   A1: 'text-pink-600',
@@ -72,16 +67,18 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
   const feedback = useMemo(
     () =>
       buildTryoutFeedback({
-        scorePercent: review.score,
         correct: review.correct,
         total: review.total,
         sectionRows,
         jlptPassOverall: jlptCefr.jlptPassOverall,
+        meetsJlptTotalPass: jlptCefr.meetsJlptTotalPass,
+        meetsAllSectionalPass: jlptCefr.meetsAllSectionalPass,
         indicatedCefr: jlptCefr.indicatedCefr,
         level: review.level,
       }),
     [review, sectionRows, jlptCefr],
   );
+  const jlptFailReason = useMemo(() => getJlptPassFailReason(jlptCefr), [jlptCefr]);
   const levelConfig = useMemo(() => getJlptLevelCefrConfig(review.level), [review.level]);
 
   return (
@@ -92,7 +89,7 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
         correct={review.correct}
         total={review.total}
         score={review.score}
-        pass={review.pass}
+        pass={jlptCefr.jlptPassOverall}
       />
 
       <div className="mx-auto max-w-3xl space-y-8 pb-12">
@@ -112,16 +109,25 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
           <div className="grid gap-px border-b border-border bg-border sm:grid-cols-3">
             <div className="bg-card p-5 text-center sm:p-6">
               <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                Status Simulasi
+                Kelulusan JLPT
               </p>
-              <p
-                className={cn(
-                  'mt-2 text-3xl font-extrabold sm:text-4xl',
-                  TIER_STYLES[feedback.tier.code],
-                )}
-              >
-                {feedback.tier.label}
-              </p>
+              {jlptCefr.jlptPassOverall ? (
+                <>
+                  <p className="mt-2 text-2xl font-extrabold text-emerald-600 sm:text-3xl">Lulus</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Total + semua bagian memenuhi ambang
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-xl font-extrabold text-destructive sm:text-2xl">
+                    Belum memenuhi
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {jlptFailReason ?? 'Ambang resmi belum terpenuhi'}
+                  </p>
+                </>
+              )}
             </div>
             <div className="bg-card p-5 text-center sm:p-6">
               <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
@@ -139,7 +145,7 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
             </div>
             <div className="bg-card p-5 text-center sm:p-6">
               <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                Level CEFR Terindikasi
+                Indikasi CEFR
               </p>
               {jlptCefr.indicatedCefr ? (
                 <>
@@ -152,14 +158,17 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
                     {jlptCefr.indicatedCefr}
                   </p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {jlptCefr.cefrBandDescription} · JLPT {review.level}
+                    {jlptCefr.jlptPassOverall
+                      ? `${jlptCefr.cefrBandDescription} · JLPT ${review.level}`
+                      : 'Berdasarkan skor total; kelulusan resmi masih menunggu semua bagian'}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="mt-2 text-lg font-bold text-muted-foreground">Di bawah ambang</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Minimal {jlptCefr.totalPassScore}/{JLPT_TOTAL_MAX_SCORE} untuk indikasi CEFR
+                    Minimal {jlptCefr.totalPassScore}/{JLPT_TOTAL_MAX_SCORE} skor total untuk
+                    indikasi CEFR
                   </p>
                 </>
               )}
@@ -201,9 +210,8 @@ export function TryoutReviewPage({ review }: TryoutReviewPageProps) {
                 Referensi standar JLPT {review.level} — CEFR
               </CardTitle>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                JepangKu memetakan hasil simulasi ke skala resmi JLPT (0–180) dan level CEFR yang
-                digunakan dalam sertifikasi JLPT saat ini. Kelulusan JLPT mensyaratkan skor total
-                dan ambang per bagian ujian.
+                Kelulusan JLPT membutuhkan skor total dan semua bagian ujian memenuhi ambang minimal
+                resmi. Indikasi CEFR mengikuti skor total setara saja (bukan gate per bagian).
               </p>
             </CardHeader>
             <CardContent className="space-y-4 p-4 sm:p-6">
