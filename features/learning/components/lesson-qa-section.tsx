@@ -185,7 +185,7 @@ function CommentItem({
 }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(comment.likes);
-  const isReply = 'isInstructor' in comment;
+  const isReply = depth > 0;
   const currentRootCommentId = rootCommentId ?? comment.id;
   const isReplyFormOpen = replyTarget?.targetId === comment.id;
   const indentDepth = Math.min(depth, 3);
@@ -207,11 +207,11 @@ function CommentItem({
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-foreground">{comment.author}</span>
-          {'isInstructor' in comment && comment.isInstructor && (
+          {comment.isInstructor ? (
             <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-semibold">
               Instruktur
             </Badge>
-          )}
+          ) : null}
           {'isYou' in comment && comment.isYou && (
             <Badge className="h-5 rounded-full px-2 text-[10px] font-semibold">Kamu</Badge>
           )}

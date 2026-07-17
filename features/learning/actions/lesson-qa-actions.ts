@@ -34,6 +34,7 @@ export type LessonCommentView = {
   content: string;
   time: string;
   likes: number;
+  isInstructor: boolean;
   isYou: boolean;
   canDelete: boolean;
   replies: LessonCommentReplyView[];
@@ -143,6 +144,10 @@ export async function loadLessonComments(
         content: row.content,
         time: formatRelativeTime(row.createdAt),
         likes: row.likes,
+        isInstructor:
+          row.isInstructor ||
+          (await userHasLmsAdminAccess(row.userId, [])) ||
+          (viewer === row.userId && canModerate),
         isYou: viewer === row.userId,
         canDelete: canModerate || viewer === row.userId,
         replies: await Promise.all(replyTree.map(toReplyView)),
@@ -153,6 +158,8 @@ export async function loadLessonComments(
 
 export async function postLessonComment(lessonId: string, content: string) {
   const userId = await requireAuthUserWithAnchor();
+  const session = await getCoreSession();
+  const isInstructor = await userHasLmsAdminAccess(userId, session?.roles ?? []);
   const trimmed = content.trim();
   if (trimmed.length < 3) {
     return { ok: false as const, message: 'Komentar minimal 3 karakter.' };
@@ -165,7 +172,7 @@ export async function postLessonComment(lessonId: string, content: string) {
   if (!lesson) return { ok: false as const, message: 'Pelajaran tidak ditemukan.' };
 
   await prisma.lessonComment.create({
-    data: { lessonId, userId, content: trimmed },
+    data: { lessonId, userId, content: trimmed, isInstructor },
   });
 
   await awardLmsPoints({
