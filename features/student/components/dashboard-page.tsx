@@ -31,8 +31,8 @@ import {
   DASHBOARD_WEEKLY_XP,
   LESSON_CATEGORY_STYLE,
   type ContinueLesson,
+  type DashboardJlptPathData,
   type DashboardLivePreviewItem,
-  type JlptPathItem,
 } from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
 import { WeeklyXpChart } from './weekly-xp-chart';
@@ -67,7 +67,7 @@ function DashboardSection({
 
 export function DashboardPage({
   continueLessons = [],
-  jlptPath,
+  jlptPathData,
   weeklyXpSummary,
   liveSchedule = DASHBOARD_LIVE_SCHEDULE.map((item) => ({
     id: item.title,
@@ -79,7 +79,7 @@ export function DashboardPage({
   })),
 }: {
   continueLessons?: ContinueLesson[];
-  jlptPath: JlptPathItem[];
+  jlptPathData: DashboardJlptPathData;
   weeklyXpSummary?: DashboardWeeklyXpSummary;
   liveSchedule?: DashboardLivePreviewItem[];
 }) {
@@ -204,7 +204,7 @@ export function DashboardPage({
         ))}
       </div>
 
-      <DashboardJlptPath jlptPath={jlptPath} />
+      <DashboardJlptPath data={jlptPathData} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

@@ -23,6 +23,7 @@ import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
 import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing-nav-layout';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { CourseSyllabusAccordion } from './course-syllabus-accordion';
@@ -116,6 +117,7 @@ export function CourseDetailPage({ course, paymentSettings }: CourseDetailPagePr
                 height={320}
                 className="h-52 w-full object-cover sm:h-64"
                 priority
+                unoptimized={isUnoptimizedImageSrc(course.thumb)}
               />
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2">

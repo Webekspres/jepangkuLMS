@@ -9,14 +9,11 @@ export type LessonVideoPlayerProps = {
   isActive?: boolean;
 };
 
-/**
- * Vidstack memakai Web Components + signals — harus client-only (bukan SSR).
- * Tanpa ini, React 19 / Next.js bisa throw: `this.$state[prop] is not a function`.
- */
-const LessonVidstackPlayer = dynamic(
+/** YouTube player via react-player — client-only (iframe, bukan SSR). */
+const LessonYoutubePlayer = dynamic(
   () =>
-    import('@/features/learning/components/lesson-vidstack-player').then(
-      (mod) => mod.LessonVidstackPlayer,
+    import('@/features/learning/components/lesson-youtube-player').then(
+      (mod) => mod.LessonYoutubePlayer,
     ),
   {
     ssr: false,
@@ -29,5 +26,5 @@ const LessonVidstackPlayer = dynamic(
 );
 
 export function LessonVideoPlayer(props: LessonVideoPlayerProps) {
-  return <LessonVidstackPlayer {...props} />;
+  return <LessonYoutubePlayer {...props} />;
 }

@@ -8,7 +8,7 @@ import { BADGE_XP_BONUS_BY_RARITY } from '@/features/student/lib/gamification-re
  * Mapping nama file ↔ aturan unlock mengacu pada docs/checklist-lms.md (Fase 1 MVP).
  *
  * Catatan: Hanya satu badge per rule FIRST_LESSON / FIRST_QUIZ (evaluasi unlock saat ini).
- * Badge lain memakai TRYOUT_PASS (skor minimum) atau MANUAL (admin / aturan lanjutan).
+ * Badge lain memakai TRYOUT_SCORE_THRESHOLD (skor minimum) atau MANUAL (admin / aturan lanjutan).
  */
 type BadgeSeed = {
   code: string;
@@ -90,7 +90,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     file: 'N5 High Performer.png',
     description: 'Quiz / tryout N5 — skor 75–99%; performa tinggi.',
     sortOrder: 7,
-    unlockRule: 'TRYOUT_PASS',
+    unlockRule: 'TRYOUT_SCORE_THRESHOLD',
     unlockValue: 75,
     requirementText: 'Lulus simulasi JLPT N5 dengan skor ≥ 75%',
     rarity: 'EPIC',
@@ -101,7 +101,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     file: 'N5 Perfect Master.png',
     description: 'Quiz / tryout N5 — skor sempurna 100%.',
     sortOrder: 8,
-    unlockRule: 'TRYOUT_PASS',
+    unlockRule: 'TRYOUT_SCORE_THRESHOLD',
     unlockValue: 100,
     requirementText: 'Skor sempurna 100% pada simulasi JLPT N5',
     rarity: 'LEGENDARY',

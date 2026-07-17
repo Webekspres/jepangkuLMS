@@ -205,7 +205,7 @@ export function TryoutSelectionPage({
           <li>· Setiap bagian diawali halaman petunjuk, lalu soal fokus per bagian.</li>
           <li>· Timer global — waktu habis otomatis tersimpan & terkirim.</li>
           <li>· Setelah selesai, lihat analisa jawaban benar/salah + penjelasan.</li>
-          <li>· Skor minimal kelulusan simulasi: 60%.</li>
+          <li>· Kelulusan mengikuti standar JLPT (skor total + ambang per bagian).</li>
         </ul>
       </section>
 

@@ -150,14 +150,14 @@ function PhoneSetupForm() {
           inputMode="tel"
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
-          placeholder="Contoh: 08123456789"
+          placeholder="Contoh: 08123456789 atau +819012345678"
           autoComplete="tel"
           maxLength={20}
           disabled={isPending}
           autoFocus
         />
         <p className="text-xs text-muted-foreground">
-          Format Indonesia: 08xx atau +62xx. Kamu bisa mengubahnya nanti di profil.
+          Boleh nomor Indonesia atau luar negeri. Kamu bisa mengubahnya nanti di profil.
         </p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
       </div>

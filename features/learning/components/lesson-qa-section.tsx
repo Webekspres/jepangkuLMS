@@ -2,12 +2,22 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Reply, Send, ThumbsUp, X } from 'lucide-react';
+import { MessageSquare, Reply, Send, ThumbsUp, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import {
+  deleteLessonComment,
+  deleteLessonCommentReply,
   likeLessonComment,
   likeLessonCommentReply,
   postLessonComment,
@@ -17,7 +27,6 @@ import {
 } from '@/features/learning/actions/lesson-qa-actions';
 import {
   isMentionToken,
-  mentionHandle,
   splitCommentWithMentions,
 } from '@/features/learning/lib/lesson-qa-utils';
 
@@ -68,8 +77,15 @@ function CommentContent({ content }: { content: string }) {
 }
 
 type ReplyTarget = {
-  commentId: string;
+  rootCommentId: string;
+  parentReplyId?: string | null;
+  targetId: string;
   author: string;
+};
+
+type DeleteTarget = {
+  id: string;
+  type: 'comment' | 'reply';
 };
 
 function ReplyForm({
@@ -81,17 +97,19 @@ function ReplyForm({
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const mention = `@${mentionHandle(target.author)} `;
-  const [draft, setDraft] = useState(mention);
+  const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit() {
     const text = draft.trim();
-    if (!text || text === mention.trim()) return;
+    if (text.length < 3) return;
     setError(null);
     startTransition(async () => {
-      const result = await postLessonCommentReply(target.commentId, text, target.author);
+      const result = await postLessonCommentReply(target.rootCommentId, text, {
+        replyToAuthor: target.author,
+        parentReplyId: target.parentReplyId ?? null,
+      });
       if (!result.ok) {
         setError(result.message);
         return;
@@ -118,7 +136,7 @@ function ReplyForm({
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder={`Balas @${mentionHandle(target.author)}…`}
+        placeholder="Tulis balasan kamu…"
         className="min-h-[64px] rounded-sm border-border bg-background text-sm"
         rows={2}
         autoFocus
@@ -144,48 +162,56 @@ function ReplyForm({
 
 function CommentItem({
   comment,
+  rootCommentId,
   onLikeComment,
   onLikeReply,
   replyTarget,
   onReply,
+  onDelete,
   onCancelReply,
   onReplySuccess,
   depth = 0,
 }: {
   comment: LessonCommentView | LessonCommentReplyView;
+  rootCommentId?: string;
   onLikeComment: (id: string) => void;
   onLikeReply: (id: string) => void;
   replyTarget: ReplyTarget | null;
   onReply: (target: ReplyTarget) => void;
+  onDelete: (target: DeleteTarget) => void;
   onCancelReply: () => void;
   onReplySuccess: () => void;
   depth?: number;
 }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(comment.likes);
-  const isTopLevel = 'replies' in comment;
-  const replies = isTopLevel ? comment.replies : undefined;
-  const isReplyFormOpen = isTopLevel && replyTarget?.commentId === comment.id;
+  const isReply = depth > 0;
+  const currentRootCommentId = rootCommentId ?? comment.id;
+  const isReplyFormOpen = replyTarget?.targetId === comment.id;
+  const indentDepth = Math.min(depth, 3);
 
   function handleLike() {
     if (liked) return;
     setLiked(true);
     setLikeCount((n) => n + 1);
-    if (isTopLevel) onLikeComment(comment.id);
-    else onLikeReply(comment.id);
+    if (isReply) onLikeReply(comment.id);
+    else onLikeComment(comment.id);
   }
 
   return (
-    <div className={cn('flex gap-3', depth > 0 && 'mt-3 border-l-2 border-border pl-4')}>
+    <div
+      className={cn('flex gap-3', depth > 0 && 'mt-3 border-l-2 border-border')}
+      style={depth > 0 ? { paddingLeft: `${indentDepth}rem` } : undefined}
+    >
       <AvatarIcon initial={comment.avatarInitial} name={comment.author} size={depth > 0 ? 'sm' : 'md'} />
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-foreground">{comment.author}</span>
-          {'isInstructor' in comment && comment.isInstructor && (
+          {comment.isInstructor ? (
             <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-semibold">
               Instruktur
             </Badge>
-          )}
+          ) : null}
           {'isYou' in comment && comment.isYou && (
             <Badge className="h-5 rounded-full px-2 text-[10px] font-semibold">Kamu</Badge>
           )}
@@ -204,31 +230,48 @@ function CommentItem({
             <ThumbsUp className={cn('size-3.5', liked && 'fill-current')} />
             {likeCount}
           </button>
-          {isTopLevel ? (
+          <button
+            type="button"
+            onClick={() =>
+              onReply({
+                rootCommentId: currentRootCommentId,
+                parentReplyId: isReply ? comment.id : null,
+                targetId: comment.id,
+                author: comment.author,
+              })
+            }
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Reply className="size-3.5" />
+            Balas
+          </button>
+          {comment.canDelete ? (
             <button
               type="button"
-              onClick={() => onReply({ commentId: comment.id, author: comment.author })}
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => onDelete({ id: comment.id, type: isReply ? 'reply' : 'comment' })}
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-destructive"
             >
-              <Reply className="size-3.5" />
-              Balas
+              <Trash2 className="size-3.5" />
+              Hapus
             </button>
           ) : null}
         </div>
         {isReplyFormOpen && replyTarget ? (
           <ReplyForm target={replyTarget} onCancel={onCancelReply} onSuccess={onReplySuccess} />
         ) : null}
-        {replies?.map((reply) => (
+        {comment.replies.map((reply) => (
           <CommentItem
             key={reply.id}
             comment={reply}
+            rootCommentId={currentRootCommentId}
             onLikeComment={onLikeComment}
             onLikeReply={onLikeReply}
             replyTarget={replyTarget}
             onReply={onReply}
+            onDelete={onDelete}
             onCancelReply={onCancelReply}
             onReplySuccess={onReplySuccess}
-            depth={1}
+            depth={depth + 1}
           />
         ))}
       </div>
@@ -248,6 +291,8 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit() {
@@ -282,6 +327,24 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
     router.refresh();
   }
 
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    startTransition(async () => {
+      const result =
+        deleteTarget.type === 'comment'
+          ? await deleteLessonComment(deleteTarget.id)
+          : await deleteLessonCommentReply(deleteTarget.id);
+      if (!result.ok) {
+        setDeleteError(result.message);
+        return;
+      }
+      setDeleteTarget(null);
+      setReplyTarget(null);
+      router.refresh();
+    });
+  }
+
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center gap-2">
@@ -306,6 +369,7 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
               onLikeReply={handleLikeReply}
               replyTarget={replyTarget}
               onReply={setReplyTarget}
+              onDelete={setDeleteTarget}
               onCancelReply={() => setReplyTarget(null)}
               onReplySuccess={handleReplySuccess}
             />
@@ -329,6 +393,38 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
           </Button>
         </div>
       </div>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="gap-5 sm:max-w-md">
+          <DialogHeader className="gap-2 pr-10 text-left">
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              Hapus {deleteTarget?.type === 'reply' ? 'balasan' : 'komentar'}?
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              Aksi ini akan menghapus konten dan seluruh balasan di bawahnya.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? <p className="text-xs text-destructive">{deleteError}</p> : null}
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setDeleteTarget(null)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={isPending}
+              className="border border-destructive/20 bg-destructive font-semibold text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteConfirm}
+            >
+              {isPending ? 'Menghapus...' : 'Hapus'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

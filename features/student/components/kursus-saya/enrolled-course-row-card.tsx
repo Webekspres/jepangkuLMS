@@ -7,6 +7,7 @@ import { CheckCircle2, Clock, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { CatalogCourse } from '@/features/learning/components/courses-data';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
@@ -62,6 +63,7 @@ export function EnrolledCourseCard({
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          unoptimized={isUnoptimizedImageSrc(course.thumb)}
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
 

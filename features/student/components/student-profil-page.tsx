@@ -7,6 +7,7 @@ import {
   BookOpen,
   Coins,
   Pencil,
+  Star,
   Trophy,
   Zap,
 } from 'lucide-react';
@@ -144,22 +145,28 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
                 {core.bio ? (
                   <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/70">{core.bio}</p>
                 ) : null}
-                {/* XP / points badge row */}
+                {/* XP / points / rank / badge — samakan dengan hero dashboard */}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-yellow/20 px-2.5 py-1 text-xs font-bold text-brand-yellow">
-                    <Zap className="size-3" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1 text-xs font-semibold text-brand-yellow">
+                    <Zap className="size-3.5" />
                     {formatDisplayNumber(core.totalXp)} XP
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">
-                    <Coins className="size-3" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
+                    <Coins className="size-3.5" />
                     {formatDisplayNumber(core.lmsPoints)} poin
                   </span>
-                  {core.lmsRank != null && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80">
-                      <Trophy className="size-3" />
+                  {core.lmsRank != null ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
+                      <Star className="size-3.5 text-primary" />
                       Rank #{core.lmsRank}
                     </span>
-                  )}
+                  ) : null}
+                  {core.badgeCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
+                      <Award className="size-3.5" />
+                      {core.badgeCount} badge
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -194,16 +201,16 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
           accent="bg-amber-500"
         />
         <StatBadge
-          icon={Award}
-          label="Badge"
-          value={String(core.badgeCount)}
-          accent="bg-emerald-500"
-        />
-        <StatBadge
           icon={Trophy}
           label="Rank LMS"
           value={core.lmsRank != null ? `#${core.lmsRank}` : '—'}
           accent="bg-violet-500"
+        />
+        <StatBadge
+          icon={Award}
+          label="Badge"
+          value={String(core.badgeCount)}
+          accent="bg-emerald-500"
         />
       </div>
 

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { ArrowRight, Package } from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 /**
  * Legacy session-bound tryout import is retired.
@@ -18,7 +20,7 @@ export function AdminTryoutImportPage() {
       title="Import Tryout (legacy)"
       subtitle="Alur impor terikat sesi sudah diganti Paket Soal JLPT."
     >
-      <Card className="max-w-2xl space-y-4 border-amber-500/30 bg-amber-500/5 p-6">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'space-y-4 border-amber-500/30 bg-amber-500/5 p-6')}>
         <p className="text-sm font-medium text-foreground">
           Import workbook/ZIP yang menulis langsung ke soal per sesi sudah dinonaktifkan.
         </p>

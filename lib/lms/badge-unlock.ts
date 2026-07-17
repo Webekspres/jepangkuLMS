@@ -15,7 +15,23 @@ const badgeLog = loggers.learning.child({ module: 'badge-unlock' });
 export type BadgeUnlockEvent =
   | { type: 'FIRST_LESSON' }
   | { type: 'FIRST_QUIZ' }
-  | { type: 'TRYOUT_PASS'; score: number };
+  | { type: 'TRYOUT_SCORE_THRESHOLD'; score: number }
+  | { type: 'TRYOUT_PASS'; score: number }
+  | {
+      type: 'SPECIFIC_COURSE_COMPLETE';
+      courseId: string;
+    }
+  | {
+      type: 'SPECIFIC_MODULE_COMPLETE';
+      courseId: string;
+      moduleId: string;
+    }
+  | {
+      type: 'SPECIFIC_LESSON_COMPLETE';
+      courseId: string;
+      moduleId: string;
+      lessonId: string;
+    };
 
 function eventToRule(event: BadgeUnlockEvent): LmsBadgeUnlockRule {
   switch (event.type) {
@@ -23,8 +39,16 @@ function eventToRule(event: BadgeUnlockEvent): LmsBadgeUnlockRule {
       return 'FIRST_LESSON';
     case 'FIRST_QUIZ':
       return 'FIRST_QUIZ';
+    case 'TRYOUT_SCORE_THRESHOLD':
+      return 'TRYOUT_SCORE_THRESHOLD';
     case 'TRYOUT_PASS':
       return 'TRYOUT_PASS';
+    case 'SPECIFIC_COURSE_COMPLETE':
+      return 'SPECIFIC_COURSE_COMPLETE';
+    case 'SPECIFIC_MODULE_COMPLETE':
+      return 'SPECIFIC_MODULE_COMPLETE';
+    case 'SPECIFIC_LESSON_COMPLETE':
+      return 'SPECIFIC_LESSON_COMPLETE';
   }
 }
 
@@ -33,9 +57,36 @@ function matchesUnlockValue(
   unlockValue: number | null,
   event: BadgeUnlockEvent,
 ): boolean {
-  if (rule === 'TRYOUT_PASS') {
+  if (rule === 'TRYOUT_PASS' || rule === 'TRYOUT_SCORE_THRESHOLD') {
     const minScore = unlockValue ?? 60;
-    return event.type === 'TRYOUT_PASS' && event.score >= minScore;
+    return (
+      (event.type === 'TRYOUT_PASS' || event.type === 'TRYOUT_SCORE_THRESHOLD') &&
+      event.score >= minScore
+    );
+  }
+  return true;
+}
+
+function matchesUnlockTarget(
+  badge: {
+    targetCourseId: string | null;
+    targetModuleId: string | null;
+    targetLessonId: string | null;
+  },
+  event: BadgeUnlockEvent,
+): boolean {
+  if (event.type === 'SPECIFIC_COURSE_COMPLETE') {
+    return badge.targetCourseId === event.courseId;
+  }
+  if (event.type === 'SPECIFIC_MODULE_COMPLETE') {
+    return badge.targetCourseId === event.courseId && badge.targetModuleId === event.moduleId;
+  }
+  if (event.type === 'SPECIFIC_LESSON_COMPLETE') {
+    return (
+      badge.targetCourseId === event.courseId &&
+      badge.targetModuleId === event.moduleId &&
+      badge.targetLessonId === event.lessonId
+    );
   }
   return true;
 }
@@ -84,6 +135,7 @@ export async function evaluateBadgeUnlocks(
 
   for (const badge of badges) {
     if (!matchesUnlockValue(badge.unlockRule, badge.unlockValue, event)) continue;
+    if (!matchesUnlockTarget(badge, event)) continue;
 
     const existing = await prisma.userBadge.findUnique({
       where: { userId_badgeId: { userId, badgeId: badge.id } },

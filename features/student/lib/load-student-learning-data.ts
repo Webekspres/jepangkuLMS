@@ -1,7 +1,10 @@
 import { cache } from 'react';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { isLmsAdmin } from '@/lib/auth/resolve-lms-admin';
-import type { ContinueLesson, JlptPathItem } from '@/features/student/components/dashboard-data';
+import type {
+  ContinueLesson,
+  DashboardJlptPathData,
+} from '@/features/student/components/dashboard-data';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { DEFAULT_THUMB } from '@/features/learning/lib/course-display';
 import {
@@ -10,6 +13,11 @@ import {
   type StudentEnrollmentView,
 } from '@/features/learning/lib/queries';
 import { computeCourseProgressFromLessons } from '@/features/learning/lib/progress';
+import { analyzeTryoutAttempt } from '@/features/tryout/lib/tryout-attempt-analysis';
+import {
+  buildJlptPathFromLevelSummaries,
+  summarizeTryoutAttempts,
+} from '@/features/tryout/lib/jlpt-path-from-tryouts';
 import { prisma } from '@/lib/prisma';
 import type { CatalogCourse } from '@/features/learning/components/courses-data';
 
@@ -168,78 +176,36 @@ export const loadStudentKursusData = cache(async function loadStudentKursusData(
   };
 });
 
-export const loadDashboardJlptPath = cache(async function loadDashboardJlptPath(): Promise<
-  JlptPathItem[]
-> {
+export const loadDashboardJlptPath = cache(async function loadDashboardJlptPath(): Promise<DashboardJlptPathData> {
   const userId = await requireAuthUserId();
 
-  // 1. Fetch all published courses with modules and lessons
-  const courses = await prisma.course.findMany({
-    where: { isPublished: true },
+  const attempts = await prisma.quizAttempt.findMany({
+    where: {
+      userId,
+      type: 'TRYOUT',
+      tryoutSessionId: { not: null },
+    },
     select: {
       id: true,
-      slug: true,
-      level: true,
-      modules: {
-        orderBy: { order: 'asc' },
-        select: {
-          id: true,
-          lessons: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      },
+      answersJson: true,
+      paperSnapshotJson: true,
+      tryoutSessionId: true,
+      tryoutLevel: true,
+      correctCount: true,
+      totalQuestions: true,
+      createdAt: true,
+      tryoutSession: { select: { level: true } },
     },
   });
 
-  // 2. Fetch all completed lessons for this user
-  const completedRows = await prisma.userProgress.findMany({
-    where: { userId, isCompleted: true },
-    select: { lessonId: true },
-  });
-  const completedLessonIds = new Set(completedRows.map((r) => r.lessonId));
+  const analyzed = (await Promise.all(attempts.map(analyzeTryoutAttempt))).filter(
+    (attempt): attempt is NonNullable<typeof attempt> => attempt != null,
+  );
 
-  // 3. For each level, calculate completed modules and total modules
-  const levelProgress = new Map<JlptPathItem['level'], number>();
-  const levels: JlptPathItem['level'][] = ['N5', 'N4', 'N3', 'N2', 'N1'];
-
-  for (const lvl of levels) {
-    const levelCourses = courses.filter((c) => c.level === lvl);
-    const levelModules = levelCourses.flatMap((c) => c.modules);
-    const totalModules = levelModules.length;
-
-    let completedModules = 0;
-    for (const mod of levelModules) {
-      if (mod.lessons.length > 0 && mod.lessons.every((l) => completedLessonIds.has(l.id))) {
-        completedModules++;
-      }
-    }
-
-    const progressPercent = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
-    levelProgress.set(lvl, progressPercent);
-  }
-
-  // 4. Build the linear progress chain
-  const path: JlptPathItem[] = [];
-  let foundActive = false;
-
-  for (const lvl of levels) {
-    const progress = levelProgress.get(lvl) ?? 0;
-    if (progress === 100) {
-      path.push({ level: lvl, status: 'done', progress: 100 });
-    } else if (!foundActive) {
-      // First incomplete level becomes active
-      path.push({ level: lvl, status: 'active', progress });
-      foundActive = true;
-    } else {
-      // All subsequent levels are locked
-      path.push({ level: lvl, status: 'locked', progress: 0 });
-    }
-  }
-
-  return path;
+  return buildJlptPathFromLevelSummaries(
+    summarizeTryoutAttempts(analyzed),
+    attempts.length > 0,
+  );
 });
 
 export const loadDashboardContinueLessons = cache(async function loadDashboardContinueLessons(): Promise<
@@ -249,7 +215,40 @@ export const loadDashboardContinueLessons = cache(async function loadDashboardCo
   const enrollments = await getUserEnrollments(userId);
 
   const active = enrollments.filter((e) => e.progress.status !== 'completed');
-  const slice = (active.length > 0 ? active : enrollments).slice(0, 3);
+  const candidates = active.length > 0 ? active : enrollments;
+
+  const courseIds = candidates.map((e) => e.courseId);
+  const latestCompletionByCourse = new Map<string, number>();
+
+  if (courseIds.length > 0) {
+    const recentProgress = await prisma.userProgress.findMany({
+      where: {
+        userId,
+        isCompleted: true,
+        lesson: { module: { courseId: { in: courseIds } } },
+      },
+      orderBy: { completedAt: 'desc' },
+      select: {
+        completedAt: true,
+        lesson: { select: { module: { select: { courseId: true } } } },
+      },
+    });
+
+    for (const row of recentProgress) {
+      const courseId = row.lesson.module.courseId;
+      if (!latestCompletionByCourse.has(courseId)) {
+        latestCompletionByCourse.set(courseId, row.completedAt?.getTime() ?? 0);
+      }
+    }
+  }
+
+  const sorted = [...candidates].sort((a, b) => {
+    const aTime = latestCompletionByCourse.get(a.courseId) ?? 0;
+    const bTime = latestCompletionByCourse.get(b.courseId) ?? 0;
+    return bTime - aTime;
+  });
+
+  const slice = sorted.slice(0, 3);
 
   const lessonSlugs = slice
     .map((e) => e.progress.continueLessonSlug)

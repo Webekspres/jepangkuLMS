@@ -107,6 +107,8 @@ enum LmsBadgeUnlockRule {
     CATEGORY_COMPLETE
     TRYOUT_SCORE_THRESHOLD
     SPECIFIC_COURSE_COMPLETE
+    SPECIFIC_MODULE_COMPLETE
+    SPECIFIC_LESSON_COMPLETE
 }
 
 /// Status sinkronisasi XP ke Core (outbox). PENDING = perlu retry, SYNCED = sukses,
@@ -267,7 +269,11 @@ model LmsBadge {
     targetLevel    LevelJLPT?
     targetCategory CategoryType?
     targetCourseId String?
+    targetModuleId String?
+    targetLessonId String?
     targetCourse   Course?       @relation(fields: [targetCourseId], references: [id], onDelete: SetNull)
+    targetModule   Module?       @relation(fields: [targetModuleId], references: [id], onDelete: SetNull)
+    targetLesson   Lesson?       @relation(fields: [targetLessonId], references: [id], onDelete: SetNull)
 
     userBadges      UserBadge[]
     equippedByUsers User[]      @relation("EquippedBadge")
@@ -303,6 +309,8 @@ model Course {
     category    CourseCategoryType @default(KURSUS_UTAMA)
     /// Harga dalam Rupiah (0 = gratis)
     priceIdr    Int                @default(0)
+    /// Cover image URL (R2 atau path lokal); UI fallback ke /assets/bg-courses.webp
+    coverImageUrl String?
     isPublished Boolean            @default(false)
     isFeatured  Boolean            @default(false)
     createdAt   DateTime           @default(now())
@@ -325,6 +333,7 @@ model Module {
 
     course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
     lessons Lesson[]
+    badges  LmsBadge[]
 
     @@unique([courseId, slug])
     @@unique([courseId, moduleExternalId])
@@ -398,6 +407,7 @@ model Lesson {
     progress  UserProgress[]
     attempts  QuizAttempt[]
     comments  LessonComment[]
+    badges    LmsBadge[]
 
     @@unique([moduleId, slug])
     @@unique([moduleId, lessonExternalId])
@@ -405,13 +415,14 @@ model Lesson {
 }
 
 model LessonComment {
-    id        String   @id @default(uuid())
-    lessonId  String
-    userId    String
-    content   String   @db.Text
-    likes     Int      @default(0)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id            String   @id @default(uuid())
+    lessonId      String
+    userId        String
+    content       String   @db.Text
+    likes         Int      @default(0)
+    isInstructor  Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
 
     lesson  Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
     user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -421,18 +432,22 @@ model LessonComment {
 }
 
 model LessonCommentReply {
-    id           String   @id @default(uuid())
-    commentId    String
-    userId       String
-    content      String   @db.Text
-    likes        Int      @default(0)
-    isInstructor Boolean  @default(false)
-    createdAt    DateTime @default(now())
+    id            String   @id @default(uuid())
+    commentId     String
+    parentReplyId String?
+    userId        String
+    content       String   @db.Text
+    likes         Int      @default(0)
+    isInstructor  Boolean  @default(false)
+    createdAt     DateTime @default(now())
 
-    comment LessonComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-    user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    comment      LessonComment        @relation(fields: [commentId], references: [id], onDelete: Cascade)
+    parentReply  LessonCommentReply?  @relation("ReplyThread", fields: [parentReplyId], references: [id], onDelete: Cascade)
+    childReplies LessonCommentReply[] @relation("ReplyThread")
+    user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([commentId, createdAt(sort: Asc)])
+    @@index([commentId, parentReplyId, createdAt(sort: Asc)])
 }
 
 // ====================================================================
@@ -682,7 +697,8 @@ model LiveClass {
     priceIdr    Int       @default(0)
     maxSlots    Int       @default(30)
     filledSlots Int       @default(0)
-    thumbUrl    String?
+    /// Cover image URL (R2); UI fallback ke /assets/bg-live_class.webp
+    coverImageUrl String?
     paymentLink String?
     isPublished Boolean   @default(true)
     createdAt   DateTime  @default(now())

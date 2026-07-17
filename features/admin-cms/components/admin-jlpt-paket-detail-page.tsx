@@ -3,13 +3,15 @@
 import { useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ImageIcon, Loader2, Lock, Plus, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, ImageIcon, Loader2, Lock, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import {
   createChokaiInSetAction,
   createQuestionInSetAction,
   removeSetItemAction,
   setJlptQuestionSetStatusAction,
+  updateChokaiSetItemAction,
   updateJlptQuestionSetMetaAction,
+  updateQuestionInSetAction,
 } from '@/features/admin-cms/actions/cms-jlpt-question-set-actions';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import type { AdminJlptQuestionSetDetail } from '@/features/admin-cms/lib/load-admin-jlpt-question-sets';
@@ -26,6 +28,12 @@ const SECTION_LABELS: Record<string, string> = {
   MOJI_GOI: 'Moji Goi',
   BUNPOU_DOKKAI: 'Bunpou Dokkai',
   CHOKAI: 'Choukai',
+};
+
+type QuestionDraft = {
+  questionText: string;
+  explanation: string;
+  options: { text: string; isCorrect: boolean }[];
 };
 
 function emptyOptions() {
@@ -80,22 +88,31 @@ function MojiBunpouForm({
   section,
   locked,
   disabled,
+  initial,
+  onCancel,
   onSubmit,
 }: {
   section: 'MOJI_GOI' | 'BUNPOU_DOKKAI';
   locked: boolean;
   disabled: boolean;
-  onSubmit: (data: {
-    questionText: string;
-    explanation: string;
-    options: { text: string; isCorrect: boolean }[];
-  }) => void;
+  initial?: QuestionDraft | null;
+  onCancel?: () => void;
+  onSubmit: (data: QuestionDraft) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [questionText, setQuestionText] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [options, setOptions] = useState(emptyOptions);
-  const [correctIndex, setCorrectIndex] = useState('0');
+  const isEdit = Boolean(initial);
+  const [open, setOpen] = useState(isEdit);
+  const [questionText, setQuestionText] = useState(initial?.questionText ?? '');
+  const [explanation, setExplanation] = useState(initial?.explanation ?? '');
+  const [options, setOptions] = useState(() => {
+    if (!initial) return emptyOptions();
+    const opts = [...initial.options];
+    while (opts.length < 4) opts.push({ text: '', isCorrect: false });
+    return opts;
+  });
+  const [correctIndex, setCorrectIndex] = useState(() => {
+    if (!initial) return '0';
+    return String(Math.max(0, initial.options.findIndex((o) => o.isCorrect)));
+  });
 
   if (locked) return null;
   if (!open) {
@@ -114,8 +131,23 @@ function MojiBunpouForm({
     );
   }
 
+  function closeForm() {
+    if (isEdit) {
+      onCancel?.();
+      return;
+    }
+    setOpen(false);
+    setQuestionText('');
+    setExplanation('');
+    setOptions(emptyOptions());
+    setCorrectIndex('0');
+  }
+
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+      {isEdit ? (
+        <p className="text-xs font-medium text-muted-foreground">Edit soal</p>
+      ) : null}
       <div className="space-y-2">
         <Label>Pertanyaan</Label>
         <Textarea
@@ -126,7 +158,7 @@ function MojiBunpouForm({
         />
       </div>
       <OptionsEditor
-        name={`correct-${section}`}
+        name={`correct-${section}-${isEdit ? 'edit' : 'add'}`}
         options={options}
         correctIndex={correctIndex}
         onOptionsChange={setOptions}
@@ -137,7 +169,7 @@ function MojiBunpouForm({
         <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} />
       </div>
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={closeForm}>
           Batal
         </Button>
         <Button
@@ -153,14 +185,16 @@ function MojiBunpouForm({
                 isCorrect: String(i) === correctIndex,
               })),
             });
-            setQuestionText('');
-            setExplanation('');
-            setOptions(emptyOptions());
-            setCorrectIndex('0');
-            setOpen(false);
+            if (!isEdit) {
+              setQuestionText('');
+              setExplanation('');
+              setOptions(emptyOptions());
+              setCorrectIndex('0');
+              setOpen(false);
+            }
           }}
         >
-          Simpan soal
+          {isEdit ? 'Simpan perubahan' : 'Simpan soal'}
         </Button>
       </div>
     </div>
@@ -171,11 +205,20 @@ function ChokaiForm({
   level,
   locked,
   disabled,
+  initial,
+  onCancel,
   onSubmit,
 }: {
   level: string;
   locked: boolean;
   disabled: boolean;
+  initial?: (QuestionDraft & {
+    instructionText: string;
+    audioUrl: string;
+    imageUrl: string | null;
+    questionCountInGroup?: number;
+  }) | null;
+  onCancel?: () => void;
   onSubmit: (data: {
     questionText: string;
     explanation: string;
@@ -185,18 +228,27 @@ function ChokaiForm({
     imageUrl: string | null;
   }) => void;
 }) {
+  const isEdit = Boolean(initial);
   const audioRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isEdit);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [audioUrl, setAudioUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [instructionText, setInstructionText] = useState('');
-  const [questionText, setQuestionText] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [options, setOptions] = useState(emptyOptions);
-  const [correctIndex, setCorrectIndex] = useState('0');
+  const [audioUrl, setAudioUrl] = useState(initial?.audioUrl ?? '');
+  const [imageUrl, setImageUrl] = useState<string | null>(initial?.imageUrl ?? null);
+  const [instructionText, setInstructionText] = useState(initial?.instructionText ?? '');
+  const [questionText, setQuestionText] = useState(initial?.questionText ?? '');
+  const [explanation, setExplanation] = useState(initial?.explanation ?? '');
+  const [options, setOptions] = useState(() => {
+    if (!initial) return emptyOptions();
+    const opts = [...initial.options];
+    while (opts.length < 4) opts.push({ text: '', isCorrect: false });
+    return opts;
+  });
+  const [correctIndex, setCorrectIndex] = useState(() => {
+    if (!initial) return '0';
+    return String(Math.max(0, initial.options.findIndex((o) => o.isCorrect)));
+  });
 
   async function uploadAudio(file: File) {
     if (!file.name.toLowerCase().endsWith('.mp3')) {
@@ -269,8 +321,31 @@ function ChokaiForm({
     );
   }
 
+  function closeForm() {
+    if (isEdit) {
+      onCancel?.();
+      return;
+    }
+    setOpen(false);
+    setQuestionText('');
+    setExplanation('');
+    setInstructionText('');
+    setAudioUrl('');
+    setImageUrl(null);
+    setOptions(emptyOptions());
+    setCorrectIndex('0');
+  }
+
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+      {isEdit ? (
+        <p className="text-xs font-medium text-muted-foreground">
+          Edit Choukai
+          {(initial?.questionCountInGroup ?? 1) > 1
+            ? ` — mengedit soal pertama dari ${initial?.questionCountInGroup} soal di grup audio`
+            : ''}
+        </p>
+      ) : null}
       <div className="space-y-2">
         <Label>Audio (.mp3)</Label>
         <div className="flex flex-wrap gap-2">
@@ -373,7 +448,7 @@ function ChokaiForm({
       </div>
 
       <OptionsEditor
-        name="correct-chokai"
+        name={`correct-chokai-${isEdit ? 'edit' : 'add'}`}
         options={options}
         correctIndex={correctIndex}
         onOptionsChange={setOptions}
@@ -386,7 +461,7 @@ function ChokaiForm({
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={closeForm}>
           Batal
         </Button>
         <Button
@@ -405,17 +480,10 @@ function ChokaiForm({
                 isCorrect: String(i) === correctIndex,
               })),
             });
-            setQuestionText('');
-            setExplanation('');
-            setInstructionText('');
-            setAudioUrl('');
-            setImageUrl(null);
-            setOptions(emptyOptions());
-            setCorrectIndex('0');
-            setOpen(false);
+            if (!isEdit) closeForm();
           }}
         >
-          Simpan Choukai
+          {isEdit ? 'Simpan perubahan' : 'Simpan Choukai'}
         </Button>
       </div>
     </div>
@@ -425,6 +493,7 @@ function ChokaiForm({
 export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestionSetDetail }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const locked = detail.stats.isContentLocked;
 
   const itemsBySection = useMemo(() => {
@@ -523,6 +592,54 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         return;
       }
       toast.success('Soal dihapus dari paket');
+      setEditingItemId(null);
+      router.refresh();
+    });
+  }
+
+  function handleUpdateMojiBunpou(itemId: string, data: QuestionDraft) {
+    startTransition(async () => {
+      const result = await updateQuestionInSetAction({
+        itemId,
+        ...data,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Soal diperbarui');
+      setEditingItemId(null);
+      router.refresh();
+    });
+  }
+
+  function handleUpdateChokai(
+    itemId: string,
+    data: {
+      questionText: string;
+      explanation: string;
+      instructionText: string;
+      options: { text: string; isCorrect: boolean }[];
+      audioUrl: string;
+      imageUrl: string | null;
+    },
+  ) {
+    startTransition(async () => {
+      const result = await updateChokaiSetItemAction({
+        itemId,
+        questionText: data.questionText,
+        explanation: data.explanation,
+        instructionText: data.instructionText,
+        options: data.options,
+        audioUrl: data.audioUrl,
+        imageUrl: data.imageUrl,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Soal Choukai diperbarui');
+      setEditingItemId(null);
       router.refresh();
     });
   }
@@ -605,31 +722,61 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                 <li className="text-sm text-muted-foreground">Belum ada soal.</li>
               ) : (
                 (itemsBySection[section] ?? []).map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
-                  >
-                    <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={isPending || locked}
-                      onClick={() => handleRemove(item.id)}
-                      aria-label="Hapus"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                  <li key={item.id} className="space-y-2">
+                    <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                      <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          disabled={isPending || locked || !item.editData}
+                          onClick={() =>
+                            setEditingItemId((prev) => (prev === item.id ? null : item.id))
+                          }
+                          aria-label="Edit soal"
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          disabled={isPending || locked}
+                          onClick={() => handleRemove(item.id)}
+                          aria-label="Hapus"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {editingItemId === item.id && item.editData ? (
+                      <MojiBunpouForm
+                        key={`edit-${item.id}`}
+                        section={section}
+                        locked={locked}
+                        disabled={isPending}
+                        initial={{
+                          questionText: item.editData.questionText,
+                          explanation: item.editData.explanation,
+                          options: item.editData.options,
+                        }}
+                        onCancel={() => setEditingItemId(null)}
+                        onSubmit={(data) => handleUpdateMojiBunpou(item.id, data)}
+                      />
+                    ) : null}
                   </li>
                 ))
               )}
             </ul>
-            <MojiBunpouForm
-              section={section}
-              locked={locked}
-              disabled={isPending}
-              onSubmit={(data) => handleCreateMojiBunpou(section, data)}
-            />
+            {editingItemId && (itemsBySection[section] ?? []).some((i) => i.id === editingItemId) ? null : (
+              <MojiBunpouForm
+                section={section}
+                locked={locked}
+                disabled={isPending}
+                onSubmit={(data) => handleCreateMojiBunpou(section, data)}
+              />
+            )}
           </Card>
         ))}
 
@@ -645,31 +792,65 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
               <li className="text-sm text-muted-foreground">Belum ada soal.</li>
             ) : (
               (itemsBySection.CHOKAI ?? []).map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
-                >
-                  <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    disabled={isPending || locked}
-                    onClick={() => handleRemove(item.id)}
-                    aria-label="Hapus"
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                <li key={item.id} className="space-y-2">
+                  <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                    <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        disabled={isPending || locked || !item.editData}
+                        onClick={() =>
+                          setEditingItemId((prev) => (prev === item.id ? null : item.id))
+                        }
+                        aria-label="Edit soal"
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        disabled={isPending || locked}
+                        onClick={() => handleRemove(item.id)}
+                        aria-label="Hapus"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {editingItemId === item.id && item.editData ? (
+                    <ChokaiForm
+                      key={`edit-chokai-${item.id}`}
+                      level={detail.level}
+                      locked={locked}
+                      disabled={isPending}
+                      initial={{
+                        questionText: item.editData.questionText,
+                        explanation: item.editData.explanation,
+                        options: item.editData.options,
+                        instructionText: item.editData.instructionText,
+                        audioUrl: item.editData.audioUrl,
+                        imageUrl: item.editData.imageUrl,
+                        questionCountInGroup: item.editData.questionCountInGroup,
+                      }}
+                      onCancel={() => setEditingItemId(null)}
+                      onSubmit={(data) => handleUpdateChokai(item.id, data)}
+                    />
+                  ) : null}
                 </li>
               ))
             )}
           </ul>
-          <ChokaiForm
-            level={detail.level}
-            locked={locked}
-            disabled={isPending}
-            onSubmit={handleCreateChokai}
-          />
+          {editingItemId && (itemsBySection.CHOKAI ?? []).some((i) => i.id === editingItemId) ? null : (
+            <ChokaiForm
+              level={detail.level}
+              locked={locked}
+              disabled={isPending}
+              onSubmit={handleCreateChokai}
+            />
+          )}
         </Card>
       </div>
 

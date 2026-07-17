@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { createJlptQuestionSetAction } from '@/features/admin-cms/actions/cms-jlpt-question-set-actions';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import type { LevelJLPT } from '@prisma/client';
 import { toast } from 'sonner';
 
@@ -63,26 +65,28 @@ export function AdminJlptPaketFormPage() {
         </Button>
       }
     >
-      <Card className="max-w-md border-border p-6">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'p-6')}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Judul paket</Label>
-            <Input id="title" name="title" placeholder="Paket N5 A" required />
-          </div>
-          <div className="space-y-2">
-            <Label>Level JLPT</Label>
-            <Select value={level} onValueChange={(v) => setLevel(v as LevelJLPT)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEVELS.map((lv) => (
-                  <SelectItem key={lv} value={lv}>
-                    {lv}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Judul paket</Label>
+              <Input id="title" name="title" placeholder="Paket N5 A" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Level JLPT</Label>
+              <Select value={level} onValueChange={(v) => setLevel(v as LevelJLPT)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEVELS.map((lv) => (
+                    <SelectItem key={lv} value={lv}>
+                      {lv}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <div className="flex justify-end gap-2">

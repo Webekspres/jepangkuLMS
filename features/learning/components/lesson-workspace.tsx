@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -115,6 +115,33 @@ type LessonCurriculumListProps = {
     currentLessonSlug: string;
     onLessonSelect?: () => void;
 };
+
+function curriculumScrollStorageKey(courseSlug: string) {
+    return `jepangku:curriculum-scroll:${courseSlug}`;
+}
+
+function readStoredCurriculumScroll(courseSlug: string): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+        const raw = window.sessionStorage.getItem(curriculumScrollStorageKey(courseSlug));
+        const value = Number(raw);
+        return Number.isFinite(value) && value > 0 ? value : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function writeStoredCurriculumScroll(courseSlug: string, scrollTop: number) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.sessionStorage.setItem(
+            curriculumScrollStorageKey(courseSlug),
+            String(Math.max(0, Math.round(scrollTop))),
+        );
+    } catch {
+        // Ignore quota / private-mode failures.
+    }
+}
 
 function LessonCurriculumList({
     syllabusGroups,
@@ -311,12 +338,72 @@ export function LessonWorkspace({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [completed, setCompleted] = useState(lesson.isCompleted);
+    const [localSyllabus, setLocalSyllabus] = useState(syllabus);
     const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
     const [curriculumLessonSlug, setCurriculumLessonSlug] = useState(lesson.slug);
+    const desktopCurriculumScrollRef = useRef<HTMLDivElement>(null);
+    const mobileCurriculumScrollRef = useRef<HTMLDivElement>(null);
+    const savedCurriculumScrollRef = useRef(0);
+    const curriculumScrollCourseRef = useRef(course.slug);
 
-    const currentLessonIndex = syllabus.findIndex((item) => item.slug === lesson.slug);
-    const prevLesson = currentLessonIndex > 0 ? syllabus[currentLessonIndex - 1] : null;
-    const nextLesson = currentLessonIndex < syllabus.length - 1 ? syllabus[currentLessonIndex + 1] : null;
+    const saveCurriculumScroll = useCallback(() => {
+        const el = desktopCurriculumScrollRef.current ?? mobileCurriculumScrollRef.current;
+        if (el) savedCurriculumScrollRef.current = el.scrollTop;
+        writeStoredCurriculumScroll(course.slug, savedCurriculumScrollRef.current);
+    }, [course.slug]);
+
+    const restoreCurriculumScroll = useCallback(() => {
+        const apply = () => {
+            const top = savedCurriculumScrollRef.current;
+            for (const el of [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current]) {
+                if (el) el.scrollTop = top;
+            }
+        };
+        // Apply immediately and again after accordion height settles.
+        requestAnimationFrame(() => {
+            apply();
+            requestAnimationFrame(apply);
+        });
+        const t1 = window.setTimeout(apply, 50);
+        const t2 = window.setTimeout(apply, 320);
+        return () => {
+            window.clearTimeout(t1);
+            window.clearTimeout(t2);
+        };
+    }, []);
+
+    useLayoutEffect(() => {
+        if (curriculumScrollCourseRef.current !== course.slug) {
+            curriculumScrollCourseRef.current = course.slug;
+            savedCurriculumScrollRef.current = 0;
+        }
+        if (savedCurriculumScrollRef.current <= 0) {
+            savedCurriculumScrollRef.current = readStoredCurriculumScroll(course.slug);
+        }
+        return restoreCurriculumScroll();
+    }, [course.slug, lesson.slug, localSyllabus, completed, restoreCurriculumScroll]);
+
+    useEffect(() => {
+        const nodes = [desktopCurriculumScrollRef.current, mobileCurriculumScrollRef.current].filter(Boolean);
+        const onScroll = (event: Event) => {
+            const target = event.currentTarget as HTMLDivElement;
+            savedCurriculumScrollRef.current = target.scrollTop;
+            writeStoredCurriculumScroll(course.slug, target.scrollTop);
+        };
+        for (const node of nodes) {
+            node?.addEventListener('scroll', onScroll, { passive: true });
+        }
+        return () => {
+            for (const node of nodes) {
+                node?.removeEventListener('scroll', onScroll);
+            }
+        };
+    }, [course.slug, mobileCurriculumOpen]);
+
+    const currentLessonIndex = localSyllabus.findIndex((item) => item.slug === lesson.slug);
+    const prevLesson = currentLessonIndex > 0 ? localSyllabus[currentLessonIndex - 1] : null;
+    const nextLesson =
+        currentLessonIndex < localSyllabus.length - 1 ? localSyllabus[currentLessonIndex + 1] : null;
 
     const flashcards = useMemo(() => buildLessonFlashcards(materials), [materials]);
 
@@ -368,14 +455,40 @@ export function LessonWorkspace({
         currentInitialView === 'video' || currentInitialView === 'text',
     );
 
+    const syllabusGroups = useMemo(() => {
+        if (modules && modules.length > 0) {
+            return groupSyllabusWithDbModules(modules, localSyllabus);
+        }
+        return groupLessonsFlat(localSyllabus);
+    }, [modules, localSyllabus]);
+
+    const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
+        getDefaultExpandedModuleIds(
+            modules && modules.length > 0
+                ? groupSyllabusWithDbModules(modules, syllabus)
+                : groupLessonsFlat(syllabus),
+            lesson.slug,
+        ),
+    );
+
     // Reset lesson-scoped state when navigating to another lesson without a remount.
     if (curriculumLessonSlug !== lesson.slug) {
         setCurriculumLessonSlug(lesson.slug);
+        setLocalSyllabus(syllabus);
         setCompleted(lesson.isCompleted);
         setActiveTab(isLegacyLesson ? resolvedInitialTab : null);
         setFlashcardVisited(currentInitialView === 'flashcard');
         setQuizCompleted(false);
         setContentViewed(currentInitialView === 'video' || currentInitialView === 'text');
+        setExpandedModuleIds((prev) => {
+            const nextDefaults = getDefaultExpandedModuleIds(
+                modules && modules.length > 0
+                    ? groupSyllabusWithDbModules(modules, syllabus)
+                    : groupLessonsFlat(syllabus),
+                lesson.slug,
+            );
+            return Array.from(new Set([...prev, ...nextDefaults]));
+        });
         if (mobileCurriculumOpen) {
             setMobileCurriculumOpen(false);
         }
@@ -397,17 +510,6 @@ export function LessonWorkspace({
             document.body.style.overflow = previousOverflow;
         };
     }, [mobileCurriculumOpen]);
-
-    const syllabusGroups = useMemo(() => {
-        if (modules && modules.length > 0) {
-            return groupSyllabusWithDbModules(modules, syllabus);
-        }
-        return groupLessonsFlat(syllabus);
-    }, [modules, syllabus]);
-
-    const [expandedModuleIds, setExpandedModuleIds] = useState<string[]>(() =>
-        getDefaultExpandedModuleIds(syllabusGroups, lesson.slug),
-    );
 
     const toggleModule = (moduleId: string) => {
         setExpandedModuleIds((prev) =>
@@ -431,6 +533,14 @@ export function LessonWorkspace({
                     ? contentSectionDone
                     : hasAnyContent && contentSectionDone && flashcardSectionDone && quizSectionDone;
 
+    function markLessonCompleteOptimistic() {
+        setLocalSyllabus((prev) =>
+            prev.map((item) =>
+                item.slug === lesson.slug ? { ...item, isCompleted: true } : item,
+            ),
+        );
+    }
+
     // Explicit mark-complete handler — only called when user clicks the button.
     function handleMarkComplete() {
         if (completed || isPending) return;
@@ -438,6 +548,7 @@ export function LessonWorkspace({
             const result = await markLessonComplete(lesson.id, REWARDS.LESSON_COMPLETED.xp);
             if (result && 'success' in result) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
                 showReward({
                     type: 'lesson-complete',
                     xp: result.xpReward ?? REWARDS.LESSON_COMPLETED.xp,
@@ -446,9 +557,12 @@ export function LessonWorkspace({
                     description: `Kamu berhasil menyelesaikan "${lesson.title}"`,
                 });
                 requestStudentCoreDataRefresh();
+                saveCurriculumScroll();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
+                saveCurriculumScroll();
                 router.refresh();
             }
         });
@@ -462,10 +576,14 @@ export function LessonWorkspace({
             });
             if (result && 'success' in result) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
                 requestStudentCoreDataRefresh();
+                saveCurriculumScroll();
                 router.refresh();
             } else if (result && 'alreadyCompleted' in result && result.alreadyCompleted) {
                 setCompleted(true);
+                markLessonCompleteOptimistic();
+                saveCurriculumScroll();
                 router.refresh();
             }
         });
@@ -490,7 +608,6 @@ export function LessonWorkspace({
                     });
                     requestStudentCoreDataRefresh();
                 }
-                router.refresh();
             });
         }
     }
@@ -545,7 +662,10 @@ export function LessonWorkspace({
             onToggleModule={toggleModule}
             courseSlug={course.slug}
             currentLessonSlug={lesson.slug}
-            onLessonSelect={() => setMobileCurriculumOpen(false)}
+            onLessonSelect={() => {
+                saveCurriculumScroll();
+                setMobileCurriculumOpen(false);
+            }}
         />
     );
 
@@ -721,6 +841,7 @@ export function LessonWorkspace({
                         {prevLesson ? (
                             <Link
                                 href={STUDENT_ROUTES.belajar(course.slug, prevLesson.slug)}
+                                onClick={saveCurriculumScroll}
                                 className="group flex flex-col items-start gap-1 max-w-[45%] text-left"
                             >
                                 <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
@@ -738,6 +859,7 @@ export function LessonWorkspace({
                         {nextLesson ? (
                             <Link
                                 href={STUDENT_ROUTES.belajar(course.slug, nextLesson.slug)}
+                                onClick={saveCurriculumScroll}
                                 className="group flex flex-col items-end gap-1 max-w-[45%] text-right"
                             >
                                 <span className="flex items-center gap-1 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide group-hover:text-primary transition-colors">
@@ -774,7 +896,12 @@ export function LessonWorkspace({
                             </span>
                             <span className="text-xs text-muted-foreground">{syllabusGroups.length} modul</span>
                         </div>
-                        <div className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2">{curriculumPanel}</div>
+                        <div
+                            ref={desktopCurriculumScrollRef}
+                            className="max-h-[min(58vh,32rem)] overflow-y-auto pb-2"
+                        >
+                            {curriculumPanel}
+                        </div>
                         <div className="border-t border-border bg-muted/25 px-4 py-3.5">
                             <LessonCompleteAction
                                 completed={completed}
@@ -830,7 +957,7 @@ export function LessonWorkspace({
                             <div>
                                 <p className="text-sm font-semibold text-foreground sm:text-base">Konten kursus</p>
                                 <p className="text-xs text-muted-foreground sm:text-sm">
-                                    {syllabus.length} pelajaran · {syllabusGroups.length} modul
+                                    {localSyllabus.length} pelajaran · {syllabusGroups.length} modul
                                 </p>
                             </div>
                             <Button
@@ -843,7 +970,10 @@ export function LessonWorkspace({
                                 <X className="size-4" />
                             </Button>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+                        <div
+                            ref={mobileCurriculumScrollRef}
+                            className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4"
+                        >
                             {curriculumPanel}
                         </div>
                     </div>

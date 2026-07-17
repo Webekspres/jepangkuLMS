@@ -7,8 +7,10 @@ import {
 import type { JlptAccent } from '@/features/marketing/components/landing-data';
 import { courseCategoryTypeLabel } from '@/lib/lms/course-category';
 import { formatIdr } from '@/lib/lms/format-price';
+import { resolveMediaUrl } from '@/lib/media/image-src';
 
 const DEFAULT_THUMB = '/assets/bg-courses.webp';
+export const DEFAULT_LIVE_CLASS_COVER = '/assets/bg-live_class.webp';
 
 /** Estimasi durasi dari jumlah pelajaran (~20 menit per pelajaran). */
 export function estimateCourseDuration(lessonCount: number): string {
@@ -32,12 +34,14 @@ export function mergeCourseDisplay(
     priceIdr?: number;
     category?: CourseCategoryType | null;
     isFeatured?: boolean;
+    coverImageUrl?: string | null;
   },
 ): CatalogCourse & { isPublished: boolean; lessonCount: number; priceIdr: number } {
   const level = db.level as Exclude<CourseLevel, 'Semua'>;
   const accent: JlptAccent = LEVEL_ACCENT[level] ?? 'emerald';
   const priceIdr = db.priceIdr ?? 0;
   const categoryLabel = courseCategoryTypeLabel(db.category ?? 'KURSUS_UTAMA');
+  const cover = resolveMediaUrl(db.coverImageUrl) ?? db.coverImageUrl?.trim() ?? '';
 
   return {
     slug: db.slug,
@@ -49,7 +53,7 @@ export function mergeCourseDisplay(
     availability: db.isPublished ? 'tersedia' : 'segera',
     availabilityLabel: db.isPublished ? 'Tersedia' : 'Segera hadir',
     price: db.isPublished ? formatIdr(priceIdr) : '—',
-    thumb: DEFAULT_THUMB,
+    thumb: cover || DEFAULT_THUMB,
     accent,
     badge: level,
     tags: [categoryLabel],
@@ -59,6 +63,11 @@ export function mergeCourseDisplay(
     lessonCount: db.lessonCount,
     priceIdr,
   };
+}
+
+export function resolveLiveClassCoverUrl(coverImageUrl: string | null | undefined): string {
+  const cover = resolveMediaUrl(coverImageUrl) ?? coverImageUrl?.trim() ?? '';
+  return cover || DEFAULT_LIVE_CLASS_COVER;
 }
 
 export { DEFAULT_THUMB };

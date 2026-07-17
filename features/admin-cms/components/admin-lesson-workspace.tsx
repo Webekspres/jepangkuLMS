@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { Fragment, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { LessonType } from '@prisma/client';
@@ -439,6 +439,14 @@ function KosakataPanel({
         setPageSize,
     } = useAdminTablePagination(items);
 
+    const handlePageChange = (nextPage: number) => {
+        if (nextPage !== page) {
+            setEditingId(null);
+            setForm({ kosakata: '', furigana: '', romaji: '', arti: '', contohKalimat: '' });
+        }
+        setPage(nextPage);
+    };
+
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
         startTransition(async () => {
@@ -475,35 +483,107 @@ function KosakataPanel({
                             </TableRow>
                         ) : (
                             paginatedKosakata.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.kosakata}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {[item.furigana, item.romaji].filter(Boolean).join(' · ') || '—'}
-                                    </TableCell>
-                                    <TableCell className="text-sm">{item.arti}</TableCell>
-                                    <TableCell className="text-right">
-                                        <AdminTableActions>
-                                            <AdminTableAction
-                                                label="Edit kosakata"
-                                                icon={Pencil}
-                                                onClick={() => {
-                                                    setEditingId(item.id);
-                                                    setForm({
-                                                        kosakata: item.kosakata,
-                                                        furigana: item.furigana ?? '',
-                                                        romaji: item.romaji ?? '',
-                                                        arti: item.arti,
-                                                        contohKalimat: item.contohKalimat ?? '',
-                                                    });
-                                                }}
-                                            />
-                                            <AdminTableActionDelete
-                                                label="Hapus kosakata"
-                                                onClick={() => setDeleteId(item.id)}
-                                            />
-                                        </AdminTableActions>
-                                    </TableCell>
-                                </TableRow>
+                                <Fragment key={item.id}>
+                                    <TableRow className={editingId === item.id ? 'bg-muted/40' : undefined}>
+                                        <TableCell className="font-medium">{item.kosakata}</TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {[item.furigana, item.romaji].filter(Boolean).join(' · ') || '—'}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{item.arti}</TableCell>
+                                        <TableCell className="text-right">
+                                            <AdminTableActions>
+                                                <AdminTableAction
+                                                    label="Edit kosakata"
+                                                    icon={Pencil}
+                                                    onClick={() => {
+                                                        setEditingId(item.id);
+                                                        setForm({
+                                                            kosakata: item.kosakata,
+                                                            furigana: item.furigana ?? '',
+                                                            romaji: item.romaji ?? '',
+                                                            arti: item.arti,
+                                                            contohKalimat: item.contohKalimat ?? '',
+                                                        });
+                                                    }}
+                                                />
+                                                <AdminTableActionDelete
+                                                    label="Hapus kosakata"
+                                                    onClick={() => setDeleteId(item.id)}
+                                                />
+                                            </AdminTableActions>
+                                        </TableCell>
+                                    </TableRow>
+                                    {editingId === item.id ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="bg-muted/20 p-4">
+                                                <p className="mb-3 text-sm font-semibold text-foreground">
+                                                    Edit Kosakata
+                                                </p>
+                                                <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+                                                    <div className="space-y-2">
+                                                        <Label>Kosakata *</Label>
+                                                        <Input
+                                                            value={form.kosakata}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, kosakata: e.target.value }))
+                                                            }
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Furigana</Label>
+                                                        <Input
+                                                            value={form.furigana}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, furigana: e.target.value }))
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Romaji</Label>
+                                                        <Input
+                                                            value={form.romaji}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, romaji: e.target.value }))
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Arti *</Label>
+                                                        <Input
+                                                            value={form.arti}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, arti: e.target.value }))
+                                                            }
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2 md:col-span-2">
+                                                        <Label>Contoh kalimat</Label>
+                                                        <Textarea
+                                                            value={form.contohKalimat}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({
+                                                                    ...p,
+                                                                    contohKalimat: e.target.value,
+                                                                }))
+                                                            }
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2 md:col-span-2">
+                                                        <Button type="submit" disabled={isPending}>
+                                                            Simpan Perubahan
+                                                        </Button>
+                                                        <Button type="button" variant="outline" onClick={resetForm}>
+                                                            Batal Edit
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : null}
+                                </Fragment>
                             ))
                         )}
                     </TableBody>
@@ -512,17 +592,16 @@ function KosakataPanel({
                     page={page}
                     pageSize={pageSize}
                     totalItems={totalItems}
-                    onPageChange={setPage}
+                    onPageChange={handlePageChange}
                     onPageSizeChange={setPageSize}
                     itemLabel="kosakata"
                 />
             </Card>
 
+            {!editingId ? (
             <Card className="border-border">
                 <CardHeader className="border-b border-border bg-muted/30">
-                    <CardTitle className="text-base font-bold">
-                        {editingId ? 'Edit Kosakata' : 'Tambah Kosakata'}
-                    </CardTitle>
+                    <CardTitle className="text-base font-bold">Tambah Kosakata</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
@@ -567,17 +646,13 @@ function KosakataPanel({
                         <div className="flex gap-2 md:col-span-2">
                             <Button type="submit" disabled={isPending}>
                                 <Plus className="size-4" />
-                                {editingId ? 'Simpan Perubahan' : 'Tambah'}
+                                Tambah
                             </Button>
-                            {editingId ? (
-                                <Button type="button" variant="outline" onClick={resetForm}>
-                                    Batal Edit
-                                </Button>
-                            ) : null}
                         </div>
                     </form>
                 </CardContent>
             </Card>
+            ) : null}
 
             <AdminConfirmDialog
                 open={Boolean(deleteId)}
@@ -643,6 +718,29 @@ function KanjiPanel({
         setPageSize,
     } = useAdminTablePagination(items);
 
+    const handlePageChange = (nextPage: number) => {
+        if (nextPage !== page) {
+            setEditingId(null);
+            setForm({ huruf: '', furigana: '', romaji: '', arti: '', onyomi: '', kunyomi: '' });
+        }
+        setPage(nextPage);
+    };
+
+    const submitKanji = (e: React.FormEvent) => {
+        e.preventDefault();
+        startTransition(async () => {
+            const result = editingId
+                ? await updateKanjiMaterialAction(editingId, payload())
+                : await createKanjiMaterialAction(payload());
+            if (!result.ok) {
+                onChange(result.message ?? 'Gagal menyimpan kanji.', 'error');
+                return;
+            }
+            onChange(editingId ? 'Kanji diperbarui.' : 'Kanji ditambahkan.', 'success');
+            resetForm();
+        });
+    };
+
     return (
         <div className="space-y-6">
             <Card className="overflow-hidden border-border">
@@ -664,36 +762,99 @@ function KanjiPanel({
                             </TableRow>
                         ) : (
                             paginatedKanji.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="text-lg font-medium">{item.huruf}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {[item.furigana, item.onyomi, item.kunyomi].filter(Boolean).join(' · ') || '—'}
-                                    </TableCell>
-                                    <TableCell className="text-sm">{item.arti}</TableCell>
-                                    <TableCell className="text-right">
-                                        <AdminTableActions>
-                                            <AdminTableAction
-                                                label="Edit kanji"
-                                                icon={Pencil}
-                                                onClick={() => {
-                                                    setEditingId(item.id);
-                                                    setForm({
-                                                        huruf: item.huruf,
-                                                        furigana: item.furigana ?? '',
-                                                        romaji: item.romaji ?? '',
-                                                        arti: item.arti,
-                                                        onyomi: item.onyomi ?? '',
-                                                        kunyomi: item.kunyomi ?? '',
-                                                    });
-                                                }}
-                                            />
-                                            <AdminTableActionDelete
-                                                label="Hapus kanji"
-                                                onClick={() => setDeleteId(item.id)}
-                                            />
-                                        </AdminTableActions>
-                                    </TableCell>
-                                </TableRow>
+                                <Fragment key={item.id}>
+                                    <TableRow className={editingId === item.id ? 'bg-muted/40' : undefined}>
+                                        <TableCell className="text-lg font-medium">{item.huruf}</TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {[item.furigana, item.onyomi, item.kunyomi].filter(Boolean).join(' · ') || '—'}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{item.arti}</TableCell>
+                                        <TableCell className="text-right">
+                                            <AdminTableActions>
+                                                <AdminTableAction
+                                                    label="Edit kanji"
+                                                    icon={Pencil}
+                                                    onClick={() => {
+                                                        setEditingId(item.id);
+                                                        setForm({
+                                                            huruf: item.huruf,
+                                                            furigana: item.furigana ?? '',
+                                                            romaji: item.romaji ?? '',
+                                                            arti: item.arti,
+                                                            onyomi: item.onyomi ?? '',
+                                                            kunyomi: item.kunyomi ?? '',
+                                                        });
+                                                    }}
+                                                />
+                                                <AdminTableActionDelete
+                                                    label="Hapus kanji"
+                                                    onClick={() => setDeleteId(item.id)}
+                                                />
+                                            </AdminTableActions>
+                                        </TableCell>
+                                    </TableRow>
+                                    {editingId === item.id ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="bg-muted/20 p-4">
+                                                <p className="mb-3 text-sm font-semibold text-foreground">Edit Kanji</p>
+                                                <form onSubmit={submitKanji} className="grid gap-4 md:grid-cols-2">
+                                                    <div className="space-y-2">
+                                                        <Label>Kanji *</Label>
+                                                        <Input
+                                                            value={form.huruf}
+                                                            onChange={(e) => setForm((p) => ({ ...p, huruf: e.target.value }))}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Arti *</Label>
+                                                        <Input
+                                                            value={form.arti}
+                                                            onChange={(e) => setForm((p) => ({ ...p, arti: e.target.value }))}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Furigana</Label>
+                                                        <Input
+                                                            value={form.furigana}
+                                                            onChange={(e) => setForm((p) => ({ ...p, furigana: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Romaji</Label>
+                                                        <Input
+                                                            value={form.romaji}
+                                                            onChange={(e) => setForm((p) => ({ ...p, romaji: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Onyomi</Label>
+                                                        <Input
+                                                            value={form.onyomi}
+                                                            onChange={(e) => setForm((p) => ({ ...p, onyomi: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Kunyomi</Label>
+                                                        <Input
+                                                            value={form.kunyomi}
+                                                            onChange={(e) => setForm((p) => ({ ...p, kunyomi: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2 md:col-span-2">
+                                                        <Button type="submit" disabled={isPending}>
+                                                            Simpan Perubahan
+                                                        </Button>
+                                                        <Button type="button" variant="outline" onClick={resetForm}>
+                                                            Batal Edit
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : null}
+                                </Fragment>
                             ))
                         )}
                     </TableBody>
@@ -702,36 +863,19 @@ function KanjiPanel({
                     page={page}
                     pageSize={pageSize}
                     totalItems={totalItems}
-                    onPageChange={setPage}
+                    onPageChange={handlePageChange}
                     onPageSizeChange={setPageSize}
                     itemLabel="kanji"
                 />
             </Card>
 
+            {!editingId ? (
             <Card className="border-border">
                 <CardHeader className="border-b border-border bg-muted/30">
-                    <CardTitle className="text-base font-bold">
-                        {editingId ? 'Edit Kanji' : 'Tambah Kanji'}
-                    </CardTitle>
+                    <CardTitle className="text-base font-bold">Tambah Kanji</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            startTransition(async () => {
-                                const result = editingId
-                                    ? await updateKanjiMaterialAction(editingId, payload())
-                                    : await createKanjiMaterialAction(payload());
-                                if (!result.ok) {
-                                    onChange(result.message ?? 'Gagal menyimpan kanji.', 'error');
-                                    return;
-                                }
-                                onChange(editingId ? 'Kanji diperbarui.' : 'Kanji ditambahkan.', 'success');
-                                resetForm();
-                            });
-                        }}
-                        className="grid gap-4 md:grid-cols-2"
-                    >
+                    <form onSubmit={submitKanji} className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label>Kanji *</Label>
                             <Input
@@ -778,17 +922,13 @@ function KanjiPanel({
                         </div>
                         <div className="flex gap-2 md:col-span-2">
                             <Button type="submit" disabled={isPending}>
-                                {editingId ? 'Simpan Perubahan' : 'Tambah Kanji'}
+                                Tambah Kanji
                             </Button>
-                            {editingId ? (
-                                <Button type="button" variant="outline" onClick={resetForm}>
-                                    Batal Edit
-                                </Button>
-                            ) : null}
                         </div>
                     </form>
                 </CardContent>
             </Card>
+            ) : null}
 
             <AdminConfirmDialog
                 open={Boolean(deleteId)}
@@ -847,6 +987,32 @@ function TataBahasaPanel({
         setPageSize,
     } = useAdminTablePagination(items);
 
+    const handlePageChange = (nextPage: number) => {
+        if (nextPage !== page) {
+            setEditingId(null);
+            setForm({ tataBahasa: '', arti: '', contohKalimat: '' });
+        }
+        setPage(nextPage);
+    };
+
+    const submitTataBahasa = (e: React.FormEvent) => {
+        e.preventDefault();
+        startTransition(async () => {
+            const result = editingId
+                ? await updateTataBahasaMaterialAction(editingId, payload())
+                : await createTataBahasaMaterialAction(payload());
+            if (!result.ok) {
+                onChange(result.message ?? 'Gagal menyimpan tata bahasa.', 'error');
+                return;
+            }
+            onChange(
+                editingId ? 'Tata bahasa diperbarui.' : 'Tata bahasa ditambahkan.',
+                'success',
+            );
+            resetForm();
+        });
+    };
+
     return (
         <div className="space-y-6">
             <Card className="overflow-hidden border-border">
@@ -867,30 +1033,84 @@ function TataBahasaPanel({
                             </TableRow>
                         ) : (
                             paginatedTataBahasa.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.tataBahasa}</TableCell>
-                                    <TableCell className="text-sm">{item.arti}</TableCell>
-                                    <TableCell className="text-right">
-                                        <AdminTableActions>
-                                            <AdminTableAction
-                                                label="Edit tata bahasa"
-                                                icon={Pencil}
-                                                onClick={() => {
-                                                    setEditingId(item.id);
-                                                    setForm({
-                                                        tataBahasa: item.tataBahasa,
-                                                        arti: item.arti,
-                                                        contohKalimat: item.contohKalimat ?? '',
-                                                    });
-                                                }}
-                                            />
-                                            <AdminTableActionDelete
-                                                label="Hapus tata bahasa"
-                                                onClick={() => setDeleteId(item.id)}
-                                            />
-                                        </AdminTableActions>
-                                    </TableCell>
-                                </TableRow>
+                                <Fragment key={item.id}>
+                                    <TableRow className={editingId === item.id ? 'bg-muted/40' : undefined}>
+                                        <TableCell className="font-medium">{item.tataBahasa}</TableCell>
+                                        <TableCell className="text-sm">{item.arti}</TableCell>
+                                        <TableCell className="text-right">
+                                            <AdminTableActions>
+                                                <AdminTableAction
+                                                    label="Edit tata bahasa"
+                                                    icon={Pencil}
+                                                    onClick={() => {
+                                                        setEditingId(item.id);
+                                                        setForm({
+                                                            tataBahasa: item.tataBahasa,
+                                                            arti: item.arti,
+                                                            contohKalimat: item.contohKalimat ?? '',
+                                                        });
+                                                    }}
+                                                />
+                                                <AdminTableActionDelete
+                                                    label="Hapus tata bahasa"
+                                                    onClick={() => setDeleteId(item.id)}
+                                                />
+                                            </AdminTableActions>
+                                        </TableCell>
+                                    </TableRow>
+                                    {editingId === item.id ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="bg-muted/20 p-4">
+                                                <p className="mb-3 text-sm font-semibold text-foreground">
+                                                    Edit Tata Bahasa
+                                                </p>
+                                                <form onSubmit={submitTataBahasa} className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <Label>Pola / tata bahasa *</Label>
+                                                        <Input
+                                                            value={form.tataBahasa}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, tataBahasa: e.target.value }))
+                                                            }
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Arti *</Label>
+                                                        <Input
+                                                            value={form.arti}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({ ...p, arti: e.target.value }))
+                                                            }
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Contoh kalimat</Label>
+                                                        <Textarea
+                                                            value={form.contohKalimat}
+                                                            onChange={(e) =>
+                                                                setForm((p) => ({
+                                                                    ...p,
+                                                                    contohKalimat: e.target.value,
+                                                                }))
+                                                            }
+                                                            rows={2}
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button type="submit" disabled={isPending}>
+                                                            Simpan Perubahan
+                                                        </Button>
+                                                        <Button type="button" variant="outline" onClick={resetForm}>
+                                                            Batal Edit
+                                                        </Button>
+                                                    </div>
+                                                </form>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : null}
+                                </Fragment>
                             ))
                         )}
                     </TableBody>
@@ -899,39 +1119,19 @@ function TataBahasaPanel({
                     page={page}
                     pageSize={pageSize}
                     totalItems={totalItems}
-                    onPageChange={setPage}
+                    onPageChange={handlePageChange}
                     onPageSizeChange={setPageSize}
                     itemLabel="tata bahasa"
                 />
             </Card>
 
+            {!editingId ? (
             <Card className="border-border">
                 <CardHeader className="border-b border-border bg-muted/30">
-                    <CardTitle className="text-base font-bold">
-                        {editingId ? 'Edit Tata Bahasa' : 'Tambah Tata Bahasa'}
-                    </CardTitle>
+                    <CardTitle className="text-base font-bold">Tambah Tata Bahasa</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            startTransition(async () => {
-                                const result = editingId
-                                    ? await updateTataBahasaMaterialAction(editingId, payload())
-                                    : await createTataBahasaMaterialAction(payload());
-                                if (!result.ok) {
-                                    onChange(result.message ?? 'Gagal menyimpan tata bahasa.', 'error');
-                                    return;
-                                }
-                                onChange(
-                                    editingId ? 'Tata bahasa diperbarui.' : 'Tata bahasa ditambahkan.',
-                                    'success',
-                                );
-                                resetForm();
-                            });
-                        }}
-                        className="space-y-4"
-                    >
+                    <form onSubmit={submitTataBahasa} className="space-y-4">
                         <div className="space-y-2">
                             <Label>Pola / tata bahasa *</Label>
                             <Input
@@ -958,17 +1158,13 @@ function TataBahasaPanel({
                         </div>
                         <div className="flex gap-2">
                             <Button type="submit" disabled={isPending}>
-                                {editingId ? 'Simpan Perubahan' : 'Tambah'}
+                                Tambah
                             </Button>
-                            {editingId ? (
-                                <Button type="button" variant="outline" onClick={resetForm}>
-                                    Batal Edit
-                                </Button>
-                            ) : null}
                         </div>
                     </form>
                 </CardContent>
             </Card>
+            ) : null}
 
             <AdminConfirmDialog
                 open={Boolean(deleteId)}
@@ -1042,10 +1238,99 @@ function QuizPanel({
         })),
     });
 
+    const submitQuiz = (e: React.FormEvent) => {
+        e.preventDefault();
+        startTransition(async () => {
+            const payload = buildPayload();
+            const result = editingId
+                ? await updateLessonQuestionAction(editingId, payload)
+                : await createLessonQuestionAction(payload);
+            if (!result.ok) {
+                onChange(result.message ?? 'Gagal menyimpan soal.', 'error');
+                return;
+            }
+            onChange(editingId ? 'Soal diperbarui.' : 'Soal ditambahkan.', 'success');
+            resetForm();
+        });
+    };
+
+    const quizFormFields = (submitLabel: string, showCancel: boolean) => (
+        <form onSubmit={submitQuiz} className="min-w-0 space-y-4">
+            <div className="space-y-2">
+                <Label>Pertanyaan *</Label>
+                <Textarea
+                    value={form.questionText}
+                    onChange={(e) => setForm((p) => ({ ...p, questionText: e.target.value }))}
+                    rows={3}
+                    required
+                />
+            </div>
+            <div className="space-y-2">
+                <Label>Penjelasan (setelah jawaban)</Label>
+                <Textarea
+                    value={form.explanation}
+                    onChange={(e) => setForm((p) => ({ ...p, explanation: e.target.value }))}
+                    rows={2}
+                />
+            </div>
+            <div className="space-y-3">
+                <Label>Opsi jawaban — pilih yang benar</Label>
+                <RadioGroup
+                    value={form.correctIndex}
+                    onValueChange={(value) => setForm((p) => ({ ...p, correctIndex: value }))}
+                    className="min-w-0 space-y-2.5"
+                >
+                    {form.options.map((opt, index) => (
+                        <label
+                            key={index}
+                            htmlFor={`opt-${showCancel ? 'edit-' : 'add-'}${index}`}
+                            className="flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border/70 bg-background px-3 py-2.5 transition-colors hover:bg-muted/30"
+                        >
+                            <RadioGroupItem
+                                value={String(index)}
+                                id={`opt-${showCancel ? 'edit-' : 'add-'}${index}`}
+                            />
+                            <Input
+                                value={opt.text}
+                                onChange={(e) =>
+                                    setForm((p) => ({
+                                        ...p,
+                                        options: p.options.map((o, i) =>
+                                            i === index ? { ...o, text: e.target.value } : o,
+                                        ),
+                                    }))
+                                }
+                                placeholder={`Opsi ${index + 1}`}
+                                required
+                                className="min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                            />
+                        </label>
+                    ))}
+                </RadioGroup>
+            </div>
+            <div className="flex gap-2">
+                <Button type="submit" disabled={isPending}>
+                    {submitLabel}
+                </Button>
+                {showCancel ? (
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                        Batal Edit
+                    </Button>
+                ) : null}
+            </div>
+        </form>
+    );
+
     return (
         <div className="min-w-0 space-y-6">
             {questions.map((question, index) => (
-                <Card key={question.id} className="min-w-0 border-border">
+                <Card
+                    key={question.id}
+                    className={cn(
+                        'min-w-0 border-border',
+                        editingId === question.id && 'ring-2 ring-primary/30',
+                    )}
+                >
                     <CardHeader className="flex min-w-0 flex-row items-start justify-between gap-4 border-b border-border bg-muted/20 py-4">
                         <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1079,27 +1364,34 @@ function QuizPanel({
                             />
                         </AdminTableActions>
                     </CardHeader>
-                    <CardContent className="min-w-0 pt-4">
-                        <ul className="space-y-1 text-sm">
-                            {question.options.map((opt) => (
-                                <li
-                                    key={opt.id}
-                                    className={cn(
-                                        'wrap-break-word rounded-md px-2 py-1',
-                                        opt.isCorrect && 'bg-emerald-500/10 font-medium text-emerald-700',
-                                    )}
-                                >
-                                    {opt.text}
-                                    {opt.isCorrect ? ' ✓' : ''}
-                                </li>
-                            ))}
-                        </ul>
-                        {question.explanation ? (
-                            <p className="mt-3 text-xs text-muted-foreground">
-                                Penjelasan: {question.explanation}
-                            </p>
-                        ) : null}
-                    </CardContent>
+                    {editingId === question.id ? (
+                        <CardContent className="min-w-0 border-t border-border bg-muted/10 pt-4">
+                            <p className="mb-3 text-sm font-semibold text-foreground">Edit Soal</p>
+                            {quizFormFields('Simpan Soal', true)}
+                        </CardContent>
+                    ) : (
+                        <CardContent className="min-w-0 pt-4">
+                            <ul className="space-y-1 text-sm">
+                                {question.options.map((opt) => (
+                                    <li
+                                        key={opt.id}
+                                        className={cn(
+                                            'wrap-break-word rounded-md px-2 py-1',
+                                            opt.isCorrect && 'bg-emerald-500/10 font-medium text-emerald-700',
+                                        )}
+                                    >
+                                        {opt.text}
+                                        {opt.isCorrect ? ' ✓' : ''}
+                                    </li>
+                                ))}
+                            </ul>
+                            {question.explanation ? (
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                    Penjelasan: {question.explanation}
+                                </p>
+                            ) : null}
+                        </CardContent>
+                    )}
                 </Card>
             ))}
 
@@ -1110,94 +1402,14 @@ function QuizPanel({
                 </p>
             ) : null}
 
+            {!editingId ? (
                 <Card className="min-w-0 border-border">
-                <CardHeader className="border-b border-border bg-muted/30">
-                    <CardTitle className="text-base font-bold">
-                        {editingId ? 'Edit Soal' : 'Tambah Soal Kuis'}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            startTransition(async () => {
-                                const payload = buildPayload();
-                                const result = editingId
-                                    ? await updateLessonQuestionAction(editingId, payload)
-                                    : await createLessonQuestionAction(payload);
-                                if (!result.ok) {
-                                    onChange(result.message ?? 'Gagal menyimpan soal.', 'error');
-                                    return;
-                                }
-                                onChange(editingId ? 'Soal diperbarui.' : 'Soal ditambahkan.', 'success');
-                                resetForm();
-                            });
-                        }}
-                        className="min-w-0 space-y-4"
-                    >
-                        <div className="space-y-2">
-                            <Label>Pertanyaan *</Label>
-                            <Textarea
-                                value={form.questionText}
-                                onChange={(e) => setForm((p) => ({ ...p, questionText: e.target.value }))}
-                                rows={3}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Penjelasan (setelah jawaban)</Label>
-                            <Textarea
-                                value={form.explanation}
-                                onChange={(e) => setForm((p) => ({ ...p, explanation: e.target.value }))}
-                                rows={2}
-                            />
-                        </div>
-                        <div className="space-y-3">
-                            <Label>Opsi jawaban — pilih yang benar</Label>
-                            <RadioGroup
-                                value={form.correctIndex}
-                                onValueChange={(value) => setForm((p) => ({ ...p, correctIndex: value }))}
-                                className="min-w-0 space-y-2.5"
-                            >
-                                {form.options.map((opt, index) => (
-                                    <label
-                                        key={index}
-                                        htmlFor={`opt-${index}`}
-                                        className="flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border/70 bg-background px-3 py-2.5 transition-colors hover:bg-muted/30"
-                                    >
-                                        <RadioGroupItem value={String(index)} id={`opt-${index}`} />
-                                        <Input
-                                            value={opt.text}
-                                            onChange={(e) =>
-                                                setForm((p) => ({
-                                                    ...p,
-                                                    options: p.options.map((o, i) =>
-                                                        i === index ? { ...o, text: e.target.value } : o,
-                                                    ),
-                                                }))
-                                            }
-                                            placeholder={`Opsi ${index + 1}`}
-                                            required
-                                            className="min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-                                        />
-                                    </label>
-                                ))}
-                            </RadioGroup>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button type="submit" disabled={isPending}>
-                                {editingId ? 'Simpan Soal' : 'Tambah Soal'}
-                            </Button>
-                            {editingId ? (
-                                <Button type="button" variant="outline" onClick={resetForm}>
-                                    Batal Edit
-                                </Button>
-                            ) : null}
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                    <CardHeader className="border-b border-border bg-muted/30">
+                        <CardTitle className="text-base font-bold">Tambah Soal Kuis</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">{quizFormFields('Tambah Soal', false)}</CardContent>
+                </Card>
+            ) : null}
 
             <AdminConfirmDialog
                 open={Boolean(deleteId)}

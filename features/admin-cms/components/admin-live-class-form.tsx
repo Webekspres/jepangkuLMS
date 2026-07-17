@@ -4,12 +4,14 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { AdminCoverImageField } from '@/features/admin-cms/components/admin-cover-image-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createLiveClassAction,
   updateLiveClassAction,
 } from '@/features/admin-cms/actions/cms-live-class-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const CATEGORIES = ['Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
@@ -48,7 +51,7 @@ type LiveClassFormData = {
   priceIdr: number;
   maxSlots: number;
   filledSlots: number;
-  thumbUrl: string | null;
+  coverImageUrl: string | null;
   paymentLink: string | null;
   isPublished: boolean;
   sessions: LiveClassSessionData[];
@@ -119,7 +122,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
         </Button>
       }
     >
-      <Card className="max-w-2xl border-border p-6">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'p-6')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Judul Program</Label>
@@ -213,16 +216,12 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="thumbUrl">URL Thumbnail (opsional)</Label>
-            <Input
-              id="thumbUrl"
-              name="thumbUrl"
-              type="url"
-              placeholder="https://…"
-              defaultValue={liveClass?.thumbUrl ?? ''}
-            />
-          </div>
+          <AdminCoverImageField
+            id="coverImage"
+            existingUrl={liveClass?.coverImageUrl}
+            disabled={isPending}
+            nativeForm
+          />
 
           <div className="space-y-2">
             <Label htmlFor="paymentLink">Link Pembayaran (opsional)</Label>

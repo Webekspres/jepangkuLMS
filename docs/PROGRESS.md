@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-14                                                  |
+| **Terakhir diperbarui**   | 2026-07-17                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
@@ -100,14 +100,14 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Route                                           | Status | Catatan                                                                                 |
 | :---------------------------------------------- | :----: | :-------------------------------------------------------------------------------------- |
-| `/dashboard`                                    |   ✅   | Continue learning + JLPT path + **XP mingguan real** + live preview                     |
+| `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
-| `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (reply + @mention)**                              |
+| `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
 | `/dashboard/profil`                             |   ✅   | Hero + stats + edit (display name, avatar R2, badge title)                              |
-| `/dashboard/achievements`                       |   ✅   | Badge LMS + **milestone JLPT dari enrollment**                                          |
+| `/dashboard/achievements`                       |   ✅   | Badge LMS + milestone JLPT dari hasil tryout                                            |
 | `/dashboard/live-class`                         |   ✅   | Jadwal live class dari DB                                                               |
 | `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil                             |
 | `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro bagian → soal terisolasi → submit                                     |
@@ -137,7 +137,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Domain           | Status | Catatan                                                                        |
 | :--------------- | :----: | :----------------------------------------------------------------------------- |
-| **learning**     |   ✅   | Enroll, progress, kuis, marketing queries                                      |
+| **learning**     |   ✅   | Enroll, progress, kuis, marketing queries, Q&A nested + player video hardened   |
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
 | **tryout**       |   ✅   | Bank + Paket Soal (`JlptQuestionSet`) + sesi event + seek Choukai + paper snapshot |
@@ -188,6 +188,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-17 | Email reminder Live Class harian: template Resend + cron `POST /api/cron/live-class-reminders` (00:00 WIB, enrollment ACTIVE, idempotent per sesi/user/hari) |
+| 2026-07-17 | Klarifikasi hasil tryout JLPT: hapus Status Simulasi (Aman/SOS) dari UI; hero & riwayat fokus kelulusan JLPT resmi + indikasi CEFR |
+| 2026-07-17 | Cover image kursus & live class: field `coverImageUrl`, upload admin CMS (R2), fallback `bg-courses.webp` / `bg-live_class.webp` di kartu & detail |
+| 2026-07-17 | Jalur JLPT Saya berbasis tryout: agregasi skor tertinggi per level, kelulusan resmi total + per-seksi, roadmap terkunci sebelum attempt pertama, dan CTA mulai tryout |
+| 2026-07-17 | UX meeting poin 2: edit materi/kuis inline di admin lesson workspace, sidebar konten kursus pertahankan scroll + optimistic selesai, hero Dashboard Lanjutkan Belajar urut kursus dari progres terakhir |
+| 2026-07-17 | Migrasi lesson video player: ganti Vidstack dengan `react-player` (kontrol native YouTube), hapus workaround provider-destroyed; pertahankan enrollment gate, analytics play, pause saat tab tidak aktif |
+| 2026-07-17 | Hotfix Vidstack lesson player: kembalikan `noGestures` + hapus override iframe YouTube (`height: 100%`) yang memicu blink/error `disabled is not a function`; tap play/pause via `Gesture` tunggal |
+| 2026-07-17 | Bugfix lesson video: Q&A tidak double mention, balasan berantai + hapus komentar owner/admin, dan Vidstack player lebih responsif (controls awal, tombol play tengah, portrait contain) |
+| 2026-07-17 | Badge LMS: hapus opsi unlock legacy dari form admin, tambah rule `SPECIFIC_LESSON_COMPLETE` dan `SPECIFIC_MODULE_COMPLETE` dengan target Kursus → Modul → Lesson bertingkat, serta unlock otomatis untuk lesson/modul/kursus target saat progres belajar selesai |
 | 2026-07-14 | Fix `/kursus/[slug]`: hapus `PAYMENT_BCA` client IIFE (crash production), payment settings via RSC prop, CTA Daftar/Masuk, redirect login → `/dashboard/kursus/[slug]` |
 | 2026-07-10 | Template Paket Soal: pecah sheet soal per section (`004. Moji Goi`, `005. Bunpou Dokkai`, `006. Choukai`); parser merge + legacy Soal terpadu |
 | 2026-07-10 | Template Paket Soal: pilihan A–D + Jawaban Benar + Gambar Stimulus digabung ke sheet Soal; hapus sheet 005; klarifikasi pengisian Audio Chokai |

@@ -77,3 +77,6 @@ docs/sample-imports/
 /public/badges/*
 !/public/badges/.gitkeep
 !/public/badges/*.png
+
+# Cover image uploads (dev fallback when R2 unavailable)
+/public/uploads/

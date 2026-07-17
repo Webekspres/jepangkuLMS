@@ -39,19 +39,6 @@ type LessonQuizPanelProps = {
   suppressRewardToast?: boolean;
 };
 
-type QuestionResultStatus = 'correct' | 'wrong' | 'unanswered';
-
-function resultStatusClass(status: QuestionResultStatus) {
-  switch (status) {
-    case 'correct':
-      return 'border-emerald-300 bg-emerald-500/15 text-emerald-800';
-    case 'wrong':
-      return 'border-destructive/40 bg-destructive/10 text-destructive';
-    default:
-      return 'border-border bg-muted/50 text-muted-foreground';
-  }
-}
-
 type QuizPhase = 'questions' | 'result';
 
 export function LessonQuizPanel({
@@ -188,9 +175,6 @@ export function LessonQuizPanel({
 
   if (phase === 'result' && result) {
     const passed = result.score >= 70;
-    const resultByQuestionId = new Map(
-      (result.questionResults ?? []).map((entry) => [entry.questionId, entry.status]),
-    );
 
     return (
       <div className="mx-auto max-w-lg py-6 text-center">
@@ -215,22 +199,6 @@ export function LessonQuizPanel({
             ({result.correct}/{result.total} benar)
           </span>
         </p>
-        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {questionIds.map((qId, i) => {
-            const status = (resultByQuestionId.get(qId) ?? 'unanswered') as QuestionResultStatus;
-            return (
-              <div
-                key={qId}
-                className={cn(
-                  'rounded-xl border p-2 text-center text-xs font-semibold',
-                  resultStatusClass(status),
-                )}
-              >
-                Soal {i + 1}
-              </div>
-            );
-          })}
-        </div>
         <Button type="button" className="mt-6 gap-2" onClick={handleRetry}>
           <RotateCcw className="size-4" />
           Coba lagi

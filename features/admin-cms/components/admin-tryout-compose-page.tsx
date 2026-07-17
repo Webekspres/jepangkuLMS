@@ -6,9 +6,11 @@
  */
 import Link from 'next/link';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
+import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export function AdminTryoutComposePage(_props: {
   session: { id: string; title: string; code: string; level: string; isActive: boolean };
@@ -22,7 +24,7 @@ export function AdminTryoutComposePage(_props: {
       title="Susun sesi (legacy)"
       subtitle="Komposisi per sesi diganti Paket Soal."
     >
-      <Card className="max-w-lg space-y-3 border-border p-6">
+      <Card className={cn(ADMIN_FORM_CARD_CLASS, 'space-y-3 p-6')}>
         <p className="text-sm text-muted-foreground">
           Kelola isi ujian di Paket Soal, lalu pilih paket pada form sesi.
         </p>

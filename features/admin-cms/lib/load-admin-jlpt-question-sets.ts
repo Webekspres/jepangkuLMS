@@ -21,6 +21,20 @@ export type AdminJlptQuestionSetRow = {
   stats: JlptQuestionSetDerivedStats;
 };
 
+export type AdminJlptQuestionSetItemEditData = {
+  kind: 'question' | 'stimulus';
+  questionId: string;
+  code: string;
+  questionText: string;
+  explanation: string;
+  options: { text: string; isCorrect: boolean }[];
+  /** Choukai stimulus fields (null for Moji/Bunpou). */
+  instructionText: string;
+  audioUrl: string;
+  imageUrl: string | null;
+  questionCountInGroup: number;
+};
+
 export type AdminJlptQuestionSetItemRow = {
   id: string;
   section: TryoutSectionCode;
@@ -29,6 +43,7 @@ export type AdminJlptQuestionSetItemRow = {
   listeningStimulusId: string | null;
   label: string;
   questionCount: number;
+  editData: AdminJlptQuestionSetItemEditData | null;
 };
 
 export type AdminJlptQuestionSetDetail = AdminJlptQuestionSetRow & {
@@ -103,12 +118,41 @@ export async function loadAdminJlptQuestionSetById(
       items: {
         orderBy: [{ section: 'asc' }, { sortOrder: 'asc' }],
         include: {
-          jlptQuestion: { select: { id: true, code: true, questionText: true } },
+          jlptQuestion: {
+            select: {
+              id: true,
+              code: true,
+              questionText: true,
+              explanation: true,
+              options: {
+                orderBy: { sortOrder: 'asc' },
+                select: { text: true, isCorrect: true },
+              },
+            },
+          },
           listeningStimulus: {
             select: {
               id: true,
               code: true,
+              instructionText: true,
+              audioUrl: true,
+              imageUrl: true,
               _count: { select: { questions: true } },
+              questions: {
+                where: { status: { not: 'RETIRED' } },
+                orderBy: { stimulusSortOrder: 'asc' },
+                take: 1,
+                select: {
+                  id: true,
+                  code: true,
+                  questionText: true,
+                  explanation: true,
+                  options: {
+                    orderBy: { sortOrder: 'asc' },
+                    select: { text: true, isCorrect: true },
+                  },
+                },
+              },
             },
           },
         },
@@ -175,23 +219,66 @@ export async function loadAdminJlptQuestionSetById(
     description: row.description,
     updatedAt: row.updatedAt.toISOString(),
     stats,
-    items: row.items.map((i) => ({
-      id: i.id,
-      section: i.section,
-      sortOrder: i.sortOrder,
-      jlptQuestionId: i.jlptQuestionId,
-      listeningStimulusId: i.listeningStimulusId,
-      label: i.jlptQuestion
-        ? `${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
-        : i.listeningStimulus
-          ? `${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
-          : '—',
-      questionCount: i.listeningStimulus
+    items: row.items.map((i) => {
+      const qCount = i.listeningStimulus
         ? i.listeningStimulus._count.questions
         : i.jlptQuestionId
           ? 1
-          : 0,
-    })),
+          : 0;
+
+      let editData: AdminJlptQuestionSetItemEditData | null = null;
+      if (i.jlptQuestion) {
+        editData = {
+          kind: 'question',
+          questionId: i.jlptQuestion.id,
+          code: i.jlptQuestion.code,
+          questionText: i.jlptQuestion.questionText,
+          explanation: i.jlptQuestion.explanation ?? '',
+          options: i.jlptQuestion.options.map((o) => ({
+            text: o.text,
+            isCorrect: o.isCorrect,
+          })),
+          instructionText: '',
+          audioUrl: '',
+          imageUrl: null,
+          questionCountInGroup: 1,
+        };
+      } else if (i.listeningStimulus) {
+        const firstQ = i.listeningStimulus.questions[0];
+        if (firstQ) {
+          editData = {
+            kind: 'stimulus',
+            questionId: firstQ.id,
+            code: firstQ.code,
+            questionText: firstQ.questionText,
+            explanation: firstQ.explanation ?? '',
+            options: firstQ.options.map((o) => ({
+              text: o.text,
+              isCorrect: o.isCorrect,
+            })),
+            instructionText: i.listeningStimulus.instructionText ?? '',
+            audioUrl: i.listeningStimulus.audioUrl ?? '',
+            imageUrl: i.listeningStimulus.imageUrl,
+            questionCountInGroup: i.listeningStimulus._count.questions,
+          };
+        }
+      }
+
+      return {
+        id: i.id,
+        section: i.section,
+        sortOrder: i.sortOrder,
+        jlptQuestionId: i.jlptQuestionId,
+        listeningStimulusId: i.listeningStimulusId,
+        label: i.jlptQuestion
+          ? `${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
+          : i.listeningStimulus
+            ? `${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
+            : '—',
+        questionCount: qCount,
+        editData,
+      };
+    }),
     availableQuestions,
     availableStimuli: availableStimuli
       .filter((s) => s._count.questions > 0)
