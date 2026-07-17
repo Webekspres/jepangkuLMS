@@ -1,14 +1,9 @@
 import { cache } from 'react';
 import type { LevelJLPT } from '@prisma/client';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
-import {
-  getTryoutSectionMeta,
-  type TryoutSectionValue,
-} from '@/features/admin-cms/lib/tryout-sections';
-import {
-  loadTryoutExamPaper,
-  type PaperSnapshotPayload,
-} from '@/features/tryout/lib/load-tryout-exam-paper';
+import type { TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
+import { TRYOUT_PASS_SCORE_PERCENT } from '@/features/student/lib/gamification-rewards';
+import { buildTryoutAttemptDetails } from '@/features/tryout/lib/tryout-attempt-analysis';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
@@ -73,86 +68,10 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     select: { displayName: true, ssoDisplayName: true },
   });
 
-  let answers: Record<string, string> = {};
-  if (attempt.answersJson) {
-    try {
-      answers = JSON.parse(attempt.answersJson) as Record<string, string>;
-    } catch {
-      answers = {};
-    }
-  }
+  const details = await buildTryoutAttemptDetails(attempt);
+  if (!details) return null;
 
-  let snapshot: PaperSnapshotPayload | null = null;
-  if (attempt.paperSnapshotJson) {
-    try {
-      snapshot = JSON.parse(attempt.paperSnapshotJson) as PaperSnapshotPayload;
-    } catch {
-      snapshot = null;
-    }
-  }
-
-  const paper =
-    snapshot?.questions?.length
-      ? snapshot.questions.map((q, index) => ({
-          id: q.id,
-          examNumber: index + 1,
-          section: q.section,
-          sectionLabel: getTryoutSectionMeta(q.section).labelRomaji,
-          questionText: q.questionText,
-          explanation: q.explanation,
-          options: q.options,
-        }))
-      : (await loadTryoutExamPaper(attempt.tryoutSessionId!)).map((q) => ({
-          id: q.id,
-          examNumber: q.examNumber,
-          section: String(q.section),
-          sectionLabel: getTryoutSectionMeta(String(q.section)).labelRomaji,
-          questionText: q.questionText,
-          explanation: q.explanation,
-          options: q.options.map((o) => ({
-            id: o.id,
-            text: o.text,
-            isCorrect: Boolean(o.isCorrect),
-          })),
-        }));
-
-  const questions: TryoutReviewQuestion[] = paper.map((q) => {
-    const section = q.section as TryoutSectionValue;
-    const selectedOptionId = answers[q.id] ?? null;
-    const selected = q.options.find((o) => o.id === selectedOptionId);
-    const correctOpt = q.options.find((o) => o.isCorrect);
-
-    return {
-      id: q.id,
-      examNumber: q.examNumber,
-      section,
-      sectionLabel: q.sectionLabel,
-      questionText: q.questionText,
-      explanation: q.explanation,
-      options: q.options.map((o) => ({
-        id: o.id,
-        text: o.text,
-        isCorrect: o.isCorrect,
-      })),
-      selectedOptionId,
-      isCorrect: Boolean(selected?.isCorrect),
-      correctOptionText: correctOpt?.text ?? null,
-      selectedOptionText: selected?.text ?? null,
-    };
-  });
-
-  const sectionBreakdown = (['MOJI_GOI', 'BUNPOU_DOKKAI', 'CHOKAI'] as const)
-    .map((section) => {
-      const sectionQs = questions.filter((q) => q.section === section);
-      if (sectionQs.length === 0) return null;
-      return {
-        section,
-        sectionLabel: getTryoutSectionMeta(section).labelRomaji,
-        correct: sectionQs.filter((q) => q.isCorrect).length,
-        total: sectionQs.length,
-      };
-    })
-    .filter(Boolean) as TryoutAttemptReview['sectionBreakdown'];
+  const questions: TryoutReviewQuestion[] = details.questions;
 
   return {
     attemptId: attempt.id,
@@ -163,13 +82,13 @@ export const loadTryoutAttemptReview = cache(async function loadTryoutAttemptRev
     score: attempt.score,
     correct: attempt.correctCount ?? questions.filter((q) => q.isCorrect).length,
     total: attempt.totalQuestions ?? questions.length,
-    pass: attempt.score >= 60,
+    pass: attempt.score >= TRYOUT_PASS_SCORE_PERCENT,
     submittedAt: attempt.createdAt.toISOString(),
     displayName: resolvePublicDisplayName({
       displayName: user?.displayName,
       ssoDisplayName: user?.ssoDisplayName,
     }),
-    sectionBreakdown,
+    sectionBreakdown: details.sectionBreakdown,
     questions,
   };
 });

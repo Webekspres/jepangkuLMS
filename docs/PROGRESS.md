@@ -100,14 +100,14 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Route                                           | Status | Catatan                                                                                 |
 | :---------------------------------------------- | :----: | :-------------------------------------------------------------------------------------- |
-| `/dashboard`                                    |   ✅   | Continue learning + JLPT path + **XP mingguan real** + live preview                     |
+| `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
 | `/dashboard/profil`                             |   ✅   | Hero + stats + edit (display name, avatar R2, badge title)                              |
-| `/dashboard/achievements`                       |   ✅   | Badge LMS + **milestone JLPT dari enrollment**                                          |
+| `/dashboard/achievements`                       |   ✅   | Badge LMS + milestone JLPT dari hasil tryout                                            |
 | `/dashboard/live-class`                         |   ✅   | Jadwal live class dari DB                                                               |
 | `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil                             |
 | `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro bagian → soal terisolasi → submit                                     |
@@ -188,6 +188,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-17 | Jalur JLPT Saya berbasis tryout: agregasi skor tertinggi per level, kelulusan resmi total + per-seksi, roadmap terkunci sebelum attempt pertama, dan CTA mulai tryout |
+| 2026-07-17 | UX meeting poin 2: edit materi/kuis inline di admin lesson workspace, sidebar konten kursus pertahankan scroll + optimistic selesai, hero Dashboard Lanjutkan Belajar urut kursus dari progres terakhir |
 | 2026-07-17 | Migrasi lesson video player: ganti Vidstack dengan `react-player` (kontrol native YouTube), hapus workaround provider-destroyed; pertahankan enrollment gate, analytics play, pause saat tab tidak aktif |
 | 2026-07-17 | Hotfix Vidstack lesson player: kembalikan `noGestures` + hapus override iframe YouTube (`height: 100%`) yang memicu blink/error `disabled is not a function`; tap play/pause via `Gesture` tunggal |
 | 2026-07-17 | Bugfix lesson video: Q&A tidak double mention, balasan berantai + hapus komentar owner/admin, dan Vidstack player lebih responsif (controls awal, tombol play tengah, portrait contain) |

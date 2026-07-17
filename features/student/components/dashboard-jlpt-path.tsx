@@ -9,16 +9,19 @@ import {
   MapPin,
   Star,
   Target,
-  BookOpen,
   Trophy,
   Compass,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   JLPT_LEVELS,
   LANDING_HERO_GRID_STYLE,
 } from '@/features/marketing/components/landing-data';
 import { cn } from '@/lib/utils';
-import { type JlptPathItem } from './dashboard-data';
+import {
+  type DashboardJlptPathData,
+  type JlptPathItem,
+} from './dashboard-data';
 import { STUDENT_ROUTES } from './student-routes';
 
 const LEVEL_META = Object.fromEntries(JLPT_LEVELS.map((entry) => [entry.level, entry]));
@@ -182,14 +185,20 @@ function StageNode({ item }: { item: JlptPathItem }) {
             locked && 'text-muted-foreground/50',
           )}
         >
-          {done ? 'Selesai' : active ? 'Sedang belajar' : 'Terkunci'}
+          {done ? 'Lulus' : active ? 'Persiapan tryout' : 'Terkunci'}
         </p>
       </div>
     </div>
   );
 }
 
-function ActiveStagePanel({ item }: { item: JlptPathItem }) {
+function ActiveStagePanel({
+  item,
+  quest,
+}: {
+  item: JlptPathItem;
+  quest: NonNullable<DashboardJlptPathData['activeQuest']>;
+}) {
   const meta = LEVEL_META[item.level];
   const progress = item.progress ?? 0;
 
@@ -224,7 +233,7 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
                   <span className="relative inline-flex rounded-full size-2 bg-brand-orange"></span>
                 </span>
                 <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-wider">
-                  Sedang Belajar
+                  Persiapan Tryout
                 </span>
               </div>
             </div>
@@ -241,16 +250,19 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
                 Taklukkan Level {item.level} · {meta.label}
               </h3>
               <p className="text-xs text-white/70 leading-relaxed max-w-md">
-                {meta.desc}. Pelajari semua modul untuk membuka ujian penentuan
-                level berikutnya!
+                Lulus tryout JLPT {item.level} dengan memenuhi skor total dan
+                batas minimum setiap seksi untuk membuka level berikutnya.
               </p>
+              <Button asChild size="sm" className="mt-2">
+                <Link href={STUDENT_ROUTES.tryout}>Ikut tryout {item.level}</Link>
+              </Button>
             </div>
 
             {/* EXP / Progress Bar */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-bold tracking-tight">
                 <span className="text-white/60">
-                  PROGRESS PETUALANGAN (EXP)
+                  PROGRESS TRYOUT (SKOR JLPT)
                 </span>
                 <span className="text-brand-yellow font-black">
                   {progress}%
@@ -269,33 +281,32 @@ function ActiveStagePanel({ item }: { item: JlptPathItem }) {
 
           {/* Right: Equipment slots / stats (Col span 3) */}
           <div className="col-span-3 flex flex-col gap-3 pl-4">
-            {/* Stat slot 1: Modules */}
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 shadow-sm hover:bg-white/10 transition-colors">
               <div className="size-10 rounded-lg bg-brand-orange/20 flex items-center justify-center text-brand-orange">
-                <BookOpen className="size-5" />
+                <Target className="size-5" />
               </div>
               <div>
                 <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">
-                  Dungeon Modul
+                  Tryout Diikuti
                 </p>
                 <p className="text-base font-extrabold text-white">
-                  {meta.modules} Modul
+                  {quest.attemptCount}x
                 </p>
               </div>
             </div>
 
-            {/* Stat slot 2: Bonus Estimate */}
             <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 shadow-sm hover:bg-white/10 transition-colors">
               <div className="size-10 rounded-lg bg-brand-yellow/20 flex items-center justify-center text-brand-yellow">
                 <Trophy className="size-5" />
               </div>
               <div>
                 <p className="text-[9px] font-black text-white/50 tracking-wider uppercase">
-                  XP Terkumpul
+                  Skor Terbaik
                 </p>
                 <p className="text-base font-extrabold text-white">
-                  {progress * 10} XP
+                  {quest.bestScaledScore} / 180
                 </p>
+                <p className="text-[9px] text-white/50">Min. {quest.totalPassScore}</p>
               </div>
             </div>
           </div>
@@ -354,11 +365,15 @@ function MobileNode({ item }: { item: JlptPathItem }) {
 }
 
 /** Mobile-only: compact quest card pinned at the bottom of the snake map */
-function MobileActiveCard({ item }: { item: JlptPathItem }) {
+function MobileActiveCard({
+  item,
+  quest,
+}: {
+  item: JlptPathItem;
+  quest: NonNullable<DashboardJlptPathData['activeQuest']>;
+}) {
   const meta = LEVEL_META[item.level];
-  const done = item.status === 'done';
-  const active = item.status === 'active';
-  const progress = done ? 100 : active ? (item.progress ?? 0) : 0;
+  const progress = item.progress ?? 0;
 
   return (
     <div className="relative rounded-2xl bg-brand-navy border border-brand-yellow/25 p-4 text-white overflow-hidden shadow-xl">
@@ -377,47 +392,47 @@ function MobileActiveCard({ item }: { item: JlptPathItem }) {
           <div>
             <p className="text-[9px] font-black text-brand-yellow uppercase tracking-wider flex items-center gap-1">
               <Compass className="size-2.5" />
-              {done ? 'Level Selesai' : 'Quest Aktif'}
+              Quest Tryout Aktif
             </p>
             <p className="text-sm font-black text-white tracking-tight">{item.level} · {meta.label}</p>
           </div>
 
-          {/* EXP Bar */}
-          {progress > 0 && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-[9px] font-bold">
-                <span className="text-white/50 uppercase">EXP</span>
-                <span className="text-brand-yellow font-black">{progress}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-black/30 border border-white/10 p-px">
-                <motion.div
-                  className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] font-bold">
+              <span className="text-white/50 uppercase">Skor vs batas lulus</span>
+              <span className="text-brand-yellow font-black">{progress}%</span>
             </div>
-          )}
+            <div className="h-2 overflow-hidden rounded-full bg-black/30 border border-white/10 p-px">
+              <motion.div
+                className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Module count badge */}
         <div className="shrink-0 flex flex-col items-center border border-white/10 rounded-xl bg-white/5 px-3 py-2">
-          <BookOpen className="size-4 text-brand-orange mb-1" />
-          <span className="text-base font-black text-white tabular-nums">{meta.modules}</span>
-          <span className="text-[8px] font-semibold text-white/50 uppercase">Modul</span>
+          <Trophy className="size-4 text-brand-yellow mb-1" />
+          <span className="text-base font-black text-white tabular-nums">
+            {quest.bestScaledScore}
+          </span>
+          <span className="text-[8px] font-semibold text-white/50 uppercase">Skor terbaik</span>
         </div>
       </div>
     </div>
   );
 }
 
-function MobileTrack({ jlptPath }: { jlptPath: JlptPathItem[] }) {
-  // Active item or the last unlocked item drives the bottom info card
-  const featuredItem =
-    jlptPath.find((i) => i.status === 'active') ??
-    [...jlptPath].reverse().find((i) => i.status === 'done') ??
-    jlptPath[0]!;
+function MobileTrack({
+  jlptPath,
+  activeQuest,
+}: {
+  jlptPath: JlptPathItem[];
+  activeQuest?: DashboardJlptPathData['activeQuest'];
+}) {
+  const activeItem = jlptPath.find((item) => item.status === 'active');
 
   return (
     <div className="relative z-10 px-4 pb-5 pt-6 md:hidden">
@@ -495,16 +510,45 @@ function MobileTrack({ jlptPath }: { jlptPath: JlptPathItem[] }) {
         </ul>
       </div>
 
-      {/* ── Bottom Active Quest Card ── */}
-      <div className="mt-8">
-        <MobileActiveCard item={featuredItem} />
+      {activeQuest && activeItem ? (
+        <div className="mt-8">
+          <MobileActiveCard item={activeItem} quest={activeQuest} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function EmptyPathPanel() {
+  return (
+    <div className="mx-4 mb-5 rounded-2xl border border-brand-yellow/25 bg-brand-navy p-5 text-white shadow-xl sm:mx-6 sm:p-6">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[10px] font-black uppercase tracking-wider text-brand-yellow">
+            Jalur belum dimulai
+          </p>
+          <h3 className="mt-1 text-lg font-black">Mulai perjalanan JLPT-mu</h3>
+          <p className="mt-1 text-sm leading-relaxed text-white/70">
+            Ikuti tryout untuk mengukur kemampuanmu. Skor terbaik dan kelulusan resmi
+            JLPT akan menentukan progres jalur dari N5 hingga N1.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-3">
+          <Button asChild>
+            <Link href={STUDENT_ROUTES.tryout}>Mulai tryout</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={STUDENT_ROUTES.tryoutHistory}>Lihat riwayat</Link>
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
-  const activeItem = jlptPath.find((item) => item.status === 'active') || jlptPath[0];
+export function DashboardJlptPath({ data }: { data: DashboardJlptPathData }) {
+  const { path: jlptPath, activeQuest, started } = data;
+  const activeItem = jlptPath.find((item) => item.status === 'active');
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -543,10 +587,10 @@ export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
           Jalur JLPT Saya
         </h2>
         <Link
-          href={STUDENT_ROUTES.kursus}
+          href={STUDENT_ROUTES.tryout}
           className="inline-flex items-center gap-1 text-xs font-bold text-brand-red hover:text-brand-orange transition-colors"
         >
-          Lihat kursus
+          Ikut tryout
           <ChevronRight className="size-3.5" />
         </Link>
       </div>
@@ -592,11 +636,11 @@ export function DashboardJlptPath({ jlptPath }: { jlptPath: JlptPathItem[] }) {
         </div>
 
         {/* Mobile View */}
-        <MobileTrack jlptPath={jlptPath} />
+        <MobileTrack jlptPath={jlptPath} activeQuest={activeQuest} />
       </div>
 
-      {/* RPG Bottom panel showing progress details */}
-      {activeItem && <ActiveStagePanel item={activeItem} />}
+      {!started ? <EmptyPathPanel /> : null}
+      {activeItem && activeQuest ? <ActiveStagePanel item={activeItem} quest={activeQuest} /> : null}
     </section>
   );
 }

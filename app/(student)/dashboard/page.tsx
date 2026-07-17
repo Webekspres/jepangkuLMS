@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardRoutePage() {
-    const [continueLessons, jlptPath, weeklyXpSummary, liveSchedule] = await Promise.all([
+    const [continueLessons, jlptPathData, weeklyXpSummary, liveSchedule] = await Promise.all([
         loadDashboardContinueLessons(),
         loadDashboardJlptPath(),
         loadDashboardWeeklyXp(),
@@ -27,7 +27,7 @@ export default async function DashboardRoutePage() {
     return (
         <DashboardPage
             continueLessons={continueLessons}
-            jlptPath={jlptPath}
+            jlptPathData={jlptPathData}
             weeklyXpSummary={weeklyXpSummary}
             liveSchedule={liveSchedule}
         />

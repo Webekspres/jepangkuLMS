@@ -68,6 +68,18 @@ export type JlptPathItem = {
   progress?: number;
 };
 
+export type DashboardJlptPathData = {
+  started: boolean;
+  path: JlptPathItem[];
+  activeQuest?: {
+    level: JlptPathItem['level'];
+    bestScaledScore: number;
+    totalPassScore: number;
+    attemptCount: number;
+    bestAttemptId: string | null;
+  };
+};
+
 export const DASHBOARD_JLPT_PATH: JlptPathItem[] = [
   { level: 'N5', status: 'done' },
   { level: 'N4', status: 'active', progress: 77 },

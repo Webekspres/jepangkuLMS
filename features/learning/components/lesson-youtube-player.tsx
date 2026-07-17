@@ -44,10 +44,8 @@ function patchYoutubeIframeClipboard(root: ParentNode | null) {
 function safePause(player: HTMLVideoElement | null) {
   if (!player) return;
   try {
-    const result = player.pause();
-    if (result && typeof (result as Promise<void>).catch === 'function') {
-      void (result as Promise<void>).catch(() => undefined);
-    }
+    // DOM HTMLMediaElement.pause() returns void; some embeds may throw if not ready.
+    player.pause();
   } catch {
     // Player may not be ready yet (CSP/load race).
   }
