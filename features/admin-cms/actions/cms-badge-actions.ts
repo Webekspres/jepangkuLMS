@@ -98,13 +98,13 @@ async function validateBadgeTargets(meta: ReturnType<typeof parseBadgeMeta>): Pr
     if (!meta.targetCourseId) return 'Pilih kursus terlebih dahulu.';
     if (!meta.targetModuleId) return 'Target modul wajib dipilih.';
 
-    const module = await prisma.module.findUnique({
+    const targetModule = await prisma.module.findUnique({
       where: { id: meta.targetModuleId },
       select: { courseId: true },
     });
 
-    if (!module) return 'Target modul tidak ditemukan.';
-    if (module.courseId !== meta.targetCourseId) {
+    if (!targetModule) return 'Target modul tidak ditemukan.';
+    if (targetModule.courseId !== meta.targetCourseId) {
       return 'Target modul harus berasal dari kursus yang dipilih.';
     }
 
