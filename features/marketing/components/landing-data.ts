@@ -1,9 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BookOpen,
-  Calendar,
-  Compass,
-  Layers,
   Rocket,
   Target,
   Trophy,
@@ -43,6 +40,18 @@ export const LANDING_HERO_COLOR_BAND_GRADIENT =
 
 export const HERO_TRUST_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
 
+/** Warna lingkaran level di hero landing (N5→N1). */
+export const HERO_TRUST_LEVEL_COLORS: Record<
+  (typeof HERO_TRUST_LEVELS)[number],
+  string
+> = {
+  N5: 'bg-pink-500 text-white',
+  N4: 'bg-brand-yellow text-brand-navy',
+  N3: 'bg-emerald-500 text-white',
+  N2: 'bg-blue-500 text-white',
+  N1: 'bg-violet-500 text-white',
+};
+
 export const HERO_MOCK_MODULES = [
   { title: 'Hiragana & Katakana', active: true },
   { title: 'Kanji Dasar N5', active: false },
@@ -56,7 +65,7 @@ export const JLPT_LEVELS = [
   {
     level: 'N5',
     label: 'Pemula',
-    desc: 'Hiragana, Katakana & Kanji dasar (80 kanji)',
+    desc: 'Hiragana, Katakana, Kosakata, Tata Bahasa, Pola Kalimat, dan percakapan dasar',
     badge: '入門',
     accent: 'emerald',
     modules: 12,
@@ -160,67 +169,39 @@ export const LANDING_FEATURES: {
 }[] = [
   {
     icon: Video,
-    title: 'Video On Demand',
-    desc: 'Video lesson terstruktur per modul JLPT dengan subtitle Jepang–Indonesia.',
-    tag: 'VOD',
-    gradient: 'from-brand-red to-brand-orange',
-    blobColor: 'bg-brand-red',
-    href: '/kursus',
+    title: "Video On Demand",
+    desc: "Penjelasan melalui video yang mudah dimengerti",
+    tag: "VOD",
+    gradient: "from-brand-red to-brand-orange",
+    blobColor: "bg-brand-red",
+    href: "/kursus",
   },
   {
     icon: BookOpen,
-    title: 'JLPT Try Out Center',
-    desc: 'Simulasi ujian JLPT untuk mengukur kesiapanmu sebelum ujian resmi.',
-    tag: 'JLPT',
-    gradient: 'from-secondary to-brand-navy',
-    blobColor: 'bg-brand-navy',
-    href: '/tryout',
+    title: "JLPT Try Out Center",
+    desc: "Simulasi ujian JLPT untuk mengukur kesiapanmu sebelum ujian resmi.",
+    tag: "JLPT",
+    gradient: "from-secondary to-brand-navy",
+    blobColor: "bg-brand-navy",
+    href: "/tryout",
   },
   {
     icon: Trophy,
-    title: 'Gamifikasi XP & Badge',
-    desc: 'Kumpulkan XP dari kuis & materi, raih badge, dan pantau progres belajarmu.',
-    tag: 'GAME',
-    gradient: 'from-amber-500 to-brand-yellow',
-    blobColor: 'bg-amber-500',
-    href: '/sign-up',
+    title: "Gamifikasi XP & Badge",
+    desc: "Kumpulkan XP dari kuis & materi, raih badge, dan pantau progres belajarmu.",
+    tag: "GAME",
+    gradient: "from-amber-500 to-brand-yellow",
+    blobColor: "bg-amber-500",
+    href: "/sign-up",
   },
   {
     icon: Wifi,
-    title: 'Live Class via Zoom',
-    desc: 'Sesi live interaktif bersama sensei — tanya jawab langsung, real-time.',
-    tag: 'LIVE',
-    gradient: 'from-emerald-500 to-emerald-600',
-    blobColor: 'bg-emerald-500',
-    href: '/sign-up',
-  },
-];
-
-/** Pilar platform — faktual, tanpa angka sosial palsu. */
-export const LANDING_PILLARS: {
-  icon: LucideIcon;
-  title: string;
-  desc: string;
-}[] = [
-  {
-    icon: Layers,
-    title: "5 Level JLPT",
-    desc: "Kurikulum terstruktur dari N5 pemula hingga N1 mahir.",
-  },
-  {
-    icon: Target,
-    title: "Berorientasi Target",
-    desc: "Materi dan latihan soal dirancang presisi sesuai kisi-kisi ujian JLPT asli.",
-  },
-  {
-    icon: Compass,
-    title: "All-in-One Ecosystem",
-    desc: "Video, kuis, try out, dan gamifikasi dalam satu ekosistem belajar.",
-  },
-  {
-    icon: Calendar,
-    title: "Roadmap 2026",
-    desc: "Konten dan fitur dikembangkan transparan sepanjang tahun ini.",
+    title: "Live Class via Zoom",
+    desc: "Sesi live interaktif bersama sensei — tanya jawab langsung, real-time.",
+    tag: "LIVE",
+    gradient: "from-emerald-500 to-emerald-600",
+    blobColor: "bg-emerald-500",
+    href: "/sign-up",
   },
 ];
 

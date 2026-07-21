@@ -2,7 +2,7 @@
 export const ADMIN_CONTACT = {
   waNumber: '6285110551580',
   waDisplay: '0851-1055-1580',
-  email: 'admin@jepangku.com',
+  email: 'info@jepangku.com',
   hours: 'Senin–Jumat, 09.00–17.00 WIB',
   responseNote: 'Balasan dalam 1×24 jam kerja',
 } as const;

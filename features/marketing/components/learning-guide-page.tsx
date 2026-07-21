@@ -161,7 +161,8 @@ export function LearningGuidePage() {
               ))}
             </ul>
             <p className="mt-4 text-xs text-muted-foreground">
-              Nilai XP final dapat disesuaikan saat fitur gamifikasi terhubung ke Core Service.
+              Angka XP di atas adalah acuan. Besaran poin bisa berubah seiring pengembangan
+              platform.
             </p>
           </motion.div>
 

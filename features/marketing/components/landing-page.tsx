@@ -10,10 +10,11 @@ import {
   ChevronRight,
   GraduationCap,
   Menu,
+  MessagesSquare,
+  MonitorSmartphone,
   Play,
-  Target,
-  Video,
-  Wifi,
+  Sparkles,
+  Trophy,
   X,
   Zap,
 } from "lucide-react";
@@ -24,28 +25,44 @@ import { LANDING_NAV_MENU_TOP } from "./marketing-nav-layout";
 import { MarketingNavLinkItem } from "./marketing-nav-link";
 import { MARKETING_NAV_LINKS } from "./marketing-nav-links";
 import { MarketingFooter } from "./marketing-footer";
-import { MarketingLightSurface } from "./marketing-light-surface";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { THEME_SWITCHING_ENABLED } from "@/lib/theme/theme-config";
 import {
   HERO_MOCK_MODULES,
   HERO_TRUST_LEVELS,
+  HERO_TRUST_LEVEL_COLORS,
   JLPT_ACCENT,
   JLPT_LEVELS,
   LANDING_FEATURES,
   LANDING_HERO_GRID_STYLE,
-  LANDING_PILLARS,
   LANDING_SEIGAIHA,
   LANDING_VALUE_PROPS,
   PRICING_PLANS,
 } from "./landing-data";
 
 const PLATFORM_HIGHLIGHTS = [
-  { icon: GraduationCap, value: "N5 → N1", label: "5 level JLPT" },
-  { icon: Video, value: "10+", label: "Video Lesson" },
-  { icon: Target, value: "5 Level", label: "Try Out JLPT" },
-  { icon: Wifi, value: "Live", label: "Kelas Interaktif" },
+  {
+    icon: MonitorSmartphone,
+    title: "Belajar Kapan Saja, Dimana Saja",
+  },
+  {
+    icon: MessagesSquare,
+    title: "Materi Percakapan Nyata",
+  },
+  {
+    icon: GraduationCap,
+    title: "Disusun oleh Praktisi dan Pengajar Berpengalaman",
+  },
+  {
+    icon: Sparkles,
+    title: "Belajar Lebih Seru!",
+  },
+  {
+    icon: Trophy,
+    title: "Badge, XP, Streak Belajar",
+    desc: "untuk membantu menjaga konsistensi belajar",
+  },
 ] as const;
 
 export function LandingPage() {
@@ -145,6 +162,7 @@ export function LandingPage() {
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
+          fitContent
           panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
         >
           <nav className="flex flex-col p-2">
@@ -185,9 +203,7 @@ export function LandingPage() {
 
       {/* Hero — dark navy background matches Figma design */}
       {/* Elliptic bottom curve — mobile: shallow arch; desktop: wider smooth arch */}
-      <section
-        className="bg-brand-hero-navy relative flex min-h-[min(108svh,960px)] items-stretch overflow-hidden rounded-[0_0_50%_50%/0_0_2.5rem_2.5rem] sm:min-h-[min(105svh,940px)] sm:rounded-[0_0_50%_50%/0_0_3rem_3rem] lg:min-h-[min(100svh,900px)] lg:items-center lg:rounded-[0_0_50%_50%/0_0_6rem_6rem]"
-      >
+      <section className="bg-brand-hero-navy relative flex min-h-[min(108svh,960px)] items-stretch overflow-hidden rounded-[0_0_50%_50%/0_0_2.5rem_2.5rem] sm:min-h-[min(105svh,940px)] sm:rounded-[0_0_50%_50%/0_0_3rem_3rem] lg:min-h-[min(100svh,900px)] lg:items-center lg:rounded-[0_0_50%_50%/0_0_6rem_6rem]">
         {/* Photographic backdrop (bg-hero.webp) */}
         <div
           className="pointer-events-none absolute inset-0 bg-[url('/assets/bg-hero.webp')] bg-cover bg-center opacity-35"
@@ -212,7 +228,7 @@ export function LandingPage() {
           style={LANDING_HERO_GRID_STYLE}
         />
         {/* Radial light at top-left */}
-        <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-brand-red/20 blur-[120px]" />
+        <div className="pointer-events-none absolute -top-32 -left-32 h-125 w-125 rounded-full bg-brand-red/20 blur-[120px]" />
 
         <div className="container relative mx-auto flex flex-col gap-6 px-4 pt-20 pb-16 sm:gap-8 sm:pt-24 sm:pb-20 md:px-8 lg:grid lg:grid-cols-[1.05fr_1fr] lg:grid-rows-[auto_auto_auto] lg:items-center lg:gap-x-12 lg:gap-y-5 lg:pb-12">
           {/* Headline + deskripsi — mobile: atas; desktop: kolom kiri baris 1 */}
@@ -223,19 +239,18 @@ export function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="mb-5 text-center text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white lg:text-left">
-              Kursus bahasa Jepang
-              <br />
-              terstruktur untuk target
+              Mulai Perjalanan Bahasa Jepangmu
               <br />
               <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-                JLPT dan CEFR
+                Hari Ini
               </span>
             </h1>
             <p className="mx-auto mb-0 max-w-lg text-center text-base leading-relaxed text-white/70 md:text-lg lg:mx-0 lg:mb-6 lg:text-left">
-              Belajar bahasa Jepang dari N5 hingga N1 melalui video
-              pembelajaran, modul terstruktur, kuis interaktif, dan try out
-              JLPT. Disusun mengacu pada standar CEFR untuk membantu Anda
-              belajar lebih terarah dan percaya diri.
+              Roadmap belajar dari N5 hingga N1
+              <br />
+              Video lesson, kuis & try out interaktif
+              <br />
+              Kurikulum mengacu pada standar JLPT & CEFR
             </p>
           </motion.div>
 
@@ -251,14 +266,12 @@ export function LandingPage() {
                 Kurikulum JLPT N5–N1
               </p>
               <div className="flex -space-x-2.5" aria-hidden>
-                {HERO_TRUST_LEVELS.map((level, index) => (
+                {HERO_TRUST_LEVELS.map((level) => (
                   <div
                     key={level}
                     className={cn(
                       "flex size-9 items-center justify-center rounded-full border-2 border-brand-navy text-xs font-bold shadow-sm",
-                      index === 0
-                        ? "bg-linear-to-br from-brand-red to-brand-orange text-white"
-                        : "bg-white/20 text-white/90",
+                      HERO_TRUST_LEVEL_COLORS[level],
                     )}
                   >
                     {level}
@@ -286,7 +299,7 @@ export function LandingPage() {
                     jepangku.com/kursus/n5
                   </span>
                 </div>
-                <div className="flex min-h-[260px] sm:min-h-[300px]">
+                <div className="flex min-h-65 sm:min-h-75">
                   <aside className="hidden w-40 shrink-0 border-r border-gray-200 bg-gray-50 p-3 sm:block md:w-44">
                     <p className="mb-3 px-2 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
                       Modul N5
@@ -383,7 +396,7 @@ export function LandingPage() {
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
-            </div>            
+            </div>
           </motion.div>
         </div>
       </section>
@@ -410,8 +423,8 @@ export function LandingPage() {
               Pilih Level JLPT-mu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Lima level JLPT dalam satu peta belajar. Saat peluncuran, kami
-              mulai dari N5 — level lainnya dirilis bertahap sepanjang 2026.
+              JLPT (Japanese Language Proficiency Test) adalah kunci untuk bisa
+              sukses di Jepang. Kamu bisa menemukan semua levelnya di sini.
             </p>
           </motion.div>
 
@@ -458,7 +471,7 @@ export function LandingPage() {
                   </p>
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
-                      {lvl.modules} modul direncanakan
+                      {lvl.modules} modul
                     </span>
                     <span
                       className={cn(
@@ -612,84 +625,36 @@ export function LandingPage() {
               untuk JLPT
             </h2>
             <p className="mt-2 text-sm text-white/60">
-              Satu platform, semua yang kamu butuhkan untuk lulus JLPT N5 sampai
-              N1
+              Kalau Kamu Mau Hidup Tenang Di Jepang, Disini Tempat Belajarnya!
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PLATFORM_HIGHLIGHTS.map((item, i) => (
               <motion.div
-                key={item.label}
+                key={item.title}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border border-white/10 bg-white/6 p-6 text-center backdrop-blur-sm"
+                className="rounded-2xl border border-white/10 bg-white/6 p-5 text-center backdrop-blur-sm sm:p-6"
               >
                 <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/20 text-white">
                   <item.icon className="size-6" />
                 </div>
-                <p className="text-2xl font-extrabold text-white">
-                  {item.value}
+                <p className="text-sm font-bold leading-snug text-white sm:text-base">
+                  {item.title}
                 </p>
-                <p className="mt-1 text-xs text-white/55">{item.label}</p>
+                {"desc" in item && item.desc ? (
+                  <p className="mt-1.5 text-xs leading-relaxed text-white/55">
+                    {item.desc}
+                  </p>
+                ) : null}
               </motion.div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Platform pillars */}
-      <MarketingLightSurface contentClassName="py-20 sm:py-24">
-        <div className="container mx-auto px-4 md:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center sm:mb-16"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 shadow-sm">
-              {/* <Sparkles className="size-4 text-primary" /> */}
-              <span className="text-sm font-medium text-muted-foreground">
-                Nilai platform
-              </span>
-            </div>
-            <h2 className="mb-3 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold text-foreground">
-              Yang Kami{" "}
-              <span className="bg-linear-to-r from-brand-red to-brand-orange bg-clip-text text-transparent">
-                Bangun
-              </span>
-            </h2>
-            <p className="mx-auto max-w-xl text-muted-foreground">
-              Satu platform untuk pembelajaran bahasa Jepang yang terstruktur,
-              interaktif, dan menyenangkan.
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
-            {LANDING_PILLARS.map((pillar, i) => (
-              <motion.div
-                key={pillar.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border border-border bg-card/90 p-6 text-center shadow-sm backdrop-blur-sm"
-              >
-                <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                  <pillar.icon className="size-6" />
-                </div>
-                <h3 className="mb-2 text-lg font-bold text-foreground">
-                  {pillar.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {pillar.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </MarketingLightSurface>
 
       {/* Pricing — sitemap: Section Pricing Paket + CTA WhatsApp */}
       <section id="pricing" className="bg-background py-24">
@@ -710,8 +675,8 @@ export function LandingPage() {
               Pilih Paket yang Cocok untukmu
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground">
-              Mulai gratis dari N5, lalu daftar untuk mengakses paket lanjutan saat
-              tersedia.
+              Mulai gratis dari N5, lalu daftar untuk mengakses paket lanjutan
+              saat tersedia.
             </p>
           </motion.div>
 

@@ -29,9 +29,9 @@ export function CourseCatalogHeroSection({
   return (
     <section
       className={cn(
-        'relative overflow-hidden text-center',
+        "relative overflow-hidden text-center",
         fullBleed &&
-          'left-1/2 w-screen max-w-[100vw] -translate-x-1/2 -mt-6 md:-mt-8',
+          "left-1/2 w-screen max-w-[100vw] -translate-x-1/2 -mt-6 md:-mt-8",
         className,
       )}
     >
@@ -79,14 +79,16 @@ export function CourseCatalogHeroSection({
         >
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-card/90 px-4 py-2 shadow-sm backdrop-blur-sm">
             <BookOpen className="size-4 text-primary" />
-            <span className="text-sm font-medium text-primary">{badgeLabel}</span>
+            <span className="text-sm font-medium text-primary">
+              {badgeLabel}
+            </span>
           </div>
 
           <h1 className="mb-3 text-[clamp(1.75rem,4vw,3rem)] font-extrabold leading-tight text-brand-navy dark:text-white">
-            Temukan Kursus
+            Pilih Kursus
             <br />
             <span className="bg-linear-to-r from-brand-red via-brand-orange to-brand-red bg-clip-text text-transparent">
-              Bahasa Jepang Terbaik
+              Yang Sesuai untuk Kamu
             </span>
           </h1>
 

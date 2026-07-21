@@ -4,7 +4,10 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { AdminCoverImageField } from '@/features/admin-cms/components/admin-cover-image-field';
+import {
+  AdminCoverImageField,
+  type AdminCoverImageFieldState,
+} from '@/features/admin-cms/components/admin-cover-image-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createLiveClassAction,
@@ -70,6 +73,10 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
   const [sessions, setSessions] = useState<LiveClassSessionData[]>(
     liveClass?.sessions?.length ? liveClass.sessions : [emptySession()],
   );
+  const [coverState, setCoverState] = useState<AdminCoverImageFieldState>({
+    file: null,
+    removeCover: false,
+  });
   const isEdit = Boolean(liveClass?.id);
 
   function updateSession(index: number, patch: Partial<LiveClassSessionData>) {
@@ -91,6 +98,12 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
     formData.set('level', level);
     formData.set('category', category);
     formData.set('sessionsJson', JSON.stringify(sessions));
+    // Sama seperti form kursus: file cover dari state (hasil crop), bukan andalkan
+    // file input yang bisa kosong setelah modal crop tertutup.
+    formData.delete('coverImage');
+    formData.delete('removeCover');
+    if (coverState.removeCover) formData.set('removeCover', 'on');
+    if (coverState.file) formData.set('coverImage', coverState.file);
 
     startTransition(async () => {
       const result = isEdit
@@ -220,7 +233,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
             id="coverImage"
             existingUrl={liveClass?.coverImageUrl}
             disabled={isPending}
-            nativeForm
+            onChange={setCoverState}
           />
 
           <div className="space-y-2">
