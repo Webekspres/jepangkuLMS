@@ -55,7 +55,7 @@ export const ABOUT_PILLARS: {
   {
     icon: LineChart,
     title: "Progress Transparan",
-    desc: "Siswa dapat memantau perkembangan materi, hasil kuis, dan riwayat belajar secara real-time.",
+    desc: "Kamu dapat memantau perkembangan materi, hasil kuis, dan riwayat belajar secara real-time.",
   },
 ];
 
