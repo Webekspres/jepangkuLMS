@@ -27,12 +27,14 @@ export function AboutPage() {
       <MarketingPageHero>
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
           <Sparkles className="size-4 text-brand-yellow" />
-          <span className="text-sm font-medium text-white/80">{ABOUT_HERO.badge}</span>
+          <span className="text-sm font-medium text-white/80">
+            {ABOUT_HERO.badge}
+          </span>
         </div>
         <h1 className="mb-5 text-[clamp(2rem,5vw,3.25rem)] leading-tight font-extrabold text-white">
-          {ABOUT_HERO.title.split(' ').slice(0, -1).join(' ')}{' '}
+          {ABOUT_HERO.title.split(" ").slice(0, -1).join(" ")}{" "}
           <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-            {ABOUT_HERO.title.split(' ').slice(-1)}
+            {ABOUT_HERO.title.split(" ").slice(-1)}
           </span>
         </h1>
         <p className="mx-auto max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
@@ -40,20 +42,27 @@ export function AboutPage() {
         </p>
       </MarketingPageHero>
 
-      {/* Facts — faktual, tanpa angka palsu */}
+      {/* Facts — ringkas + icon agar layout sejajar */}
       <section className="relative z-10 py-12 pt-14 sm:pt-16">
         <div className="container mx-auto grid grid-cols-2 gap-4 px-4 md:px-8 lg:grid-cols-4">
           {ABOUT_FACTS.map((fact, i) => (
             <motion.div
-              key={fact.label}
+              key={fact.value}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm"
+              className="flex h-full flex-col items-center rounded-2xl border border-border bg-card p-5 text-center shadow-sm sm:p-6"
             >
-              <p className="text-xl font-extrabold text-foreground sm:text-2xl">{fact.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{fact.label}</p>
+              <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-12 sm:rounded-2xl">
+                <fact.icon className="size-5 sm:size-6" />
+              </div>
+              <p className="text-sm font-bold text-foreground sm:text-base">
+                {fact.value}
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                {fact.label}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -119,7 +128,8 @@ export function AboutPage() {
               Apa yang Kami Bangun
             </h2>
             <p className="mx-auto max-w-lg text-muted-foreground">
-              Fondasi produk JepangKu LMS — bukan janji statistik, melainkan arah platform.
+              JepangKu sangat serius dan fokus dalam memilih yang terbaik. Semua
+              kami kurasi untukmu.
             </p>
           </motion.div>
 
@@ -137,7 +147,9 @@ export function AboutPage() {
                 <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <pillar.icon className="size-6" />
                 </div>
-                <h3 className="mb-2 text-sm font-bold text-foreground">{pillar.title}</h3>
+                <h3 className="mb-2 text-sm font-bold text-foreground">
+                  {pillar.title}
+                </h3>
                 <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
                   {pillar.desc}
                 </p>
@@ -160,7 +172,8 @@ export function AboutPage() {
               Tim di Balik JepangKu
             </h2>
             <p className="mx-auto max-w-lg text-muted-foreground">
-              Di balik JepangKu LMS, terdapat tim profesional yang berdedikasi membantu Anda menguasai bahasa Jepang secara efektif.
+              Di balik JepangKu LMS, terdapat tim profesional yang berdedikasi
+              membantu Anda menguasai bahasa Jepang secara efektif.
             </p>
           </motion.div>
 
@@ -177,14 +190,18 @@ export function AboutPage() {
               >
                 <div
                   className={cn(
-                    'mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl text-lg font-bold text-primary-foreground shadow-md',
+                    "mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl text-lg font-bold text-primary-foreground shadow-md",
                     TEAM_ACCENT[member.accent],
                   )}
                 >
                   {member.initials}
                 </div>
-                <h3 className="mb-1 text-sm font-bold text-foreground">{member.name}</h3>
-                <p className="mb-2 text-xs font-medium text-primary">{member.role}</p>
+                <h3 className="mb-1 text-sm font-bold text-foreground">
+                  {member.name}
+                </h3>
+                <p className="mb-2 text-xs font-medium text-primary">
+                  {member.role}
+                </p>
                 <p className="text-xs leading-relaxed text-muted-foreground italic">
                   {member.bio}
                 </p>
@@ -195,7 +212,9 @@ export function AboutPage() {
       </section>
 
       <MarketingCtaBand>
-        <p className="mb-3 font-mono text-sm tracking-[0.35em] text-muted-foreground">一緒に頑張ろう</p>
+        <p className="mb-3 font-mono text-sm tracking-[0.35em] text-muted-foreground">
+          一緒に頑張ろう
+        </p>
         <h2 className="mb-4 text-2xl font-extrabold text-foreground sm:text-3xl">
           Mulai Perjalananmu Menuju Jepang
         </h2>
@@ -203,13 +222,22 @@ export function AboutPage() {
           Jadilah bagian dari JepangKu — daftar gratis dan mulai secepatnya.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="h-12 w-full gap-2 px-8 sm:w-auto">
+          <Button
+            asChild
+            size="lg"
+            className="h-12 w-full gap-2 px-8 sm:w-auto"
+          >
             <Link href="/sign-up">
               <Zap className="size-4" />
               Daftar Gratis
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="h-12 w-full gap-2 px-8 sm:w-auto">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-12 w-full gap-2 px-8 sm:w-auto"
+          >
             <Link href="/kursus">
               Lihat Kursus
               <ArrowRight className="size-4" />

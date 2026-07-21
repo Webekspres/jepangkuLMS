@@ -16,7 +16,14 @@ import { signOutFromApp } from '@/lib/auth/sign-out-client';
 import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
-import { STUDENT_NAV_LINKS } from './student-nav-links';
+import {
+  isStudentNavGroup,
+  isStudentNavGroupActive,
+  isStudentNavHrefActive,
+  isStudentNavLink,
+  STUDENT_NAV_ITEMS,
+} from './student-nav-links';
+import { StudentNavDropdownGroup } from './student-nav-dropdown-group';
 import { STUDENT_ROUTES } from './student-routes';
 import { ProfileAvatar } from './profile-avatar';
 import { StudentAccountMenuLinks } from './student-account-menu-links';
@@ -70,12 +77,7 @@ export function StudentNav() {
     };
   }, [menuOpen]);
 
-  const isActive = (href: string) => {
-    if (href === STUDENT_ROUTES.home) {
-      return pathname === href;
-    }
-    return pathname === href || pathname.startsWith(`${href}/`);
-  };
+  const isActive = (href: string) => isStudentNavHrefActive(pathname, href);
 
   return (
     <nav
@@ -89,15 +91,24 @@ export function StudentNav() {
           <BrandLogo variant="nav" priority />
         </Link>
 
-        <div className="hidden items-center gap-8 lg:flex">
-          {STUDENT_NAV_LINKS.map((link) => (
-            <MarketingNavLinkItem
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              active={isActive(link.href)}
-            />
-          ))}
+        <div className="hidden items-center gap-6 xl:gap-8 lg:flex">
+          {STUDENT_NAV_ITEMS.map((item) =>
+            isStudentNavLink(item) ? (
+              <MarketingNavLinkItem
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                active={isActive(item.href)}
+              />
+            ) : (
+              <StudentNavDropdownGroup
+                key={item.label}
+                group={item}
+                pathname={pathname}
+                active={isStudentNavGroupActive(pathname, item)}
+              />
+            ),
+          )}
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -169,22 +180,53 @@ export function StudentNav() {
           <div className="mx-3 border-t border-border" />
 
           <MobileMenuSection title="Navigasi">
-            {STUDENT_NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className={cn(
-                  // Body ~14px; compact tap targets so logout stays visible
-                  'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
-                  isActive(link.href)
-                    ? 'bg-primary/10 font-semibold text-primary'
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {STUDENT_NAV_ITEMS.map((item) =>
+              isStudentNavLink(item) ? (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
+                    isActive(item.href)
+                      ? 'bg-primary/10 font-semibold text-primary'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <div key={item.label} className="py-0.5">
+                  <p
+                    className={cn(
+                      'px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] uppercase',
+                      isStudentNavGroupActive(pathname, item)
+                        ? 'text-primary'
+                        : 'text-brand-navy dark:text-foreground',
+                    )}
+                  >
+                    {item.label}
+                  </p>
+                  <div className="ml-2 flex flex-col border-l border-border pl-2">
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => setMenuOpen(false)}
+                        className={cn(
+                          'rounded-xl px-3 py-2 text-[0.875rem] leading-snug font-medium transition-colors',
+                          isActive(child.href)
+                            ? 'bg-primary/10 font-semibold text-primary'
+                            : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                        )}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ),
+            )}
           </MobileMenuSection>
         </div>
 

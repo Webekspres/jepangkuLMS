@@ -1,0 +1,9 @@
+# Kana learning assets
+#
+# hiragana/audio/{romaji}.mp3
+# hiragana/strokes/{romaji}.gif
+# hiragana/strokes/{romaji}-step-1.png
+# hiragana/vocab/{romaji}/01-image.webp
+# hiragana/vocab/{romaji}/01-audio.mp3
+#
+# Mirror structure under katakana/

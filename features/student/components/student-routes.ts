@@ -4,6 +4,8 @@ export const STUDENT_ROUTES = {
   kursus: '/dashboard/kursus',
   kursusSaya: '/dashboard/kursus-saya',
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
+  kana: '/dashboard/kana',
+  kanaScript: (script: 'hiragana' | 'katakana') => `/dashboard/kana/${script}`,
   leaderboard: '/dashboard/leaderboard',
   tryout: '/dashboard/tryout',
   tryoutExam: (sessionCode: string) =>
