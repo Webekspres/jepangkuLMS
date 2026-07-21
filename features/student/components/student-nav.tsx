@@ -98,6 +98,7 @@ export function StudentNav() {
                 href={item.href}
                 label={item.label}
                 active={isActive(item.href)}
+                external={item.external}
               />
             ) : (
               <StudentNavDropdownGroup
@@ -181,19 +182,32 @@ export function StudentNav() {
           <MobileMenuSection title="Navigasi">
             {STUDENT_NAV_ITEMS.map((item) =>
               isStudentNavLink(item) ? (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(
-                    'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
-                    isActive(item.href)
-                      ? 'bg-primary/10 font-semibold text-primary'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-                  )}
-                >
-                  {item.label}
-                </Link>
+                item.external ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      'rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
+                      isActive(item.href)
+                        ? 'bg-primary/10 font-semibold text-primary'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                )
               ) : (
                 <div key={item.label} className="py-0.5">
                   <p

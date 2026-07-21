@@ -103,7 +103,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
-| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart interaktif + modal; hub `/dashboard/kana` redirect → hiragana; asset placeholder di `public/assets/kana/` |
+| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart dari `Asset N5.xlsx` (104 huruf + vocab + stroke GIF eksternal); hub redirect → hiragana; audio/step lokal masih placeholder |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
@@ -145,7 +145,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
 | **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
-| **kana**         |   🟡   | Chart Hiragana/Katakana + modal (audio, stroke GIF, vocab); nav siswa; menunggu asset media |
+| **kana**         |   🟡   | Chart + modal dari manifest Excel (`kana:generate`); stroke GIF mistval; menunggu audio/vocab image lokal |
 | **quiz-engine**  |   🟡   | Inline di lesson; bukan focus-mode terpisah                                    |
 
 ---
@@ -190,6 +190,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-21 | Data kana dari `docs/Asset N5.xlsx`: generator manifest + stroke GIF eksternal + vocab sheet (104 huruf/script) |
 | 2026-07-21 | Hapus hub `/dashboard/kana` (redirect → hiragana) + tombol Kembali di chart Hiragana/Katakana |
 | 2026-07-21 | `/kursus` marketing: section Live Class & Try Out JLPT dari DB (cover + tombol Lihat Detail → `/sign-up`) |
 | 2026-07-20 | Halaman Hiragana & Katakana siswa: `/dashboard/kana` (+ hiragana/katakana chart), nav siswa, modal detail (audio/GIF/vocab placeholder), manifest `features/kana/` |
