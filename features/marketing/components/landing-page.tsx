@@ -162,6 +162,7 @@ export function LandingPage() {
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
+          fitContent
           panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
         >
           <nav className="flex flex-col p-2">

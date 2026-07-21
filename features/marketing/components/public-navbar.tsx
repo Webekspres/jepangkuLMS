@@ -86,9 +86,10 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
       <MarketingMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
+        fitContent
         panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
       >
-        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+        <nav className="flex flex-col p-2">
           {MARKETING_NAV_LINKS.map((link) => (
             <Link
               key={link.href}

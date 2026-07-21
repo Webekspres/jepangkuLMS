@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-20                                                  |
+| **Terakhir diperbarui**   | 2026-07-21                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
@@ -85,7 +85,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route                                          | Status | Catatan                                               |
 | :--------------------------------------------- | :----: | :---------------------------------------------------- |
 | `/`                                            |   🟡   | Landing lengkap; data marketing statis                |
-| `/kursus`                                      |   ✅   | **Prisma** published + filter level/kategori/unggulan |
+| `/kursus`                                      |   ✅   | **Prisma** published + filter; teaser Live Class & Tryout (cover + Lihat Detail → `/sign-up`) |
 | `/kursus/[slug]`                               |   ✅   | Detail marketing + CTA Daftar/Masuk; login → dashboard detail |
 | `/tryout`                                      |   🟡   | Halaman info publik (bukan ujian interaktif)          |
 | `/tentang`, `/cara-belajar`, `/hubungi`, legal |   ✅   |                                                       |
@@ -190,6 +190,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-21 | `/kursus` marketing: section Live Class & Try Out JLPT dari DB (cover + tombol Lihat Detail → `/sign-up`) |
 | 2026-07-20 | Halaman Hiragana & Katakana siswa: `/dashboard/kana` (+ hiragana/katakana chart), nav siswa, modal detail (audio/GIF/vocab placeholder), manifest `features/kana/` |
 | 2026-07-17 | Email reminder Live Class harian: template Resend + cron `POST /api/cron/live-class-reminders` (00:00 WIB, enrollment ACTIVE, idempotent per sesi/user/hari) |
 | 2026-07-17 | Klarifikasi hasil tryout JLPT: hapus Status Simulasi (Aman/SOS) dari UI; hero & riwayat fokus kelulusan JLPT resmi + indikasi CEFR |

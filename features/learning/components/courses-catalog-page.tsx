@@ -14,6 +14,8 @@ import { MarketingFooter } from '@/features/marketing/components/marketing-foote
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
+import { MarketingCoverProgramSection } from '@/features/learning/components/marketing-cover-program-section';
+import type { MarketingCoverItem } from '@/features/learning/lib/load-marketing-catalog-extras';
 import {
   courseMatchesTypeFilter,
   type CatalogCourse,
@@ -23,9 +25,15 @@ import {
 
 type CoursesCatalogPageProps = {
   courses: CatalogCourse[];
+  liveClasses?: MarketingCoverItem[];
+  tryouts?: MarketingCoverItem[];
 };
 
-export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
+export function CoursesCatalogPage({
+  courses,
+  liveClasses = [],
+  tryouts = [],
+}: CoursesCatalogPageProps) {
   const [activeLevel, setActiveLevel] = useState<CourseLevel>('Semua');
   const [activeType, setActiveType] = useState<CourseTypeFilter>('Semua');
   const [search, setSearch] = useState('');
@@ -55,7 +63,7 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
       <CourseCatalogHeroSection
         search={search}
         onSearchChange={setSearch}
-        subtitle="Katalog kursus terstruktur N5–N1. Saat peluncuran, modul N5 dibuka lebih dulu — kursus lainnya menyusul bertahap."
+        subtitle="Dari N5 sampai N1, Kelas Khusus (Percakapan, Kanji, Tata Bahasa, dan lainnya), Try Out, coba semua!"
       />
 
       <div className="container mx-auto px-4 md:px-8">
@@ -97,7 +105,7 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
                     <div
                       className={cn(
-                        'absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl text-xs font-bold text-white shadow',
+                        "absolute top-3 right-3 flex size-9 items-center justify-center rounded-xl text-xs font-bold text-white shadow",
                         accent.badge,
                       )}
                     >
@@ -105,7 +113,7 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                     </div>
                     <span
                       className={cn(
-                        'absolute bottom-3 left-3 rounded-md px-2 py-0.5 text-xs font-bold text-white',
+                        "absolute bottom-3 left-3 rounded-md px-2 py-0.5 text-xs font-bold text-white",
                         accent.badge,
                       )}
                     >
@@ -114,7 +122,9 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                   </div>
 
                   <div className="p-5">
-                    <h3 className="mb-2 text-sm font-bold text-foreground">{course.title}</h3>
+                    <h3 className="mb-2 text-sm font-bold text-foreground">
+                      {course.title}
+                    </h3>
                     <p className="mb-4 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {course.desc}
                     </p>
@@ -130,10 +140,10 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                       </span>
                       <span
                         className={cn(
-                          'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
-                          course.availability === 'tersedia'
-                            ? 'bg-emerald-500/15 text-emerald-600'
-                            : 'bg-muted text-muted-foreground',
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                          course.availability === "tersedia"
+                            ? "bg-emerald-500/15 text-emerald-600"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         {course.availabilityLabel}
@@ -143,8 +153,10 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
                     <div className="flex items-center justify-end">
                       <span
                         className={cn(
-                          'text-sm font-bold',
-                          course.price === 'Gratis' ? 'text-emerald-600' : 'text-primary',
+                          "text-sm font-bold",
+                          course.price === "Gratis"
+                            ? "text-emerald-600"
+                            : "text-primary",
                         )}
                       >
                         {course.price}
@@ -173,10 +185,29 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
         )}
       </section>
 
+      <MarketingCoverProgramSection
+        title="Live Class"
+        subtitle="Belajar bareng sensei secara langsung — daftar untuk melihat jadwal lengkap."
+        items={liveClasses}
+        emptyTitle="Belum ada Live Class"
+        emptyDescription="Jadwal kelas langsung belum tersedia. Cek lagi nanti."
+      />
+
+      <MarketingCoverProgramSection
+        title="Try Out JLPT"
+        subtitle="Simulasi ujian resmi — daftar untuk memilih sesi dan mulai latihan."
+        items={tryouts}
+        emptyTitle="Belum ada Try Out JLPT"
+        emptyDescription="Sesi simulasi JLPT belum tersedia. Cek lagi nanti."
+      />
+
       <section className="px-4 py-12 md:px-8">
         <div className="container mx-auto">
           <div className="relative overflow-hidden rounded-3xl bg-brand-hero-navy bg-[url('/assets/banner-section.webp')] bg-cover bg-center px-6 py-14 text-center shadow-lg sm:px-12">
-            <div className="pointer-events-none absolute inset-0 bg-brand-hero-navy/70" aria-hidden />
+            <div
+              className="pointer-events-none absolute inset-0 bg-brand-hero-navy/70"
+              aria-hidden
+            />
             <Image
               src="/assets/asset-section.webp"
               alt=""
@@ -185,12 +216,19 @@ export function CoursesCatalogPage({ courses }: CoursesCatalogPageProps) {
               aria-hidden
               className="pointer-events-none absolute -top-6 -right-6 w-28 select-none opacity-60 sm:w-40"
             />
-            <div className="relative z-10">
-              <h2 className="mb-2 text-2xl font-extrabold text-white">Bingung mulai dari mana?</h2>
+            <div className="relative z-10 min-w-0">
+              <h2 className="mb-2 text-2xl font-extrabold text-white">
+                Bingung mulai dari mana?
+              </h2>
               <p className="mb-6 text-sm text-white/75">
-                Ambil tes penempatan gratis untuk mengetahui level JLPT kamu saat ini.
+                Ambil tes penempatan gratis untuk mengetahui level JLPT kamu
+                saat ini.
               </p>
-              <Button asChild size="lg" className="h-12 gap-2 px-8 text-base font-bold">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 w-full max-w-full shrink gap-2 px-4 text-sm font-bold sm:w-auto sm:px-8 sm:text-base"
+              >
                 <Link href="/tryout">
                   <Zap className="size-4" />
                   Tes Penempatan Gratis
