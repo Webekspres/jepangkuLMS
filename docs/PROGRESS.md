@@ -103,7 +103,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
-| `/dashboard/kana`, `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart interaktif + modal detail; asset audio/GIF/vocab placeholder sampai file di `public/assets/kana/` |
+| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart interaktif + modal; hub `/dashboard/kana` redirect → hiragana; asset placeholder di `public/assets/kana/` |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
@@ -190,6 +190,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-21 | Hapus hub `/dashboard/kana` (redirect → hiragana) + tombol Kembali di chart Hiragana/Katakana |
 | 2026-07-21 | `/kursus` marketing: section Live Class & Try Out JLPT dari DB (cover + tombol Lihat Detail → `/sign-up`) |
 | 2026-07-20 | Halaman Hiragana & Katakana siswa: `/dashboard/kana` (+ hiragana/katakana chart), nav siswa, modal detail (audio/GIF/vocab placeholder), manifest `features/kana/` |
 | 2026-07-17 | Email reminder Live Class harian: template Resend + cron `POST /api/cron/live-class-reminders` (00:00 WIB, enrollment ACTIVE, idempotent per sesi/user/hari) |

@@ -71,7 +71,7 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 
-/dashboard/kana *                → Belajar Hiragana & Katakana (chart interaktif)
+/dashboard/kana                       → Redirect → /dashboard/kana/hiragana
 ├── /hiragana *                  → Chart Hiragana (gojūon, dakuten, yōon)
 └── /katakana *                  → Chart Katakana
 

@@ -1,8 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { KanaChartGrid } from '@/features/kana/components/kana-chart-grid';
 import { getKanaChartData } from '@/features/kana/lib/kana-data';
 import type { KanaScript } from '@/features/kana/lib/kana-types';
@@ -21,22 +19,14 @@ export function KanaChartPage({ script }: KanaChartPageProps) {
   return (
     <div className="pb-10">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 h-8 gap-1.5 px-2">
-            <Link href={STUDENT_ROUTES.kana}>
-              <ArrowLeft className="size-4" />
-              Kembali
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{chart.title}</h1>
-            <p className="text-sm text-muted-foreground">
-              Klik karakter untuk lihat animasi penulisan, bunyi, dan contoh kosakata.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{chart.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Klik karakter untuk lihat animasi penulisan, bunyi, dan contoh kosakata.
+          </p>
         </div>
 
-        <div className="flex rounded-xl border border-border bg-muted/40 p-1">
+        <div className="flex w-fit rounded-xl border border-border bg-muted/40 p-1">
           <Link
             href={STUDENT_ROUTES.kanaScript('hiragana')}
             className={cn(
