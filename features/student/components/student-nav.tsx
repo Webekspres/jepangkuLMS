@@ -17,7 +17,6 @@ import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { cn } from '@/lib/utils';
 import { useStudentCoreData } from './student-core-data-context';
 import {
-  isStudentNavGroup,
   isStudentNavGroupActive,
   isStudentNavHrefActive,
   isStudentNavLink,
