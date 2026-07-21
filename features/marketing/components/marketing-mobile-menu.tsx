@@ -13,6 +13,11 @@ type MarketingMobileMenuProps = {
   panelClassName?: string;
   /** Offset top panel; default PublicNavbar (py-3.5). */
   panelTop?: string;
+  /**
+   * `false` (default): stretch top→bottom — sheet penuh (dashboard siswa).
+   * `true`: tinggi mengikuti konten — menu marketing/public.
+   */
+  fitContent?: boolean;
 };
 
 /**
@@ -25,6 +30,7 @@ export function MarketingMobileMenu({
   children,
   panelClassName,
   panelTop = PUBLIC_NAV_MENU_TOP,
+  fitContent = false,
 }: MarketingMobileMenuProps) {
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -54,9 +60,10 @@ export function MarketingMobileMenu({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              // Keep panel above iOS home indicator + mobile browser bottom chrome.
               'fixed right-3 left-3 z-101 flex max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-2xl shadow-2xl md:hidden',
-              'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
+              // Dashboard: top+bottom stretch. Marketing: hanya top → tinggi = konten.
+              !fitContent &&
+                'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))]',
               panelTop,
               panelClassName,
             )}

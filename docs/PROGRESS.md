@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-17                                                  |
+| **Terakhir diperbarui**   | 2026-07-21                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **91%** (64 item terlacak)                                  |
 
@@ -48,8 +48,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      12 |        4 |     0 |
-| Halaman & routing        |      24 |        2 |     0 |
-| Domain `features/`       |       7 |        1 |     0 |
+| Halaman & routing        |      24 |        3 |     0 |
+| Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       5 |        1 |     0 |
 
@@ -70,7 +70,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | TanStack Query providers                               |   ✅   | Dipakai terbatas                                             |
 | Zustand quiz store                                     |   🟡   | Ada; inline quiz di lesson workspace                         |
 | Zod validasi                                           |   ✅   | `lib/validations/`                                           |
-| Folder `features/` domain                              |   ✅   | learning, admin-cms, student, tryout, live-class, public-api |
+| Folder `features/` domain                              |   ✅   | learning, admin-cms, student, tryout, live-class, kana, public-api |
 | Shadcn UI primitif                                     |   🟡   | Cukup untuk MVP; tambah sesuai kebutuhan                     |
 | Prisma seed N5 + tryout + live class + 8 badge starter |   ✅   | `prisma/seed.ts`, `public/badges/*.png`                      |
 | Partner API v1                                         |   ✅   | `docs/PARTNER_API.md`                                        |
@@ -85,7 +85,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route                                          | Status | Catatan                                               |
 | :--------------------------------------------- | :----: | :---------------------------------------------------- |
 | `/`                                            |   🟡   | Landing lengkap; data marketing statis                |
-| `/kursus`                                      |   ✅   | **Prisma** published + filter level/kategori/unggulan |
+| `/kursus`                                      |   ✅   | **Prisma** published + filter; teaser Live Class & Tryout (cover + Lihat Detail → `/sign-up`) |
 | `/kursus/[slug]`                               |   ✅   | Detail marketing + CTA Daftar/Masuk; login → dashboard detail |
 | `/tryout`                                      |   🟡   | Halaman info publik (bukan ujian interaktif)          |
 | `/tentang`, `/cara-belajar`, `/hubungi`, legal |   ✅   |                                                       |
@@ -103,6 +103,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
+| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart interaktif + modal; hub `/dashboard/kana` redirect → hiragana; asset placeholder di `public/assets/kana/` |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
@@ -144,6 +145,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
 | **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
+| **kana**         |   🟡   | Chart Hiragana/Katakana + modal (audio, stroke GIF, vocab); nav siswa; menunggu asset media |
 | **quiz-engine**  |   🟡   | Inline di lesson; bukan focus-mode terpisah                                    |
 
 ---
@@ -188,6 +190,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-21 | Hapus hub `/dashboard/kana` (redirect → hiragana) + tombol Kembali di chart Hiragana/Katakana |
+| 2026-07-21 | `/kursus` marketing: section Live Class & Try Out JLPT dari DB (cover + tombol Lihat Detail → `/sign-up`) |
+| 2026-07-20 | Halaman Hiragana & Katakana siswa: `/dashboard/kana` (+ hiragana/katakana chart), nav siswa, modal detail (audio/GIF/vocab placeholder), manifest `features/kana/` |
 | 2026-07-17 | Email reminder Live Class harian: template Resend + cron `POST /api/cron/live-class-reminders` (00:00 WIB, enrollment ACTIVE, idempotent per sesi/user/hari) |
 | 2026-07-17 | Klarifikasi hasil tryout JLPT: hapus Status Simulasi (Aman/SOS) dari UI; hero & riwayat fokus kelulusan JLPT resmi + indikasi CEFR |
 | 2026-07-17 | Cover image kursus & live class: field `coverImageUrl`, upload admin CMS (R2), fallback `bg-courses.webp` / `bg-live_class.webp` di kartu & detail |

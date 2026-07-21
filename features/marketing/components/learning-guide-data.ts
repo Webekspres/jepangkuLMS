@@ -121,6 +121,6 @@ export const LEARNING_TIPS: { icon: LucideIcon; title: string; desc: string }[] 
   {
     icon: Zap,
     title: 'Belajar rutin sedikit-sedikit',
-    desc: '15–30 menit per hari lebih efektif daripada cramming seminggu sekali.',
+    desc: '15–30 menit per hari lebih efektif daripada belajar menumpuk banyak materi sekaligus seminggu sekali.',
   },
 ];
