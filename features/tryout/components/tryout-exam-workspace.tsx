@@ -201,10 +201,26 @@ export function TryoutExamWorkspace({
 
     const answersRef = useRef(answers);
     const submittedRef = useRef(false);
+    const advanceTimeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
         answersRef.current = answers;
     }, [answers]);
+
+    useEffect(() => {
+        return () => {
+            if (advanceTimeoutRef.current != null) {
+                window.clearTimeout(advanceTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (advanceTimeoutRef.current != null) {
+            window.clearTimeout(advanceTimeoutRef.current);
+            advanceTimeoutRef.current = null;
+        }
+    }, [questionIndex]);
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -222,6 +238,27 @@ export function TryoutExamWorkspace({
     const sectionQuestions = useMemo(
         () => (activeSection ? questions.filter((q) => q.section === activeSection) : []),
         [questions, activeSection],
+    );
+
+    const selectAnswer = useCallback(
+        (optionId: string) => {
+            const question = sectionQuestions[questionIndex];
+            if (!question) return;
+
+            setAnswers((prev) => ({ ...prev, [question.id]: optionId }));
+
+            const isLast = questionIndex >= sectionQuestions.length - 1;
+            if (isLast) return;
+
+            if (advanceTimeoutRef.current != null) {
+                window.clearTimeout(advanceTimeoutRef.current);
+            }
+            advanceTimeoutRef.current = window.setTimeout(() => {
+                advanceTimeoutRef.current = null;
+                setQuestionIndex((i) => Math.min(sectionQuestions.length - 1, i + 1));
+            }, 200);
+        },
+        [questionIndex, sectionQuestions],
     );
 
     const current = sectionQuestions[questionIndex];
@@ -469,9 +506,7 @@ export function TryoutExamWorkspace({
                                                     questionId={current.id}
                                                     sessionCode={sessionCode}
                                                     level={level}
-                                                    onSelect={() =>
-                                                        setAnswers((prev) => ({ ...prev, [current.id]: option.id }))
-                                                    }
+                                                    onSelect={() => selectAnswer(option.id)}
                                                 />
                                             ))
                                             : current.options.map((option, index) => {
@@ -480,9 +515,7 @@ export function TryoutExamWorkspace({
                                                     <button
                                                         key={option.id}
                                                         type="button"
-                                                        onClick={() =>
-                                                            setAnswers((prev) => ({ ...prev, [current.id]: option.id }))
-                                                        }
+                                                        onClick={() => selectAnswer(option.id)}
                                                         className={cn(
                                                             'flex items-center gap-2.5 rounded-lg border-2 px-3 py-2.5 text-left transition-all sm:gap-3 sm:rounded-xl sm:px-4 sm:py-3',
                                                             selected

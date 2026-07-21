@@ -145,29 +145,6 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
                 {core.bio ? (
                   <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/70">{core.bio}</p>
                 ) : null}
-                {/* XP / points / rank / badge — samakan dengan hero dashboard */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1 text-xs font-semibold text-brand-yellow">
-                    <Zap className="size-3.5" />
-                    {formatDisplayNumber(core.totalXp)} XP
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1 text-xs font-semibold text-amber-300">
-                    <Coins className="size-3.5" />
-                    {formatDisplayNumber(core.lmsPoints)} poin
-                  </span>
-                  {core.lmsRank != null ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
-                      <Star className="size-3.5 text-primary" />
-                      Rank #{core.lmsRank}
-                    </span>
-                  ) : null}
-                  {core.badgeCount > 0 ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
-                      <Award className="size-3.5" />
-                      {core.badgeCount} badge
-                    </span>
-                  ) : null}
-                </div>
               </div>
             </div>
 
@@ -182,6 +159,30 @@ export function StudentProfilPage({ xpActivity }: { xpActivity: XpActivityRow[] 
                 Edit Profil
               </Button>
             </Link>
+          </div>
+
+          {/* XP / points / rank / badge — full width agar tidak bertingkat di samping avatar */}
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-brand-yellow/30 bg-brand-yellow/15 px-3 py-1.5 text-xs font-semibold text-brand-yellow sm:justify-start sm:py-1">
+              <Zap className="size-3.5 shrink-0" />
+              {formatDisplayNumber(core.totalXp)} XP
+            </span>
+            <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-300 sm:justify-start sm:py-1">
+              <Coins className="size-3.5 shrink-0" />
+              {formatDisplayNumber(core.lmsPoints)} poin
+            </span>
+            {core.lmsRank != null ? (
+              <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 sm:justify-start sm:py-1">
+                <Star className="size-3.5 shrink-0 text-primary" />
+                Rank #{core.lmsRank}
+              </span>
+            ) : null}
+            {core.badgeCount > 0 ? (
+              <span className="inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 sm:justify-start sm:py-1">
+                <Award className="size-3.5 shrink-0" />
+                {core.badgeCount} badge
+              </span>
+            ) : null}
           </div>
         </div>
       </section>
