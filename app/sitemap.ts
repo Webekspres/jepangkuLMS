@@ -31,6 +31,12 @@ const STATIC_PAGES: MetadataRoute.Sitemap = [
     priority: 0.7,
   },
   {
+    url: url('/tes-penempatan'),
+    lastModified: new Date(),
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  },
+  {
     url: url('/tentang'),
     lastModified: new Date(),
     changeFrequency: 'monthly',

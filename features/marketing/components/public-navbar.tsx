@@ -32,7 +32,9 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
   const resolvedActive = activeHref ?? pathname;
 
   const isActive = (href: string) => {
-    if (href.startsWith('/#')) return false;
+    if (href.startsWith('/#') || href.startsWith('http://') || href.startsWith('https://')) {
+      return false;
+    }
     return resolvedActive === href || resolvedActive.startsWith(`${href}/`);
   };
 
@@ -55,6 +57,7 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
               href={link.href}
               label={link.label}
               active={isActive(link.href)}
+              external={link.external}
             />
           ))}
         </div>
@@ -90,22 +93,36 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
       >
         <nav className="flex flex-col p-2">
-          {MARKETING_NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
-                isActive(link.href)
-                  ? 'bg-primary/10 font-semibold text-primary'
-                  : 'text-foreground hover:bg-muted',
-              )}
-            >
-              <link.icon className="size-4 shrink-0 opacity-70" />
-              {link.label}
-            </Link>
-          ))}
+          {MARKETING_NAV_LINKS.map((link) =>
+            link.external ? (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <link.icon className="size-4 shrink-0 opacity-70" />
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] leading-snug font-medium transition-colors',
+                  isActive(link.href)
+                    ? 'bg-primary/10 font-semibold text-primary'
+                    : 'text-foreground hover:bg-muted',
+                )}
+              >
+                <link.icon className="size-4 shrink-0 opacity-70" />
+                {link.label}
+              </Link>
+            ),
+          )}
         </nav>
         <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/30 px-4 pt-3 pb-safe-lg">
           {THEME_SWITCHING_ENABLED ? (

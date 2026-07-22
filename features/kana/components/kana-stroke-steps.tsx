@@ -59,11 +59,11 @@ export function KanaStrokeAnimation({ character, className }: KanaStrokeAnimatio
     return (
       <div
         className={cn(
-          'flex aspect-square w-full max-w-[200px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 text-center text-xs text-muted-foreground',
+          'flex aspect-square w-full items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 p-3 text-center text-xs text-muted-foreground',
           className,
         )}
       >
-        Animasi penulisan segera hadir
+        Langkah penulisan segera hadir
       </div>
     );
   }
@@ -71,14 +71,14 @@ export function KanaStrokeAnimation({ character, className }: KanaStrokeAnimatio
   return (
     <div
       className={cn(
-        'relative aspect-square w-full max-w-[200px] overflow-hidden rounded-2xl border border-border bg-card',
+        'relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-card',
         className,
       )}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={character.strokeGifSrc}
-        alt={`Animasi menulis ${character.char}`}
+        alt={`Langkah menulis ${character.char}`}
         className="size-full object-contain p-2"
         onError={() => setMissing(true)}
       />

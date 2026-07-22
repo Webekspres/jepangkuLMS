@@ -229,7 +229,7 @@ export function CoursesCatalogPage({
                 size="lg"
                 className="h-12 w-full max-w-full shrink gap-2 px-4 text-sm font-bold sm:w-auto sm:px-8 sm:text-base"
               >
-                <Link href="/tryout">
+                <Link href="/tes-penempatan">
                   <Zap className="size-4" />
                   Tes Penempatan Gratis
                   <ChevronRight className="size-4" />

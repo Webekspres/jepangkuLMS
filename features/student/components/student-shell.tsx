@@ -6,6 +6,7 @@ import { isCoreIntegrationEnabled } from '@/lib/core/integration-config';
 import { CoreConnectionBanner } from './core-connection-banner';
 import { StudentNav } from './student-nav';
 import { TryoutReviewShell } from '@/features/tryout/components/tryout-focus-shell';
+import { KanaFloatingLauncher } from '@/features/kana/components/kana-floating-launcher';
 
 type StudentShellProps = {
   children: ReactNode;
@@ -42,6 +43,7 @@ export function StudentShell({ children }: StudentShellProps) {
       <StudentNav />
       {isCoreIntegrationEnabled() ? <CoreConnectionBanner /> : null}
       <main className="container mx-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
+      <KanaFloatingLauncher />
     </div>
   );
 }
