@@ -24,7 +24,14 @@ describe('image-src', () => {
         expect(isUnoptimizedImageSrc('https://assets.jepangku.com/lms/a.png')).toBe(true);
         expect(isUnoptimizedImageSrc('/api/media/r2?key=lms%2Fa.png')).toBe(true);
         expect(isUnoptimizedImageSrc('https://img.clerk.com/abc')).toBe(true);
+        expect(isUnoptimizedImageSrc('https://images.clerk.dev/abc')).toBe(true);
         expect(isUnoptimizedImageSrc('/badges/Word Rookie.png')).toBe(true);
         expect(isUnoptimizedImageSrc('https://images.unsplash.com/x.jpg')).toBe(false);
+    });
+
+    test('isUnoptimizedImageSrc rejects substring host spoofing', () => {
+        expect(isUnoptimizedImageSrc('https://evil.com/assets.jepangku.com/x.png')).toBe(false);
+        expect(isUnoptimizedImageSrc('https://img.clerk.com.evil.com/abc')).toBe(false);
+        expect(isUnoptimizedImageSrc('https://evil.com/?q=img.clerk.com')).toBe(false);
     });
 });

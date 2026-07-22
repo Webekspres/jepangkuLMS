@@ -30,7 +30,7 @@ export function KanaChartGrid({ section }: KanaChartGridProps) {
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-border bg-card p-3 sm:p-4">
-          <div className="min-w-[280px]">
+          <div className="min-w-70">
             <div className="mb-2 grid grid-cols-5 gap-2">
               {VOWEL_HEADERS.map((vowel) => (
                 <div
@@ -58,9 +58,11 @@ export function KanaChartGrid({ section }: KanaChartGridProps) {
                             openCharacter(cell);
                           }
                         }}
-                        className="group flex min-h-[72px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background px-1 py-2 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                        className="group flex min-h-18 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-border bg-background px-1 py-2 transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                       >
-                        <span className="text-2xl font-bold text-foreground">{cell.char}</span>
+                        <span className="whitespace-nowrap text-lg leading-none font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">
+                          {cell.char}
+                        </span>
                         <div className="flex items-center gap-0.5">
                           <span className="text-[10px] font-medium text-muted-foreground">
                             {cell.romaji}
@@ -76,7 +78,7 @@ export function KanaChartGrid({ section }: KanaChartGridProps) {
                     ) : (
                       <div
                         key={`${section.id}-empty-${rowIndex}-${colIndex}`}
-                        className="min-h-[72px] rounded-xl bg-transparent"
+                        className="min-h-18 rounded-xl bg-transparent"
                         aria-hidden
                       />
                     ),

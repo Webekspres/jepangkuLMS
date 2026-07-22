@@ -28,7 +28,8 @@
     "lesson:backfill-types": "bun scripts/backfill-lesson-type.ts",
     "course-import:backfill-external-ids": "bun scripts/backfill-course-import-external-ids.ts",
     "verify:core-gamification": "bun scripts/verify-core-gamification.ts",
-    "email:dev": "email dev --dir emails --port 3001"
+    "email:dev": "email dev --dir emails --port 3001",
+    "kana:generate": "bun run scripts/generate-kana-manifest-from-xlsx.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1077.0",

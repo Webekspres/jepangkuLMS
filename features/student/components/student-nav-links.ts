@@ -1,9 +1,14 @@
 import { STUDENT_ROUTES } from './student-routes';
 
+/** Portal Berita (Habibi) — sibling app in the JepangKu ecosystem. */
+export const PORTAL_BERITA_URL = 'https://jepangku.com/';
+
 export type StudentNavLinkItem = {
   kind: 'link';
   href: string;
   label: string;
+  /** External absolute URL — opens in a new tab; never marked active. */
+  external?: boolean;
 };
 
 export type StudentNavLinkGroup = {
@@ -38,6 +43,12 @@ export const STUDENT_NAV_ITEMS: StudentNavItem[] = [
     ],
   },
   { kind: 'link', href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard' },
+  {
+    kind: 'link',
+    href: PORTAL_BERITA_URL,
+    label: 'Portal Berita',
+    external: true,
+  },
 ];
 
 /** @deprecated Gunakan `STUDENT_NAV_ITEMS` — flat list untuk kompatibilitas. */
@@ -56,6 +67,7 @@ export function isStudentNavGroup(item: StudentNavItem): item is StudentNavLinkG
 }
 
 export function isStudentNavHrefActive(pathname: string, href: string, exact = false): boolean {
+  if (href.startsWith('http://') || href.startsWith('https://')) return false;
   if (exact) return pathname === href;
   if (href === STUDENT_ROUTES.home) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
