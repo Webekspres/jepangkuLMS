@@ -18,13 +18,20 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
     return normalized;
 }
 
+const UNOPTIMIZED_HOSTS = new Set([
+    'assets.jepangku.com',
+    'img.clerk.com',
+    'images.clerk.dev',
+]);
+
 /** Direct load for assets.jepangku.com, Clerk, and LMS media proxy */
 export function isUnoptimizedImageSrc(url: string): boolean {
-    return (
-        url.startsWith('/api/media/r2') ||
-        url.includes('assets.jepangku.com') ||
-        url.includes('img.clerk.com') ||
-        url.includes('images.clerk.dev') ||
-        url.startsWith('/badges/')
-    );
+    if (url.startsWith('/api/media/r2') || url.startsWith('/badges/')) return true;
+
+    try {
+        const host = new URL(url).hostname.toLowerCase();
+        return UNOPTIMIZED_HOSTS.has(host);
+    } catch {
+        return false;
+    }
 }

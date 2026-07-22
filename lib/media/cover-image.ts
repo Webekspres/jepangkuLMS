@@ -10,11 +10,32 @@ export { COVER_IMAGE_MAX_BYTES, COVER_IMAGE_MIME_TYPES };
 
 export type CoverImageKind = 'courses' | 'live-class';
 
+const COVER_IMAGE_KINDS = new Set<CoverImageKind>(['courses', 'live-class']);
+const COVER_IMAGE_EXTS = new Set(['png', 'webp', 'jpg']);
+
 export type ParsedCoverImage = {
   buffer: Buffer;
   mime: string;
   ext: string;
 };
+
+function assertCoverImageKind(kind: string): asserts kind is CoverImageKind {
+  if (!COVER_IMAGE_KINDS.has(kind as CoverImageKind)) {
+    throw new Error('Jenis cover image tidak valid.');
+  }
+}
+
+function assertCoverImageExt(ext: string): asserts ext is 'png' | 'webp' | 'jpg' {
+  if (!COVER_IMAGE_EXTS.has(ext)) {
+    throw new Error('Ekstensi cover image tidak valid.');
+  }
+}
+
+function isPathInsideDir(filePath: string, dirPath: string): boolean {
+  const resolvedFile = path.resolve(filePath);
+  const resolvedDir = path.resolve(dirPath);
+  return resolvedFile === resolvedDir || resolvedFile.startsWith(`${resolvedDir}${path.sep}`);
+}
 
 export async function parseCoverImageFile(
   formData: FormData,
@@ -39,11 +60,20 @@ async function saveCoverToPublicDir(
   buffer: Buffer,
   ext: string,
 ): Promise<string> {
+  assertCoverImageKind(kind);
+  assertCoverImageExt(ext);
+
   const safeSlug = slug.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'cover';
   const filename = `${safeSlug}-${Date.now()}.${ext}`;
-  const dir = path.join(process.cwd(), 'public', 'uploads', kind);
+  const dir = path.resolve(process.cwd(), 'public', 'uploads', kind);
+  const target = path.resolve(dir, filename);
+
+  if (!isPathInsideDir(target, dir)) {
+    throw new Error('Path cover image di luar direktori upload yang diizinkan.');
+  }
+
   await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), buffer);
+  await writeFile(target, buffer);
   return `/uploads/${kind}/${filename}`;
 }
 
