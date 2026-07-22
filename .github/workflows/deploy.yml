@@ -221,26 +221,36 @@ jobs:
           fi
 
           # region agent log — pre-pull diagnostics (debug-cbc78f)
+          # Must not abort under set -euo pipefail (find/df on missing paths).
           echo "==> Pre-pull diagnostics (debug-cbc78f)"
-          ROOT_USE=\$(df -P / | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
-          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}' || echo "\$ROOT_USE")
+          set +e
+          ROOT_USE=\$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          ROOT_USE=\${ROOT_USE:-0}
+          DOCKER_USE=\${DOCKER_USE:-\$ROOT_USE}
           INGEST_DIR="/var/lib/containerd/io.containerd.content.v1.content/ingest"
-          INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\${ROOT_USE:-null},\"dockerUsePct\":\${DOCKER_USE:-null},\"env\":\"staging\"}}"
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\${INGEST_COUNT:-0},\"env\":\"staging\"}}"
-          df -h / /var/lib/docker /var/lib/containerd 2>/dev/null || df -h
-          docker system df || true
-          # Proactive recovery from prior failed pulls (hypothesis B confirmed by rename ingest→blobs)
-          if [ "\${INGEST_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+          INGEST_COUNT=0
+          if [ -d "\$INGEST_DIR" ]; then
+            INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+            INGEST_COUNT=\${INGEST_COUNT:-0}
+          fi
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\$ROOT_USE,\"dockerUsePct\":\$DOCKER_USE,\"env\":\"staging\"}}"
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\$INGEST_COUNT,\"env\":\"staging\"}}"
+          df -h / 2>/dev/null
+          df -h /var/lib/docker 2>/dev/null
+          df -h /var/lib/containerd 2>/dev/null
+          docker system df 2>/dev/null
+          if [ "\$INGEST_COUNT" -gt 0 ]; then
             echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
-            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
           fi
-          if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+          if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
             echo "==> Disk high before pull — safe prune (hypothesis A)"
-            docker container prune -f || true
-            docker image prune -a -f || true
-            docker builder prune -a -f || true
+            docker container prune -f
+            docker image prune -a -f
+            docker builder prune -a -f
           fi
+          set -e
           # endregion
 
           pull_image_resilient() {
@@ -253,16 +263,18 @@ jobs:
                 return 0
               fi
               echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"staging\"}}"
+              set +e
               if [ -d "\$INGEST_DIR" ]; then
                 echo "==> Clearing incomplete containerd ingest (hypothesis B)"
-                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
               fi
-              if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+              if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
                 echo "==> Disk high — safe docker prune (hypothesis A)"
-                docker container prune -f || true
-                docker image prune -a -f || true
-                docker builder prune -a -f || true
+                docker container prune -f
+                docker image prune -a -f
+                docker builder prune -a -f
               fi
+              set -e
               sleep \$((attempt * 5))
             done
             echo "::error::docker pull failed after 5 attempts: \$image"
@@ -402,26 +414,36 @@ jobs:
           fi
 
           # region agent log — pre-pull diagnostics (debug-cbc78f)
+          # Must not abort under set -euo pipefail (find/df on missing paths).
           echo "==> Pre-pull diagnostics (debug-cbc78f)"
-          ROOT_USE=\$(df -P / | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
-          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}' || echo "\$ROOT_USE")
+          set +e
+          ROOT_USE=\$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          ROOT_USE=\${ROOT_USE:-0}
+          DOCKER_USE=\${DOCKER_USE:-\$ROOT_USE}
           INGEST_DIR="/var/lib/containerd/io.containerd.content.v1.content/ingest"
-          INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\${ROOT_USE:-null},\"dockerUsePct\":\${DOCKER_USE:-null},\"env\":\"production\"}}"
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\${INGEST_COUNT:-0},\"env\":\"production\"}}"
-          df -h / /var/lib/docker /var/lib/containerd 2>/dev/null || df -h
-          docker system df || true
-          # Proactive recovery from prior failed pulls (hypothesis B confirmed by rename ingest→blobs)
-          if [ "\${INGEST_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+          INGEST_COUNT=0
+          if [ -d "\$INGEST_DIR" ]; then
+            INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+            INGEST_COUNT=\${INGEST_COUNT:-0}
+          fi
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\$ROOT_USE,\"dockerUsePct\":\$DOCKER_USE,\"env\":\"production\"}}"
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\$INGEST_COUNT,\"env\":\"production\"}}"
+          df -h / 2>/dev/null
+          df -h /var/lib/docker 2>/dev/null
+          df -h /var/lib/containerd 2>/dev/null
+          docker system df 2>/dev/null
+          if [ "\$INGEST_COUNT" -gt 0 ]; then
             echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
-            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
           fi
-          if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+          if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
             echo "==> Disk high before pull — safe prune (hypothesis A)"
-            docker container prune -f || true
-            docker image prune -a -f || true
-            docker builder prune -a -f || true
+            docker container prune -f
+            docker image prune -a -f
+            docker builder prune -a -f
           fi
+          set -e
           # endregion
 
           pull_image_resilient() {
@@ -434,16 +456,18 @@ jobs:
                 return 0
               fi
               echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"production\"}}"
+              set +e
               if [ -d "\$INGEST_DIR" ]; then
                 echo "==> Clearing incomplete containerd ingest (hypothesis B)"
-                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
               fi
-              if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+              if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
                 echo "==> Disk high — safe docker prune (hypothesis A)"
-                docker container prune -f || true
-                docker image prune -a -f || true
-                docker builder prune -a -f || true
+                docker container prune -f
+                docker image prune -a -f
+                docker builder prune -a -f
               fi
+              set -e
               sleep \$((attempt * 5))
             done
             echo "::error::docker pull failed after 5 attempts: \$image"
