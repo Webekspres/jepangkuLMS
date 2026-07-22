@@ -9,7 +9,7 @@ export function KursusSayaExploreCta() {
       <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-border bg-card shadow-sm">
         <Compass className="size-7 text-primary" aria-hidden />
       </div>
-      <h2 className="mt-5 text-xl font-bold text-brand-navy dark:text-white">
+      <h2 className="mt-5 text-xl font-bold text-brand-navy ">
         Cari Tantangan Baru?
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">

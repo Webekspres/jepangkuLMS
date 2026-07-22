@@ -104,7 +104,7 @@ export function TryoutSelectionPage({
         {[
           { label: 'Musim simulasi', value: `${sessions.length}` },
           { label: 'Durasi standar', value: '120 menit' },
-          { label: 'Format', value: 'MCQ + timer' },
+          { label: 'Format', value: 'Pilihan Ganda + timer' },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-border bg-card p-4 text-center">
             <p className="text-2xl font-extrabold text-primary">{stat.value}</p>
@@ -226,7 +226,7 @@ export function TryoutSelectionPage({
         <Button
           size="lg"
           disabled={!canStart || isPending}
-          className="h-12 min-w-[220px] gap-2 px-8 text-base font-bold"
+          className="h-12 min-w-55 gap-2 px-8 text-base font-bold"
           onClick={() => {
             if (!canStart) return;
             router.push(STUDENT_ROUTES.tryoutExam(selectedSession));

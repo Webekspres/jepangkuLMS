@@ -133,7 +133,15 @@ function BadgeCard({
   );
 }
 
-function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; index: number }) {
+function MilestoneRow({
+  milestone,
+  index,
+  isLast,
+}: {
+  milestone: AchievementMilestone;
+  index: number;
+  isLast: boolean;
+}) {
   const statusIcon =
     milestone.status === 'completed' ? (
       <CheckCircle2 className="size-4 text-emerald-600" />
@@ -152,15 +160,24 @@ function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; i
       transition={{ delay: index * 0.08 }}
       className="relative flex gap-3 pb-6 last:pb-0"
     >
-      <div
-        className={cn(
-          'relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl border text-lg shadow-sm',
-          milestone.status === 'completed' && 'border-emerald-500/30 bg-emerald-500/10',
-          milestone.status === 'active' && 'border-primary/30 bg-primary/10',
-          milestone.status === 'locked' && 'border-border bg-muted/40 grayscale',
-        )}
-      >
-        {milestone.status === 'locked' ? <Lock className="size-4 text-muted-foreground" /> : milestone.icon}
+      <div className="relative flex w-11 shrink-0 justify-center">
+        {!isLast ? (
+          <div className="absolute top-11 bottom-0 left-1/2 w-px -translate-x-1/2 bg-border" aria-hidden />
+        ) : null}
+        <div
+          className={cn(
+            'relative z-10 flex size-11 items-center justify-center rounded-xl border text-lg shadow-sm',
+            milestone.status === 'completed' && 'border-emerald-500/30 bg-emerald-50 ',
+            milestone.status === 'active' && 'border-primary/30 bg-primary/15',
+            milestone.status === 'locked' && 'border-border bg-muted grayscale',
+          )}
+        >
+          {milestone.status === 'locked' ? (
+            <Lock className="size-4 text-muted-foreground" />
+          ) : (
+            milestone.icon
+          )}
+        </div>
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -191,7 +208,7 @@ function MilestoneRow({ milestone, index }: { milestone: AchievementMilestone; i
         {milestone.status === 'active' && milestone.progress != null && (
           <div className="mt-2">
             <div className="mb-1 flex justify-between text-[10px]">
-              <span className="text-muted-foreground">Progress</span>
+              <span className="text-muted-foreground">Menuju kelulusan</span>
               <span className="font-bold text-primary">{milestone.progress}%</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -692,10 +709,14 @@ export function StudentAchievementsPage({
         <aside className="space-y-4">
           <h2 className="text-lg font-bold text-foreground">Perjalanan Belajar</h2>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="relative pl-1">
-              <div className="absolute top-6 bottom-6 left-5 w-px bg-border" />
+            <div className="space-y-0">
               {milestones.map((milestone, index) => (
-                <MilestoneRow key={milestone.level} milestone={milestone} index={index} />
+                <MilestoneRow
+                  key={milestone.level}
+                  milestone={milestone}
+                  index={index}
+                  isLast={index === milestones.length - 1}
+                />
               ))}
             </div>
           </div>

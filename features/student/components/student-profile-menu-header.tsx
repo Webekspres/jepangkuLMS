@@ -22,7 +22,7 @@ type StudentProfileMenuHeaderProps = {
 
 function EquippedBadgePill({ title }: { title: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[11px] font-bold text-secondary-foreground dark:border-brand-yellow/30 dark:bg-brand-yellow/15 dark:text-brand-yellow">
+    <span className="inline-flex shrink-0 items-center rounded-md border border-secondary/20 bg-secondary px-1.5 py-0.5 text-[11px] font-bold text-secondary-foreground   ">
       {title}
     </span>
   );
@@ -45,7 +45,7 @@ export function StudentProfileMenuHeader({
   const levelSubtitle = levelTitle ? `${levelTitle} • Lv.${level}` : `Pemula • Lv.${level}`;
 
   return (
-    <div className={cn('border-b border-border bg-primary/5 p-3.5 dark:bg-primary/10', className)}>
+    <div className={cn('border-b border-border bg-primary/5 p-3.5 ', className)}>
       <div className="mb-2.5 flex items-start gap-3">
         <ProfileAvatar size="lg" imageUrl={imageUrl} initial={initial} />
         <div className="min-w-0 flex-1">

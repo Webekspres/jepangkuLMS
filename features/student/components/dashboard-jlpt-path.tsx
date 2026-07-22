@@ -39,7 +39,10 @@ function getSegmentFillPercent(jlptPath: JlptPathItem[], segmentIndex: number): 
   const from = jlptPath[segmentIndex];
   if (!from) return 0;
   if (from.status === 'done') return 100;
-  if (from.status === 'active') return from.progress ?? 0;
+  if (from.status === 'active') {
+    // Cap visual fill so the stroke stops before the next node's center.
+    return Math.min(from.progress ?? 0, 90);
+  }
   return 0;
 }
 
@@ -62,7 +65,7 @@ function PathConnector({
         d={d}
         fill="none"
         stroke="currentColor"
-        className="text-muted-foreground/30 dark:text-muted-foreground/15"
+        className="text-muted-foreground/30 "
         strokeWidth={trackWidth}
         strokeDasharray="6,6"
         strokeLinecap="round"
@@ -128,7 +131,7 @@ function StageNode({ item }: { item: JlptPathItem }) {
         {/* Central Emblem Crest */}
         <div
           className={cn(
-            'relative size-[70px] rounded-full border-2 flex flex-col items-center justify-center transition-all duration-300 z-20',
+            'relative size-17.5 rounded-full border-2 flex flex-col items-center justify-center transition-all duration-300 z-20',
             // Done: gold gradient fill
             done && 'border-amber-400 bg-linear-to-br from-amber-500 to-amber-600 shadow-lg shadow-amber-500/30',
             // Active: solid crimson fill — high contrast badge look
@@ -180,8 +183,8 @@ function StageNode({ item }: { item: JlptPathItem }) {
         <p
           className={cn(
             'mt-1 text-[10px] font-extrabold uppercase tracking-wide',
-            done && 'text-amber-600 dark:text-brand-yellow',
-            active && 'text-brand-red dark:text-brand-orange',
+            done && 'text-amber-600 ',
+            active && 'text-brand-red ',
             locked && 'text-muted-foreground/50',
           )}
         >
@@ -205,7 +208,7 @@ function ActiveStagePanel({
   return (
     <div className="mx-5 mt-8 mb-6 hidden md:block sm:mx-6">
       {/* RPG Character Dashboard Panel */}
-      <div className="relative rounded-2xl bg-brand-navy dark:bg-slate-900 border border-brand-yellow/30 p-6 shadow-xl overflow-hidden text-white">
+      <div className="relative rounded-2xl bg-brand-navy  border border-brand-yellow/30 p-6 shadow-xl overflow-hidden text-white">
         {/* Visual decoration grid overlay */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.03] bg-repeat"
@@ -268,7 +271,7 @@ function ActiveStagePanel({
                   {progress}%
                 </span>
               </div>
-              <div className="h-3.5 overflow-hidden rounded-full bg-slate-950/50 p-[2px] border border-white/5 shadow-inner">
+              <div className="h-3.5 overflow-hidden rounded-full bg-slate-950/50 p-0.5 border border-white/5 shadow-inner">
                 <motion.div
                   className="h-full rounded-full bg-linear-to-r from-brand-red via-brand-orange to-brand-yellow shadow-[0_0_8px_rgba(239,68,68,0.5)]"
                   initial={{ width: 0 }}
@@ -331,7 +334,7 @@ function MobileNode({ item }: { item: JlptPathItem }) {
       {/* Central emblem — solid fills for all states */}
       <div
         className={cn(
-          'relative size-[48px] rounded-full border-2 flex flex-col items-center justify-center transition-all duration-300 z-20',
+          'relative size-12 rounded-full border-2 flex flex-col items-center justify-center transition-all duration-300 z-20',
           done   && 'border-amber-400 bg-linear-to-br from-amber-500 to-amber-600 shadow-lg shadow-amber-500/30',
           active && 'border-brand-red bg-brand-red shadow-xl shadow-brand-red/40 scale-105',
           locked && 'border-border bg-muted shadow-sm',
@@ -494,7 +497,7 @@ function MobileTrack({
                   <span
                     className={cn(
                       'text-[10px] font-bold whitespace-nowrap',
-                      item.status === 'done'  && 'text-amber-600 dark:text-brand-yellow',
+                      item.status === 'done'  && 'text-amber-600 ',
                       item.status === 'locked' && 'text-muted-foreground/50',
                       isEven ? 'order-last' : 'order-first',
                     )}
@@ -598,13 +601,13 @@ export function DashboardJlptPath({ data }: { data: DashboardJlptPathData }) {
       <div className="relative bg-card md:overflow-hidden">
         {/* Fine grid design system overlay */}
         <div
-          className="pointer-events-none absolute inset-0 hidden opacity-30 dark:opacity-10 md:block"
+          className="pointer-events-none absolute inset-0 hidden opacity-30  md:block"
           style={LANDING_HERO_GRID_STYLE}
         />
 
         {/* Desktop View */}
         <div className="relative z-10 hidden w-full px-5 pt-8 pb-16 md:block sm:px-6">
-          <div className="relative h-[260px] w-full">
+          <div className="relative h-65 w-full">
             {/* Winding Adventure Path Connector Lines */}
             <svg className="absolute inset-0 size-full z-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
               {segments.map((seg, idx) => {

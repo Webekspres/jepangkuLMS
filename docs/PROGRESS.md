@@ -191,6 +191,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-22 | Perjalanan Belajar: timeline ikon rata tengah; Jalur JLPT stroke aktif di-cap visual 90%; label Menuju kelulusan |
+| 2026-07-22 | FAB kana hanya di hub dasbor (beranda/program list/profil/kana); sembunyi di belajar/kuis/tryout exam |
 | 2026-07-22 | Dialog kana v2: hero tengah, label luar border, kotak stroke/vocab simetris, vocab vertikal |
 | 2026-07-22 | Dialog kana desktop: vocab compact (w-fit, tanpa whitespace), highlight per karakter |
 | 2026-07-22 | Dialog detail kana: hapus placeholder langkah menulis, GIF saja + layout 2-kolom responsif |
@@ -225,6 +227,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | 2026-07-08 | Course Import V1 fase 5: persistence transaksional REPLACE + external ID nullable (`courseExternalId`/`moduleExternalId`/`lessonExternalId`), backfill script `course-import:backfill-external-ids`, integration test DB-optional |
 | 2026-07-07 | Refactor arsitektur lesson bertipe tunggal dimulai: `Lesson.lessonType` nullable + registry tipe (`VIDEO`/`FLASHCARD`/`QUIZ`/`TEXT`), form/admin workspace/student workspace kompatibel legacy, guard mutasi materi/soal, dan script dry-run backfill `lesson:backfill-types` |
 | 2026-07-07 | Riwayat enrollment admin: model `EnrollmentLog` + migrasi; log REQUESTED/APPROVED/REJECTED/GRANTED/REVOKED; tab Antrian \| Riwayat di `/admin/pembayaran` (cari, filter aksi, pagination) |
+| 2026-07-22 | Hapus dark mode total (light-only): cabut `next-themes`/ThemeProvider/toggle, scrub `html.dark` + `localStorage.theme`, hapus blok `.dark` & utilitas `dark:*`, Clerk/Sonner fixed light |
 | 2026-07-03 | Overhaul flashcard (3D flip tanpa ghosting, Furigana & Shuffle toggle, Onyomi/Kunyomi split dengan `|`, "Sudah tahu" front face shortcut, mobile max-height), instant progress updates (confetti, custom events, core session refresh), bottom lesson navigation, dan fix pg-pool seed crash |
 | 2026-07-07 | Admin daftar peserta per program: kolom Peserta di tabel Kursus/Live Class/Tryout (klik → dialog siswa + approve/cabut); detail pengguna wire enrollment Live Class & Tryout; sync `filledSlots` live class dari enrollment ACTIVE |
 | 2026-06-30 | Chokai tryout (merge staging): impor ZIP per sesi (level dari `TryoutSession`), ffmpeg auto-slice, Tipe Jawaban Teks/Gambar, progress ujian session-scoped, player one-shot + fallback teks opsi gambar |

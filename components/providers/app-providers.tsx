@@ -4,14 +4,13 @@ import { AppSplash } from '@/components/app-splash';
 import { AppTopLoader } from '@/components/providers/app-top-loader';
 import { ClerkProviderThemed } from '@/components/providers/clerk-provider-themed';
 import QueryProvider from '@/components/providers/query-provider';
-import { ThemeProvider } from '@/components/theme/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CoreSessionSync } from '@/features/auth/components/core-session-sync';
 
 /**
  * Bundel provider client global (Query, Clerk, dll.).
- * ThemeProvider di luar Clerk agar appearance Clerk ikut light/dark.
+ * LMS is light-only — no theme provider.
  */
 export default function AppProviders({
   children,
@@ -21,7 +20,7 @@ export default function AppProviders({
   clerkPublishableKey: string;
 }) {
   return (
-    <ThemeProvider>
+    <>
       <AppTopLoader />
       <ClerkProviderThemed publishableKey={clerkPublishableKey}>
         <QueryProvider>
@@ -34,6 +33,6 @@ export default function AppProviders({
           </TooltipProvider>
         </QueryProvider>
       </ClerkProviderThemed>
-    </ThemeProvider>
+    </>
   );
 }

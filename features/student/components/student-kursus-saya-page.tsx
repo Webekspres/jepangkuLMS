@@ -68,7 +68,7 @@ export function StudentKursusSayaPage({ enrolledCards }: StudentKursusSayaPagePr
     return (
       <div className="pb-10">
         <header className="mb-8 space-y-2">
-          <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy dark:text-white md:text-3xl">
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy  md:text-3xl">
             Kursus Saya
           </h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
@@ -97,7 +97,7 @@ export function StudentKursusSayaPage({ enrolledCards }: StudentKursusSayaPagePr
   return (
     <div className="pb-10">
       <header className="mb-6 space-y-2 md:mb-8">
-        <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy dark:text-white md:text-3xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy  md:text-3xl">
           Kursus Saya
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">

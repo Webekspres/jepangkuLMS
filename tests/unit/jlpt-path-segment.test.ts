@@ -6,7 +6,9 @@ function getSegmentFillPercent(jlptPath: JlptPathItem[], segmentIndex: number): 
   const from = jlptPath[segmentIndex];
   if (!from) return 0;
   if (from.status === 'done') return 100;
-  if (from.status === 'active') return from.progress ?? 0;
+  if (from.status === 'active') {
+    return Math.min(from.progress ?? 0, 90);
+  }
   return 0;
 }
 
@@ -33,5 +35,16 @@ describe('JLPT path segment fill', () => {
     ];
     expect(getSegmentFillPercent(path, 0)).toBe(100);
     expect(getSegmentFillPercent(path, 1)).toBe(50);
+  });
+
+  test('active segment visual fill caps at 90% so stroke does not pierce next node', () => {
+    const path: JlptPathItem[] = [
+      { level: 'N5', status: 'active', progress: 99 },
+      { level: 'N4', status: 'locked' },
+      { level: 'N3', status: 'locked' },
+      { level: 'N2', status: 'locked' },
+      { level: 'N1', status: 'locked' },
+    ];
+    expect(getSegmentFillPercent(path, 0)).toBe(90);
   });
 });

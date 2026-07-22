@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -128,66 +126,6 @@
   --sidebar-accent: #FF4B2B;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #FF4B2B;
-}
-
-.dark {
-  color-scheme: dark;
-  /*
-   * Kunci dark mode: gap terang antara --background dan --card harus cukup besar
-   * agar konten (card, panel) jelas terpisah dari canvas halaman.
-   * | Token            | Hex       | L (approx) | Gap dari bg |
-   * |------------------|-----------|------------|-------------|
-   * | --background     | #131030   | ~12%       | baseline    |
-   * | --muted          | #1c1947   | ~17%       | +5%         |
-   * | --card           | #252262   | ~24%       | +12%  ← kunci|
-   * | --border         | #353280   | ~30%       | +18%        |
-   */
-  --background: #131030;
-  --foreground: #f4f4f9;
-
-  --card: #252262;
-  --card-foreground: #f4f4f9;
-
-  --popover: #252262;
-  --popover-foreground: #f4f4f9;
-
-  --header: #181548;
-  --header-foreground: #f4f4f9;
-  
-  --primary: #EC1D24;
-  --primary-foreground: #ffffff;
-  
-  --secondary: #2f2c78;
-  --secondary-foreground: #ffffff;
-  
-  --muted: #1c1947;
-  --muted-foreground: #bcbadc;
-  
-  --accent: #FF4B2B;
-  --accent-foreground: #ffffff;
-  
-  --destructive: #EC1D24;
-  --destructive-foreground: #ffffff;
-  
-  --border: #353280;
-  --input: #353280;
-  
-  --ring: #FF4B2B;
-  
-  --chart-1: #EC1D24;
-  --chart-2: #FF4B2B;
-  --chart-3: #F8E71C;
-  --chart-4: #7f7dcc;
-  --chart-5: #4846a0;
-  
-  --sidebar: #0e0c27;
-  --sidebar-foreground: #f4f4f9;
-  --sidebar-primary: #EC1D24;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #FF4B2B;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #252262;
   --sidebar-ring: #FF4B2B;
 }
 

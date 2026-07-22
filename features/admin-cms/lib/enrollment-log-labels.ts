@@ -10,8 +10,8 @@ export const ENROLLMENT_LOG_ACTION_LABEL: Record<EnrollmentLogAction, string> = 
 
 export const ENROLLMENT_LOG_ACTION_BADGE: Record<EnrollmentLogAction, string> = {
   REQUESTED: 'bg-muted text-muted-foreground',
-  APPROVED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  APPROVED: 'bg-emerald-500/10 text-emerald-700 ',
   REJECTED: 'bg-destructive/10 text-destructive',
-  GRANTED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  GRANTED: 'bg-blue-500/10 text-blue-600 ',
   REVOKED: 'bg-destructive/10 text-destructive',
 };

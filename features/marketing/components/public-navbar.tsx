@@ -6,9 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { cn } from '@/lib/utils';
-import { THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { MarketingNavLinkItem } from './marketing-nav-link';
 import { MARKETING_NAV_LINKS } from './marketing-nav-links';
@@ -41,7 +39,7 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
   return (
     <nav
       className={cn(
-        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md dark:backdrop-blur-none',
+        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md',
         menuOpen ? 'z-102' : 'z-50',
       )}
     >
@@ -63,7 +61,6 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
           <Button asChild variant="outline" className="h-10 px-5">
             <Link href="/sign-in">Masuk</Link>
           </Button>
@@ -73,7 +70,6 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
-          <ThemeToggle size="icon-sm" />
           <button
             type="button"
             className="relative rounded-lg p-1"
@@ -90,7 +86,7 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         fitContent
-        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
+        panelClassName="border border-border bg-header backdrop-blur-xl"
       >
         <nav className="flex flex-col p-2">
           {MARKETING_NAV_LINKS.map((link) =>
@@ -125,12 +121,6 @@ export function PublicNavbar({ activeHref }: PublicNavbarProps) {
           )}
         </nav>
         <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/30 px-4 pt-3 pb-safe-lg">
-          {THEME_SWITCHING_ENABLED ? (
-            <div className="flex items-center justify-between px-1 pb-1">
-              <span className="text-[11px] font-medium text-muted-foreground">Tema tampilan</span>
-              <ThemeToggle size="icon-sm" />
-            </div>
-          ) : null}
           <Button asChild variant="outline" className="h-10 w-full text-[0.875rem]">
             <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
               Masuk
