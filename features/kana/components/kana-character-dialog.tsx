@@ -75,7 +75,7 @@ export function KanaCharacterDialog({
                 <KanaStrokeAnimation character={character} />
               </div>
 
-              <KanaVocabCarousel items={character.vocabularies} />
+              <KanaVocabCarousel key={character.id} items={character.vocabularies} />
             </div>
 
             {rowCharacters.length > 1 ? (

@@ -104,7 +104,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard`                                    |   ✅   | Continue learning + **JLPT path berbasis skor tryout terbaik/lulus resmi** + XP mingguan real + live preview |
 | `/dashboard/kursus`, `/dashboard/kursus/[slug]` |   ✅   | Katalog kursus (layout marketing-style) + detail/enrollment |
 | `/dashboard/kursus-saya`                        |   ✅   | Daftar kursus terdaftar user + progress sinkron DB |
-| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart dari Excel + stroke GIF; akses via floating launcher (bukan nav); audio/step lokal masih placeholder |
+| `/dashboard/kana/hiragana`, `/dashboard/kana/katakana` |   🟡   | Chart dari Excel + stroke GIF + vocab Unsplash; audio huruf 104 (`public/assets/kana-audio`); akses via FAB |
 | `/dashboard/belajar/...`                        |   ✅   | Video, materi, kuis inline + **Q&A DB (nested reply, delete, @mention)**                |
 | `/dashboard/kuis/.../hasil`                     |   ✅   |                                                                                         |
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
@@ -146,7 +146,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
 | **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
-| **kana**         |   🟡   | Chart + modal + FAB dismissible; stroke GIF mistval; menunggu audio/vocab image lokal |
+| **kana**         |   🟡   | Chart + modal + FAB; stroke GIF mistval; audio huruf 104; vocab image Unsplash dikurasi |
 | **quiz-engine**  |   🟡   | Inline di lesson; bukan focus-mode terpisah                                    |
 
 ---
@@ -191,6 +191,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-22 | Audio huruf kana 104: mapping romaji bentrok (ji/di, zu/du, jya) + id unik per char |
+| 2026-07-22 | Fix vocab kana Unsplash: match `vocabMeaning` saja (bukan +reading), 0 Fuji fallback, placeholder UI |
+| 2026-07-22 | Vocab kana: gambar Unsplash dikurasi per arti (`kana-vocab-images.ts`) + wire `buildVocab` |
 | 2026-07-22 | Nav Artikel (portal), `/tes-penempatan` marketing, CTA beranda → tes penempatan, floating Aksara di shell siswa |
 | 2026-07-21 | Data kana dari `docs/Asset N5.xlsx`: generator manifest + stroke GIF eksternal + vocab sheet (104 huruf/script) |
 | 2026-07-21 | Hapus hub `/dashboard/kana` (redirect → hiragana) + tombol Kembali di chart Hiragana/Katakana |

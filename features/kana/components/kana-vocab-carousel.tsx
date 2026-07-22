@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KanaAudioButton } from '@/features/kana/components/kana-audio-button';
+import { isKanaVocabFallbackImage } from '@/features/kana/lib/kana-vocab-images';
 import type { KanaVocab } from '@/features/kana/lib/kana-types';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,7 @@ export function KanaVocabCarousel({ items, className }: KanaVocabCarouselProps) 
 
   const item = items[index];
   const hasMultiple = items.length > 1;
+  const showPlaceholder = imageMissing || isKanaVocabFallbackImage(item.imageSrc);
 
   return (
     <div className={cn('rounded-2xl border border-border bg-card p-3', className)}>
@@ -58,9 +60,10 @@ export function KanaVocabCarousel({ items, className }: KanaVocabCarouselProps) 
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="relative mx-auto aspect-4/3 w-full max-w-35 overflow-hidden rounded-xl border border-border bg-muted/30">
-            {imageMissing ? (
-              <div className="flex size-full items-center justify-center px-2 text-center text-[10px] text-muted-foreground">
-                Gambar belum tersedia
+            {showPlaceholder ? (
+              <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center">
+                <p className="text-[10px] text-muted-foreground">Gambar belum tersedia</p>
+                <p className="line-clamp-2 text-xs font-medium text-foreground/80">{item.meaning}</p>
               </div>
             ) : (
               <Image
