@@ -111,6 +111,7 @@ export function LandingPage() {
                 href={link.href}
                 label={link.label}
                 variant={scrolled ? "default" : "light"}
+                external={link.external}
               />
             ))}
           </div>
@@ -166,17 +167,31 @@ export function LandingPage() {
           panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
         >
           <nav className="flex flex-col p-2">
-            {MARKETING_NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <link.icon className="size-4 shrink-0 opacity-70" />
-                {link.label}
-              </Link>
-            ))}
+            {MARKETING_NAV_LINKS.map((link) =>
+              link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <link.icon className="size-4 shrink-0 opacity-70" />
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <link.icon className="size-4 shrink-0 opacity-70" />
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
           <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
             {THEME_SWITCHING_ENABLED ? (
@@ -391,8 +406,8 @@ export function LandingPage() {
                 size="lg"
                 className="h-11 w-full px-6 sm:h-12 sm:w-auto"
               >
-                <Link href="/kursus" className="inline-flex items-center gap-2">
-                  Jelajahi Semua Kursus
+                <Link href="/tes-penempatan" className="inline-flex items-center gap-2">
+                  Tes Penempatan
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

@@ -36,8 +36,11 @@ Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/
 │       ├── Silabus (Preview Locked)
 │       └── CTA: Mulai Belajar (Redirect ke login jika belum auth)
 │
-└── /tryout                      → Halaman Info Tryout JLPT (Read-Only)
-    └── Info Tryout, Jadwal, & CTA Daftar
+├── /tryout                      → Halaman Info Tryout JLPT (Read-Only)
+│   └── Info Tryout, Jadwal, & CTA Daftar
+│
+└── /tes-penempatan              → Halaman Info Tes Penempatan (Read-Only)
+    └── Penjelasan + CTA Daftar / Masuk
 ```
 
 ---

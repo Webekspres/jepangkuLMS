@@ -1,28 +1,43 @@
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen, Star, Trophy } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Newspaper, Star, Trophy } from 'lucide-react';
 
 export type MarketingNavLink = {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** External absolute URL — opens in a new tab; never marked active. */
+  external?: boolean;
 };
 
 export type MarketingFooterLink = {
   href: string;
   label: string;
+  external?: boolean;
 };
 
-/** Navbar desktop & mobile — hanya 3 link utama. */
+/** Portal Berita (Habibi) — sibling app in the JepangKu ecosystem. */
+export const PORTAL_BERITA_URL = 'https://jepangku.com/';
+
+/** Navbar desktop & mobile. */
 export const MARKETING_NAV_LINKS: MarketingNavLink[] = [
   { href: '/tentang', label: 'Tentang Kami', icon: Star },
   { href: '/kursus', label: 'Kursus', icon: BookOpen },
+  { href: '/tes-penempatan', label: 'Tes Penempatan', icon: ClipboardCheck },
   { href: '/tryout', label: 'Tryout JLPT', icon: Trophy },
+  {
+    href: PORTAL_BERITA_URL,
+    label: 'Artikel',
+    icon: Newspaper,
+    external: true,
+  },
 ];
 
 export const MARKETING_FOOTER_EXPLORE: MarketingFooterLink[] = [
   { href: '/tentang', label: 'Tentang Kami' },
   { href: '/kursus', label: 'Kursus' },
+  { href: '/tes-penempatan', label: 'Tes Penempatan' },
   { href: '/tryout', label: 'JLPT Try Out' },
+  { href: PORTAL_BERITA_URL, label: 'Artikel', external: true },
 ];
 
 export const MARKETING_FOOTER_SUPPORT: MarketingFooterLink[] = [

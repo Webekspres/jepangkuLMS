@@ -1,9 +1,15 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard } from 'lucide-react';
+import { Languages, LayoutDashboard } from 'lucide-react';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { cn } from '@/lib/utils';
+import {
+  isKanaFabDismissed,
+  KANA_FAB_CHANGE_EVENT,
+  setKanaFabDismissed,
+} from '@/features/kana/lib/kana-fab-preference';
 import { useStudentCoreData } from './student-core-data-context';
 import { STUDENT_ACCOUNT_MENU_ITEMS } from './student-account-menu-items';
 
@@ -20,6 +26,18 @@ export function StudentAccountMenuLinks({
   variant = 'default',
 }: StudentAccountMenuLinksProps) {
   const core = useStudentCoreData();
+  const [showRestoreKanaFab, setShowRestoreKanaFab] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setShowRestoreKanaFab(isKanaFabDismissed());
+    sync();
+    window.addEventListener(KANA_FAB_CHANGE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(KANA_FAB_CHANGE_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   const linkClass = (href: string) =>
     cn(
@@ -30,6 +48,13 @@ export function StudentAccountMenuLinks({
         ? 'bg-primary/10 font-semibold text-primary'
         : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
     );
+
+  const actionClass = cn(
+    variant === 'plain'
+      ? 'rounded-xl px-3 py-2.5 text-left text-[0.875rem] leading-snug font-medium transition-colors'
+      : 'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.875rem] leading-snug font-medium transition-colors',
+    'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+  );
 
   return (
     <>
@@ -60,6 +85,23 @@ export function StudentAccountMenuLinks({
           {item.label}
         </Link>
       ))}
+      {showRestoreKanaFab ? (
+        <button
+          type="button"
+          role="menuitem"
+          className={actionClass}
+          onClick={() => {
+            setKanaFabDismissed(false);
+            setShowRestoreKanaFab(false);
+            onNavigate?.();
+          }}
+        >
+          {variant === 'default' ? (
+            <Languages className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+          ) : null}
+          Tampilkan pintasan Aksara
+        </button>
+      ) : null}
     </>
   );
 }

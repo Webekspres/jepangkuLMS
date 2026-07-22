@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { Coins, LogOut, Zap, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,11 +40,72 @@ function MobileMenuSection({
 }) {
   return (
     <div className="px-2 py-0.5">
-      {/* Caption / label — ~11px on mobile */}
       <p className="px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase dark:text-foreground">
         {title}
       </p>
       <div className="flex flex-col">{children}</div>
+    </div>
+  );
+}
+
+function MobileMenuAccordionSection({
+  title,
+  open,
+  onOpenChange,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="px-2 py-0.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+        className={cn(
+          'flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
+          open ? 'bg-muted' : 'bg-muted/40 hover:bg-muted/70',
+        )}
+      >
+        <span className="min-w-0">
+          <span className="block text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase dark:text-foreground">
+            {title}
+          </span>
+          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
+            {open ? 'Ketuk untuk menutup' : 'Ketuk untuk membuka'}
+          </span>
+        </span>
+        <span
+          className="flex size-7 shrink-0 items-center justify-center rounded-md bg-background/80"
+          aria-hidden
+        >
+          <motion.span
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="inline-flex"
+          >
+            <ChevronDown className="size-3.5 text-muted-foreground" />
+          </motion.span>
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="akun-accordion-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-col pt-1">{children}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -58,6 +120,7 @@ export function StudentNav() {
   const avatarUrl = core.avatarUrl ?? identity?.imageUrl ?? null;
   const avatarInitial = (identity?.initial ?? displayName.slice(0, 2) ?? 'KM').toUpperCase();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [akunAccordionOpen, setAkunAccordionOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const hydrated = useSyncExternalStore(
     () => () => {},
@@ -74,6 +137,10 @@ export function StudentNav() {
     return () => {
       document.body.style.overflow = '';
     };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) setAkunAccordionOpen(false);
   }, [menuOpen]);
 
   const isActive = (href: string) => isStudentNavHrefActive(pathname, href);
@@ -170,12 +237,16 @@ export function StudentNav() {
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <MobileMenuSection title="Akun Saya">
+          <MobileMenuAccordionSection
+            title="Akun Saya"
+            open={akunAccordionOpen}
+            onOpenChange={setAkunAccordionOpen}
+          >
             <StudentAccountMenuLinks
               isActive={isActive}
               onNavigate={() => setMenuOpen(false)}
             />
-          </MobileMenuSection>
+          </MobileMenuAccordionSection>
 
           <div className="mx-3 border-t border-border" />
 
