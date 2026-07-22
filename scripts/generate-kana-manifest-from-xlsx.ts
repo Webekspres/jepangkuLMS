@@ -8,7 +8,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 const ROOT = join(import.meta.dir, '..');
 const XLSX_PATH = join(ROOT, 'docs', 'Asset N5.xlsx');
@@ -42,6 +42,25 @@ function detectScript(char: string): KanaScript | null {
   return null;
 }
 
+function cellText(value: ExcelJS.CellValue): string {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value).trim();
+  }
+  if (typeof value === 'object' && 'text' in value && typeof value.text === 'string') {
+    return value.text.trim();
+  }
+  if (typeof value === 'object' && 'result' in value && value.result != null) {
+    return String(value.result).trim();
+  }
+  if (typeof value === 'object' && 'hyperlink' in value) {
+    const rich = value as ExcelJS.CellHyperlinkValue;
+    if (typeof rich.text === 'string') return rich.text.trim();
+    if (typeof rich.hyperlink === 'string') return rich.hyperlink.trim();
+  }
+  return String(value).trim();
+}
+
 /** Parse `aisu (es krim)` → { reading, meaning } */
 export function parseRomajiAndMeaning(raw: string): { reading: string; meaning: string } {
   const trimmed = raw.trim();
@@ -52,29 +71,37 @@ export function parseRomajiAndMeaning(raw: string): { reading: string; meaning: 
   return { reading: match[1].trim(), meaning: match[2].trim() };
 }
 
-function parseSheet(ws: XLSX.WorkSheet): KanaManifestEntry[] {
-  const rows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, {
-    header: 1,
-    defval: '',
-  });
+function parseSheet(ws: ExcelJS.Worksheet): KanaManifestEntry[] {
   const entries: KanaManifestEntry[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
-    const category = String(row[1] ?? '').trim();
-    const char = String(row[2] ?? '').trim();
-    const romaji = String(row[3] ?? '').trim().toLowerCase();
-    const vocabWord = String(row[4] ?? '').trim();
-    const romajiArti = String(row[5] ?? '').trim();
-    const strokeGifSrc = String(row[6] ?? '').trim();
+  ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
 
-    if (!char || !romaji || !category) continue;
+    const category = cellText(row.getCell(2).value);
+    const char = cellText(row.getCell(3).value);
+    const romaji = cellText(row.getCell(4).value).toLowerCase();
+    const vocabWord = cellText(row.getCell(5).value);
+    const romajiArti = cellText(row.getCell(6).value);
+    let strokeGifSrc = cellText(row.getCell(7).value);
+
+    const gifCell = row.getCell(7);
+    if (gifCell.hyperlink) {
+      strokeGifSrc = String(gifCell.hyperlink).trim();
+    } else if (
+      gifCell.value &&
+      typeof gifCell.value === 'object' &&
+      'hyperlink' in gifCell.value &&
+      typeof (gifCell.value as ExcelJS.CellHyperlinkValue).hyperlink === 'string'
+    ) {
+      strokeGifSrc = (gifCell.value as ExcelJS.CellHyperlinkValue).hyperlink.trim();
+    }
+
+    if (!char || !romaji || !category) return;
 
     const script = detectScript(char);
     if (!script) {
       console.warn(`[kana-manifest] skip unknown script char: ${char}`);
-      continue;
+      return;
     }
 
     const { reading, meaning } = parseRomajiAndMeaning(romajiArti);
@@ -89,21 +116,21 @@ function parseSheet(ws: XLSX.WorkSheet): KanaManifestEntry[] {
       vocabMeaning: meaning,
       strokeGifSrc,
     });
-  }
+  });
 
   return entries;
 }
 
-function main() {
-  const wb = XLSX.readFile(XLSX_PATH);
+async function main() {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(XLSX_PATH);
+
   const entries: KanaManifestEntry[] = [];
 
-  for (const name of wb.SheetNames) {
-    if (!isKanaSheetName(name)) continue;
-    const ws = wb.Sheets[name];
-    if (!ws) continue;
+  for (const ws of workbook.worksheets) {
+    if (!isKanaSheetName(ws.name)) continue;
     const parsed = parseSheet(ws);
-    console.log(`[kana-manifest] ${name}: ${parsed.length} rows`);
+    console.log(`[kana-manifest] ${ws.name}: ${parsed.length} rows`);
     entries.push(...parsed);
   }
 
@@ -142,4 +169,4 @@ export const KANA_MANIFEST: KanaManifestEntry[] = ${JSON.stringify(entries, null
   console.log(`[kana-manifest] wrote ${OUT_PATH}`);
 }
 
-main();
+await main();
