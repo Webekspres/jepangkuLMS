@@ -191,6 +191,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-22 | Perjalanan Belajar: timeline ikon rata tengah; Jalur JLPT stroke aktif di-cap visual 90%; label Menuju kelulusan |
+| 2026-07-22 | FAB kana hanya di hub dasbor (beranda/program list/profil/kana); sembunyi di belajar/kuis/tryout exam |
 | 2026-07-22 | Dialog kana v2: hero tengah, label luar border, kotak stroke/vocab simetris, vocab vertikal |
 | 2026-07-22 | Dialog kana desktop: vocab compact (w-fit, tanpa whitespace), highlight per karakter |
 | 2026-07-22 | Dialog detail kana: hapus placeholder langkah menulis, GIF saja + layout 2-kolom responsif |

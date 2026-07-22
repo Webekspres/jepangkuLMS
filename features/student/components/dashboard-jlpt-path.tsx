@@ -39,7 +39,10 @@ function getSegmentFillPercent(jlptPath: JlptPathItem[], segmentIndex: number): 
   const from = jlptPath[segmentIndex];
   if (!from) return 0;
   if (from.status === 'done') return 100;
-  if (from.status === 'active') return from.progress ?? 0;
+  if (from.status === 'active') {
+    // Cap visual fill so the stroke stops before the next node's center.
+    return Math.min(from.progress ?? 0, 90);
+  }
   return 0;
 }
 

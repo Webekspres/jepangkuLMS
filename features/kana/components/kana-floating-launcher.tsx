@@ -11,6 +11,7 @@ import {
   KANA_FAB_CHANGE_EVENT,
   setKanaFabDismissed,
 } from '@/features/kana/lib/kana-fab-preference';
+import { shouldShowKanaFab } from '@/features/kana/lib/kana-fab-visibility';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { isStudentNavHrefActive } from '@/features/student/components/student-nav-links';
 import { cn } from '@/lib/utils';
@@ -69,7 +70,7 @@ export function KanaFloatingLauncher() {
     };
   }, [open]);
 
-  if (dismissed) return null;
+  if (dismissed || !shouldShowKanaFab(pathname)) return null;
 
   const dismiss = () => {
     setKanaFabDismissed(true);
