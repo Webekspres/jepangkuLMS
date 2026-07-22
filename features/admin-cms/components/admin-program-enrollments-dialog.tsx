@@ -162,7 +162,7 @@ export function AdminProgramEnrollmentsDialog({
                 <span className="ml-1.5 font-bold text-foreground">{activeCount}</span>
               </span>
               {pendingCount > 0 ? (
-                <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-700 dark:text-amber-400">
+                <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium tabular-nums text-amber-700 ">
                   <span>Menunggu</span>
                   <span className="ml-1.5 font-bold">{pendingCount}</span>
                 </span>

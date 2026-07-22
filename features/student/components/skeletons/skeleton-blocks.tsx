@@ -62,7 +62,7 @@ export function SkeletonPageHeader({
 
 export function SkeletonNavBar() {
   return (
-    <div className="sticky top-0 z-50 border-b border-border bg-header shadow-sm backdrop-blur-md dark:backdrop-blur-none">
+    <div className="sticky top-0 z-50 border-b border-border bg-header shadow-sm backdrop-blur-md ">
       <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-3.5 md:px-8">
         <Skeleton className="h-9 w-28 rounded-md" />
         <div className="hidden items-center gap-6 lg:flex">

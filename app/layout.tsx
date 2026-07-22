@@ -21,11 +21,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-/** Enable env(safe-area-inset-*) for iOS/Android browser chrome. */
+/** Enable env(safe-area-inset-*) for iOS/Android browser chrome. Light-only LMS. */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  colorScheme: "light",
 };
 
 export const metadata: Metadata = {
@@ -67,6 +68,8 @@ export const metadata: Metadata = {
     : {}),
 };
 
+const THEME_SCRUB_SCRIPT = `(function(){try{document.documentElement.classList.remove('dark');localStorage.removeItem('theme');}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -77,9 +80,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
+      style={{ colorScheme: "light" }}
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRUB_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <GoogleAnalytics />
         <AppProviders clerkPublishableKey={clerkPublishableKey}>

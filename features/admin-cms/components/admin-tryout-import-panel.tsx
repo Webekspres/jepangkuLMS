@@ -148,7 +148,7 @@ export function AdminTryoutImportPanel({
                         className={cn(
                             'rounded-lg border px-3 py-2 text-sm',
                             result.ok
-                                ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-800 dark:text-emerald-200'
+                                ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-800 '
                                 : 'border-destructive/30 bg-destructive/5 text-destructive',
                         )}
                     >

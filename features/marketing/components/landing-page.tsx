@@ -19,7 +19,6 @@ import {
   Zap,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { MarketingMobileMenu } from "./marketing-mobile-menu";
 import { LANDING_NAV_MENU_TOP } from "./marketing-nav-layout";
 import { MarketingNavLinkItem } from "./marketing-nav-link";
@@ -27,7 +26,6 @@ import { MARKETING_NAV_LINKS } from "./marketing-nav-links";
 import { MarketingFooter } from "./marketing-footer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { THEME_SWITCHING_ENABLED } from "@/lib/theme/theme-config";
 import {
   HERO_MOCK_MODULES,
   HERO_TRUST_LEVELS,
@@ -91,7 +89,7 @@ export function LandingPage() {
           "fixed top-0 right-0 left-0 transition-all duration-300",
           menuOpen ? "z-102" : "z-50",
           scrolled
-            ? "border-b border-border bg-header shadow-md backdrop-blur-md dark:backdrop-blur-none"
+            ? "border-b border-border bg-header shadow-md backdrop-blur-md"
             : "bg-transparent",
         )}
         initial={{ y: -80 }}
@@ -117,11 +115,6 @@ export function LandingPage() {
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
-            <ThemeToggle
-              className={cn(
-                !scrolled && "text-white hover:bg-white/10 hover:text-white",
-              )}
-            />
             <Button
               asChild
               variant="outline"
@@ -139,7 +132,6 @@ export function LandingPage() {
           </div>
 
           <div className="flex items-center gap-1 md:hidden">
-            <ThemeToggle size="icon-sm" />
             <button
               type="button"
               className={cn(
@@ -164,7 +156,7 @@ export function LandingPage() {
           onClose={() => setMenuOpen(false)}
           panelTop={LANDING_NAV_MENU_TOP}
           fitContent
-          panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
+          panelClassName="border border-border bg-header backdrop-blur-xl"
         >
           <nav className="flex flex-col p-2">
             {MARKETING_NAV_LINKS.map((link) =>
@@ -194,14 +186,6 @@ export function LandingPage() {
             )}
           </nav>
           <div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-4">
-            {THEME_SWITCHING_ENABLED ? (
-              <div className="flex items-center justify-between px-1 pb-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Tema tampilan
-                </span>
-                <ThemeToggle size="icon-sm" />
-              </div>
-            ) : null}
             <Button asChild variant="outline" className="h-11 w-full">
               <Link href="/sign-in" onClick={() => setMenuOpen(false)}>
                 Masuk

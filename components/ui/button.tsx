@@ -9,7 +9,7 @@ const gamePress =
   "transition-[transform,box-shadow,filter] duration-150 ease-out hover:scale-[1.03] hover:brightness-105 active:translate-y-[3px] active:scale-[0.995]"
 
 const buttonVariants = cva(
-  "group/button cursor-pointer inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button cursor-pointer inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20   [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -23,7 +23,7 @@ const buttonVariants = cva(
         outline: cn(
           gamePress,
           "btn-3d-outline font-semibold",
-          "aria-expanded:bg-white aria-expanded:text-slate-800 dark:aria-expanded:bg-[#1a1936] dark:aria-expanded:text-[#f4f4f9]",
+          "aria-expanded:bg-white aria-expanded:text-slate-800  ",
         ),
         secondary: cn(
           gamePress,
@@ -34,11 +34,11 @@ const buttonVariants = cva(
           "aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ),
         ghost:
-          "rounded-sm hover:bg-muted hover:text-foreground active:translate-y-px aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "rounded-sm hover:bg-muted hover:text-foreground active:translate-y-px aria-expanded:bg-muted aria-expanded:text-foreground ",
         destructive: cn(
           gamePress,
           "btn-3d-destructive font-semibold",
-          "focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          "focus-visible:border-destructive/40 focus-visible:ring-destructive/20 ",
         ),
         link: "rounded-sm text-primary underline-offset-4 hover:underline",
       },

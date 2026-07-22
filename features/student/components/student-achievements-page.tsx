@@ -167,7 +167,7 @@ function MilestoneRow({
         <div
           className={cn(
             'relative z-10 flex size-11 items-center justify-center rounded-xl border text-lg shadow-sm',
-            milestone.status === 'completed' && 'border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950',
+            milestone.status === 'completed' && 'border-emerald-500/30 bg-emerald-50 ',
             milestone.status === 'active' && 'border-primary/30 bg-primary/15',
             milestone.status === 'locked' && 'border-border bg-muted grayscale',
           )}

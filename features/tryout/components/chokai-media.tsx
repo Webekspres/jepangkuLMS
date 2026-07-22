@@ -94,7 +94,7 @@ export function ChokaiAudioPlayer({
       ) : null}
 
       {phase === 'playing' ? (
-        <div className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-800 dark:text-emerald-200">
+        <div className="flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-800 ">
           <Loader2 className="size-4 animate-spin" />
           Sedang memutar…
         </div>

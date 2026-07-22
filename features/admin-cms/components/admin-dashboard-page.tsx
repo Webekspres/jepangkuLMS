@@ -49,28 +49,28 @@ export function AdminDashboardPage({
           value={formatDisplayNumber(stats.pendingEnrollments)}
           description="Enrollment menunggu verifikasi"
           icon={Clock}
-          accentClassName="bg-brand-yellow/10 text-yellow-600 dark:text-brand-yellow"
+          accentClassName="bg-brand-yellow/10 text-yellow-600 "
         />
         <AdminStatCard
           title="Enrollment Aktif"
           value={formatDisplayNumber(stats.activeEnrollments)}
           description={`${approvalRate}% dari total enrollment`}
           icon={GraduationCap}
-          accentClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          accentClassName="bg-emerald-500/10 text-emerald-600 "
         />
         <AdminStatCard
           title="Live Class"
           value={formatDisplayNumber(stats.upcomingLiveClasses)}
           description={`${stats.publishedLiveClasses} terpublikasi · ${stats.upcomingLiveClasses} mendatang`}
           icon={Video}
-          accentClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          accentClassName="bg-blue-500/10 text-blue-600 "
         />
         <AdminStatCard
           title="Sesi Tryout"
           value={formatDisplayNumber(stats.activeTryoutSessions)}
           description={`${stats.quizAttemptsThisWeek} attempt kuis minggu ini`}
           icon={Target}
-          accentClassName="bg-violet-500/10 text-violet-600 dark:text-violet-400"
+          accentClassName="bg-violet-500/10 text-violet-600 "
         />
       </div>
 

@@ -74,9 +74,9 @@ const PRODUCT_TYPE_LABEL: Record<EnrollmentProductType, string> = {
 };
 
 const PRODUCT_TYPE_BADGE: Record<EnrollmentProductType, string> = {
-  COURSE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  LIVE_CLASS: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-  TRYOUT: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  COURSE: 'bg-blue-500/10 text-blue-600 ',
+  LIVE_CLASS: 'bg-purple-500/10 text-purple-600 ',
+  TRYOUT: 'bg-amber-500/10 text-amber-600 ',
 };
 
 export function AdminEnrollmentsPage({
