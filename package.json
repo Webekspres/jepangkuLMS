@@ -103,6 +103,11 @@
     "unrs-resolver"
   ],
   "overrides": {
-    "@clerk/shared": "4.23.0"
+    "@clerk/shared": "4.23.0",
+    "postcss": "8.5.10",
+    "brace-expansion": "2.1.2",
+    "js-yaml": "4.3.0",
+    "fast-uri": "3.1.4",
+    "shell-quote": "1.10.0"
   }
 }

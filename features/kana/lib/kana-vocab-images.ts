@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * Curated Unsplash images for kana vocab (visual match to meaning).
  * Keys: `script:romaji` (or `script:romaji:reading` when romaji collides).

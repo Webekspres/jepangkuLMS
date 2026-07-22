@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
@@ -20,29 +20,30 @@ const KANA_LINKS = [
   { href: STUDENT_ROUTES.kanaScript('katakana'), label: 'Katakana', sample: 'ア' },
 ] as const;
 
+function subscribeKanaFabPreference(onStoreChange: () => void) {
+  window.addEventListener(KANA_FAB_CHANGE_EVENT, onStoreChange);
+  window.addEventListener('storage', onStoreChange);
+  return () => {
+    window.removeEventListener(KANA_FAB_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener('storage', onStoreChange);
+  };
+}
+
 export function KanaFloatingLauncher() {
   const pathname = usePathname();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [hydrated, setHydrated] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const dismissed = useSyncExternalStore(
+    subscribeKanaFabPreference,
+    isKanaFabDismissed,
+    () => true,
+  );
   const [open, setOpen] = useState(false);
+  const [openForPath, setOpenForPath] = useState(pathname);
 
-  useEffect(() => {
-    setDismissed(isKanaFabDismissed());
-    setHydrated(true);
-
-    const sync = () => setDismissed(isKanaFabDismissed());
-    window.addEventListener(KANA_FAB_CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(KANA_FAB_CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
-
-  useEffect(() => {
+  if (pathname !== openForPath) {
+    setOpenForPath(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -68,11 +69,10 @@ export function KanaFloatingLauncher() {
     };
   }, [open]);
 
-  if (!hydrated || dismissed) return null;
+  if (dismissed) return null;
 
   const dismiss = () => {
     setKanaFabDismissed(true);
-    setDismissed(true);
     setOpen(false);
   };
 

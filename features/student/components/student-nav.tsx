@@ -139,9 +139,9 @@ export function StudentNav() {
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    if (!menuOpen) setAkunAccordionOpen(false);
-  }, [menuOpen]);
+  if (!menuOpen && akunAccordionOpen) {
+    setAkunAccordionOpen(false);
+  }
 
   const isActive = (href: string) => isStudentNavHrefActive(pathname, href);
 
