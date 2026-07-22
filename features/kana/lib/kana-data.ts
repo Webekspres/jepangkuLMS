@@ -1,4 +1,5 @@
-import { kanaAudioPath, kanaVocabAudioPath, kanaVocabImagePath } from './kana-asset-paths';
+import { kanaAudioPath, kanaVocabAudioPath } from './kana-asset-paths';
+import { resolveKanaVocabImageSrc } from './kana-vocab-images';
 import {
   KANA_MANIFEST,
   type KanaManifestEntry,
@@ -91,7 +92,13 @@ function buildVocab(script: KanaScript, entry: KanaManifestEntry): KanaVocab[] {
       word: entry.vocabWord,
       reading: entry.vocabReading,
       meaning: entry.vocabMeaning,
-      imageSrc: kanaVocabImagePath(script, entry.romaji, 1),
+      imageSrc: resolveKanaVocabImageSrc({
+        script,
+        romaji: entry.romaji,
+        reading: entry.vocabReading,
+        meaning: entry.vocabMeaning,
+        word: entry.vocabWord,
+      }),
       audioSrc: kanaVocabAudioPath(script, entry.romaji, 1),
     },
   ];
@@ -99,13 +106,13 @@ function buildVocab(script: KanaScript, entry: KanaManifestEntry): KanaVocab[] {
 
 function buildCharacter(script: KanaScript, entry: KanaManifestEntry, layout: CategoryLayout): KanaCharacter {
   return {
-    id: `${script}-${entry.romaji}`,
+    id: `${script}-${entry.char}`,
     script,
     char: entry.char,
     romaji: entry.romaji,
     group: layout.group,
     row: layout.rowId,
-    audioSrc: kanaAudioPath(script, entry.romaji),
+    audioSrc: kanaAudioPath(script, entry.romaji, entry.char),
     strokeGifSrc: entry.strokeGifSrc,
     strokeSteps: [],
     vocabularies: buildVocab(script, entry),

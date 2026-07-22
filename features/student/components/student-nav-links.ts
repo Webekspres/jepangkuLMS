@@ -33,20 +33,11 @@ export const STUDENT_NAV_ITEMS: StudentNavItem[] = [
       { href: STUDENT_ROUTES.tryout, label: 'Tryout JLPT' },
     ],
   },
-  {
-    kind: 'group',
-    label: 'Aksara',
-    baseHref: STUDENT_ROUTES.kana,
-    children: [
-      { href: STUDENT_ROUTES.kanaScript('hiragana'), label: 'Hiragana' },
-      { href: STUDENT_ROUTES.kanaScript('katakana'), label: 'Katakana' },
-    ],
-  },
   { kind: 'link', href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard' },
   {
     kind: 'link',
     href: PORTAL_BERITA_URL,
-    label: 'Portal Berita',
+    label: 'Artikel',
     external: true,
   },
 ];

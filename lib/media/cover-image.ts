@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -10,24 +11,36 @@ export { COVER_IMAGE_MAX_BYTES, COVER_IMAGE_MIME_TYPES };
 
 export type CoverImageKind = 'courses' | 'live-class';
 
-const COVER_IMAGE_KINDS = new Set<CoverImageKind>(['courses', 'live-class']);
-const COVER_IMAGE_EXTS = new Set(['png', 'webp', 'jpg']);
-
 export type ParsedCoverImage = {
   buffer: Buffer;
   mime: string;
   ext: string;
 };
 
-function assertCoverImageKind(kind: string): asserts kind is CoverImageKind {
-  if (!COVER_IMAGE_KINDS.has(kind as CoverImageKind)) {
-    throw new Error('Jenis cover image tidak valid.');
+/** Map to a fresh string literal so FS paths are not tainted by caller input (CodeQL js/path-injection). */
+function coverUploadSubdir(kind: CoverImageKind): 'courses' | 'live-class' {
+  switch (kind) {
+    case 'courses':
+      return 'courses';
+    case 'live-class':
+      return 'live-class';
+    default: {
+      const _exhaustive: never = kind;
+      throw new Error(`Jenis cover image tidak valid: ${_exhaustive}`);
+    }
   }
 }
 
-function assertCoverImageExt(ext: string): asserts ext is 'png' | 'webp' | 'jpg' {
-  if (!COVER_IMAGE_EXTS.has(ext)) {
-    throw new Error('Ekstensi cover image tidak valid.');
+function coverFileExt(ext: string): 'png' | 'webp' | 'jpg' {
+  switch (ext) {
+    case 'png':
+      return 'png';
+    case 'webp':
+      return 'webp';
+    case 'jpg':
+      return 'jpg';
+    default:
+      throw new Error('Ekstensi cover image tidak valid.');
   }
 }
 
@@ -56,17 +69,16 @@ export async function parseCoverImageFile(
 
 async function saveCoverToPublicDir(
   kind: CoverImageKind,
-  slug: string,
   buffer: Buffer,
   ext: string,
 ): Promise<string> {
-  assertCoverImageKind(kind);
-  assertCoverImageExt(ext);
-
-  const safeSlug = slug.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'cover';
-  const filename = `${safeSlug}-${Date.now()}.${ext}`;
-  const dir = path.resolve(process.cwd(), 'public', 'uploads', kind);
-  const target = path.resolve(dir, filename);
+  const subdir = coverUploadSubdir(kind);
+  const safeExt = coverFileExt(ext);
+  // Filename uses only server-generated entropy — never user slug (breaks path-injection taint).
+  const filename = `cover-${Date.now()}-${randomBytes(4).toString('hex')}.${safeExt}`;
+  const uploadsRoot = path.join(process.cwd(), 'public', 'uploads');
+  const dir = path.join(uploadsRoot, subdir);
+  const target = path.join(dir, filename);
 
   if (!isPathInsideDir(target, dir)) {
     throw new Error('Path cover image di luar direktori upload yang diizinkan.');
@@ -74,7 +86,7 @@ async function saveCoverToPublicDir(
 
   await mkdir(dir, { recursive: true });
   await writeFile(target, buffer);
-  return `/uploads/${kind}/${filename}`;
+  return `/uploads/${subdir}/${filename}`;
 }
 
 /** Upload cover ke R2 (atau public/uploads fallback). Null jika tidak ada file baru. */
@@ -95,9 +107,12 @@ export async function resolveCoverImageUrl(options: {
     return { url: options.existingUrl ?? null, replaced: false };
   }
 
+  const subdir = coverUploadSubdir(options.kind);
+  const safeExt = coverFileExt(image.ext);
+
   if (isR2Configured()) {
     try {
-      const key = `${options.kind}/${options.slug}-${Date.now()}.${image.ext}`;
+      const key = `${subdir}/cover-${Date.now()}-${randomBytes(4).toString('hex')}.${safeExt}`;
       const url = await uploadToR2(image.buffer, key, image.mime);
       return { url, replaced: true };
     } catch (error) {
@@ -108,7 +123,7 @@ export async function resolveCoverImageUrl(options: {
     }
   }
 
-  const url = await saveCoverToPublicDir(options.kind, options.slug, image.buffer, image.ext);
+  const url = await saveCoverToPublicDir(options.kind, image.buffer, image.ext);
   return { url, replaced: true };
 }
 

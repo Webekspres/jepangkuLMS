@@ -9,3 +9,4 @@ export {
   type CourseDetail,
 } from './course-detail-data';
 export { TryoutInfoPage } from './tryout-info-page';
+export { PlacementTestInfoPage } from './placement-test-info-page';

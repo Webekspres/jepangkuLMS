@@ -100,7 +100,7 @@ function FooterLinkGroup({
   links,
 }: {
   title: string;
-  links: { href: string; label: string }[];
+  links: { href: string; label: string; external?: boolean }[];
 }) {
   return (
     <div>
@@ -108,12 +108,23 @@ function FooterLinkGroup({
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.href}>
-            <Link
-              href={link.href}
-              className="text-sm text-white/55 transition-colors hover:text-white"
-            >
-              {link.label}
-            </Link>
+            {link.external ? (
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-white/55 transition-colors hover:text-white"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                href={link.href}
+                className="text-sm text-white/55 transition-colors hover:text-white"
+              >
+                {link.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
