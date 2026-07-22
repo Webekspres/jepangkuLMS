@@ -220,7 +220,56 @@ jobs:
             echo "JEPANGKU_CORE_API_URL=http://jepangku_staging_core:8081" >> "\$DEPLOY_PATH/lms/.env"
           fi
 
-          docker pull "\$MIGRATE_IMAGE"
+          # region agent log — pre-pull diagnostics (debug-cbc78f)
+          echo "==> Pre-pull diagnostics (debug-cbc78f)"
+          ROOT_USE=\$(df -P / | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}' || echo "\$ROOT_USE")
+          INGEST_DIR="/var/lib/containerd/io.containerd.content.v1.content/ingest"
+          INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\${ROOT_USE:-null},\"dockerUsePct\":\${DOCKER_USE:-null},\"env\":\"staging\"}}"
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\${INGEST_COUNT:-0},\"env\":\"staging\"}}"
+          df -h / /var/lib/docker /var/lib/containerd 2>/dev/null || df -h
+          docker system df || true
+          # Proactive recovery from prior failed pulls (hypothesis B confirmed by rename ingest→blobs)
+          if [ "\${INGEST_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+            echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
+            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+          fi
+          if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+            echo "==> Disk high before pull — safe prune (hypothesis A)"
+            docker container prune -f || true
+            docker image prune -a -f || true
+            docker builder prune -a -f || true
+          fi
+          # endregion
+
+          pull_image_resilient() {
+            local image="\$1"
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              echo "==> docker pull attempt \${attempt}/5: \$image"
+              if docker pull "\$image"; then
+                echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-ok\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"staging\"}}"
+                return 0
+              fi
+              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"staging\"}}"
+              if [ -d "\$INGEST_DIR" ]; then
+                echo "==> Clearing incomplete containerd ingest (hypothesis B)"
+                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+              fi
+              if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+                echo "==> Disk high — safe docker prune (hypothesis A)"
+                docker container prune -f || true
+                docker image prune -a -f || true
+                docker builder prune -a -f || true
+              fi
+              sleep \$((attempt * 5))
+            done
+            echo "::error::docker pull failed after 5 attempts: \$image"
+            return 1
+          }
+
+          pull_image_resilient "\$MIGRATE_IMAGE"
 
           # Removed from repo after failed first apply (JlptQuestionSet did not exist yet).
           docker run --rm \
@@ -244,7 +293,19 @@ jobs:
             "\$MIGRATE_IMAGE" \
             prisma migrate status
 
-          docker compose pull lms
+          for attempt in 1 2 3 4 5; do
+            echo "==> docker compose pull lms attempt \${attempt}/5"
+            if docker compose pull lms; then
+              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-ok\",\"data\":{\"attempt\":\$attempt,\"env\":\"staging\"}}"
+              break
+            fi
+            echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-fail\",\"data\":{\"attempt\":\$attempt,\"env\":\"staging\"}}"
+            if [ -d "\$INGEST_DIR" ]; then
+              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+            fi
+            [ "\$attempt" -eq 5 ] && { echo "::error::docker compose pull lms failed"; exit 1; }
+            sleep \$((attempt * 5))
+          done
           # JEPANGKU_CORE_API_URL sudah di-override di lms/.env lewat sed di atas
           docker compose up -d --force-recreate lms
 
@@ -340,7 +401,56 @@ jobs:
             echo "JEPANGKU_CORE_API_URL=http://jepangku-core:8080" >> "\$DEPLOY_PATH/lms/.env"
           fi
 
-          docker pull "\$MIGRATE_IMAGE"
+          # region agent log — pre-pull diagnostics (debug-cbc78f)
+          echo "==> Pre-pull diagnostics (debug-cbc78f)"
+          ROOT_USE=\$(df -P / | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
+          DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}' || echo "\$ROOT_USE")
+          INGEST_DIR="/var/lib/containerd/io.containerd.content.v1.content/ingest"
+          INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\${ROOT_USE:-null},\"dockerUsePct\":\${DOCKER_USE:-null},\"env\":\"production\"}}"
+          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\${INGEST_COUNT:-0},\"env\":\"production\"}}"
+          df -h / /var/lib/docker /var/lib/containerd 2>/dev/null || df -h
+          docker system df || true
+          # Proactive recovery from prior failed pulls (hypothesis B confirmed by rename ingest→blobs)
+          if [ "\${INGEST_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+            echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
+            find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+          fi
+          if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+            echo "==> Disk high before pull — safe prune (hypothesis A)"
+            docker container prune -f || true
+            docker image prune -a -f || true
+            docker builder prune -a -f || true
+          fi
+          # endregion
+
+          pull_image_resilient() {
+            local image="\$1"
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              echo "==> docker pull attempt \${attempt}/5: \$image"
+              if docker pull "\$image"; then
+                echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-ok\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"production\"}}"
+                return 0
+              fi
+              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"production\"}}"
+              if [ -d "\$INGEST_DIR" ]; then
+                echo "==> Clearing incomplete containerd ingest (hypothesis B)"
+                find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+              fi
+              if [ "\${ROOT_USE:-0}" -ge 85 ] 2>/dev/null || [ "\${DOCKER_USE:-0}" -ge 85 ] 2>/dev/null; then
+                echo "==> Disk high — safe docker prune (hypothesis A)"
+                docker container prune -f || true
+                docker image prune -a -f || true
+                docker builder prune -a -f || true
+              fi
+              sleep \$((attempt * 5))
+            done
+            echo "::error::docker pull failed after 5 attempts: \$image"
+            return 1
+          }
+
+          pull_image_resilient "\$MIGRATE_IMAGE"
 
           docker run --rm \
             --network jepangku_net \
@@ -363,7 +473,19 @@ jobs:
             "\$MIGRATE_IMAGE" \
             prisma migrate status
 
-          docker compose pull lms
+          for attempt in 1 2 3 4 5; do
+            echo "==> docker compose pull lms attempt \${attempt}/5"
+            if docker compose pull lms; then
+              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-ok\",\"data\":{\"attempt\":\$attempt,\"env\":\"production\"}}"
+              break
+            fi
+            echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-fail\",\"data\":{\"attempt\":\$attempt,\"env\":\"production\"}}"
+            if [ -d "\$INGEST_DIR" ]; then
+              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+            fi
+            [ "\$attempt" -eq 5 ] && { echo "::error::docker compose pull lms failed"; exit 1; }
+            sleep \$((attempt * 5))
+          done
           # JEPANGKU_CORE_API_URL sudah di-override di lms/.env lewat sed di atas
           docker compose up -d --force-recreate lms
 
