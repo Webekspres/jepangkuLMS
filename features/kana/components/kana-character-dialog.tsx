@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { KanaAudioButton } from '@/features/kana/components/kana-audio-button';
-import { KanaStrokeAnimation, KanaStrokeSteps } from '@/features/kana/components/kana-stroke-steps';
+import { KanaStrokeAnimation } from '@/features/kana/components/kana-stroke-steps';
 import { KanaVocabCarousel } from '@/features/kana/components/kana-vocab-carousel';
 import { getRowCharacters } from '@/features/kana/lib/kana-data';
 import { stopKanaAudio } from '@/features/kana/lib/kana-audio';
@@ -40,7 +40,7 @@ export function KanaCharacterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(92dvh,44rem)] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[min(92dvh,44rem)] overflow-y-auto sm:max-w-2xl">
         {character ? (
           <>
             <DialogHeader className="sr-only">
@@ -50,32 +50,37 @@ export function KanaCharacterDialog({
               <DialogDescription>Detail karakter {character.script}</DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-5 lg:grid-cols-[1fr_auto_1fr]">
-              <div className="space-y-4">
-                <div className="flex items-end gap-3">
-                  <p className="text-6xl font-bold leading-none text-foreground">{character.char}</p>
-                  <div className="pb-1">
-                    <p className="text-lg font-semibold text-primary">{character.romaji}</p>
-                    <KanaAudioButton src={character.audioSrc} label={character.romaji} />
-                  </div>
+            <div className="space-y-5">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <p className="text-6xl font-bold leading-none text-foreground">{character.char}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-semibold text-primary">{character.romaji}</p>
+                  <KanaAudioButton src={character.audioSrc} label={character.romaji} />
                 </div>
+              </div>
 
-                <div>
-                  <p className="mb-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                    Langkah menulis
+              <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+                <div className="flex flex-col gap-2">
+                  <p className="text-center text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                    Langkah penulisan
                   </p>
-                  <KanaStrokeSteps character={character} />
+                  <KanaStrokeAnimation
+                    character={character}
+                    className="mx-auto w-full max-w-50"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-center text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                    Contoh Kata
+                  </p>
+                  <KanaVocabCarousel
+                    key={character.id}
+                    items={character.vocabularies}
+                    highlightChar={character.char}
+                    className="mx-auto w-full max-w-50"
+                  />
                 </div>
               </div>
-
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                  Animasi
-                </p>
-                <KanaStrokeAnimation character={character} />
-              </div>
-
-              <KanaVocabCarousel key={character.id} items={character.vocabularies} />
             </div>
 
             {rowCharacters.length > 1 ? (

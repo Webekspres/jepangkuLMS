@@ -191,6 +191,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-22 | Dialog kana v2: hero tengah, label luar border, kotak stroke/vocab simetris, vocab vertikal |
+| 2026-07-22 | Dialog kana desktop: vocab compact (w-fit, tanpa whitespace), highlight per karakter |
+| 2026-07-22 | Dialog detail kana: hapus placeholder langkah menulis, GIF saja + layout 2-kolom responsif |
 | 2026-07-22 | Audio huruf kana 104: mapping romaji bentrok (ji/di, zu/du, jya) + id unik per char |
 | 2026-07-22 | Fix vocab kana Unsplash: match `vocabMeaning` saja (bukan +reading), 0 Fuji fallback, placeholder UI |
 | 2026-07-22 | Vocab kana: gambar Unsplash dikurasi per arti (`kana-vocab-images.ts`) + wire `buildVocab` |
