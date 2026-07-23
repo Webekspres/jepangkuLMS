@@ -175,7 +175,8 @@ model User {
     notifications  LmsNotification[]
     lessonComments LessonComment[]
     commentReplies LessonCommentReply[]
-    tryoutProgress TryoutExamProgress[]
+    tryoutProgress     TryoutExamProgress[]
+    placementAttempts  PlacementAttempt[]
 }
 
 // ====================================================================
@@ -822,4 +823,23 @@ model QuizAttempt {
     tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: SetNull)
 
     @@index([userId, tryoutSessionId, createdAt(sort: Desc)])
+}
+
+/// Hasil tes penempatan (soal statis di kode — tabel ini hanya menyimpan attempt).
+model PlacementAttempt {
+    id               String    @id @default(uuid())
+    userId           String
+    paperId          String
+    paperVersion     Int
+    score            Int
+    correctCount     Int
+    totalQuestions   Int
+    recommendedLevel LevelJLPT
+    /// JSON: { [questionId]: selectedOptionId }
+    answersJson      String    @db.Text
+    completedAt      DateTime  @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, completedAt(sort: Desc)])
 }

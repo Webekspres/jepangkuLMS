@@ -30,7 +30,8 @@
     "verify:core-gamification": "bun scripts/verify-core-gamification.ts",
     "email:dev": "email dev --dir emails --port 3001",
     "kana:generate": "bun run scripts/generate-kana-manifest-from-xlsx.ts",
-    "kana:vocab-images": "bun run scripts/generate-kana-vocab-images.ts"
+    "kana:vocab-images": "bun run scripts/generate-kana-vocab-images.ts",
+    "placement:generate": "bun run scripts/generate-placement-paper-from-xlsx.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1077.0",

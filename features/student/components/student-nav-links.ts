@@ -31,6 +31,7 @@ export const STUDENT_NAV_ITEMS: StudentNavItem[] = [
       { href: STUDENT_ROUTES.kursus, label: 'Kursus' },
       { href: STUDENT_ROUTES.liveClass, label: 'Live Class' },
       { href: STUDENT_ROUTES.tryout, label: 'Tryout JLPT' },
+      { href: STUDENT_ROUTES.placement, label: 'Tes Penempatan' },
     ],
   },
   { kind: 'link', href: STUDENT_ROUTES.leaderboard, label: 'Leaderboard' },
