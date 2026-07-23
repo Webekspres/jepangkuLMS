@@ -325,16 +325,25 @@ export function LandingPage() {
                     </ul>
                   </aside>
                   <div className="relative flex flex-1 flex-col bg-gray-50 p-3 sm:p-4">
-                    <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-brand-navy">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--primary)_35%,transparent),transparent_55%)]" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent" />
+                    <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-xl bg-muted">
+                      <Image
+                        src="/assets/hero-video-img.webp"
+                        alt=""
+                        fill
+                        className="object-cover object-center"
+                        sizes="(max-width: 1024px) 90vw, 480px"
+                        priority
+                        aria-hidden
+                      />
+                      {/* Soft scrim so lesson meta stays readable over the light illustration */}
+                      <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent" />
                       <motion.div
                         className="relative z-10 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl sm:size-16"
                         whileHover={{ scale: 1.06 }}
                       >
                         <Play className="size-6 fill-current pl-0.5 sm:size-7" />
                       </motion.div>
-                      <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between text-[11px] text-white/85 sm:text-xs">
+                      <div className="absolute right-3 bottom-3 left-3 z-10 flex items-center justify-between text-[11px] text-white sm:text-xs">
                         <span>Lesson 1: Hiragana Dasar</span>
                         <span>12:34</span>
                       </div>
