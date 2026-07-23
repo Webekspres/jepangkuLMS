@@ -86,6 +86,10 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 ├── /riwayat *                   → Riwayat tryout siswa + buka analisa ulang
 └── Mode ujian (?session=&level=) → Ruang ujian + timer + navigator soal
 
+/dashboard/tes-penempatan *      → Hub tes penempatan (status + mulai / hasil terakhir)
+├── /ujian *                     → Ruang ujian fokusus (satu soal + Next; Choukai audio kontinu)
+└── /hasil/[attemptId] *         → Rekomendasi level JLPT + CTA kursus
+
 /belajar/[courseSlug]/[lessonSlug] * → Course Workspace & Lesson View Page
 ├── Konten Pembelajaran (Teks, Gambar, Audio)
 ├── Secured Video Embed Player

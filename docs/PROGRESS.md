@@ -7,28 +7,28 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-22                                                  |
+| **Terakhir diperbarui**   | 2026-07-23                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **90%** (65 item terlacak)                                  |
+| **Progres global Fase 1** | **87%** (69 item terlacak)                                  |
 
 ### Progres global
 
 ```text
-[██████████████████░░] 90%
+[█████████████████░░░] 87%
 ```
 
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      16 |     12 |     4 |     0 |     85% |
-| Halaman & routing        |      27 |     24 |     3 |     0 |     93% |
-| Domain `features/`       |       8 |      7 |     1 |     0 |     92% |
+| Halaman & routing        |      30 |     24 |     6 |     0 |     88% |
+| Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **65** | **55** | **9** | **1** | **90%** |
+| **Total**                |  **69** | **55** | **13** | **1** | **87%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(55 + 3.6) ÷ 65 ≈ 90%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(55 + 5.2) ÷ 69 ≈ 87%`.
 
 ---
 
@@ -48,8 +48,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      12 |        4 |     0 |
-| Halaman & routing        |      24 |        3 |     0 |
-| Domain `features/`       |       7 |        1 |     0 |
+| Halaman & routing        |      24 |        6 |     0 |
+| Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       5 |        1 |     0 |
 
@@ -70,7 +70,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | TanStack Query providers                               |   ✅   | Dipakai terbatas                                             |
 | Zustand quiz store                                     |   🟡   | Ada; inline quiz di lesson workspace                         |
 | Zod validasi                                           |   ✅   | `lib/validations/`                                           |
-| Folder `features/` domain                              |   ✅   | learning, admin-cms, student, tryout, live-class, kana, public-api |
+| Folder `features/` domain                              |   ✅   | learning, admin-cms, student, tryout, placement, live-class, kana, public-api |
 | Shadcn UI primitif                                     |   🟡   | Cukup untuk MVP; tambah sesuai kebutuhan                     |
 | Prisma seed N5 + tryout + live class + 8 badge starter |   ✅   | `prisma/seed.ts`, `public/badges/*.png`                      |
 | Partner API v1                                         |   ✅   | `docs/PARTNER_API.md`                                        |
@@ -88,7 +88,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/kursus`                                      |   ✅   | **Prisma** published + filter; teaser Live Class & Tryout (cover + Lihat Detail → `/sign-up`) |
 | `/kursus/[slug]`                               |   ✅   | Detail marketing + CTA Daftar/Masuk; login → dashboard detail |
 | `/tryout`                                      |   🟡   | Halaman info publik (bukan ujian interaktif)          |
-| `/tes-penempatan`                              |   🟡   | Halaman info publik (bukan ujian interaktif); CTA daftar/masuk |
+| `/tes-penempatan`                              |   🟡   | Info publik; CTA → `/dashboard/tes-penempatan` |
 | `/tentang`, `/cara-belajar`, `/hubungi`, legal |   ✅   |                                                       |
 
 ### 2.2 Auth
@@ -114,6 +114,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil                             |
 | `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro bagian → soal terisolasi → submit                                     |
 | `/dashboard/tryout/hasil/[attemptId]`           |   ✅   | Popup animasi hasil + tier SOS/Latihan/Aman + tabel skor & analisa bagian + detail soal |
+| `/dashboard/tes-penempatan`                     |   🟡   | Hub + stub paper; asset sensei belum final                                              |
+| `/dashboard/tes-penempatan/ujian`               |   🟡   | Focus UI: Bunpou flat + Choukai Mondai Intro/navigator grup; audio kontinu; stub soal Choukai |
+| `/dashboard/tes-penempatan/hasil/[attemptId]`   |   🟡   | Rekomendasi level dari score bands; isi soal masih stub                                 |
 
 ### 2.4 Admin
 
@@ -143,6 +146,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
 | **tryout**       |   ✅   | Bank + Paket Soal (`JlptQuestionSet`) + sesi event + seek Choukai + paper snapshot |
+| **placement**    |   🟡   | Hub/ujian/hasil + Mondai Intro navigator Choukai; Bunpou dari Excel; Choukai masih stub asset |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
 | **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
@@ -157,7 +161,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | :-------------------------------------------------------------------- | :----: | --------------------------------------------------------- |
 | Schema Course/Module/Lesson/Materi/Question                           |   ✅   |
 | Schema Enrollment, UserProgress, QuizAttempt                          |   ✅   |
-| Schema LiveClass, TryoutSession, JLPT bank + Paket Soal (`JlptQuestionSet`) |   ✅   |
+| Schema LiveClass, TryoutSession, JLPT bank + Paket Soal (`JlptQuestionSet`) + `PlacementAttempt` |   ✅   |
 | Seed N5 + materi XLSX + tryout N5 Fase 1 + live class + badge starter |   ✅   |
 | Marketing katalog dari Prisma                                         |   ✅   |
 | Server Actions write paths                                            |   ✅   |
@@ -191,6 +195,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-23 | Placement Choukai: Intro Mondai 1–4 + navigator per grup + stub IMAGE/TEXT/NUMBER (36 soal total) |
+| 2026-07-23 | Tes Penempatan siswa: hub/ujian/hasil + `PlacementAttempt`, nav Program, Choukai audio kontinu (UI stub + placeholder assets) |
 | 2026-07-22 | Perjalanan Belajar: timeline ikon rata tengah; Jalur JLPT stroke aktif di-cap visual 90%; label Menuju kelulusan |
 | 2026-07-22 | FAB kana hanya di hub dasbor (beranda/program list/profil/kana); sembunyi di belajar/kuis/tryout exam |
 | 2026-07-22 | Dialog kana v2: hero tengah, label luar border, kotak stroke/vocab simetris, vocab vertikal |

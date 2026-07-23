@@ -12,6 +12,10 @@ export const STUDENT_ROUTES = {
     `/dashboard/tryout/${encodeURIComponent(sessionCode)}`,
   tryoutResult: (attemptId: string) => `/dashboard/tryout/hasil/${encodeURIComponent(attemptId)}`,
   tryoutHistory: '/dashboard/tryout/riwayat',
+  placement: '/dashboard/tes-penempatan',
+  placementExam: '/dashboard/tes-penempatan/ujian',
+  placementResult: (attemptId: string) =>
+    `/dashboard/tes-penempatan/hasil/${encodeURIComponent(attemptId)}`,
   liveClass: '/dashboard/live-class',
   profil: '/dashboard/profil',
   achievements: '/dashboard/achievements',
