@@ -30,6 +30,11 @@ export type StudentCoreData = {
   needsDisplayNameSetup: boolean;
   /** True sampai user mengisi nomor ponsel pertama kali. */
   needsPhoneSetup: boolean;
+  /**
+   * True jika belum pernah tes penempatan dan belum dismiss dialog ajakan.
+   * Hanya ditampilkan setelah setup nama/ponsel selesai.
+   */
+  needsPlacementPrompt: boolean;
   /** Nama awal dari SSO — prefill modal onboarding. */
   suggestedDisplayName: string | null;
   displayName: string | null;
@@ -71,6 +76,7 @@ export const EMPTY_STUDENT_CORE_DATA: StudentCoreData = {
   displayName: null,
   needsDisplayNameSetup: false,
   needsPhoneSetup: false,
+  needsPlacementPrompt: false,
   suggestedDisplayName: null,
   phone: null,
   email: null,

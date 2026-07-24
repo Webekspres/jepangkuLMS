@@ -72,13 +72,14 @@ function deriveStats(
     listeningStimulus: { _count: { questions: number } } | null;
   }>,
   activeSessionCount: number,
+  level: LevelJLPT,
 ): JlptQuestionSetDerivedStats {
   const counts = countFlattenedBySection(items);
   return {
     ...counts,
     activeSessionCount,
     isContentLocked: activeSessionCount > 0,
-    jlptCompleteness: buildJlptCompleteness(counts),
+    jlptCompleteness: buildJlptCompleteness(counts, level),
   };
 }
 
@@ -109,7 +110,7 @@ export const loadAdminJlptQuestionSets = cache(async function loadAdminJlptQuest
     year: row.year,
     description: row.description,
     updatedAt: row.updatedAt.toISOString(),
-    stats: deriveStats(row.items, row._count.sessions),
+    stats: deriveStats(row.items, row._count.sessions, row.level),
   }));
 });
 
@@ -217,6 +218,7 @@ export async function loadAdminJlptQuestionSetById(
         : null,
     })),
     row._count.sessions,
+    row.level,
   );
 
   return {
@@ -347,7 +349,7 @@ export async function loadReadyQuestionSetsForPicker(level?: LevelJLPT): Promise
       code: row.code,
       title: row.title,
       level: row.level,
-      completeness: buildJlptCompleteness(counts),
+      completeness: buildJlptCompleteness(counts, row.level),
       totalQuestions: counts.totalQuestions,
     };
   });

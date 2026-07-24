@@ -19,6 +19,7 @@ import {
     logCoreSessionUserMismatch,
 } from '@/lib/auth/core-session-user';
 import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
+import { prisma } from '@/lib/prisma';
 import {
     EMPTY_STUDENT_CORE_DATA,
     type StudentCoreData,
@@ -91,6 +92,10 @@ export const loadStudentCoreData = cache(async function loadStudentCoreData(): P
         data.needsDisplayNameSetup = !lmsProfile?.displayNameSetupAt;
         data.needsPhoneSetup = !lmsProfile?.phoneSetupAt;
         data.phone = lmsProfile?.phone ?? null;
+
+        const placementAttemptCount = await prisma.placementAttempt.count({ where: { userId } });
+        data.needsPlacementPrompt =
+            !lmsProfile?.placementPromptDismissedAt && placementAttemptCount === 0;
         data.suggestedDisplayName = (() => {
             const suggested = resolvePublicDisplayName({
                 displayName: null,

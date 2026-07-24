@@ -17,6 +17,7 @@ export const AUTH_ROUTES = {
 
 export const ADMIN_ROUTES = {
     dashboard: '/admin/dashboard',
+    settings: '/admin/settings',
     pembayaran: '/admin/pembayaran',
     kursus: '/admin/kursus',
     kursusForm: '/admin/kursus/form',

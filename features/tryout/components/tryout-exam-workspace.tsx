@@ -36,18 +36,12 @@ import { TryoutSubmitLoading } from '@/features/tryout/components/tryout-submit-
 import type { TryoutExamQuestion } from '@/features/student/lib/load-dashboard-extras';
 import { resolveMediaUrl } from '@/lib/media/image-src';
 import {
-    getTryoutSectionProgress,
-    TRYOUT_SECTIONS,
-    type TryoutSectionValue,
-} from '@/features/admin-cms/lib/tryout-sections';
+    getActiveTryoutExamBlocks,
+    questionsInExamBlock,
+    type TryoutExamBlock,
+} from '@/features/admin-cms/lib/tryout-exam-blocks';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
-
-const SECTION_COLORS: Record<string, string> = {
-    MOJI_GOI: 'bg-blue-500',
-    BUNPOU_DOKKAI: 'bg-violet-500',
-    CHOKAI: 'bg-emerald-500',
-};
 
 type TryoutExamWorkspaceProps = {
   sessionCode: string;
@@ -232,12 +226,12 @@ export function TryoutExamWorkspace({
   examProgress,
 }: TryoutExamWorkspaceProps) {
     const router = useRouter();
-    const sectionsInExam = useMemo(
-        () => TRYOUT_SECTIONS.filter((s) => questions.some((q) => q.section === s.value)),
-        [questions],
+    const blocksInExam = useMemo(
+        () => getActiveTryoutExamBlocks(level, questions),
+        [level, questions],
     );
 
-    const [sectionIndex, setSectionIndex] = useState(0);
+    const [blockIndex, setBlockIndex] = useState(0);
     const [phase, setPhase] = useState<ExamPhase>('section-intro');
     const [questionIndex, setQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>(examProgress.state.answers);
@@ -282,12 +276,11 @@ export function TryoutExamWorkspace({
         return () => window.clearTimeout(timer);
     }, [answers, playedAudioKeys, examProgress.id]);
 
-    const activeSectionMeta = sectionsInExam[sectionIndex];
-    const activeSection = activeSectionMeta?.value as TryoutSectionValue | undefined;
+    const activeBlock: TryoutExamBlock | undefined = blocksInExam[blockIndex];
 
     const sectionQuestions = useMemo(
-        () => (activeSection ? questions.filter((q) => q.section === activeSection) : []),
-        [questions, activeSection],
+        () => (activeBlock ? questionsInExamBlock(questions, activeBlock) : []),
+        [questions, activeBlock],
     );
 
     const selectAnswer = useCallback(
@@ -316,9 +309,15 @@ export function TryoutExamWorkspace({
         Boolean(chokaiAudioUrl) && current?.section === 'CHOKAI';
     const answeredCount = Object.keys(answers).length;
     const isUrgent = timeLeft < 600;
-    const isLastSection = sectionIndex >= sectionsInExam.length - 1;
-    const sectionProgress = activeSection
-        ? getTryoutSectionProgress(activeSection, questions, answers)
+    const isLastSection = blockIndex >= blocksInExam.length - 1;
+    const sectionProgress = activeBlock
+        ? (() => {
+            const blockQs = questionsInExamBlock(questions, activeBlock);
+            return {
+              total: blockQs.length,
+              answered: blockQs.filter((q) => Boolean(answers[q.id])).length,
+            };
+          })()
         : { answered: 0, total: 0 };
 
     const handleFinalSubmit = useCallback(async () => {
@@ -365,7 +364,7 @@ export function TryoutExamWorkspace({
             void handleFinalSubmit();
             return;
         }
-        setSectionIndex((i) => i + 1);
+        setBlockIndex((i) => i + 1);
         setQuestionIndex(0);
         setPhase('section-intro');
     }
@@ -378,7 +377,7 @@ export function TryoutExamWorkspace({
         formatTime,
     };
 
-    if (sectionsInExam.length === 0) {
+    if (blocksInExam.length === 0) {
         return (
             <TryoutFocusShell
                 sessionTitle={sessionTitle}
@@ -391,7 +390,7 @@ export function TryoutExamWorkspace({
                     <h2 className="text-lg font-bold text-foreground">Belum ada soal untuk ujian ini</h2>
                     <p className="mt-2 text-sm text-muted-foreground">
                         Bank soal level {level} belum lengkap. Admin mungkin masih menyiapkan salah satu bagian
-                        (MOJI GOI, BUNPOU DOKKAI, atau CHOKAI).
+                        ujian.
                     </p>
                     <Button asChild className="mt-6">
                         <Link href={STUDENT_ROUTES.tryout}>Kembali ke Pilih Sesi</Link>
@@ -401,7 +400,7 @@ export function TryoutExamWorkspace({
         );
     }
 
-    if (!activeSectionMeta || !activeSection) {
+    if (!activeBlock) {
         return null;
     }
 
@@ -409,10 +408,10 @@ export function TryoutExamWorkspace({
         return (
             <TryoutFocusShell {...shellProps}>
                 <TryoutSectionIntro
-                    section={activeSection}
+                    block={activeBlock}
                     questionCount={sectionQuestions.length}
-                    sectionIndex={sectionIndex}
-                    totalSections={sectionsInExam.length}
+                    sectionIndex={blockIndex}
+                    totalSections={blocksInExam.length}
                     onStart={startSection}
                 />
             </TryoutFocusShell>
@@ -450,21 +449,21 @@ export function TryoutExamWorkspace({
                             <span
                                 className={cn(
                                     'inline-block rounded-md px-2 py-0.5 text-[10px] font-bold text-white sm:rounded-lg sm:px-2.5 sm:py-1 sm:text-xs',
-                                    SECTION_COLORS[current.section] ?? 'bg-muted-foreground',
+                                    activeBlock.color,
                                 )}
                             >
                                 {current.section === 'CHOKAI' && current.mondaiOrder
-                                    ? `CHOKAI · MONDAI ${current.mondaiOrder}`
-                                    : current.sectionLabel}
+                                    ? `${activeBlock.shortLabel} · MONDAI ${current.mondaiOrder}`
+                                    : activeBlock.label}
                             </span>
                             <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
                                 <span className="sm:hidden">
-                                    Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
-                                    {sectionsInExam.length}
+                                    Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {blockIndex + 1}/
+                                    {blocksInExam.length}
                                 </span>
                                 <span className="hidden sm:inline">
-                                    Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {sectionIndex + 1}/
-                                    {sectionsInExam.length} · Total {answeredCount}/{questions.length} terjawab
+                                    Soal {questionIndex + 1}/{sectionQuestions.length} · Bagian {blockIndex + 1}/
+                                    {blocksInExam.length} · Total {answeredCount}/{questions.length} terjawab
                                 </span>
                             </p>
                         </div>
@@ -631,7 +630,7 @@ export function TryoutExamWorkspace({
                     <aside className="hidden w-72 shrink-0 border-l border-border bg-card p-5 lg:block">
                         <h3 className="mb-4 flex items-center gap-2 text-sm font-bold">
                             <BarChart2 className="size-4 text-primary" />
-                            Navigator — {current.section === 'CHOKAI' ? 'CHOKAI' : current.sectionLabel}
+                            Navigator — {activeBlock.shortLabel}
                         </h3>
                         {current.section === 'CHOKAI' ? (
                             <ChokaiSectionNavigator
@@ -702,7 +701,7 @@ export function TryoutExamWorkspace({
                     <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>
-                                Navigator — {current.section === 'CHOKAI' ? 'CHOKAI' : current.sectionLabel}
+                                Navigator — {activeBlock.shortLabel}
                             </DialogTitle>
                         </DialogHeader>
                         {current.section === 'CHOKAI' ? (
@@ -737,7 +736,7 @@ export function TryoutExamWorkspace({
                             <DialogTitle>
                                 {isLastSection
                                     ? 'Kirim semua jawaban?'
-                                    : `Kunci bagian ${current.sectionLabel}?`}
+                                    : `Kunci bagian ${activeBlock.shortLabel}?`}
                             </DialogTitle>
                             <DialogDescription asChild>
                                 <div className="space-y-2 text-sm text-muted-foreground">
@@ -765,7 +764,7 @@ export function TryoutExamWorkspace({
                                                 ) : null}
                                             </p>
                                             <p>
-                                                Bagian <strong>{current.sectionLabel}</strong> akan dikunci. Kamu tidak bisa
+                                                Bagian <strong>{activeBlock.label}</strong> akan dikunci. Kamu tidak bisa
                                                 kembali mengubah jawaban setelah ini.
                                             </p>
                                         </>

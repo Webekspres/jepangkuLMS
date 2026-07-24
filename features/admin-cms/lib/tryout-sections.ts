@@ -1,23 +1,26 @@
-/** JLPT tryout sections — ordered by exam structure. */
+/** JLPT tryout sections — ordered by exam structure (storage codes). */
 export const TRYOUT_SECTIONS = [
     {
         value: 'MOJI_GOI',
-        label: 'Moji Goi',
+        label: 'Vocabulary',
         labelRomaji: 'MOJI GOI',
+        labelEn: 'Language Knowledge (Vocabulary)',
         color: 'bg-blue-500',
         description: 'Kosakata & kanji — bacaan, makna, penggunaan.',
     },
     {
         value: 'BUNPOU_DOKKAI',
-        label: 'Bunpou Dokkai',
+        label: 'Grammar · Reading',
         labelRomaji: 'BUNPOU DOKKAI',
+        labelEn: 'Language Knowledge (Grammar) · Reading',
         color: 'bg-violet-500',
         description: 'Tata bahasa & pemahaman bacaan.',
     },
     {
         value: 'CHOKAI',
-        label: 'Chokai',
+        label: 'Listening',
         labelRomaji: 'CHOKAI',
+        labelEn: 'Listening',
         color: 'bg-emerald-500',
         description: 'Listening — impor ZIP (audio clip + opsi gambar) atau unggah manual.',
     },

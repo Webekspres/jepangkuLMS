@@ -53,3 +53,22 @@ export async function submitPlacementAttempt(
 
   return { ok: true, attemptId: attempt.id };
 }
+
+/** Tutup dialog ajakan tes penempatan — tidak muncul lagi. */
+export async function dismissPlacementPromptAction(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  try {
+    const userId = await requireAuthUserWithAnchor();
+    await prisma.user.update({
+      where: { id: userId },
+      data: { placementPromptDismissedAt: new Date() },
+    });
+    revalidatePath('/dashboard');
+    revalidatePath(STUDENT_ROUTES.placement);
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal menyimpan pilihan.';
+    return { ok: false, error: message };
+  }
+}

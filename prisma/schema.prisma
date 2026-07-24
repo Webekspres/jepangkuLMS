@@ -155,6 +155,8 @@ model User {
     phone              String?   @db.VarChar(20)
     /// Setelah user mengisi nomor ponsel di onboarding / edit profil
     phoneSetupAt       DateTime?
+    /// Setelah user menutup / melewati dialog ajakan tes penempatan (opsional)
+    placementPromptDismissedAt DateTime?
     /// Foto profil LMS — override Clerk jika di-set
     avatarUrl          String?
     role               LmsRole   @default(LMS_STUDENT)
