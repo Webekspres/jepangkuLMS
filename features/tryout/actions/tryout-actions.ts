@@ -139,7 +139,8 @@ export async function submitTryoutAttempt(input: {
 
   const level: LevelJLPT = session.level;
 
-  const questions = await loadTryoutExamPaper(session.id);
+  const paper = await loadTryoutExamPaper(session.id);
+  const questions = paper.questions;
 
   if (questions.length === 0) {
     return { ok: false, message: 'Soal untuk sesi ini belum tersedia.' };

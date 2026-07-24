@@ -570,6 +570,8 @@ model JlptQuestion {
     listeningStimulusId  String?
     /// Order within a Choukai stimulus (ignored for Moji/Bunpou).
     stimulusSortOrder    Int                  @default(0)
+    /// Dynamic mondai group within a package (1, 2, 3… — not fixed to 4).
+    mondaiOrder          Int                  @default(1)
     createdAt            DateTime             @default(now())
     updatedAt            DateTime             @updatedAt
 
@@ -580,6 +582,7 @@ model JlptQuestion {
 
     @@index([level, section, status])
     @@index([listeningStimulusId, stimulusSortOrder])
+    @@index([section, mondaiOrder])
 }
 
 model JlptQuestionOption {
@@ -607,6 +610,11 @@ model JlptQuestionSet {
     source      String?
     year        Int?
     status      JlptQuestionSetStatus @default(DRAFT)
+    /// Continuous Choukai master for the whole package (all mondai in one tape).
+    chokaiAudioObjectKey  String?
+    chokaiAudioUrl        String?
+    chokaiAudioDurationMs Int?
+    chokaiAudioOriginalName String?
     createdAt   DateTime              @default(now())
     updatedAt   DateTime              @updatedAt
 

@@ -112,6 +112,32 @@ export async function updateJlptQuestionSetMetaAction(
   return { ok: true, id };
 }
 
+export async function updateJlptQuestionSetChokaiAudioAction(input: {
+  questionSetId: string;
+  audioUrl: string | null;
+  audioObjectKey?: string | null;
+  audioOriginalName?: string | null;
+  audioDurationMs?: number | null;
+}): Promise<CmsQuestionSetActionResult> {
+  await requireAdminAction();
+  const gate = await assertContentEditable(input.questionSetId);
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const url = input.audioUrl?.trim() || null;
+  await prisma.jlptQuestionSet.update({
+    where: { id: input.questionSetId },
+    data: {
+      chokaiAudioUrl: url,
+      chokaiAudioObjectKey: url ? input.audioObjectKey?.trim() || null : null,
+      chokaiAudioOriginalName: url ? input.audioOriginalName?.trim() || null : null,
+      chokaiAudioDurationMs: url ? (input.audioDurationMs ?? null) : null,
+    },
+  });
+
+  revalidatePaket(input.questionSetId);
+  return { ok: true, id: input.questionSetId };
+}
+
 export async function setJlptQuestionSetStatusAction(
   id: string,
   status: JlptQuestionSetStatus,
@@ -164,6 +190,10 @@ export async function duplicateJlptQuestionSetAction(
         source: source.source,
         year: source.year,
         status: 'DRAFT',
+        chokaiAudioUrl: source.chokaiAudioUrl,
+        chokaiAudioObjectKey: source.chokaiAudioObjectKey,
+        chokaiAudioDurationMs: source.chokaiAudioDurationMs,
+        chokaiAudioOriginalName: source.chokaiAudioOriginalName,
       },
     });
     if (source.items.length > 0) {
@@ -410,6 +440,7 @@ export async function createChokaiInSetAction(input: {
   audioEndMs?: number | null;
   imageUrl?: string | null;
   imageObjectKey?: string | null;
+  mondaiOrder?: number;
 }): Promise<CmsQuestionSetActionResult> {
   await requireAdminAction();
   const gate = await assertContentEditable(input.questionSetId);
@@ -465,6 +496,9 @@ export async function createChokaiInSetAction(input: {
     sortOrder: index,
   }));
 
+  const mondaiOrder = Math.max(1, Math.trunc(input.mondaiOrder ?? 1));
+  const stemImageUrl = input.imageUrl?.trim() || null;
+
   await prisma.$transaction(async (tx) => {
     if (!useStimulus) {
       const question = await tx.jlptQuestion.create({
@@ -476,6 +510,8 @@ export async function createChokaiInSetAction(input: {
           questionText,
           explanation: input.explanation?.trim() || null,
           answerOptionKind: 'TEXT',
+          mondaiOrder,
+          stemImageUrl,
           options: { create: optionCreates },
         },
       });
@@ -515,6 +551,8 @@ export async function createChokaiInSetAction(input: {
         answerOptionKind: 'TEXT',
         listeningStimulusId: stim.id,
         stimulusSortOrder: 1,
+        mondaiOrder,
+        stemImageUrl,
         options: { create: optionCreates },
       },
     });
@@ -600,6 +638,7 @@ export async function updateChokaiSetItemAction(input: {
   options: { text: string; isCorrect: boolean }[];
   audioUrl?: string | null;
   imageUrl?: string | null;
+  mondaiOrder?: number;
 }): Promise<CmsQuestionSetActionResult> {
   await requireAdminAction();
 
@@ -629,6 +668,9 @@ export async function updateChokaiSetItemAction(input: {
   const optError = validateQuestionOptions(input.options);
   if (optError) return { ok: false, message: optError };
 
+  const mondaiOrder = Math.max(1, Math.trunc(input.mondaiOrder ?? 1));
+  const stemImageUrl = input.imageUrl?.trim() || null;
+
   if (item.jlptQuestionId && item.jlptQuestion?.section === 'CHOKAI') {
     await prisma.$transaction(async (tx) => {
       await tx.jlptQuestion.update({
@@ -636,6 +678,8 @@ export async function updateChokaiSetItemAction(input: {
         data: {
           questionText,
           explanation: input.explanation?.trim() || null,
+          mondaiOrder,
+          stemImageUrl,
         },
       });
       await tx.jlptQuestionOption.deleteMany({ where: { questionId: item.jlptQuestionId! } });
@@ -661,16 +705,19 @@ export async function updateChokaiSetItemAction(input: {
     return { ok: false, message: 'Stimulus belum punya soal aktif untuk diedit.' };
   }
 
-  const audioUrl = input.audioUrl?.trim() || null;
-  const imageUrl = input.imageUrl?.trim() || null;
+  const imageUrl = stemImageUrl;
+  const stimulusAudioPatch =
+    input.audioUrl !== undefined
+      ? { audioUrl: input.audioUrl?.trim() || null }
+      : {};
 
   await prisma.$transaction(async (tx) => {
     await tx.listeningStimulus.update({
       where: { id: item.listeningStimulusId! },
       data: {
         instructionText: input.instructionText?.trim() || null,
-        audioUrl,
         imageUrl,
+        ...stimulusAudioPatch,
       },
     });
     await tx.jlptQuestion.update({
@@ -678,6 +725,8 @@ export async function updateChokaiSetItemAction(input: {
       data: {
         questionText,
         explanation: input.explanation?.trim() || null,
+        mondaiOrder,
+        stemImageUrl,
       },
     });
     await tx.jlptQuestionOption.deleteMany({ where: { questionId } });
@@ -693,4 +742,83 @@ export async function updateChokaiSetItemAction(input: {
 
   revalidatePaket(item.questionSetId);
   return { ok: true };
+}
+
+/**
+ * Remap Choukai `mondaiOrder` values to 1..N following the given tab order.
+ * `orderedOldOrders` is the left-to-right list of previous mondaiOrder keys (incl. empty drafts).
+ */
+export async function renumberChokaiMondaiInSetAction(input: {
+  questionSetId: string;
+  orderedOldOrders: number[];
+}): Promise<CmsQuestionSetActionResult> {
+  await requireAdminAction();
+  const gate = await assertContentEditable(input.questionSetId);
+  if (!gate.ok) return { ok: false, message: gate.message };
+
+  const ordered = input.orderedOldOrders
+    .map((n) => Math.trunc(n))
+    .filter((n) => Number.isFinite(n) && n >= 1);
+  if (ordered.length === 0) {
+    revalidatePaket(input.questionSetId);
+    return { ok: true, id: input.questionSetId };
+  }
+
+  const orderMap = new Map<number, number>();
+  ordered.forEach((oldOrder, index) => {
+    if (!orderMap.has(oldOrder)) orderMap.set(oldOrder, index + 1);
+  });
+
+  const items = await prisma.jlptQuestionSetItem.findMany({
+    where: { questionSetId: input.questionSetId, section: 'CHOKAI' },
+    include: {
+      jlptQuestion: { select: { id: true, mondaiOrder: true } },
+      listeningStimulus: {
+        select: {
+          questions: {
+            where: { status: { not: 'RETIRED' } },
+            select: { id: true, mondaiOrder: true },
+          },
+        },
+      },
+    },
+  });
+
+  const questionUpdates: { id: string; oldOrder: number }[] = [];
+  for (const item of items) {
+    if (item.jlptQuestion) {
+      questionUpdates.push({
+        id: item.jlptQuestion.id,
+        oldOrder: item.jlptQuestion.mondaiOrder,
+      });
+    }
+    for (const q of item.listeningStimulus?.questions ?? []) {
+      questionUpdates.push({ id: q.id, oldOrder: q.mondaiOrder });
+    }
+  }
+
+  const toRemap = questionUpdates.filter((q) => orderMap.has(q.oldOrder));
+  if (toRemap.length === 0) {
+    revalidatePaket(input.questionSetId);
+    return { ok: true, id: input.questionSetId };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const q of toRemap) {
+      await tx.jlptQuestion.update({
+        where: { id: q.id },
+        data: { mondaiOrder: q.oldOrder + 10_000 },
+      });
+    }
+    for (const q of toRemap) {
+      const next = orderMap.get(q.oldOrder)!;
+      await tx.jlptQuestion.update({
+        where: { id: q.id },
+        data: { mondaiOrder: next },
+      });
+    }
+  });
+
+  revalidatePaket(input.questionSetId);
+  return { ok: true, id: input.questionSetId };
 }

@@ -31,6 +31,7 @@ import {
     ChokaiImageOption,
     ChokaiStimulusImage,
 } from '@/features/tryout/components/chokai-media';
+import { PlacementChokaiContinuousAudio } from '@/features/placement/components/placement-chokai-continuous-audio';
 import { TryoutFocusShell } from '@/features/tryout/components/tryout-focus-shell';
 import { TryoutSectionIntro } from '@/features/tryout/components/tryout-section-intro';
 import { TryoutSubmitLoading } from '@/features/tryout/components/tryout-submit-loading';
@@ -56,6 +57,8 @@ type TryoutExamWorkspaceProps = {
     level: string;
     timeLimitMinutes: number;
     questions: TryoutExamQuestion[];
+    /** Package-level continuous Choukai audio (placement-style). */
+    chokaiAudioUrl?: string | null;
     examProgress: { id: string; state: TryoutExamProgressState };
 };
 
@@ -175,9 +178,10 @@ export function TryoutExamWorkspace({
   sessionCode,
   sessionTitle,
   level,
-    timeLimitMinutes,
-    questions,
-    examProgress,
+  timeLimitMinutes,
+  questions,
+  chokaiAudioUrl = null,
+  examProgress,
 }: TryoutExamWorkspaceProps) {
     const router = useRouter();
     const sectionsInExam = useMemo(
@@ -262,7 +266,9 @@ export function TryoutExamWorkspace({
     );
 
     const current = sectionQuestions[questionIndex];
-    const examAudio = current ? resolveExamAudio(current) : null;
+    const useContinuousChokai =
+        Boolean(chokaiAudioUrl) && current?.section === 'CHOKAI';
+    const examAudio = current && !useContinuousChokai ? resolveExamAudio(current) : null;
     const chokaiPlayKey =
         current?.section === 'CHOKAI' && examAudio?.url
             ? resolveTryoutAudioPlayKey({
@@ -445,6 +451,12 @@ export function TryoutExamWorkspace({
 
                 <div className="flex flex-1">
                     <main className="flex-1 p-3 pb-20 sm:p-6 sm:pb-6 lg:p-8">
+                        {useContinuousChokai ? (
+                            <PlacementChokaiContinuousAudio
+                                audioUrl={chokaiAudioUrl!}
+                                className="mb-3 sm:mb-4"
+                            />
+                        ) : null}
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={current.id}
@@ -472,12 +484,19 @@ export function TryoutExamWorkspace({
                                 ) : null}
 
                                 <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-8">
-                                    {current.stimulus?.instructionText ? (
+                                    {current.section === 'CHOKAI' && current.mondaiOrder ? (
+                                        <p className="mb-2 text-xs font-bold tracking-wide text-muted-foreground">
+                                          もんだい {current.mondaiOrder}
+                                        </p>
+                                    ) : null}
+                                    {current.stimulus?.instructionText && !useContinuousChokai ? (
                                         <p className="mb-3 text-sm text-muted-foreground whitespace-pre-line">
                                             {current.stimulus.instructionText}
                                         </p>
                                     ) : null}
-                                    {current.stimulus?.imageUrl ? (
+                                    {current.stemImageUrl && resolveMediaUrl(current.stemImageUrl) ? (
+                                        <ChokaiStimulusImage imageUrl={current.stemImageUrl} />
+                                    ) : current.stimulus?.imageUrl ? (
                                         <ChokaiStimulusImage imageUrl={current.stimulus.imageUrl} />
                                     ) : current.imageUrl && resolveMediaUrl(current.imageUrl) ? (
                                         <ChokaiStimulusImage imageUrl={current.imageUrl} />
