@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { isR2Configured, uploadToR2 } from '@/lib/r2';
+import { buildPaketChokaiMasterAudioKey } from '@/lib/media/tryout-chokai-r2-paths';
 
 export const TRYOUT_AUDIO_MAX_BYTES = 15 * 1024 * 1024;
 export const TRYOUT_AUDIO_ALLOWED_TYPES = new Set(['audio/mpeg', 'audio/mp3']);
@@ -13,6 +14,7 @@ export function sanitizeTryoutAudioGroupId(raw: string): string | null {
     return trimmed;
 }
 
+/** @deprecated Prefer buildPaketChokaiMasterAudioKey for paket CMS uploads. */
 export function buildTryoutChokaiObjectKey(originalName: string): string {
     const base = originalName
         .replace(/\.[^.]+$/, '')
@@ -53,13 +55,36 @@ export async function uploadTryoutChokaiAudio(
     buffer: Buffer,
     originalName: string,
     contentType: string,
-): Promise<string> {
+): Promise<{ url: string; objectKey: string }> {
     if (!isR2Configured()) {
         throw new Error(
             'R2 belum dikonfigurasi. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, dan R2_PUBLIC_URL di .env',
         );
     }
 
-    const key = buildTryoutChokaiObjectKey(originalName);
-    return uploadToR2(buffer, key, contentType);
+    const objectKey = buildTryoutChokaiObjectKey(originalName);
+    const url = await uploadToR2(buffer, objectKey, contentType);
+    return { url, objectKey };
+}
+
+export async function uploadPaketChokaiMasterAudio(input: {
+    buffer: Buffer;
+    originalName: string;
+    contentType: string;
+    packageCode: string;
+    questionSetId: string;
+}): Promise<{ url: string; objectKey: string }> {
+    if (!isR2Configured()) {
+        throw new Error(
+            'R2 belum dikonfigurasi. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, dan R2_PUBLIC_URL di .env',
+        );
+    }
+
+    const objectKey = buildPaketChokaiMasterAudioKey(
+        input.packageCode,
+        input.questionSetId,
+        input.originalName,
+    );
+    const url = await uploadToR2(input.buffer, objectKey, input.contentType);
+    return { url, objectKey };
 }

@@ -32,6 +32,7 @@ export type AdminJlptQuestionSetItemEditData = {
   instructionText: string;
   audioUrl: string;
   imageUrl: string | null;
+  imageObjectKey: string | null;
   mondaiOrder: number;
   questionCountInGroup: number;
 };
@@ -129,6 +130,7 @@ export async function loadAdminJlptQuestionSetById(
               explanation: true,
               mondaiOrder: true,
               stemImageUrl: true,
+              stemImageObjectKey: true,
               options: {
                 orderBy: { sortOrder: 'asc' },
                 select: { text: true, isCorrect: true },
@@ -142,6 +144,7 @@ export async function loadAdminJlptQuestionSetById(
               instructionText: true,
               audioUrl: true,
               imageUrl: true,
+              imageObjectKey: true,
               _count: { select: { questions: true } },
               questions: {
                 where: { status: { not: 'RETIRED' } },
@@ -154,6 +157,7 @@ export async function loadAdminJlptQuestionSetById(
                   explanation: true,
                   mondaiOrder: true,
                   stemImageUrl: true,
+                  stemImageObjectKey: true,
                   options: {
                     orderBy: { sortOrder: 'asc' },
                     select: { text: true, isCorrect: true },
@@ -250,6 +254,7 @@ export async function loadAdminJlptQuestionSetById(
           instructionText: '',
           audioUrl: '',
           imageUrl: i.jlptQuestion.stemImageUrl,
+          imageObjectKey: i.jlptQuestion.stemImageObjectKey,
           mondaiOrder: i.jlptQuestion.mondaiOrder,
           questionCountInGroup: 1,
         };
@@ -269,6 +274,7 @@ export async function loadAdminJlptQuestionSetById(
             instructionText: i.listeningStimulus.instructionText ?? '',
             audioUrl: i.listeningStimulus.audioUrl ?? '',
             imageUrl: firstQ.stemImageUrl ?? i.listeningStimulus.imageUrl,
+            imageObjectKey: firstQ.stemImageObjectKey ?? i.listeningStimulus.imageObjectKey,
             mondaiOrder: firstQ.mondaiOrder,
             questionCountInGroup: i.listeningStimulus._count.questions,
           };

@@ -264,6 +264,8 @@ function ChokaiForm({
   locked,
   disabled,
   mondaiOrder,
+  questionSetId,
+  packageCode,
   initial,
   onCancel,
   onSubmit,
@@ -273,8 +275,11 @@ function ChokaiForm({
   disabled: boolean;
   /** Injected from Mondai group context — not editable in the form. */
   mondaiOrder: number;
+  questionSetId: string;
+  packageCode: string;
   initial?: (QuestionDraft & {
     imageUrl: string | null;
+    imageObjectKey?: string | null;
   }) | null;
   onCancel?: () => void;
   onSubmit: (data: {
@@ -282,6 +287,7 @@ function ChokaiForm({
     explanation: string;
     options: { text: string; isCorrect: boolean }[];
     imageUrl: string | null;
+    imageObjectKey: string | null;
     mondaiOrder: number;
   }) => void;
 }) {
@@ -290,6 +296,9 @@ function ChokaiForm({
   const [open, setOpen] = useState(isEdit);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(initial?.imageUrl ?? null);
+  const [imageObjectKey, setImageObjectKey] = useState<string | null>(
+    initial?.imageObjectKey ?? null,
+  );
   const [questionText, setQuestionText] = useState(initial?.questionText ?? '');
   const [explanation, setExplanation] = useState(initial?.explanation ?? '');
   const [options, setOptions] = useState(() => {
@@ -309,18 +318,26 @@ function ChokaiForm({
       const form = new FormData();
       form.set('file', file);
       form.set('level', level);
-      form.set('code', `chokai-${Date.now()}`);
+      form.set('code', packageCode);
+      form.set('questionSetId', questionSetId);
+      form.set('mondaiOrder', String(mondaiOrder));
       const res = await fetch('/api/admin/tryout/upload-image', {
         method: 'POST',
         body: form,
         credentials: 'same-origin',
       });
-      const json = (await res.json()) as { ok: boolean; url?: string; message?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        objectKey?: string;
+        message?: string;
+      };
       if (!json.ok || !json.url) {
         toast.error(json.message ?? 'Upload gambar gagal');
         return;
       }
       setImageUrl(json.url);
+      setImageObjectKey(json.objectKey ?? null);
       toast.success('Gambar penunjuk terunggah');
     } catch {
       toast.error('Upload gambar gagal');
@@ -355,6 +372,7 @@ function ChokaiForm({
     setQuestionText('');
     setExplanation('');
     setImageUrl(null);
+    setImageObjectKey(null);
     setOptions(emptyOptions());
     setCorrectIndex('0');
   }
@@ -393,7 +411,15 @@ function ChokaiForm({
             }}
           />
           {imageUrl ? (
-            <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setImageUrl(null);
+                setImageObjectKey(null);
+              }}
+            >
               Hapus gambar
             </Button>
           ) : null}
@@ -444,6 +470,7 @@ function ChokaiForm({
               questionText,
               explanation,
               imageUrl,
+              imageObjectKey,
               mondaiOrder: Math.max(1, Math.trunc(mondaiOrder) || 1),
               options: options.map((o, i) => ({
                 text: o.text,
@@ -642,12 +669,18 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     try {
       const form = new FormData();
       form.set('file', file);
+      form.set('questionSetId', detail.id);
       const res = await fetch('/api/admin/tryout/upload-audio', {
         method: 'POST',
         body: form,
         credentials: 'same-origin',
       });
-      const json = (await res.json()) as { ok: boolean; url?: string; message?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        objectKey?: string;
+        message?: string;
+      };
       if (!json.ok || !json.url) {
         toast.error(json.message ?? 'Upload audio gagal');
         return;
@@ -655,6 +688,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
       const result = await updateJlptQuestionSetChokaiAudioAction({
         questionSetId: detail.id,
         audioUrl: json.url,
+        audioObjectKey: json.objectKey ?? null,
         audioOriginalName: file.name,
       });
       if (!result.ok) {
@@ -690,6 +724,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     explanation: string;
     options: { text: string; isCorrect: boolean }[];
     imageUrl: string | null;
+    imageObjectKey: string | null;
     mondaiOrder: number;
   }) {
     startTransition(async () => {
@@ -701,6 +736,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         options: data.options,
         audioUrl: null,
         imageUrl: data.imageUrl,
+        imageObjectKey: data.imageObjectKey,
         mondaiOrder: data.mondaiOrder,
       });
       if (!result.ok) {
@@ -771,6 +807,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
       explanation: string;
       options: { text: string; isCorrect: boolean }[];
       imageUrl: string | null;
+      imageObjectKey: string | null;
       mondaiOrder: number;
     },
   ) {
@@ -783,6 +820,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         options: data.options,
         audioUrl: undefined,
         imageUrl: data.imageUrl,
+        imageObjectKey: data.imageObjectKey,
         mondaiOrder: data.mondaiOrder,
       });
       if (!result.ok) {
@@ -1183,11 +1221,14 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                                   locked={locked}
                                   disabled={isPending}
                                   mondaiOrder={index + 1}
+                                  questionSetId={detail.id}
+                                  packageCode={detail.code}
                                   initial={{
                                     questionText: item.editData.questionText,
                                     explanation: item.editData.explanation,
                                     options: item.editData.options,
                                     imageUrl: item.editData.imageUrl,
+                                    imageObjectKey: item.editData.imageObjectKey,
                                   }}
                                   onCancel={() => setEditingItemId(null)}
                                   onSubmit={(data) =>
@@ -1209,6 +1250,8 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                         locked={locked}
                         disabled={isPending}
                         mondaiOrder={group.order}
+                        questionSetId={detail.id}
+                        packageCode={detail.code}
                         onSubmit={(data) =>
                           handleCreateChokai({
                             ...data,
