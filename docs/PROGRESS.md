@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-23                                                  |
+| **Terakhir diperbarui**   | 2026-07-24                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **87%** (69 item terlacak)                                  |
 
@@ -125,7 +125,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
 | `/admin/live-class`                        |   ✅   | CRUD jadwal live class + kolom peserta (enrollment) + dialog daftar siswa        |
 | `/admin/tryout`                            |   ✅   | CRUD sesi + pilih Paket Soal + peserta                                               |
-| `/admin/tryout/paket`                      |   ✅   | Paket Soal: buat & isi Moji/Bunpou/Choukai (audio+gambar) di dalam paket              |
+| `/admin/tryout/paket`                      |   ✅   | Paket Soal: Moji/Bunpou/Choukai; audio master Choukai + `mondaiOrder` dinamis               |
 | `/admin/tryout/paket/import`               |   ✅   | UI seperti impor kursus: dropzone + Pratinjau (`dryRun`) + Impor ke DB; panduan + template ZIP |
 | `/admin/tryout/bank`                       |   ✅   | Redirect → `/paket` (menu bank dihapus dari nav)                                      |
 | `/admin/tryout/[sessionId]/susun`          |   ✅   | Redirect → paket sesi (compose per-sesi retired)                                     |
@@ -145,7 +145,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries, Q&A nested + player video hardened   |
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
-| **tryout**       |   ✅   | Bank + Paket Soal (`JlptQuestionSet`) + sesi event + seek Choukai + paper snapshot |
+| **tryout**       |   ✅   | Paket Soal + sesi; Choukai 1 audio master + `mondaiOrder` dinamis; continuous player   |
 | **placement**    |   🟡   | Hub/ujian/hasil + Mondai Intro navigator Choukai; Bunpou dari Excel; Choukai masih stub asset |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
@@ -195,6 +195,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-24 | Tryout Choukai: 1 audio master per paket + `mondaiOrder` dinamis; CMS paket upload; exam continuous player (tanpa intro per-mondai) |
 | 2026-07-23 | Placement Choukai: Intro Mondai 1–4 + navigator per grup + stub IMAGE/TEXT/NUMBER (36 soal total) |
 | 2026-07-23 | Tes Penempatan siswa: hub/ujian/hasil + `PlacementAttempt`, nav Program, Choukai audio kontinu (UI stub + placeholder assets) |
 | 2026-07-22 | Perjalanan Belajar: timeline ikon rata tengah; Jalur JLPT stroke aktif di-cap visual 90%; label Menuju kelulusan |

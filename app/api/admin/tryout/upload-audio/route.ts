@@ -3,8 +3,10 @@ import { requireAdminAccess } from '@/features/admin-cms/lib/require-admin-actio
 import {
   TRYOUT_AUDIO_MAX_BYTES,
   resolveTryoutAudioMimeType,
+  uploadPaketChokaiMasterAudio,
   uploadTryoutChokaiAudio,
 } from '@/lib/media/tryout-audio';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +18,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
+    const questionSetId = String(formData.get('questionSetId') ?? '').trim();
 
     if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json({ ok: false, message: 'File audio wajib diunggah.' }, { status: 400 });
@@ -37,9 +40,35 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const url = await uploadTryoutChokaiAudio(buffer, file.name, contentType);
 
-    return NextResponse.json({ ok: true, url });
+    if (questionSetId) {
+      const set = await prisma.jlptQuestionSet.findUnique({
+        where: { id: questionSetId },
+        select: { id: true, code: true },
+      });
+      if (!set) {
+        return NextResponse.json({ ok: false, message: 'Paket tidak ditemukan.' }, { status: 404 });
+      }
+      const uploaded = await uploadPaketChokaiMasterAudio({
+        buffer,
+        originalName: file.name,
+        contentType,
+        packageCode: set.code,
+        questionSetId: set.id,
+      });
+      return NextResponse.json({
+        ok: true,
+        url: uploaded.url,
+        objectKey: uploaded.objectKey,
+      });
+    }
+
+    const uploaded = await uploadTryoutChokaiAudio(buffer, file.name, contentType);
+    return NextResponse.json({
+      ok: true,
+      url: uploaded.url,
+      objectKey: uploaded.objectKey,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload audio gagal.';
     return NextResponse.json({ ok: false, message }, { status: 500 });

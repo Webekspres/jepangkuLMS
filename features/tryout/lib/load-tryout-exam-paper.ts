@@ -41,6 +41,8 @@ export type TryoutPaperQuestion = {
   explanation: string | null;
   answerOptionKind: 'TEXT' | 'IMAGE' | null;
   stemImageUrl: string | null;
+  /** Dynamic mondai group (1, 2, 3…) — navigator only. */
+  mondaiOrder: number;
   stimulusId: string | null;
   stimulus: TryoutPaperStimulus | null;
   /** @deprecated Prefer stimulus — kept for workspace compat during cutover */
@@ -49,6 +51,12 @@ export type TryoutPaperQuestion = {
   audioGroupId: string | null;
   imageUrl: string | null;
   options: { id: string; text: string; imageUrl: string | null; isCorrect?: boolean }[];
+};
+
+export type TryoutExamPaper = {
+  questions: TryoutPaperQuestion[];
+  /** Package-level continuous Choukai tape; null = fall back to per-stimulus seek player. */
+  chokaiAudioUrl: string | null;
 };
 
 type QuestionWithOptions = JlptQuestion & {
@@ -98,6 +106,7 @@ function mapQuestion(
     explanation: q.explanation,
     answerOptionKind: kind === 'IMAGE' ? 'IMAGE' : kind === 'TEXT' ? 'TEXT' : null,
     stemImageUrl: q.stemImageUrl,
+    mondaiOrder: q.mondaiOrder ?? 1,
     stimulusId: stimulus?.id ?? null,
     stimulus: stimulus ? mapStimulus(stimulus) : null,
     audioUrl: stimulus?.audioUrl ?? null,
@@ -167,11 +176,18 @@ function flattenCompositionItems(items: CompositionItem[]): TryoutPaperQuestion[
  * Build ordered exam paper from session's Paket Soal.
  * Dual-read fallback: TryoutSessionItem → legacy Question.tryoutSessionId.
  */
-export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPaperQuestion[]> {
+export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutExamPaper> {
   const session = await prisma.tryoutSession.findUnique({
     where: { id: sessionId },
-    select: { questionSetId: true },
+    select: {
+      questionSetId: true,
+      questionSet: {
+        select: { chokaiAudioUrl: true },
+      },
+    },
   });
+
+  const packageChokaiAudio = session?.questionSet?.chokaiAudioUrl?.trim() || null;
 
   if (session?.questionSetId) {
     const setItems = await prisma.jlptQuestionSetItem.findMany({
@@ -180,7 +196,11 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPape
       include: compositionInclude,
     });
     if (setItems.length > 0) {
-      return flattenCompositionItems(setItems);
+      const questions = flattenCompositionItems(setItems);
+      return {
+        questions,
+        chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
+      };
     }
   }
 
@@ -191,7 +211,11 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPape
   });
 
   if (items.length > 0) {
-    return flattenCompositionItems(items);
+    const questions = flattenCompositionItems(items);
+    return {
+      questions,
+      chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
+    };
   }
 
   // Legacy dual-read fallback
@@ -201,7 +225,9 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPape
     orderBy: { sortOrder: 'asc' },
   });
 
-  if (legacy.length === 0) return [];
+  if (legacy.length === 0) {
+    return { questions: [], chokaiAudioUrl: packageChokaiAudio };
+  }
 
   const mapped = legacy.map((q) => ({
     id: q.id,
@@ -218,6 +244,7 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPape
           ? ('TEXT' as const)
           : null,
     stemImageUrl: q.imageUrl,
+    mondaiOrder: 1,
     stimulusId: q.audioGroupId,
     stimulus: q.audioUrl
       ? {
@@ -240,7 +267,30 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutPape
     })),
   }));
 
-  return assignTryoutExamNumbers(sortTryoutExamQuestions(mapped)) as TryoutPaperQuestion[];
+  const questions = assignTryoutExamNumbers(sortTryoutExamQuestions(mapped)) as TryoutPaperQuestion[];
+  return {
+    questions,
+    chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
+  };
+}
+
+/**
+ * Prefer one shared stimulus URL (legacy packages). If URLs differ, use the first
+ * non-empty CHOKAI audio in exam order so the UI can still show the placement-style
+ * continuous player (ideal authoring = package master audio).
+ */
+function resolveContinuousChokaiAudioUrl(questions: TryoutPaperQuestion[]): string | null {
+  const chokai = questions.filter((q) => q.section === 'CHOKAI');
+  const urls = chokai
+    .map((q) => q.stimulus?.audioUrl?.trim() || q.audioUrl?.trim() || '')
+    .filter(Boolean);
+  if (urls.length === 0) return null;
+
+  const unique = new Set(urls);
+  if (unique.size === 1) return urls[0] ?? null;
+
+  // Multi-clip legacy: still surface continuous UI with first tape rather than per-item red button.
+  return urls[0] ?? null;
 }
 
 export type PaperSnapshotPayload = {
