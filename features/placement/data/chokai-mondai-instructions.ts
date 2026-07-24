@@ -15,6 +15,8 @@ export type ChokaiMondaiInstruction = {
   hintId: string;
   exampleKind: 'IMAGE_GRID' | 'TEXT_LIST' | 'SCENE' | 'MEMO';
   exampleNote: string;
+  /** Optional example image for intro preview (public path) */
+  exampleImageUrl?: string;
 };
 
 export const CHOKAI_MONDAI_ORDER: ChokaiMondaiKey[] = [
@@ -35,7 +37,8 @@ export const CHOKAI_MONDAI_INSTRUCTIONS: Record<ChokaiMondaiKey, ChokaiMondaiIns
     ],
     hintId: 'Dengar pertanyaan, lalu dengar cerita — pilih gambar yang paling tepat (1–4).',
     exampleKind: 'IMAGE_GRID',
-    exampleNote: 'れい — empat pilihan berupa gambar (placeholder sampai aset sensei siap).',
+    exampleNote: 'れい — empat pilihan berupa gambar (1–4).',
+    exampleImageUrl: '/placement/images/mondai1/mondai1-rei.jpeg',
   },
   CHOKAI_2: {
     key: 'CHOKAI_2',
@@ -59,18 +62,19 @@ export const CHOKAI_MONDAI_INSTRUCTIONS: Record<ChokaiMondaiKey, ChokaiMondaiIns
     ],
     hintId: 'Lihat gambar sambil mendengar — pilih apa yang dikatakan orang bertanda panah (1–3).',
     exampleKind: 'SCENE',
-    exampleNote: 'れい — satu gambar scene; jawaban 1 / 2 / 3 diucapkan di audio.',
+    exampleNote: 'れい — orang bertanda panah; pilih jawaban 1 / 2 / 3 dari audio.',
+    exampleImageUrl: '/placement/images/mondai3/mondai3-rei.jpeg',
   },
   CHOKAI_4: {
     key: 'CHOKAI_4',
     number: 4,
     titleJp: 'もんだい 4',
     instructionsJp: [
-      'もんだい４は、えなどが　ありません。',
-      'ぶんを　きいて、１から３の　なかから、いちばん　いい　ものを　ひとつ　えらんで　ください。',
+      'もんだい 4 は、えなどが　ありません。',
+      'ぶんを　きいて、1 から 3 の　なかから、いちばん　いい　ものを　ひとつ　えらんで　ください。',
     ],
-    hintId: 'Tanpa gambar — dengar kalimat dan pilih respons terbaik (1–3). Boleh pakai memo.',
+    hintId: 'Tanpa gambar — dengar kalimat dan pilih respons terbaik (1–3).',
     exampleKind: 'MEMO',
-    exampleNote: 'れい — area メモ untuk catatan singkat (tidak dinilai).',
+    exampleNote: 'れい — tanpa gambar; pilih jawaban 1 / 2 / 3 dari audio.',
   },
 };

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,7 +59,10 @@ export function PlacementMondaiIntro({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <MondaiExamplePreview kind={instruction.exampleKind} />
+          <MondaiExamplePreview
+            kind={instruction.exampleKind}
+            imageUrl={instruction.exampleImageUrl}
+          />
           <p className="text-xs text-muted-foreground">{instruction.exampleNote}</p>
         </CardContent>
       </Card>
@@ -75,10 +79,26 @@ export function PlacementMondaiIntro({
 
 function MondaiExamplePreview({
   kind,
+  imageUrl,
 }: {
   kind: ChokaiMondaiInstruction['exampleKind'];
+  imageUrl?: string;
 }) {
   if (kind === 'IMAGE_GRID') {
+    if (imageUrl) {
+      return (
+        <div className="overflow-hidden rounded-xl border border-border bg-muted/30">
+          <Image
+            src={imageUrl}
+            alt="れい — contoh gambar mondai 1"
+            width={480}
+            height={360}
+            className="mx-auto h-auto w-full max-w-md object-contain"
+            unoptimized
+          />
+        </div>
+      );
+    }
     return (
       <div className="grid grid-cols-2 gap-2">
         {[1, 2, 3, 4].map((n) => (
@@ -116,6 +136,20 @@ function MondaiExamplePreview({
   }
 
   if (kind === 'SCENE') {
+    if (imageUrl) {
+      return (
+        <div className="overflow-hidden rounded-xl border border-border bg-muted/30">
+          <Image
+            src={imageUrl}
+            alt="れい — contoh gambar mondai 3"
+            width={480}
+            height={320}
+            className="mx-auto h-auto w-full max-w-md object-contain"
+            unoptimized
+          />
+        </div>
+      );
+    }
     return (
       <div className="mx-auto flex aspect-3/2 w-full max-w-md items-center justify-center rounded-xl border border-dashed border-border bg-muted/30">
         <p className="text-xs text-muted-foreground">Gambar scene (menyusul aset sensei)</p>
@@ -124,11 +158,18 @@ function MondaiExamplePreview({
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-border bg-background p-4 text-center">
-      <p className="text-sm font-bold tracking-wide text-muted-foreground">－ メモ －</p>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Area catatan singkat saat mendengar (tidak dinilai).
-      </p>
+    <div className="grid gap-2">
+      {['1', '2', '3'].map((n) => (
+        <div
+          key={n}
+          className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm"
+        >
+          <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+            {n}
+          </span>
+          <span>{n}</span>
+        </div>
+      ))}
     </div>
   );
 }

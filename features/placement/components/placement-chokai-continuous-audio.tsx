@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Radio, Volume2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type Phase = 'idle' | 'playing' | 'ended' | 'missing';
@@ -12,8 +10,39 @@ type PlacementChokaiContinuousAudioProps = {
   className?: string;
 };
 
+/** Pixel heights for a 5-bar equalizer (center tallest). */
+const EQ_BAR_HEIGHTS_PX = [6, 10, 14, 10, 6] as const;
+
+function AudioEqualizerIcon({ active }: { active: boolean }) {
+  return (
+    <div className="flex h-4 items-end gap-0.5" aria-hidden>
+      {EQ_BAR_HEIGHTS_PX.map((heightPx, i) => (
+        <span
+          key={i}
+          className={cn('w-1 rounded-full bg-foreground/85', active && 'placement-eq-bar')}
+          style={{
+            height: heightPx,
+            animationDelay: active ? `${i * 0.12}s` : undefined,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function formatClock(sec: number) {
+  if (!Number.isFinite(sec) || sec < 0) return '00:00';
+  const m = Math.floor(sec / 60)
+    .toString()
+    .padStart(2, '0');
+  const s = Math.floor(sec % 60)
+    .toString()
+    .padStart(2, '0');
+  return `${m}:${s}`;
+}
+
 /**
- * Shell-level Choukai player: one start, continuous play, no pause/seek UI.
+ * Shell-level Choukai player: one start via equalizer tap, continuous play, no pause/seek.
  * Survives question navigation when mounted above the question card.
  */
 export function PlacementChokaiContinuousAudio({
@@ -58,21 +87,35 @@ export function PlacementChokaiContinuousAudio({
     }
   }
 
-  function formatClock(sec: number) {
-    if (!Number.isFinite(sec) || sec < 0) return '00:00';
-    const m = Math.floor(sec / 60)
-      .toString()
-      .padStart(2, '0');
-    const s = Math.floor(sec % 60)
-      .toString()
-      .padStart(2, '0');
-    return `${m}:${s}`;
+  const isPlaying = phase === 'playing';
+  const canStart = phase === 'idle' && Boolean(audioUrl);
+
+  const progressPct =
+    phase === 'ended'
+      ? 100
+      : duration > 0
+        ? Math.min(100, Math.max(0, (elapsed / duration) * 100))
+        : 0;
+
+  const displayElapsed = phase === 'ended' && duration > 0 ? duration : elapsed;
+
+  if (phase === 'missing') {
+    return (
+      <div
+        className={cn(
+          'rounded-2xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm text-amber-900',
+          className,
+        )}
+      >
+        Audio belum tersedia — lanjutkan ujian tanpa suara.
+      </div>
+    );
   }
 
   return (
     <div
       className={cn(
-        'rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-4',
+        'rounded-2xl border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5',
         className,
       )}
     >
@@ -82,48 +125,49 @@ export function PlacementChokaiContinuousAudio({
         </audio>
       ) : null}
 
-      <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-800">
-          <Radio className="size-5" />
+      <div className="flex items-center gap-3">
+        {canStart ? (
+          <button
+            type="button"
+            onClick={() => void handleStart()}
+            aria-label="Mulai mendengar"
+            className={cn(
+              'flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-sm transition',
+              'hover:border-emerald-500/50 hover:bg-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
+          >
+            <AudioEqualizerIcon active={false} />
+          </button>
+        ) : (
+          <div
+            className={cn(
+              'flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-sm',
+              isPlaying && 'border-emerald-500/40 bg-emerald-500/10',
+            )}
+            aria-hidden
+          >
+            <AudioEqualizerIcon active={isPlaying} />
+          </div>
+        )}
+
+        <div
+          className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-emerald-500/15"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progressPct)}
+          aria-label="Progress audio"
+        >
+          <div
+            className="h-full rounded-full bg-emerald-600 transition-[width] duration-150 ease-linear"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-foreground">Audio 聴解 (pita kontinu)</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Setelah dimulai, audio tetap jalan saat ganti soal — tidak bisa di-pause.
-          </p>
 
-          {phase === 'idle' ? (
-            <Button type="button" className="mt-3 w-full gap-2 sm:w-auto" onClick={() => void handleStart()}>
-              <Volume2 className="size-4" />
-              Mulai mendengar
-            </Button>
-          ) : null}
-
-          {phase === 'playing' ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-medium text-emerald-800">
-              <Loader2 className="size-4 animate-spin" />
-              Sedang diputar
-              <span className="tabular-nums text-muted-foreground">
-                {formatClock(elapsed)}
-                {duration > 0 ? ` / ${formatClock(duration)}` : ''}
-              </span>
-            </div>
-          ) : null}
-
-          {phase === 'ended' ? (
-            <p className="mt-3 text-sm font-medium text-muted-foreground">Audio selesai.</p>
-          ) : null}
-
-          {phase === 'missing' ? (
-            <p className="mt-3 text-sm text-amber-800">
-              File audio belum tersedia. Taruh MP3 di{' '}
-              <code className="rounded bg-muted px-1 text-xs">
-                public/placement/audio/JepangKu Placement Test.mp3
-              </code>{' '}
-              — UI tetap bisa dicoba tanpa audio.
-            </p>
-          ) : null}
-        </div>
+        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          {formatClock(displayElapsed)}
+          {duration > 0 ? ` / ${formatClock(duration)}` : ''}
+        </span>
       </div>
     </div>
   );

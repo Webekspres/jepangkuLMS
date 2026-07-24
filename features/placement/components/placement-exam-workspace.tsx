@@ -117,18 +117,19 @@ function QuestionOptions({
   selectedId: string | undefined;
   onSelect: (optionId: string) => void;
 }) {
+  const isImage = question.optionKind === 'IMAGE';
+
   return (
     <div
       className={cn(
-        'grid gap-2 sm:gap-2.5',
-        question.optionKind === 'IMAGE' && 'grid-cols-2',
-        question.optionKind === 'NUMBER' && 'grid-cols-3',
+        'gap-2 sm:gap-2.5',
+        isImage ? 'grid grid-cols-2' : 'flex flex-col',
       )}
     >
       {question.options.map((option, optIndex) => {
         const selected = selectedId === option.id;
 
-        if (question.optionKind === 'IMAGE') {
+        if (isImage) {
           return (
             <button
               key={option.id}
@@ -163,23 +164,10 @@ function QuestionOptions({
           );
         }
 
-        if (question.optionKind === 'NUMBER') {
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onSelect(option.id)}
-              className={cn(
-                'flex aspect-square items-center justify-center rounded-2xl border-2 text-3xl font-extrabold transition sm:text-4xl',
-                selected
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-foreground hover:border-primary/50',
-              )}
-            >
-              {option.label}
-            </button>
-          );
-        }
+        const badge =
+          question.optionKind === 'NUMBER'
+            ? option.label
+            : String.fromCharCode(65 + optIndex);
 
         return (
           <button
@@ -199,7 +187,7 @@ function QuestionOptions({
                   : 'bg-muted text-muted-foreground',
               )}
             >
-              {String.fromCharCode(65 + optIndex)}
+              {badge}
             </span>
             <span
               className="text-sm leading-snug"
@@ -555,6 +543,13 @@ export function PlacementExamWorkspace() {
                   exit={{ opacity: 0, x: -16 }}
                 >
                   <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-8">
+                    <p
+                      className="mb-3 text-sm leading-relaxed whitespace-pre-line text-foreground sm:mb-4 sm:text-base"
+                      style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
+                    >
+                      {current.prompt}
+                    </p>
+
                     {current.sceneImageUrl ? (
                       <div className="relative mb-4 overflow-hidden rounded-xl border border-border bg-muted/40">
                         <Image
@@ -568,31 +563,11 @@ export function PlacementExamWorkspace() {
                       </div>
                     ) : null}
 
-                    <p
-                      className="mb-3 text-sm leading-relaxed whitespace-pre-line text-foreground sm:mb-4 sm:text-base"
-                      style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}
-                    >
-                      {current.prompt}
-                    </p>
-
                     <QuestionOptions
                       question={current}
                       selectedId={answers[current.id]}
                       onSelect={selectAnswer}
                     />
-
-                    {current.mondai === 'CHOKAI_4' ? (
-                      <div className="mt-5 rounded-xl border border-dashed border-border bg-muted/30 p-3">
-                        <p className="mb-2 text-center text-xs font-bold tracking-wide text-muted-foreground">
-                          － メモ －
-                        </p>
-                        <textarea
-                          className="min-h-20 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                          placeholder="Catatan singkat (opsional, tidak dinilai)…"
-                          aria-label="Memo"
-                        />
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className="mt-4 hidden items-center justify-between sm:flex">
