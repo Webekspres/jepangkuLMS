@@ -38,7 +38,7 @@ export default async function AdminTryoutFormRoutePage({ searchParams }: PagePro
         code: current.code,
         title: `${current.title} (${current.status})`,
         level: current.level,
-        completeness: buildJlptCompleteness(counts),
+        completeness: buildJlptCompleteness(counts, current.level),
         totalQuestions: counts.totalQuestions,
       });
     }

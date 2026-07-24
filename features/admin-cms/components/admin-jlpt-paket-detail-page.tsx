@@ -44,14 +44,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/compo
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  getTryoutExamBlocks,
+  isCombinedLanguageKnowledgeLevel,
+  type TryoutExamBlockId,
+} from '@/features/admin-cms/lib/tryout-exam-blocks';
+import { getTryoutSectionMeta } from '@/features/admin-cms/lib/tryout-sections';
 
-const SECTION_LABELS: Record<string, string> = {
-  MOJI_GOI: 'Moji Goi',
-  BUNPOU_DOKKAI: 'Bunpou Dokkai',
-  CHOKAI: 'Choukai',
-};
+type KnowledgeSection = 'MOJI_GOI' | 'BUNPOU_DOKKAI';
 
-type SectionTab = 'MOJI_GOI' | 'BUNPOU_DOKKAI' | 'CHOKAI';
+function knowledgeSectionBadge(section: string) {
+  if (section === 'MOJI_GOI') return 'Vocabulary';
+  if (section === 'BUNPOU_DOKKAI') return 'Grammar · Reading';
+  return getTryoutSectionMeta(section).label;
+}
 
 function SortableMondaiTabTrigger({
   id,
@@ -147,18 +153,22 @@ function MojiBunpouForm({
   locked,
   disabled,
   initial,
+  allowSectionPick = false,
   onCancel,
   onSubmit,
 }: {
-  section: 'MOJI_GOI' | 'BUNPOU_DOKKAI';
+  section: KnowledgeSection;
   locked: boolean;
   disabled: boolean;
   initial?: QuestionDraft | null;
+  /** N1/N2 combined tab — admin picks Vocabulary vs Grammar · Reading. */
+  allowSectionPick?: boolean;
   onCancel?: () => void;
-  onSubmit: (data: QuestionDraft) => void;
+  onSubmit: (data: QuestionDraft & { section: KnowledgeSection }) => void;
 }) {
   const isEdit = Boolean(initial);
   const [open, setOpen] = useState(isEdit);
+  const [pickedSection, setPickedSection] = useState<KnowledgeSection>(section);
   const [questionText, setQuestionText] = useState(initial?.questionText ?? '');
   const [explanation, setExplanation] = useState(initial?.explanation ?? '');
   const [options, setOptions] = useState(() => {
@@ -199,12 +209,29 @@ function MojiBunpouForm({
     setExplanation('');
     setOptions(emptyOptions());
     setCorrectIndex('0');
+    setPickedSection(section);
   }
+
+  const effectiveSection = allowSectionPick && !isEdit ? pickedSection : section;
 
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
       {isEdit ? (
         <p className="text-xs font-medium text-muted-foreground">Edit soal</p>
+      ) : null}
+      {allowSectionPick && !isEdit ? (
+        <div className="space-y-2">
+          <Label>Jenis soal</Label>
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+            value={pickedSection}
+            onChange={(e) => setPickedSection(e.target.value as KnowledgeSection)}
+            disabled={disabled}
+          >
+            <option value="MOJI_GOI">Vocabulary</option>
+            <option value="BUNPOU_DOKKAI">Grammar · Reading</option>
+          </select>
+        </div>
       ) : null}
       <div className="space-y-2">
         <Label>Pertanyaan</Label>
@@ -216,15 +243,20 @@ function MojiBunpouForm({
         />
       </div>
       <OptionsEditor
-        name={`correct-${section}-${isEdit ? 'edit' : 'add'}`}
+        name={`correct-${effectiveSection}-${isEdit ? 'edit' : 'add'}`}
         options={options}
         correctIndex={correctIndex}
         onOptionsChange={setOptions}
         onCorrectChange={setCorrectIndex}
       />
       <div className="space-y-2">
-        <Label>Penjelasan (opsional)</Label>
-        <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+        <Label>Pembahasan (opsional)</Label>
+        <Textarea
+          rows={2}
+          value={explanation}
+          onChange={(e) => setExplanation(e.target.value)}
+          placeholder="Penjelasan jawaban…"
+        />
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={closeForm}>
@@ -236,6 +268,7 @@ function MojiBunpouForm({
           disabled={disabled}
           onClick={() => {
             onSubmit({
+              section: effectiveSection,
               questionText,
               explanation,
               options: options.map((o, i) => ({
@@ -243,13 +276,7 @@ function MojiBunpouForm({
                 isCorrect: String(i) === correctIndex,
               })),
             });
-            if (!isEdit) {
-              setQuestionText('');
-              setExplanation('');
-              setOptions(emptyOptions());
-              setCorrectIndex('0');
-              setOpen(false);
-            }
+            if (!isEdit) closeForm();
           }}
         >
           {isEdit ? 'Simpan perubahan' : 'Simpan soal'}
@@ -491,7 +518,9 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [sectionTab, setSectionTab] = useState<SectionTab>('MOJI_GOI');
+  const [sectionTab, setSectionTab] = useState<TryoutExamBlockId>(() =>
+    getTryoutExamBlocks(detail.level)[0]!.id,
+  );
   const [activeMondaiOrder, setActiveMondaiOrder] = useState<number | null>(null);
   const [draftMondaiOrders, setDraftMondaiOrders] = useState<number[]>([]);
   const [uploadingPackageAudio, setUploadingPackageAudio] = useState(false);
@@ -512,14 +541,24 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     return map;
   }, [detail]);
 
-  const sectionCounts = useMemo(
-    () => ({
-      MOJI_GOI: (itemsBySection.MOJI_GOI ?? []).reduce((n, i) => n + i.questionCount, 0),
-      BUNPOU_DOKKAI: (itemsBySection.BUNPOU_DOKKAI ?? []).reduce((n, i) => n + i.questionCount, 0),
-      CHOKAI: (itemsBySection.CHOKAI ?? []).reduce((n, i) => n + i.questionCount, 0),
-    }),
-    [itemsBySection],
-  );
+  const examBlocks = useMemo(() => getTryoutExamBlocks(detail.level), [detail.level]);
+  const isCombinedLangLevel = isCombinedLanguageKnowledgeLevel(detail.level);
+
+  const languageKnowledgeItems = useMemo(() => {
+    return [...(itemsBySection.MOJI_GOI ?? []), ...(itemsBySection.BUNPOU_DOKKAI ?? [])];
+  }, [itemsBySection]);
+
+  const blockCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const block of examBlocks) {
+      map[block.id] = block.sections.reduce((sum, section) => {
+        const items = itemsBySection[section] ?? [];
+        return sum + items.reduce((n, i) => n + i.questionCount, 0);
+      }, 0);
+    }
+    return map;
+  }, [examBlocks, itemsBySection]);
+
 
   const chokaiItemsByMondai = useMemo(() => {
     const chokaiItems = itemsBySection.CHOKAI ?? [];
@@ -635,19 +674,14 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     });
   }
 
-  function handleCreateMojiBunpou(
-    section: 'MOJI_GOI' | 'BUNPOU_DOKKAI',
-    data: {
-      questionText: string;
-      explanation: string;
-      options: { text: string; isCorrect: boolean }[];
-    },
-  ) {
+  function handleCreateMojiBunpou(data: QuestionDraft & { section: KnowledgeSection }) {
     startTransition(async () => {
       const result = await createQuestionInSetAction({
         questionSetId: detail.id,
-        section,
-        ...data,
+        section: data.section,
+        questionText: data.questionText,
+        explanation: data.explanation,
+        options: data.options,
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -782,11 +816,16 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     });
   }
 
-  function handleUpdateMojiBunpou(itemId: string, data: QuestionDraft) {
+  function handleUpdateMojiBunpou(
+    itemId: string,
+    data: QuestionDraft & { section: KnowledgeSection },
+  ) {
     startTransition(async () => {
       const result = await updateQuestionInSetAction({
         itemId,
-        ...data,
+        questionText: data.questionText,
+        explanation: data.explanation,
+        options: data.options,
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -929,12 +968,14 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
       </Card>
 
       <Tabs
-        value={sectionTab}
+        value={
+          examBlocks.some((b) => b.id === sectionTab) ? sectionTab : examBlocks[0]!.id
+        }
         onValueChange={(value) => {
-          const next = value as SectionTab;
+          const next = value as TryoutExamBlockId;
           setSectionTab(next);
           setEditingItemId(null);
-          if (next !== 'CHOKAI') {
+          if (next !== 'LISTENING') {
             setActiveMondaiOrder(null);
           } else if (mondaiList.length > 0) {
             setActiveMondaiOrder(mondaiList[0]!.order);
@@ -943,31 +984,30 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         className="gap-4"
       >
         <TabsList variant="line">
-          <TabsTrigger value="MOJI_GOI">
-            {SECTION_LABELS.MOJI_GOI}
-            <TabCountBadge count={sectionCounts.MOJI_GOI} />
-          </TabsTrigger>
-          <TabsTrigger value="BUNPOU_DOKKAI">
-            {SECTION_LABELS.BUNPOU_DOKKAI}
-            <TabCountBadge count={sectionCounts.BUNPOU_DOKKAI} />
-          </TabsTrigger>
-          <TabsTrigger value="CHOKAI">
-            {SECTION_LABELS.CHOKAI}
-            <TabCountBadge count={sectionCounts.CHOKAI} />
-          </TabsTrigger>
+          {examBlocks.map((block) => (
+            <TabsTrigger key={block.id} value={block.id}>
+              {block.shortLabel}
+              <TabCountBadge count={blockCounts[block.id] ?? 0} />
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {(['MOJI_GOI', 'BUNPOU_DOKKAI'] as const).map((section) => (
-          <TabsContent key={section} value={section} className="mt-0">
+        {isCombinedLangLevel ? (
+          <TabsContent value="LANG_READING" className="mt-0">
             <Card className="border-border p-4">
               <ul className="space-y-2">
-                {(itemsBySection[section] ?? []).length === 0 ? (
+                {languageKnowledgeItems.length === 0 ? (
                   <li className="text-sm text-muted-foreground">Belum ada soal.</li>
                 ) : (
-                  (itemsBySection[section] ?? []).map((item) => (
+                  languageKnowledgeItems.map((item) => (
                     <li key={item.id} className="space-y-2">
                       <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                        <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <Badge variant="secondary" className="text-[10px] font-normal">
+                            {knowledgeSectionBadge(item.section)}
+                          </Badge>
+                          <span className="block wrap-break-word">{item.label}</span>
+                        </div>
                         <div className="flex shrink-0 items-center gap-0.5">
                           <Button
                             type="button"
@@ -996,7 +1036,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                       {editingItemId === item.id && item.editData ? (
                         <MojiBunpouForm
                           key={`edit-${item.id}`}
-                          section={section}
+                          section={item.section as KnowledgeSection}
                           locked={locked}
                           disabled={isPending}
                           initial={{
@@ -1012,19 +1052,94 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                   ))
                 )}
               </ul>
-              {editingItemId && (itemsBySection[section] ?? []).some((i) => i.id === editingItemId) ? null : (
+              {editingItemId && languageKnowledgeItems.some((i) => i.id === editingItemId) ? null : (
                 <MojiBunpouForm
-                  section={section}
+                  section="MOJI_GOI"
+                  allowSectionPick
                   locked={locked}
                   disabled={isPending}
-                  onSubmit={(data) => handleCreateMojiBunpou(section, data)}
+                  onSubmit={handleCreateMojiBunpou}
                 />
               )}
             </Card>
           </TabsContent>
-        ))}
+        ) : (
+          (['VOCAB', 'GRAMMAR_READING'] as const).map((blockId) => {
+            const section: KnowledgeSection =
+              blockId === 'VOCAB' ? 'MOJI_GOI' : 'BUNPOU_DOKKAI';
+            const items = itemsBySection[section] ?? [];
+            return (
+              <TabsContent key={blockId} value={blockId} className="mt-0">
+                <Card className="border-border p-4">
+                  <ul className="space-y-2">
+                    {items.length === 0 ? (
+                      <li className="text-sm text-muted-foreground">Belum ada soal.</li>
+                    ) : (
+                      items.map((item) => (
+                        <li key={item.id} className="space-y-2">
+                          <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                            <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                disabled={isPending || locked || !item.editData}
+                                onClick={() =>
+                                  setEditingItemId((prev) =>
+                                    prev === item.id ? null : item.id,
+                                  )
+                                }
+                                aria-label="Edit soal"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                disabled={isPending || locked}
+                                onClick={() => handleRemove(item.id)}
+                                aria-label="Hapus"
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          {editingItemId === item.id && item.editData ? (
+                            <MojiBunpouForm
+                              key={`edit-${item.id}`}
+                              section={section}
+                              locked={locked}
+                              disabled={isPending}
+                              initial={{
+                                questionText: item.editData.questionText,
+                                explanation: item.editData.explanation,
+                                options: item.editData.options,
+                              }}
+                              onCancel={() => setEditingItemId(null)}
+                              onSubmit={(data) => handleUpdateMojiBunpou(item.id, data)}
+                            />
+                          ) : null}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                  {editingItemId && items.some((i) => i.id === editingItemId) ? null : (
+                    <MojiBunpouForm
+                      section={section}
+                      locked={locked}
+                      disabled={isPending}
+                      onSubmit={handleCreateMojiBunpou}
+                    />
+                  )}
+                </Card>
+              </TabsContent>
+            );
+          })
+        )}
 
-        <TabsContent value="CHOKAI" className="mt-0">
+        <TabsContent value="LISTENING" className="mt-0">
           <Card className="border-border p-4">
             <div className="mb-4 space-y-2 rounded-lg border border-border bg-muted/20 p-3">
               <Label>Audio Choukai paket (1 file master)</Label>

@@ -111,8 +111,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/profil`                             |   ✅   | Hero + stats + edit (display name, avatar R2, badge title)                              |
 | `/dashboard/achievements`                       |   ✅   | Badge LMS + milestone JLPT dari hasil tryout                                            |
 | `/dashboard/live-class`                         |   ✅   | Jadwal live class dari DB                                                               |
-| `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per bagian (TOEFL-style) + analisa hasil                             |
-| `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro bagian → soal terisolasi → submit                                     |
+| `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per blok JLPT (N5–N3: 3; N1–N2: 2) + analisa hasil                   |
+| `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro blok → soal terisolasi → submit (N1/N2 gabung Vocab+Grammar)          |
 | `/dashboard/tryout/hasil/[attemptId]`           |   ✅   | Popup animasi hasil + tier SOS/Latihan/Aman + tabel skor & analisa bagian + detail soal |
 | `/dashboard/tes-penempatan`                     |   🟡   | Hub + stub paper; asset sensei belum final                                              |
 | `/dashboard/tes-penempatan/ujian`               |   🟡   | Focus UI: Bunpou flat + Choukai Mondai Intro/navigator grup; audio kontinu; stub soal Choukai |
@@ -125,7 +125,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
 | `/admin/live-class`                        |   ✅   | CRUD jadwal live class + kolom peserta (enrollment) + dialog daftar siswa        |
 | `/admin/tryout`                            |   ✅   | CRUD sesi + pilih Paket Soal + peserta                                               |
-| `/admin/tryout/paket`                      |   ✅   | Paket Soal: Moji/Bunpou/Choukai; audio master Choukai + `mondaiOrder` dinamis               |
+| `/admin/tryout/paket`                      |   ✅   | Paket Soal: tab blok by level (N1/N2 gabung Vocab+Grammar); audio master Choukai + `mondaiOrder` |
 | `/admin/tryout/paket/import`               |   ✅   | UI seperti impor kursus: dropzone + Pratinjau (`dryRun`) + Impor ke DB; panduan + template ZIP |
 | `/admin/tryout/bank`                       |   ✅   | Redirect → `/paket` (menu bank dihapus dari nav)                                      |
 | `/admin/tryout/[sessionId]/susun`          |   ✅   | Redirect → paket sesi (compose per-sesi retired)                                     |
@@ -145,7 +145,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries, Q&A nested + player video hardened   |
 | **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
-| **tryout**       |   ✅   | Paket Soal + sesi; Choukai 1 audio master + `mondaiOrder` dinamis; continuous player   |
+| **tryout**       |   ✅   | Paket + sesi; blok ujian by level (N5–N3 / N1–N2); Choukai audio master + continuous player |
 | **placement**    |   🟡   | Hub/ujian/hasil + Mondai Intro navigator Choukai; Bunpou dari Excel; Choukai masih stub asset |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
@@ -195,6 +195,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-24 | Tryout blok JLPT by level: N5–N3 tiga bagian, N1–N2 dua (Vocab/Grammar·Reading gabung); label EN jlpt.jp; CMS tab + exam intro mengikuti blok |
 | 2026-07-24 | Tryout Choukai: 1 audio master per paket + `mondaiOrder` dinamis; CMS paket upload; exam continuous player (tanpa intro per-mondai) |
 | 2026-07-23 | Placement Choukai: Intro Mondai 1–4 + navigator per grup + stub IMAGE/TEXT/NUMBER (36 soal total) |
 | 2026-07-23 | Tes Penempatan siswa: hub/ujian/hasil + `PlacementAttempt`, nav Program, Choukai audio kontinu (UI stub + placeholder assets) |

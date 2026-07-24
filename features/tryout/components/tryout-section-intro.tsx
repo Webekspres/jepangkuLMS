@@ -3,18 +3,12 @@
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { TryoutSectionValue } from '@/features/admin-cms/lib/tryout-sections';
-import { TRYOUT_SECTION_INSTRUCTIONS } from '@/features/tryout/lib/section-instructions';
+import type { TryoutExamBlock } from '@/features/admin-cms/lib/tryout-exam-blocks';
+import { TRYOUT_BLOCK_INSTRUCTIONS } from '@/features/tryout/lib/section-instructions';
 import { cn } from '@/lib/utils';
 
-const SECTION_COLORS: Record<string, string> = {
-  MOJI_GOI: 'bg-blue-500',
-  BUNPOU_DOKKAI: 'bg-violet-500',
-  CHOKAI: 'bg-emerald-500',
-};
-
 type TryoutSectionIntroProps = {
-  section: TryoutSectionValue;
+  block: TryoutExamBlock;
   questionCount: number;
   sectionIndex: number;
   totalSections: number;
@@ -22,13 +16,13 @@ type TryoutSectionIntroProps = {
 };
 
 export function TryoutSectionIntro({
-  section,
+  block,
   questionCount,
   sectionIndex,
   totalSections,
   onStart,
 }: TryoutSectionIntroProps) {
-  const content = TRYOUT_SECTION_INSTRUCTIONS[section];
+  const content = TRYOUT_BLOCK_INSTRUCTIONS[block.id];
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -39,7 +33,7 @@ export function TryoutSectionIntro({
         <span
           className={cn(
             'mt-3 inline-block rounded-lg px-3 py-1 text-sm font-bold text-white',
-            SECTION_COLORS[section] ?? 'bg-muted-foreground',
+            block.color,
           )}
         >
           {content.title}
@@ -78,15 +72,15 @@ export function TryoutSectionIntro({
             {content.example.prompt}
           </p>
           <div className="grid gap-2">
-            {content.example.options.map((opt, i) => (
+            {content.example.options.map((opt, index) => (
               <div
                 key={opt}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm"
+                className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
               >
-                <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-                  {String.fromCharCode(65 + i)}
+                <span className="mr-2 font-bold text-muted-foreground">
+                  {String.fromCharCode(65 + index)}.
                 </span>
-                <span style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}>{opt}</span>
+                {opt}
               </div>
             ))}
           </div>
@@ -94,12 +88,10 @@ export function TryoutSectionIntro({
         </CardContent>
       </Card>
 
-      <div className="flex justify-center pt-2">
-        <Button size="lg" className="min-w-[220px] gap-2 font-bold" onClick={onStart}>
-          Mulai {content.title}
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
+      <Button type="button" size="lg" className="w-full gap-2" onClick={onStart}>
+        Mulai bagian ini
+        <ChevronRight className="size-4" />
+      </Button>
     </div>
   );
 }
