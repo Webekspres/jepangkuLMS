@@ -15,9 +15,9 @@ import {
 } from '@/features/admin-cms/lib/tryout-sections';
 
 const SECTION_LABELS: Record<string, string> = {
-  MOJI_GOI: 'MOJI GOI',
-  BUNPOU_DOKKAI: 'BUNPOU DOKKAI',
-  CHOKAI: 'CHOKAI',
+  MOJI_GOI: 'Language Knowledge (Vocabulary)',
+  BUNPOU_DOKKAI: 'Language Knowledge (Grammar) · Reading',
+  CHOKAI: 'Listening',
 };
 
 export type TryoutPaperStimulus = {

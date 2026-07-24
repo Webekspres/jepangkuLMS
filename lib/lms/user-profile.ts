@@ -63,6 +63,7 @@ export type LmsUserProfile = {
     displayNameSetupAt: Date | null;
     phone: string | null;
     phoneSetupAt: Date | null;
+    placementPromptDismissedAt: Date | null;
     bio: string | null;
     avatarUrl: string | null;
     equippedBadgeId: string | null;
@@ -78,6 +79,7 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
             displayNameSetupAt: true,
             phone: true,
             phoneSetupAt: true,
+            placementPromptDismissedAt: true,
             bio: true,
             avatarUrl: true,
             equippedBadgeId: true,
@@ -91,6 +93,7 @@ export async function loadLmsUserProfile(userId: string): Promise<LmsUserProfile
         displayNameSetupAt: user.displayNameSetupAt,
         phone: user.phone,
         phoneSetupAt: user.phoneSetupAt,
+        placementPromptDismissedAt: user.placementPromptDismissedAt,
         bio: user.bio,
         avatarUrl: user.avatarUrl,
         equippedBadgeId: user.equippedBadgeId,

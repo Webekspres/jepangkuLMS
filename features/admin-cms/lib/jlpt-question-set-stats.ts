@@ -3,12 +3,15 @@
  */
 import type { LevelJLPT, TryoutSectionCode } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { isCombinedLanguageKnowledgeLevel } from '@/features/admin-cms/lib/tryout-exam-blocks';
 
 export type JlptCompleteness = {
   moji: boolean;
   bunpou: boolean;
   chokai: boolean;
-  /** e.g. "2/3" */
+  /** Language-knowledge block filled (N1/N2: moji or bunpou; N3–N5: both tracked separately). */
+  languageKnowledge: boolean;
+  /** e.g. "2/3" or "2/2" */
   label: string;
   isComplete: boolean;
 };
@@ -58,19 +61,37 @@ export function countFlattenedBySection(items: CountableItem[]): {
   };
 }
 
-export function buildJlptCompleteness(counts: {
-  mojiCount: number;
-  bunpouCount: number;
-  chokaiCount: number;
-}): JlptCompleteness {
+export function buildJlptCompleteness(
+  counts: {
+    mojiCount: number;
+    bunpouCount: number;
+    chokaiCount: number;
+  },
+  level?: LevelJLPT | string,
+): JlptCompleteness {
   const moji = counts.mojiCount > 0;
   const bunpou = counts.bunpouCount > 0;
   const chokai = counts.chokaiCount > 0;
+  const languageKnowledge = moji || bunpou;
+
+  if (level && isCombinedLanguageKnowledgeLevel(level)) {
+    const filled = [languageKnowledge, chokai].filter(Boolean).length;
+    return {
+      moji,
+      bunpou,
+      chokai,
+      languageKnowledge,
+      label: `${filled}/2`,
+      isComplete: languageKnowledge && chokai,
+    };
+  }
+
   const filled = [moji, bunpou, chokai].filter(Boolean).length;
   return {
     moji,
     bunpou,
     chokai,
+    languageKnowledge: moji && bunpou,
     label: `${filled}/3`,
     isComplete: filled === 3,
   };
@@ -170,7 +191,7 @@ export async function validateQuestionSetForReady(
 }
 
 /**
- * Gate for Session isActive=true — READY + level match + full JLPT (3 sections).
+ * Gate for Session isActive=true — READY + level match + full JLPT blocks for that level.
  */
 export async function validateSessionActivate(
   sessionId: string,
@@ -214,12 +235,23 @@ export async function validateSessionActivate(
   if (!readyCheck.ok) return readyCheck;
 
   const counts = countFlattenedBySection(set.items);
-  const completeness = buildJlptCompleteness(counts);
+  const completeness = buildJlptCompleteness(counts, level);
   if (!completeness.isComplete) {
+    if (isCombinedLanguageKnowledgeLevel(level)) {
+      const missing: string[] = [];
+      if (!completeness.languageKnowledge) {
+        missing.push('Language Knowledge (Vocabulary/Grammar) · Reading');
+      }
+      if (!completeness.chokai) missing.push('Listening');
+      return {
+        ok: false,
+        message: `Sesi aktif N1/N2 membutuhkan 2 bagian. Belum ada: ${missing.join(', ')}.`,
+      };
+    }
     const missing: string[] = [];
-    if (!completeness.moji) missing.push('MOJI GOI');
-    if (!completeness.bunpou) missing.push('BUNPOU DOKKAI');
-    if (!completeness.chokai) missing.push('CHOKAI');
+    if (!completeness.moji) missing.push('Language Knowledge (Vocabulary)');
+    if (!completeness.bunpou) missing.push('Language Knowledge (Grammar) · Reading');
+    if (!completeness.chokai) missing.push('Listening');
     return {
       ok: false,
       message: `Sesi aktif membutuhkan ketiga bagian JLPT. Belum ada: ${missing.join(', ')}.`,

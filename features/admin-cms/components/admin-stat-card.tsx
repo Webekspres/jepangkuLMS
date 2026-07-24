@@ -6,12 +6,15 @@ export function AdminStatCard({
   title,
   value,
   description,
+  delta,
   icon: Icon,
   accentClassName,
 }: {
   title: string;
   value: string | number;
   description?: string;
+  /** Short period delta, e.g. "+3 (7 hari)" */
+  delta?: string;
   icon: LucideIcon;
   accentClassName?: string;
 }) {
@@ -30,6 +33,9 @@ export function AdminStatCard({
       </CardHeader>
       <CardContent>
         <p className="text-3xl font-bold tabular-nums text-foreground">{value}</p>
+        {delta ? (
+          <p className="mt-1 text-xs font-medium text-emerald-700">{delta}</p>
+        ) : null}
         {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
       </CardContent>
     </Card>
