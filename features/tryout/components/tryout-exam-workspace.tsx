@@ -25,9 +25,7 @@ import {
     saveTryoutExamProgressState,
     type TryoutExamProgressState,
 } from '@/features/tryout/actions/tryout-exam-progress-actions';
-import { resolveTryoutAudioPlayKey } from '@/features/tryout/lib/chokai-audio';
 import {
-    ChokaiAudioPlayer,
     ChokaiImageOption,
     ChokaiStimulusImage,
 } from '@/features/tryout/components/chokai-media';
@@ -72,44 +70,44 @@ function formatTime(seconds: number) {
     return `${m}:${s}`;
 }
 
-function resolveExamAudio(current: TryoutExamQuestion): {
-    url: string | null;
-    playerKey: string;
-    isGroup: boolean;
-    startMs: number;
-    endMs: number | null;
-} {
-    if (current.section !== 'CHOKAI') {
-        return { url: null, playerKey: current.id, isGroup: false, startMs: 0, endMs: null };
-    }
+const NAV_LEGEND = [
+    { color: 'bg-emerald-500', label: 'Terjawab' },
+    { color: 'bg-primary', label: 'Saat ini' },
+    { color: 'bg-amber-500', label: 'Ditandai' },
+    { color: 'bg-muted', label: 'Belum' },
+] as const;
 
-    if (current.stimulus) {
-        return {
-            url: current.stimulus.audioUrl,
-            playerKey: `stimulus-${current.stimulus.id}`,
-            isGroup: true,
-            startMs: current.stimulus.audioStartMs,
-            endMs: current.stimulus.audioEndMs,
-        };
-    }
+function navButtonClass(
+    isCurrent: boolean,
+    isFlagged: boolean,
+    isAnswered: boolean,
+) {
+    return cn(
+        'flex size-10 items-center justify-center rounded-xl border-2 text-xs font-bold',
+        isCurrent && 'border-primary bg-primary text-primary-foreground',
+        !isCurrent && isFlagged && 'border-amber-400 bg-amber-50 text-amber-700',
+        !isCurrent &&
+            !isFlagged &&
+            isAnswered &&
+            'border-emerald-400 bg-emerald-50 text-emerald-700',
+        !isCurrent &&
+            !isFlagged &&
+            !isAnswered &&
+            'border-border bg-muted text-muted-foreground',
+    );
+}
 
-    if (current.audioGroupId) {
-        return {
-            url: current.audioUrl,
-            playerKey: `group-${current.audioGroupId}`,
-            isGroup: true,
-            startMs: 0,
-            endMs: null,
-        };
-    }
-
-    return {
-        url: current.audioUrl,
-        playerKey: current.id,
-        isGroup: false,
-        startMs: 0,
-        endMs: null,
-    };
+function NavigatorLegend({ className }: { className?: string }) {
+    return (
+        <div className={cn('flex flex-wrap gap-3 text-xs', className)}>
+            {NAV_LEGEND.map((item) => (
+                <div key={item.label} className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className={cn('size-2.5 rounded-full', item.color)} />
+                    {item.label}
+                </div>
+            ))}
+        </div>
+    );
 }
 
 function SectionNavigator({
@@ -127,19 +125,7 @@ function SectionNavigator({
 }) {
     return (
         <>
-            <div className="mb-4 flex flex-wrap gap-3 text-xs">
-                {[
-                    { color: 'bg-emerald-500', label: 'Terjawab' },
-                    { color: 'bg-primary', label: 'Saat ini' },
-                    { color: 'bg-amber-500', label: 'Ditandai' },
-                    { color: 'bg-muted', label: 'Belum' },
-                ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-1.5 text-muted-foreground">
-                        <span className={cn('size-2.5 rounded-full', item.color)} />
-                        {item.label}
-                    </div>
-                ))}
-            </div>
+            <NavigatorLegend className="mb-4" />
             <div className="flex flex-wrap gap-2">
                 {sectionQuestions.map((question, index) => {
                     const isCurrent = question.id === currentQuestionId;
@@ -151,19 +137,7 @@ function SectionNavigator({
                             key={question.id}
                             type="button"
                             onClick={() => onGoTo(index)}
-                            className={cn(
-                                'flex size-10 items-center justify-center rounded-xl border-2 text-xs font-bold',
-                                isCurrent && 'border-primary bg-primary text-primary-foreground',
-                                !isCurrent && isFlagged && 'border-amber-400 bg-amber-50 text-amber-700',
-                                !isCurrent &&
-                                !isFlagged &&
-                                isAnswered &&
-                                'border-emerald-400 bg-emerald-50 text-emerald-700',
-                                !isCurrent &&
-                                !isFlagged &&
-                                !isAnswered &&
-                                'border-border bg-muted text-muted-foreground',
-                            )}
+                            className={navButtonClass(isCurrent, isFlagged, isAnswered)}
                         >
                             {index + 1}
                         </button>
@@ -171,6 +145,80 @@ function SectionNavigator({
                 })}
             </div>
         </>
+    );
+}
+
+/** Group CHOKAI items by mondaiOrder — local numbers per group, flat index for navigation. */
+function ChokaiSectionNavigator({
+    sectionQuestions,
+    answers,
+    flagged,
+    currentQuestionId,
+    onGoTo,
+}: {
+    sectionQuestions: TryoutExamQuestion[];
+    answers: Record<string, string>;
+    flagged: Set<string>;
+    currentQuestionId: string;
+    onGoTo: (index: number) => void;
+}) {
+    const groups = useMemo(() => {
+        type Item = { question: TryoutExamQuestion; flatIndex: number };
+        const byOrder = new Map<number, Item[]>();
+        const unlabeled: Item[] = [];
+
+        sectionQuestions.forEach((question, flatIndex) => {
+            const order = question.mondaiOrder;
+            if (order == null || !Number.isFinite(order) || order < 1) {
+                unlabeled.push({ question, flatIndex });
+                return;
+            }
+            const list = byOrder.get(order) ?? [];
+            list.push({ question, flatIndex });
+            byOrder.set(order, list);
+        });
+
+        const ordered = [...byOrder.entries()]
+            .sort(([a], [b]) => a - b)
+            .map(([mondaiOrder, items]) => ({ mondaiOrder: mondaiOrder as number | null, items }));
+
+        if (unlabeled.length > 0) {
+            ordered.push({ mondaiOrder: null, items: unlabeled });
+        }
+        return ordered;
+    }, [sectionQuestions]);
+
+    return (
+        <div className="space-y-5">
+            <NavigatorLegend />
+            {groups.map((group) => (
+                <div key={group.mondaiOrder ?? 'unlabeled'}>
+                    {group.mondaiOrder != null ? (
+                        <p className="mb-2 text-xs font-bold tracking-wide text-muted-foreground">
+                            MONDAI {group.mondaiOrder}
+                        </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                        {group.items.map(({ question, flatIndex }, localIndex) => {
+                            const isCurrent = question.id === currentQuestionId;
+                            const isAnswered = Boolean(answers[question.id]);
+                            const isFlagged = flagged.has(question.id);
+
+                            return (
+                                <button
+                                    key={question.id}
+                                    type="button"
+                                    onClick={() => onGoTo(flatIndex)}
+                                    className={navButtonClass(isCurrent, isFlagged, isAnswered)}
+                                >
+                                    {localIndex + 1}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
     );
 }
 
@@ -193,9 +241,7 @@ export function TryoutExamWorkspace({
     const [phase, setPhase] = useState<ExamPhase>('section-intro');
     const [questionIndex, setQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>(examProgress.state.answers);
-    const [playedAudioKeys, setPlayedAudioKeys] = useState<string[]>(
-        examProgress.state.playedAudioKeys,
-    );
+    const [playedAudioKeys] = useState<string[]>(examProgress.state.playedAudioKeys);
     const [flagged, setFlagged] = useState<Set<string>>(new Set());
     const [timeLeft, setTimeLeft] = useState(timeLimitMinutes * 60);
     const [showSectionDialog, setShowSectionDialog] = useState(false);
@@ -268,16 +314,6 @@ export function TryoutExamWorkspace({
     const current = sectionQuestions[questionIndex];
     const useContinuousChokai =
         Boolean(chokaiAudioUrl) && current?.section === 'CHOKAI';
-    const examAudio = current && !useContinuousChokai ? resolveExamAudio(current) : null;
-    const chokaiPlayKey =
-        current?.section === 'CHOKAI' && examAudio?.url
-            ? resolveTryoutAudioPlayKey({
-                questionId: current.id,
-                stimulusId: current.stimulusId,
-                audioGroupId: current.audioGroupId,
-            })
-            : null;
-    const chokaiAudioPlayed = chokaiPlayKey ? playedAudioKeys.includes(chokaiPlayKey) : false;
     const answeredCount = Object.keys(answers).length;
     const isUrgent = timeLeft < 600;
     const isLastSection = sectionIndex >= sectionsInExam.length - 1;
@@ -417,7 +453,9 @@ export function TryoutExamWorkspace({
                                     SECTION_COLORS[current.section] ?? 'bg-muted-foreground',
                                 )}
                             >
-                                {current.sectionLabel}
+                                {current.section === 'CHOKAI' && current.mondaiOrder
+                                    ? `CHOKAI · MONDAI ${current.mondaiOrder}`
+                                    : current.sectionLabel}
                             </span>
                             <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:text-xs">
                                 <span className="sm:hidden">
@@ -456,6 +494,10 @@ export function TryoutExamWorkspace({
                                 audioUrl={chokaiAudioUrl!}
                                 className="mb-3 sm:mb-4"
                             />
+                        ) : current?.section === 'CHOKAI' ? (
+                            <p className="mb-3 text-xs text-muted-foreground sm:mb-4">
+                                Audio listening belum tersedia untuk paket ini.
+                            </p>
                         ) : null}
                         <AnimatePresence mode="wait">
                             <motion.div
@@ -464,31 +506,7 @@ export function TryoutExamWorkspace({
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -16 }}
                             >
-                                {examAudio?.url && current.section === 'CHOKAI' ? (
-                                    <ChokaiAudioPlayer
-                                        audioUrl={examAudio.url}
-                                        playKey={chokaiPlayKey!}
-                                        progressId={examProgress.id}
-                                        alreadyPlayed={chokaiAudioPlayed}
-                                        startMs={examAudio.startMs}
-                                        endMs={examAudio.endMs}
-                                        label={
-                                            examAudio.isGroup
-                                                ? 'Putar audio (satu grup listening)'
-                                                : 'Putar audio'
-                                        }
-                                        onPlayed={(key) =>
-                                            setPlayedAudioKeys((prev) => (prev.includes(key) ? prev : [...prev, key]))
-                                        }
-                                    />
-                                ) : null}
-
                                 <div className="rounded-xl border border-border bg-card p-4 sm:rounded-2xl sm:p-8">
-                                    {current.section === 'CHOKAI' && current.mondaiOrder ? (
-                                        <p className="mb-2 text-xs font-bold tracking-wide text-muted-foreground">
-                                          もんだい {current.mondaiOrder}
-                                        </p>
-                                    ) : null}
                                     {current.stimulus?.instructionText && !useContinuousChokai ? (
                                         <p className="mb-3 text-sm text-muted-foreground whitespace-pre-line">
                                             {current.stimulus.instructionText}
@@ -613,15 +631,25 @@ export function TryoutExamWorkspace({
                     <aside className="hidden w-72 shrink-0 border-l border-border bg-card p-5 lg:block">
                         <h3 className="mb-4 flex items-center gap-2 text-sm font-bold">
                             <BarChart2 className="size-4 text-primary" />
-                            Navigator — {current.sectionLabel}
+                            Navigator — {current.section === 'CHOKAI' ? 'CHOKAI' : current.sectionLabel}
                         </h3>
-                        <SectionNavigator
-                            sectionQuestions={sectionQuestions}
-                            answers={answers}
-                            flagged={flagged}
-                            currentQuestionId={current.id}
-                            onGoTo={setQuestionIndex}
-                        />
+                        {current.section === 'CHOKAI' ? (
+                            <ChokaiSectionNavigator
+                                sectionQuestions={sectionQuestions}
+                                answers={answers}
+                                flagged={flagged}
+                                currentQuestionId={current.id}
+                                onGoTo={setQuestionIndex}
+                            />
+                        ) : (
+                            <SectionNavigator
+                                sectionQuestions={sectionQuestions}
+                                answers={answers}
+                                flagged={flagged}
+                                currentQuestionId={current.id}
+                                onGoTo={setQuestionIndex}
+                            />
+                        )}
                     </aside>
                 </div>
 
@@ -673,18 +701,33 @@ export function TryoutExamWorkspace({
                 <Dialog open={showNavigator} onOpenChange={setShowNavigator}>
                     <DialogContent className="max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Navigator — {current.sectionLabel}</DialogTitle>
+                            <DialogTitle>
+                                Navigator — {current.section === 'CHOKAI' ? 'CHOKAI' : current.sectionLabel}
+                            </DialogTitle>
                         </DialogHeader>
-                        <SectionNavigator
-                            sectionQuestions={sectionQuestions}
-                            answers={answers}
-                            flagged={flagged}
-                            currentQuestionId={current.id}
-                            onGoTo={(index) => {
-                                setQuestionIndex(index);
-                                setShowNavigator(false);
-                            }}
-                        />
+                        {current.section === 'CHOKAI' ? (
+                            <ChokaiSectionNavigator
+                                sectionQuestions={sectionQuestions}
+                                answers={answers}
+                                flagged={flagged}
+                                currentQuestionId={current.id}
+                                onGoTo={(index) => {
+                                    setQuestionIndex(index);
+                                    setShowNavigator(false);
+                                }}
+                            />
+                        ) : (
+                            <SectionNavigator
+                                sectionQuestions={sectionQuestions}
+                                answers={answers}
+                                flagged={flagged}
+                                currentQuestionId={current.id}
+                                onGoTo={(index) => {
+                                    setQuestionIndex(index);
+                                    setShowNavigator(false);
+                                }}
+                            />
+                        )}
                     </DialogContent>
                 </Dialog>
 

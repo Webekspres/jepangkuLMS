@@ -1091,7 +1091,7 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                           <SortableMondaiTabTrigger
                             key={group.order}
                             id={String(group.order)}
-                            label={`もんだい ${index + 1}`}
+                            label={`MONDAI ${index + 1}`}
                             count={group.soalCount}
                             disabled={locked || isPending}
                           />

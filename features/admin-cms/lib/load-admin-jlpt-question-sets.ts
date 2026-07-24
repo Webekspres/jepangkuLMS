@@ -283,9 +283,9 @@ export async function loadAdminJlptQuestionSetById(
         listeningStimulusId: i.listeningStimulusId,
         label:
           i.section === 'CHOKAI' && i.jlptQuestion
-            ? `もんだい ${i.jlptQuestion.mondaiOrder} · ${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
+            ? `MONDAI ${i.jlptQuestion.mondaiOrder} · ${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
             : i.section === 'CHOKAI' && i.listeningStimulus && i.listeningStimulus.questions[0]
-              ? `もんだい ${i.listeningStimulus.questions[0].mondaiOrder} · ${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
+              ? `MONDAI ${i.listeningStimulus.questions[0].mondaiOrder} · ${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
               : i.jlptQuestion
                 ? `${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
                 : i.listeningStimulus

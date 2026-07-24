@@ -199,7 +199,7 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutExam
       const questions = flattenCompositionItems(setItems);
       return {
         questions,
-        chokaiAudioUrl: packageChokaiAudio ?? resolveSharedChokaiAudioUrl(questions),
+        chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
       };
     }
   }
@@ -214,7 +214,7 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutExam
     const questions = flattenCompositionItems(items);
     return {
       questions,
-      chokaiAudioUrl: packageChokaiAudio ?? resolveSharedChokaiAudioUrl(questions),
+      chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
     };
   }
 
@@ -270,20 +270,27 @@ export async function loadTryoutExamPaper(sessionId: string): Promise<TryoutExam
   const questions = assignTryoutExamNumbers(sortTryoutExamQuestions(mapped)) as TryoutPaperQuestion[];
   return {
     questions,
-    chokaiAudioUrl: packageChokaiAudio ?? resolveSharedChokaiAudioUrl(questions),
+    chokaiAudioUrl: packageChokaiAudio ?? resolveContinuousChokaiAudioUrl(questions),
   };
 }
 
-/** If all CHOKAI items share one audio URL, treat it as continuous master (legacy packages). */
-function resolveSharedChokaiAudioUrl(questions: TryoutPaperQuestion[]): string | null {
-  const urls = new Set(
-    questions
-      .filter((q) => q.section === 'CHOKAI')
-      .map((q) => q.stimulus?.audioUrl?.trim() || q.audioUrl?.trim() || '')
-      .filter(Boolean),
-  );
-  if (urls.size !== 1) return null;
-  return [...urls][0] ?? null;
+/**
+ * Prefer one shared stimulus URL (legacy packages). If URLs differ, use the first
+ * non-empty CHOKAI audio in exam order so the UI can still show the placement-style
+ * continuous player (ideal authoring = package master audio).
+ */
+function resolveContinuousChokaiAudioUrl(questions: TryoutPaperQuestion[]): string | null {
+  const chokai = questions.filter((q) => q.section === 'CHOKAI');
+  const urls = chokai
+    .map((q) => q.stimulus?.audioUrl?.trim() || q.audioUrl?.trim() || '')
+    .filter(Boolean);
+  if (urls.length === 0) return null;
+
+  const unique = new Set(urls);
+  if (unique.size === 1) return urls[0] ?? null;
+
+  // Multi-clip legacy: still surface continuous UI with first tape rather than per-item red button.
+  return urls[0] ?? null;
 }
 
 export type PaperSnapshotPayload = {
