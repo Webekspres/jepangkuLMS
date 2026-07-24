@@ -522,55 +522,53 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
   );
 
   const chokaiItemsByMondai = useMemo(() => {
-    const map = new Map<number, typeof detail.items>();
-    for (const item of itemsBySection.CHOKAI ?? []) {
+    const chokaiItems = itemsBySection.CHOKAI ?? [];
+    const map = new Map<number, typeof chokaiItems>();
+    for (const item of chokaiItems) {
       const order = Math.max(1, item.editData?.mondaiOrder ?? 1);
       const list = map.get(order) ?? [];
       list.push(item);
       map.set(order, list);
     }
     return map;
-  }, [itemsBySection.CHOKAI, detail.items]);
+  }, [itemsBySection]);
+
+  /** Drafts that are not yet backed by real items (derived — no prune effect). */
+  const visibleDraftMondaiOrders = useMemo(
+    () => draftMondaiOrders.filter((n) => !chokaiItemsByMondai.has(n)),
+    [draftMondaiOrders, chokaiItemsByMondai],
+  );
 
   const mondaiList = useMemo(() => {
-    const orders = new Set<number>([...chokaiItemsByMondai.keys(), ...draftMondaiOrders]);
+    const orders = new Set<number>([...chokaiItemsByMondai.keys(), ...visibleDraftMondaiOrders]);
     return [...orders].sort((a, b) => a - b).map((order) => ({
       order,
       items: chokaiItemsByMondai.get(order) ?? [],
-      isDraft: draftMondaiOrders.includes(order) && !chokaiItemsByMondai.has(order),
+      isDraft: visibleDraftMondaiOrders.includes(order),
       soalCount: (chokaiItemsByMondai.get(order) ?? []).reduce((n, i) => n + i.questionCount, 0),
     }));
-  }, [chokaiItemsByMondai, draftMondaiOrders]);
+  }, [chokaiItemsByMondai, visibleDraftMondaiOrders]);
 
-  useEffect(() => {
-    setDraftMondaiOrders((prev) => {
-      const next = prev.filter((n) => !chokaiItemsByMondai.has(n));
-      return next.length === prev.length ? prev : next;
-    });
-  }, [chokaiItemsByMondai]);
+  /** Controlled tab value — fall back to first mondai without syncing in an effect. */
+  const selectedMondaiOrder = useMemo(() => {
+    if (mondaiList.length === 0) return null;
+    if (activeMondaiOrder != null && mondaiList.some((g) => g.order === activeMondaiOrder)) {
+      return activeMondaiOrder;
+    }
+    return mondaiList[0]!.order;
+  }, [mondaiList, activeMondaiOrder]);
 
   // Apply remumber result after router.refresh() replaces `detail`.
   useEffect(() => {
     const pending = pendingMondaiSync.current;
     if (!pending) return;
     pendingMondaiSync.current = null;
-    setDraftMondaiOrders(pending.drafts);
-    setActiveMondaiOrder(pending.active);
-    setEditingItemId(null);
+    queueMicrotask(() => {
+      setDraftMondaiOrders(pending.drafts);
+      setActiveMondaiOrder(pending.active);
+      setEditingItemId(null);
+    });
   }, [detail]);
-
-  useEffect(() => {
-    if (pendingMondaiSync.current) return;
-    if (mondaiList.length === 0) {
-      if (activeMondaiOrder != null) setActiveMondaiOrder(null);
-      return;
-    }
-    const stillValid =
-      activeMondaiOrder != null && mondaiList.some((g) => g.order === activeMondaiOrder);
-    if (!stillValid) {
-      setActiveMondaiOrder(mondaiList[0]!.order);
-    }
-  }, [mondaiList, activeMondaiOrder]);
 
   const mondaiSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1105,9 +1103,9 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
                   </Button>
                 ) : null}
               </div>
-            ) : activeMondaiOrder != null ? (
+            ) : selectedMondaiOrder != null ? (
               <Tabs
-                value={String(activeMondaiOrder)}
+                value={String(selectedMondaiOrder)}
                 onValueChange={(value) => {
                   setActiveMondaiOrder(Number.parseInt(value, 10));
                   setEditingItemId(null);
