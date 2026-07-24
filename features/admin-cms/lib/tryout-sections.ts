@@ -85,14 +85,16 @@ export function getTryoutSectionMeta(value: string) {
 /** JLPT exam section order — MOJI GOI → BUNPOU DOKKAI → CHOKAI. */
 export const TRYOUT_SECTION_ORDER = TRYOUT_SECTIONS.map((s) => s.value);
 
-export function sortTryoutExamQuestions<T extends { section: string; sortOrder: number }>(
-    questions: T[],
-): T[] {
-    return [...questions].sort((a, b) => {
-        const sectionCmp = compareTryoutSections(a.section, b.section);
-        if (sectionCmp !== 0) return sectionCmp;
-        return a.sortOrder - b.sortOrder;
-    });
+export function sortTryoutExamQuestions<
+  T extends { section: string; sortOrder: number; mondaiOrder?: number },
+>(questions: T[]): T[] {
+  return [...questions].sort((a, b) => {
+    const sectionCmp = compareTryoutSections(a.section, b.section);
+    if (sectionCmp !== 0) return sectionCmp;
+    const mondaiCmp = (a.mondaiOrder ?? 1) - (b.mondaiOrder ?? 1);
+    if (mondaiCmp !== 0) return mondaiCmp;
+    return a.sortOrder - b.sortOrder;
+  });
 }
 
 export function assignTryoutExamNumbers<T>(questions: T[]): (T & { examNumber: number })[] {

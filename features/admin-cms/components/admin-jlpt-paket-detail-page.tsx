@@ -1,15 +1,34 @@
 'use client';
 
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ArrowLeft, ImageIcon, Loader2, Lock, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import {
   createChokaiInSetAction,
   createQuestionInSetAction,
   removeSetItemAction,
+  renumberChokaiMondaiInSetAction,
   setJlptQuestionSetStatusAction,
   updateChokaiSetItemAction,
+  updateJlptQuestionSetChokaiAudioAction,
   updateJlptQuestionSetMetaAction,
   updateQuestionInSetAction,
 } from '@/features/admin-cms/actions/cms-jlpt-question-set-actions';
@@ -21,7 +40,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const SECTION_LABELS: Record<string, string> = {
@@ -29,6 +50,43 @@ const SECTION_LABELS: Record<string, string> = {
   BUNPOU_DOKKAI: 'Bunpou Dokkai',
   CHOKAI: 'Choukai',
 };
+
+type SectionTab = 'MOJI_GOI' | 'BUNPOU_DOKKAI' | 'CHOKAI';
+
+function SortableMondaiTabTrigger({
+  id,
+  label,
+  count,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  count: number;
+  disabled?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn('shrink-0', isDragging && 'z-10 opacity-70')}
+      {...attributes}
+      {...listeners}
+    >
+      <TabsTrigger value={id} className="text-xs sm:text-sm" disabled={disabled}>
+        {label}
+        <TabCountBadge count={count} />
+      </TabsTrigger>
+    </div>
+  );
+}
 
 type QuestionDraft = {
   questionText: string;
@@ -205,6 +263,9 @@ function ChokaiForm({
   level,
   locked,
   disabled,
+  mondaiOrder,
+  questionSetId,
+  packageCode,
   initial,
   onCancel,
   onSubmit,
@@ -212,31 +273,32 @@ function ChokaiForm({
   level: string;
   locked: boolean;
   disabled: boolean;
+  /** Injected from Mondai group context — not editable in the form. */
+  mondaiOrder: number;
+  questionSetId: string;
+  packageCode: string;
   initial?: (QuestionDraft & {
-    instructionText: string;
-    audioUrl: string;
     imageUrl: string | null;
-    questionCountInGroup?: number;
+    imageObjectKey?: string | null;
   }) | null;
   onCancel?: () => void;
   onSubmit: (data: {
     questionText: string;
     explanation: string;
-    instructionText: string;
     options: { text: string; isCorrect: boolean }[];
-    audioUrl: string;
     imageUrl: string | null;
+    imageObjectKey: string | null;
+    mondaiOrder: number;
   }) => void;
 }) {
   const isEdit = Boolean(initial);
-  const audioRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(isEdit);
-  const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(initial?.audioUrl ?? '');
   const [imageUrl, setImageUrl] = useState<string | null>(initial?.imageUrl ?? null);
-  const [instructionText, setInstructionText] = useState(initial?.instructionText ?? '');
+  const [imageObjectKey, setImageObjectKey] = useState<string | null>(
+    initial?.imageObjectKey ?? null,
+  );
   const [questionText, setQuestionText] = useState(initial?.questionText ?? '');
   const [explanation, setExplanation] = useState(initial?.explanation ?? '');
   const [options, setOptions] = useState(() => {
@@ -250,53 +312,33 @@ function ChokaiForm({
     return String(Math.max(0, initial.options.findIndex((o) => o.isCorrect)));
   });
 
-  async function uploadAudio(file: File) {
-    if (!file.name.toLowerCase().endsWith('.mp3')) {
-      toast.error('Audio harus .mp3');
-      return;
-    }
-    setUploadingAudio(true);
-    try {
-      const form = new FormData();
-      form.set('file', file);
-      const res = await fetch('/api/admin/tryout/upload-audio', {
-        method: 'POST',
-        body: form,
-        credentials: 'same-origin',
-      });
-      const json = (await res.json()) as { ok: boolean; url?: string; message?: string };
-      if (!json.ok || !json.url) {
-        toast.error(json.message ?? 'Upload audio gagal');
-        return;
-      }
-      setAudioUrl(json.url);
-      toast.success('Audio terunggah');
-    } catch {
-      toast.error('Upload audio gagal');
-    } finally {
-      setUploadingAudio(false);
-    }
-  }
-
   async function uploadImage(file: File) {
     setUploadingImage(true);
     try {
       const form = new FormData();
       form.set('file', file);
       form.set('level', level);
-      form.set('code', `chokai-${Date.now()}`);
+      form.set('code', packageCode);
+      form.set('questionSetId', questionSetId);
+      form.set('mondaiOrder', String(mondaiOrder));
       const res = await fetch('/api/admin/tryout/upload-image', {
         method: 'POST',
         body: form,
         credentials: 'same-origin',
       });
-      const json = (await res.json()) as { ok: boolean; url?: string; message?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        objectKey?: string;
+        message?: string;
+      };
       if (!json.ok || !json.url) {
         toast.error(json.message ?? 'Upload gambar gagal');
         return;
       }
       setImageUrl(json.url);
-      toast.success('Gambar stimulus terunggah');
+      setImageObjectKey(json.objectKey ?? null);
+      toast.success('Gambar penunjuk terunggah');
     } catch {
       toast.error('Upload gambar gagal');
     } finally {
@@ -316,7 +358,7 @@ function ChokaiForm({
         onClick={() => setOpen(true)}
       >
         <Plus className="size-4" />
-        Tambah Choukai
+        Tambah soal
       </Button>
     );
   }
@@ -329,9 +371,8 @@ function ChokaiForm({
     setOpen(false);
     setQuestionText('');
     setExplanation('');
-    setInstructionText('');
-    setAudioUrl('');
     setImageUrl(null);
+    setImageObjectKey(null);
     setOptions(emptyOptions());
     setCorrectIndex('0');
   }
@@ -339,54 +380,11 @@ function ChokaiForm({
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
       {isEdit ? (
-        <p className="text-xs font-medium text-muted-foreground">
-          Edit Choukai
-          {(initial?.questionCountInGroup ?? 1) > 1
-            ? ` — mengedit soal pertama dari ${initial?.questionCountInGroup} soal di grup audio`
-            : ''}
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">Edit soal</p>
       ) : null}
-      <div className="space-y-2">
-        <Label>Audio (.mp3)</Label>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={uploadingAudio || disabled}
-            onClick={() => audioRef.current?.click()}
-          >
-            {uploadingAudio ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Upload className="size-4" />
-            )}
-            Unggah audio
-          </Button>
-          <input
-            ref={audioRef}
-            type="file"
-            accept=".mp3,audio/mpeg"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void uploadAudio(f);
-            }}
-          />
-        </div>
-        {audioUrl ? (
-          <audio controls preload="none" className="w-full" src={audioUrl}>
-            <track kind="captions" />
-          </audio>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Opsional — kosongkan jika soal Choukai tanpa audio.
-          </p>
-        )}
-      </div>
 
       <div className="space-y-2">
-        <Label>Gambar stimulus (opsional)</Label>
+        <Label>Gambar penunjuk (opsional)</Label>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -413,7 +411,15 @@ function ChokaiForm({
             }}
           />
           {imageUrl ? (
-            <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setImageUrl(null);
+                setImageObjectKey(null);
+              }}
+            >
               Hapus gambar
             </Button>
           ) : null}
@@ -422,19 +428,10 @@ function ChokaiForm({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageUrl}
-            alt="Stimulus Choukai"
+            alt="Gambar penunjuk Choukai"
             className="max-h-40 rounded-md border border-border object-contain"
           />
         ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Instruksi (opsional)</Label>
-        <Input
-          value={instructionText}
-          onChange={(e) => setInstructionText(e.target.value)}
-          placeholder="Mis. Pilih gambar yang sesuai…"
-        />
       </div>
 
       <div className="space-y-2">
@@ -443,7 +440,7 @@ function ChokaiForm({
           rows={2}
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
-          placeholder="どれですか。"
+          placeholder="1 ばん / どれですか。"
         />
       </div>
 
@@ -467,14 +464,14 @@ function ChokaiForm({
         <Button
           type="button"
           size="sm"
-          disabled={disabled || uploadingAudio || uploadingImage}
+          disabled={disabled || uploadingImage}
           onClick={() => {
             onSubmit({
               questionText,
               explanation,
-              instructionText,
-              audioUrl,
               imageUrl,
+              imageObjectKey,
+              mondaiOrder: Math.max(1, Math.trunc(mondaiOrder) || 1),
               options: options.map((o, i) => ({
                 text: o.text,
                 isCorrect: String(i) === correctIndex,
@@ -483,7 +480,7 @@ function ChokaiForm({
             if (!isEdit) closeForm();
           }}
         >
-          {isEdit ? 'Simpan perubahan' : 'Simpan Choukai'}
+          {isEdit ? 'Simpan perubahan' : 'Simpan soal'}
         </Button>
       </div>
     </div>
@@ -494,7 +491,14 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [sectionTab, setSectionTab] = useState<SectionTab>('MOJI_GOI');
+  const [activeMondaiOrder, setActiveMondaiOrder] = useState<number | null>(null);
+  const [draftMondaiOrders, setDraftMondaiOrders] = useState<number[]>([]);
+  const [uploadingPackageAudio, setUploadingPackageAudio] = useState(false);
+  const packageAudioRef = useRef<HTMLInputElement>(null);
+  const pendingMondaiSync = useRef<{ drafts: number[]; active: number | null } | null>(null);
   const locked = detail.stats.isContentLocked;
+  const packageHasMasterAudio = Boolean(detail.chokaiAudioUrl?.trim());
 
   const itemsBySection = useMemo(() => {
     const map: Record<string, typeof detail.items> = {
@@ -507,6 +511,103 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     }
     return map;
   }, [detail]);
+
+  const sectionCounts = useMemo(
+    () => ({
+      MOJI_GOI: (itemsBySection.MOJI_GOI ?? []).reduce((n, i) => n + i.questionCount, 0),
+      BUNPOU_DOKKAI: (itemsBySection.BUNPOU_DOKKAI ?? []).reduce((n, i) => n + i.questionCount, 0),
+      CHOKAI: (itemsBySection.CHOKAI ?? []).reduce((n, i) => n + i.questionCount, 0),
+    }),
+    [itemsBySection],
+  );
+
+  const chokaiItemsByMondai = useMemo(() => {
+    const chokaiItems = itemsBySection.CHOKAI ?? [];
+    const map = new Map<number, typeof chokaiItems>();
+    for (const item of chokaiItems) {
+      const order = Math.max(1, item.editData?.mondaiOrder ?? 1);
+      const list = map.get(order) ?? [];
+      list.push(item);
+      map.set(order, list);
+    }
+    return map;
+  }, [itemsBySection]);
+
+  /** Drafts that are not yet backed by real items (derived — no prune effect). */
+  const visibleDraftMondaiOrders = useMemo(
+    () => draftMondaiOrders.filter((n) => !chokaiItemsByMondai.has(n)),
+    [draftMondaiOrders, chokaiItemsByMondai],
+  );
+
+  const mondaiList = useMemo(() => {
+    const orders = new Set<number>([...chokaiItemsByMondai.keys(), ...visibleDraftMondaiOrders]);
+    return [...orders].sort((a, b) => a - b).map((order) => ({
+      order,
+      items: chokaiItemsByMondai.get(order) ?? [],
+      isDraft: visibleDraftMondaiOrders.includes(order),
+      soalCount: (chokaiItemsByMondai.get(order) ?? []).reduce((n, i) => n + i.questionCount, 0),
+    }));
+  }, [chokaiItemsByMondai, visibleDraftMondaiOrders]);
+
+  /** Controlled tab value — fall back to first mondai without syncing in an effect. */
+  const selectedMondaiOrder = useMemo(() => {
+    if (mondaiList.length === 0) return null;
+    if (activeMondaiOrder != null && mondaiList.some((g) => g.order === activeMondaiOrder)) {
+      return activeMondaiOrder;
+    }
+    return mondaiList[0]!.order;
+  }, [mondaiList, activeMondaiOrder]);
+
+  // Apply remumber result after router.refresh() replaces `detail`.
+  useEffect(() => {
+    const pending = pendingMondaiSync.current;
+    if (!pending) return;
+    pendingMondaiSync.current = null;
+    queueMicrotask(() => {
+      setDraftMondaiOrders(pending.drafts);
+      setActiveMondaiOrder(pending.active);
+      setEditingItemId(null);
+    });
+  }, [detail]);
+
+  const mondaiSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function queueMondaiSyncAfterRenumber(
+    orderedOldOrders: number[],
+    emptyKeys: Set<number>,
+    activeOld: number | null,
+  ) {
+    const drafts = orderedOldOrders
+      .map((old, index) => (emptyKeys.has(old) ? index + 1 : null))
+      .filter((n): n is number => n != null);
+    const idx = activeOld != null ? orderedOldOrders.indexOf(activeOld) : -1;
+    pendingMondaiSync.current = {
+      drafts,
+      active: idx >= 0 ? idx + 1 : orderedOldOrders.length > 0 ? 1 : null,
+    };
+  }
+
+  function persistMondaiSequence(orderedOldOrders: number[], activeOld: number | null) {
+    const emptyKeys = new Set(
+      orderedOldOrders.filter((order) => (chokaiItemsByMondai.get(order)?.length ?? 0) === 0),
+    );
+
+    startTransition(async () => {
+      const result = await renumberChokaiMondaiInSetAction({
+        questionSetId: detail.id,
+        orderedOldOrders,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      queueMondaiSyncAfterRenumber(orderedOldOrders, emptyKeys, activeOld);
+      router.refresh();
+    });
+  }
 
   function handleMeta(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -557,39 +658,123 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     });
   }
 
+  async function uploadPackageChokaiAudio(file: File) {
+    if (!file.name.toLowerCase().endsWith('.mp3')) {
+      toast.error('Audio harus .mp3');
+      return;
+    }
+    setUploadingPackageAudio(true);
+    try {
+      const form = new FormData();
+      form.set('file', file);
+      form.set('questionSetId', detail.id);
+      const res = await fetch('/api/admin/tryout/upload-audio', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        objectKey?: string;
+        message?: string;
+      };
+      if (!json.ok || !json.url) {
+        toast.error(json.message ?? 'Upload audio gagal');
+        return;
+      }
+      const result = await updateJlptQuestionSetChokaiAudioAction({
+        questionSetId: detail.id,
+        audioUrl: json.url,
+        audioObjectKey: json.objectKey ?? null,
+        audioOriginalName: file.name,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Audio Choukai paket tersimpan');
+      router.refresh();
+    } catch {
+      toast.error('Upload audio gagal');
+    } finally {
+      setUploadingPackageAudio(false);
+    }
+  }
+
+  function handleClearPackageChokaiAudio() {
+    startTransition(async () => {
+      const result = await updateJlptQuestionSetChokaiAudioAction({
+        questionSetId: detail.id,
+        audioUrl: null,
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success('Audio Choukai paket dihapus');
+      router.refresh();
+    });
+  }
+
   function handleCreateChokai(data: {
     questionText: string;
     explanation: string;
-    instructionText: string;
     options: { text: string; isCorrect: boolean }[];
-    audioUrl: string;
     imageUrl: string | null;
+    imageObjectKey: string | null;
+    mondaiOrder: number;
   }) {
     startTransition(async () => {
       const result = await createChokaiInSetAction({
         questionSetId: detail.id,
         questionText: data.questionText,
         explanation: data.explanation,
-        instructionText: data.instructionText,
+        instructionText: '',
         options: data.options,
-        audioUrl: data.audioUrl,
+        audioUrl: null,
         imageUrl: data.imageUrl,
+        imageObjectKey: data.imageObjectKey,
+        mondaiOrder: data.mondaiOrder,
       });
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
+
+      const ordered = mondaiList.map((g) => g.order);
+      const emptyKeys = new Set(
+        mondaiList
+          .filter((g) => g.order !== data.mondaiOrder && g.soalCount === 0)
+          .map((g) => g.order),
+      );
+
+      const renumber = await renumberChokaiMondaiInSetAction({
+        questionSetId: detail.id,
+        orderedOldOrders: ordered,
+      });
+      if (!renumber.ok) {
+        toast.error(renumber.message);
+        router.refresh();
+        return;
+      }
+
+      queueMondaiSyncAfterRenumber(ordered, emptyKeys, data.mondaiOrder);
       toast.success('Soal Choukai ditambahkan');
       router.refresh();
     });
   }
 
-  function handleRemove(itemId: string) {
+  function handleRemove(itemId: string, mondaiMeta?: { mondaiOrder: number; isLastInMondai: boolean }) {
     startTransition(async () => {
       const result = await removeSetItemAction(itemId);
       if (!result.ok) {
         toast.error(result.message);
         return;
+      }
+      if (mondaiMeta?.isLastInMondai) {
+        const order = mondaiMeta.mondaiOrder;
+        setDraftMondaiOrders((prev) => (prev.includes(order) ? prev : [...prev, order]));
       }
       toast.success('Soal dihapus dari paket');
       setEditingItemId(null);
@@ -618,10 +803,10 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
     data: {
       questionText: string;
       explanation: string;
-      instructionText: string;
       options: { text: string; isCorrect: boolean }[];
-      audioUrl: string;
       imageUrl: string | null;
+      imageObjectKey: string | null;
+      mondaiOrder: number;
     },
   ) {
     startTransition(async () => {
@@ -629,10 +814,12 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         itemId,
         questionText: data.questionText,
         explanation: data.explanation,
-        instructionText: data.instructionText,
+        instructionText: '',
         options: data.options,
-        audioUrl: data.audioUrl,
+        audioUrl: undefined,
         imageUrl: data.imageUrl,
+        imageObjectKey: data.imageObjectKey,
+        mondaiOrder: data.mondaiOrder,
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -642,6 +829,39 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
       setEditingItemId(null);
       router.refresh();
     });
+  }
+
+  function handleAddMondai() {
+    const maxExisting = mondaiList.reduce((max, g) => Math.max(max, g.order), 0);
+    const nextOrder = maxExisting + 1;
+    setDraftMondaiOrders((prev) => (prev.includes(nextOrder) ? prev : [...prev, nextOrder]));
+    setActiveMondaiOrder(nextOrder);
+    setEditingItemId(null);
+  }
+
+  function handleDeleteEmptyDraftMondai(order: number) {
+    const group = mondaiList.find((g) => g.order === order);
+    if (!group?.isDraft) return;
+    const remaining = mondaiList.filter((g) => g.order !== order).map((g) => g.order);
+    if (remaining.length === 0) {
+      setDraftMondaiOrders([]);
+      setActiveMondaiOrder(null);
+      setEditingItemId(null);
+      return;
+    }
+    const nextActive = activeMondaiOrder === order ? remaining[0]! : activeMondaiOrder;
+    persistMondaiSequence(remaining, nextActive);
+  }
+
+  function handleMondaiDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = mondaiList.map((g) => String(g.order));
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(mondaiList, oldIndex, newIndex).map((g) => g.order);
+    persistMondaiSequence(next, activeMondaiOrder);
   }
 
   return (
@@ -708,151 +928,343 @@ export function AdminJlptPaketDetailPage({ detail }: { detail: AdminJlptQuestion
         </form>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <Tabs
+        value={sectionTab}
+        onValueChange={(value) => {
+          const next = value as SectionTab;
+          setSectionTab(next);
+          setEditingItemId(null);
+          if (next !== 'CHOKAI') {
+            setActiveMondaiOrder(null);
+          } else if (mondaiList.length > 0) {
+            setActiveMondaiOrder(mondaiList[0]!.order);
+          }
+        }}
+        className="gap-4"
+      >
+        <TabsList variant="line">
+          <TabsTrigger value="MOJI_GOI">
+            {SECTION_LABELS.MOJI_GOI}
+            <TabCountBadge count={sectionCounts.MOJI_GOI} />
+          </TabsTrigger>
+          <TabsTrigger value="BUNPOU_DOKKAI">
+            {SECTION_LABELS.BUNPOU_DOKKAI}
+            <TabCountBadge count={sectionCounts.BUNPOU_DOKKAI} />
+          </TabsTrigger>
+          <TabsTrigger value="CHOKAI">
+            {SECTION_LABELS.CHOKAI}
+            <TabCountBadge count={sectionCounts.CHOKAI} />
+          </TabsTrigger>
+        </TabsList>
+
         {(['MOJI_GOI', 'BUNPOU_DOKKAI'] as const).map((section) => (
-          <Card key={section} className="border-border p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{SECTION_LABELS[section]}</h3>
-              <span className="text-xs text-muted-foreground">
-                {(itemsBySection[section] ?? []).reduce((n, i) => n + i.questionCount, 0)} soal
-              </span>
-            </div>
-            <ul className="space-y-2">
-              {(itemsBySection[section] ?? []).length === 0 ? (
-                <li className="text-sm text-muted-foreground">Belum ada soal.</li>
-              ) : (
-                (itemsBySection[section] ?? []).map((item) => (
-                  <li key={item.id} className="space-y-2">
-                    <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                      <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          disabled={isPending || locked || !item.editData}
-                          onClick={() =>
-                            setEditingItemId((prev) => (prev === item.id ? null : item.id))
-                          }
-                          aria-label="Edit soal"
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          disabled={isPending || locked}
-                          onClick={() => handleRemove(item.id)}
-                          aria-label="Hapus"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+          <TabsContent key={section} value={section} className="mt-0">
+            <Card className="border-border p-4">
+              <ul className="space-y-2">
+                {(itemsBySection[section] ?? []).length === 0 ? (
+                  <li className="text-sm text-muted-foreground">Belum ada soal.</li>
+                ) : (
+                  (itemsBySection[section] ?? []).map((item) => (
+                    <li key={item.id} className="space-y-2">
+                      <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                        <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            disabled={isPending || locked || !item.editData}
+                            onClick={() =>
+                              setEditingItemId((prev) => (prev === item.id ? null : item.id))
+                            }
+                            aria-label="Edit soal"
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            disabled={isPending || locked}
+                            onClick={() => handleRemove(item.id)}
+                            aria-label="Hapus"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    {editingItemId === item.id && item.editData ? (
-                      <MojiBunpouForm
-                        key={`edit-${item.id}`}
-                        section={section}
-                        locked={locked}
-                        disabled={isPending}
-                        initial={{
-                          questionText: item.editData.questionText,
-                          explanation: item.editData.explanation,
-                          options: item.editData.options,
-                        }}
-                        onCancel={() => setEditingItemId(null)}
-                        onSubmit={(data) => handleUpdateMojiBunpou(item.id, data)}
-                      />
-                    ) : null}
-                  </li>
-                ))
+                      {editingItemId === item.id && item.editData ? (
+                        <MojiBunpouForm
+                          key={`edit-${item.id}`}
+                          section={section}
+                          locked={locked}
+                          disabled={isPending}
+                          initial={{
+                            questionText: item.editData.questionText,
+                            explanation: item.editData.explanation,
+                            options: item.editData.options,
+                          }}
+                          onCancel={() => setEditingItemId(null)}
+                          onSubmit={(data) => handleUpdateMojiBunpou(item.id, data)}
+                        />
+                      ) : null}
+                    </li>
+                  ))
+                )}
+              </ul>
+              {editingItemId && (itemsBySection[section] ?? []).some((i) => i.id === editingItemId) ? null : (
+                <MojiBunpouForm
+                  section={section}
+                  locked={locked}
+                  disabled={isPending}
+                  onSubmit={(data) => handleCreateMojiBunpou(section, data)}
+                />
               )}
-            </ul>
-            {editingItemId && (itemsBySection[section] ?? []).some((i) => i.id === editingItemId) ? null : (
-              <MojiBunpouForm
-                section={section}
-                locked={locked}
-                disabled={isPending}
-                onSubmit={(data) => handleCreateMojiBunpou(section, data)}
-              />
-            )}
-          </Card>
+            </Card>
+          </TabsContent>
         ))}
 
-        <Card className="border-border p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">{SECTION_LABELS.CHOKAI}</h3>
-            <span className="text-xs text-muted-foreground">
-              {(itemsBySection.CHOKAI ?? []).reduce((n, i) => n + i.questionCount, 0)} soal
-            </span>
-          </div>
-          <ul className="space-y-2">
-            {(itemsBySection.CHOKAI ?? []).length === 0 ? (
-              <li className="text-sm text-muted-foreground">Belum ada soal.</li>
-            ) : (
-              (itemsBySection.CHOKAI ?? []).map((item) => (
-                <li key={item.id} className="space-y-2">
-                  <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                    <span className="min-w-0 flex-1 wrap-break-word">{item.label}</span>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        disabled={isPending || locked || !item.editData}
-                        onClick={() =>
-                          setEditingItemId((prev) => (prev === item.id ? null : item.id))
-                        }
-                        aria-label="Edit soal"
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        disabled={isPending || locked}
-                        onClick={() => handleRemove(item.id)}
-                        aria-label="Hapus"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {editingItemId === item.id && item.editData ? (
-                    <ChokaiForm
-                      key={`edit-chokai-${item.id}`}
-                      level={detail.level}
-                      locked={locked}
-                      disabled={isPending}
-                      initial={{
-                        questionText: item.editData.questionText,
-                        explanation: item.editData.explanation,
-                        options: item.editData.options,
-                        instructionText: item.editData.instructionText,
-                        audioUrl: item.editData.audioUrl,
-                        imageUrl: item.editData.imageUrl,
-                        questionCountInGroup: item.editData.questionCountInGroup,
-                      }}
-                      onCancel={() => setEditingItemId(null)}
-                      onSubmit={(data) => handleUpdateChokai(item.id, data)}
-                    />
+        <TabsContent value="CHOKAI" className="mt-0">
+          <Card className="border-border p-4">
+            <div className="mb-4 space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+              <Label>Audio Choukai paket (1 file master)</Label>
+              <p className="text-xs text-muted-foreground">
+                Satu pita untuk seluruh mondai. Siswa mendengar kontinu; tidak perlu intro per-mondai.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingPackageAudio || isPending || locked}
+                  onClick={() => packageAudioRef.current?.click()}
+                >
+                  {uploadingPackageAudio ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Upload className="size-4" />
+                  )}
+                  {packageHasMasterAudio ? 'Ganti audio' : 'Unggah audio'}
+                </Button>
+                {packageHasMasterAudio ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isPending || locked || uploadingPackageAudio}
+                    onClick={handleClearPackageChokaiAudio}
+                  >
+                    Hapus
+                  </Button>
+                ) : null}
+                <input
+                  ref={packageAudioRef}
+                  type="file"
+                  accept=".mp3,audio/mpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadPackageChokaiAudio(f);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+              {detail.chokaiAudioUrl ? (
+                <div className="space-y-1">
+                  {detail.chokaiAudioOriginalName ? (
+                    <p className="text-xs text-muted-foreground">{detail.chokaiAudioOriginalName}</p>
                   ) : null}
-                </li>
-              ))
-            )}
-          </ul>
-          {editingItemId && (itemsBySection.CHOKAI ?? []).some((i) => i.id === editingItemId) ? null : (
-            <ChokaiForm
-              level={detail.level}
-              locked={locked}
-              disabled={isPending}
-              onSubmit={handleCreateChokai}
-            />
-          )}
-        </Card>
-      </div>
+                  <audio controls preload="none" className="w-full" src={detail.chokaiAudioUrl}>
+                    <track kind="captions" />
+                  </audio>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Belum ada audio master — unggah satu file untuk seluruh bagian Choukai.
+                </p>
+              )}
+            </div>
+
+            {mondaiList.length === 0 ? (
+              <div className="space-y-3 rounded-lg border border-dashed border-border px-4 py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Belum ada grup mondai. Buat Mondai 1, lalu isi soal di dalamnya.
+                </p>
+                {!locked ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending}
+                    onClick={handleAddMondai}
+                  >
+                    <Plus className="size-4" />
+                    Buat Mondai 1
+                  </Button>
+                ) : null}
+              </div>
+            ) : selectedMondaiOrder != null ? (
+              <Tabs
+                value={String(selectedMondaiOrder)}
+                onValueChange={(value) => {
+                  setActiveMondaiOrder(Number.parseInt(value, 10));
+                  setEditingItemId(null);
+                }}
+                className="gap-3"
+              >
+                <div className="flex flex-wrap items-end gap-2">
+                  <DndContext
+                    sensors={mondaiSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleMondaiDragEnd}
+                  >
+                    <SortableContext
+                      items={mondaiList.map((g) => String(g.order))}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      <TabsList variant="line" className="h-auto min-w-0 flex-1 flex-wrap justify-start gap-4">
+                        {mondaiList.map((group, index) => (
+                          <SortableMondaiTabTrigger
+                            key={group.order}
+                            id={String(group.order)}
+                            label={`MONDAI ${index + 1}`}
+                            count={group.soalCount}
+                            disabled={locked || isPending}
+                          />
+                        ))}
+                      </TabsList>
+                    </SortableContext>
+                  </DndContext>
+                  {!locked ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mb-2 shrink-0"
+                      disabled={isPending}
+                      onClick={handleAddMondai}
+                    >
+                      <Plus className="size-4" />
+                      Tambah Mondai
+                    </Button>
+                  ) : null}
+                </div>
+
+                {mondaiList.map((group, index) => (
+                  <TabsContent key={group.order} value={String(group.order)} className="mt-0 space-y-3">
+                    {group.isDraft && !locked ? (
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isPending}
+                          onClick={() => handleDeleteEmptyDraftMondai(group.order)}
+                        >
+                          <Trash2 className="size-4" />
+                          Hapus grup kosong
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    <ul className="space-y-2">
+                      {group.items.length === 0 ? (
+                        <li className="text-sm text-muted-foreground">
+                          Belum ada soal di mondai ini. Tambah soal di bawah.
+                        </li>
+                      ) : (
+                        group.items.map((item) => {
+                          const rowLabel = item.editData
+                            ? `${item.editData.code} — ${item.editData.questionText.slice(0, 60)}`
+                            : item.label;
+                          const isLastInMondai = group.items.length === 1;
+                          return (
+                            <li key={item.id} className="space-y-2">
+                              <div className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                                <span className="min-w-0 flex-1 wrap-break-word">{rowLabel}</span>
+                                <div className="flex shrink-0 items-center gap-0.5">
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={isPending || locked || !item.editData}
+                                    onClick={() =>
+                                      setEditingItemId((prev) => (prev === item.id ? null : item.id))
+                                    }
+                                    aria-label="Edit soal"
+                                  >
+                                    <Pencil className="size-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={isPending || locked}
+                                    onClick={() =>
+                                      handleRemove(item.id, {
+                                        mondaiOrder: group.order,
+                                        isLastInMondai,
+                                      })
+                                    }
+                                    aria-label="Hapus"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {editingItemId === item.id && item.editData ? (
+                                <ChokaiForm
+                                  key={`edit-chokai-${item.id}`}
+                                  level={detail.level}
+                                  locked={locked}
+                                  disabled={isPending}
+                                  mondaiOrder={index + 1}
+                                  questionSetId={detail.id}
+                                  packageCode={detail.code}
+                                  initial={{
+                                    questionText: item.editData.questionText,
+                                    explanation: item.editData.explanation,
+                                    options: item.editData.options,
+                                    imageUrl: item.editData.imageUrl,
+                                    imageObjectKey: item.editData.imageObjectKey,
+                                  }}
+                                  onCancel={() => setEditingItemId(null)}
+                                  onSubmit={(data) =>
+                                    handleUpdateChokai(item.id, {
+                                      ...data,
+                                      mondaiOrder: group.order,
+                                    })
+                                  }
+                                />
+                              ) : null}
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                    {editingItemId && group.items.some((i) => i.id === editingItemId) ? null : (
+                      <ChokaiForm
+                        level={detail.level}
+                        locked={locked}
+                        disabled={isPending}
+                        mondaiOrder={group.order}
+                        questionSetId={detail.id}
+                        packageCode={detail.code}
+                        onSubmit={(data) =>
+                          handleCreateChokai({
+                            ...data,
+                            mondaiOrder: group.order,
+                          })
+                        }
+                      />
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : null}
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <p className="mt-4 text-xs text-muted-foreground">
         Banyak soal sekaligus?{' '}

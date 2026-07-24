@@ -274,17 +274,19 @@ export async function loadTryoutExam(sessionCode: string, userId: string) {
       questions: [],
       empty: true as const,
       enrollmentBlocked: enrollment.message,
+      chokaiAudioUrl: null as string | null,
     };
   }
 
-  const questions = await loadTryoutExamPaper(session.id);
+  const paper = await loadTryoutExamPaper(session.id);
 
-  if (questions.length === 0) return { session, questions: [], empty: true as const };
+  if (paper.questions.length === 0) return { session, questions: [], empty: true as const, chokaiAudioUrl: paper.chokaiAudioUrl };
 
   return {
     session,
     empty: false as const,
-    questions,
+    questions: paper.questions,
+    chokaiAudioUrl: paper.chokaiAudioUrl,
   };
 }
 

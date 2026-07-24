@@ -94,7 +94,7 @@ export async function buildTryoutAttemptDetails(
           explanation: question.explanation,
           options: question.options,
         }))
-      : (await loadTryoutExamPaper(attempt.tryoutSessionId)).map((question) => ({
+      : (await loadTryoutExamPaper(attempt.tryoutSessionId)).questions.map((question) => ({
           id: question.id,
           examNumber: question.examNumber,
           section: String(question.section),

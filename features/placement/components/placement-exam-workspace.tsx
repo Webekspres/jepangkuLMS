@@ -130,6 +130,7 @@ function QuestionOptions({
         const selected = selectedId === option.id;
 
         if (isImage) {
+          const letter = String.fromCharCode(65 + optIndex);
           return (
             <button
               key={option.id}
@@ -146,28 +147,25 @@ function QuestionOptions({
                 {option.imageUrl ? (
                   <Image
                     src={option.imageUrl}
-                    alt={`Opsi ${option.label}`}
+                    alt={`Opsi ${letter}`}
                     fill
                     className="object-contain p-2"
                     unoptimized
                   />
                 ) : (
                   <span className="flex size-full items-center justify-center text-3xl font-extrabold text-muted-foreground/40">
-                    {option.label}
+                    {letter}
                   </span>
                 )}
               </div>
               <div className="border-t border-border px-3 py-2 text-center text-sm font-bold">
-                {option.label}
+                {letter}
               </div>
             </button>
           );
         }
 
-        const badge =
-          question.optionKind === 'NUMBER'
-            ? option.label
-            : String.fromCharCode(65 + optIndex);
+        const badge = String.fromCharCode(65 + optIndex);
 
         return (
           <button

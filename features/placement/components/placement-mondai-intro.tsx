@@ -101,17 +101,20 @@ function MondaiExamplePreview({
     }
     return (
       <div className="grid grid-cols-2 gap-2">
-        {[1, 2, 3, 4].map((n) => (
-          <div
-            key={n}
-            className="relative flex aspect-4/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40"
-          >
-            <span className="text-2xl font-extrabold text-muted-foreground/50">{n}</span>
-            <span className="absolute top-1 left-1 rounded bg-muted px-1.5 text-[10px] font-bold">
-              {n}
-            </span>
-          </div>
-        ))}
+        {[0, 1, 2, 3].map((i) => {
+          const letter = String.fromCharCode(65 + i);
+          return (
+            <div
+              key={letter}
+              className="relative flex aspect-4/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40"
+            >
+              <span className="text-2xl font-extrabold text-muted-foreground/50">{letter}</span>
+              <span className="absolute top-1 left-1 rounded bg-muted px-1.5 text-[10px] font-bold">
+                {letter}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -126,7 +129,7 @@ function MondaiExamplePreview({
             className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm"
           >
             <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-              {i + 1}
+              {String.fromCharCode(65 + i)}
             </span>
             <span style={{ fontFamily: 'var(--font-noto-sans-jp, sans-serif)' }}>{opt}</span>
           </div>
@@ -159,13 +162,13 @@ function MondaiExamplePreview({
 
   return (
     <div className="grid gap-2">
-      {['1', '2', '3'].map((n) => (
+      {['1', '2', '3'].map((n, i) => (
         <div
           key={n}
           className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm"
         >
           <span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
-            {n}
+            {String.fromCharCode(65 + i)}
           </span>
           <span>{n}</span>
         </div>

@@ -78,6 +78,7 @@ export default async function TryoutExamRoutePage({ params }: PageProps) {
       level={exam.session.level}
       timeLimitMinutes={exam.session.timeLimitMinutes}
       questions={exam.questions}
+      chokaiAudioUrl={'chokaiAudioUrl' in exam ? exam.chokaiAudioUrl : null}
       examProgress={await getOrCreateTryoutExamProgress(exam.session.id)}
     />
   );

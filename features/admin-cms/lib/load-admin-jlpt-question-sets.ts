@@ -32,6 +32,8 @@ export type AdminJlptQuestionSetItemEditData = {
   instructionText: string;
   audioUrl: string;
   imageUrl: string | null;
+  imageObjectKey: string | null;
+  mondaiOrder: number;
   questionCountInGroup: number;
 };
 
@@ -47,6 +49,8 @@ export type AdminJlptQuestionSetItemRow = {
 };
 
 export type AdminJlptQuestionSetDetail = AdminJlptQuestionSetRow & {
+  chokaiAudioUrl: string | null;
+  chokaiAudioOriginalName: string | null;
   items: AdminJlptQuestionSetItemRow[];
   availableQuestions: Array<{
     id: string;
@@ -124,6 +128,9 @@ export async function loadAdminJlptQuestionSetById(
               code: true,
               questionText: true,
               explanation: true,
+              mondaiOrder: true,
+              stemImageUrl: true,
+              stemImageObjectKey: true,
               options: {
                 orderBy: { sortOrder: 'asc' },
                 select: { text: true, isCorrect: true },
@@ -137,6 +144,7 @@ export async function loadAdminJlptQuestionSetById(
               instructionText: true,
               audioUrl: true,
               imageUrl: true,
+              imageObjectKey: true,
               _count: { select: { questions: true } },
               questions: {
                 where: { status: { not: 'RETIRED' } },
@@ -147,6 +155,9 @@ export async function loadAdminJlptQuestionSetById(
                   code: true,
                   questionText: true,
                   explanation: true,
+                  mondaiOrder: true,
+                  stemImageUrl: true,
+                  stemImageObjectKey: true,
                   options: {
                     orderBy: { sortOrder: 'asc' },
                     select: { text: true, isCorrect: true },
@@ -217,6 +228,8 @@ export async function loadAdminJlptQuestionSetById(
     source: row.source,
     year: row.year,
     description: row.description,
+    chokaiAudioUrl: row.chokaiAudioUrl,
+    chokaiAudioOriginalName: row.chokaiAudioOriginalName,
     updatedAt: row.updatedAt.toISOString(),
     stats,
     items: row.items.map((i) => {
@@ -240,7 +253,9 @@ export async function loadAdminJlptQuestionSetById(
           })),
           instructionText: '',
           audioUrl: '',
-          imageUrl: null,
+          imageUrl: i.jlptQuestion.stemImageUrl,
+          imageObjectKey: i.jlptQuestion.stemImageObjectKey,
+          mondaiOrder: i.jlptQuestion.mondaiOrder,
           questionCountInGroup: 1,
         };
       } else if (i.listeningStimulus) {
@@ -258,7 +273,9 @@ export async function loadAdminJlptQuestionSetById(
             })),
             instructionText: i.listeningStimulus.instructionText ?? '',
             audioUrl: i.listeningStimulus.audioUrl ?? '',
-            imageUrl: i.listeningStimulus.imageUrl,
+            imageUrl: firstQ.stemImageUrl ?? i.listeningStimulus.imageUrl,
+            imageObjectKey: firstQ.stemImageObjectKey ?? i.listeningStimulus.imageObjectKey,
+            mondaiOrder: firstQ.mondaiOrder,
             questionCountInGroup: i.listeningStimulus._count.questions,
           };
         }
@@ -270,11 +287,16 @@ export async function loadAdminJlptQuestionSetById(
         sortOrder: i.sortOrder,
         jlptQuestionId: i.jlptQuestionId,
         listeningStimulusId: i.listeningStimulusId,
-        label: i.jlptQuestion
-          ? `${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
-          : i.listeningStimulus
-            ? `${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
-            : '—',
+        label:
+          i.section === 'CHOKAI' && i.jlptQuestion
+            ? `MONDAI ${i.jlptQuestion.mondaiOrder} · ${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
+            : i.section === 'CHOKAI' && i.listeningStimulus && i.listeningStimulus.questions[0]
+              ? `MONDAI ${i.listeningStimulus.questions[0].mondaiOrder} · ${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
+              : i.jlptQuestion
+                ? `${i.jlptQuestion.code} — ${i.jlptQuestion.questionText.slice(0, 60)}`
+                : i.listeningStimulus
+                  ? `${i.listeningStimulus.code} (${i.listeningStimulus._count.questions} soal)`
+                  : '—',
         questionCount: qCount,
         editData,
       };
