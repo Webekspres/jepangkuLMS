@@ -9,7 +9,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Base domain**           | `kursus.jepangku.com`                                       |
 | **Terakhir diperbarui**   | 2026-07-24                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **87%** (69 item terlacak)                                  |
+| **Progres global Fase 1** | **87%** (70 item terlacak)                                  |
 
 ### Progres global
 
@@ -20,15 +20,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      16 |     12 |     4 |     0 |     85% |
-| Halaman & routing        |      30 |     24 |     6 |     0 |     88% |
+| Halaman & routing        |      31 |     25 |     6 |     0 |     88% |
 | Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **69** | **55** | **13** | **1** | **87%** |
+| **Total**                |  **70** | **56** | **13** | **1** | **87%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(55 + 5.2) ÷ 69 ≈ 87%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(56 + 5.2) ÷ 70 ≈ 87%`.
 
 ---
 
@@ -48,7 +48,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      12 |        4 |     0 |
-| Halaman & routing        |      24 |        6 |     0 |
+| Halaman & routing        |      25 |        6 |     0 |
 | Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       5 |        1 |     0 |
@@ -122,7 +122,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Route                                      | Status | Catatan                                                                          |
 | :----------------------------------------- | :----: | :------------------------------------------------------------------------------- |
-| `/admin/dashboard`                         |   ✅   | Analytics enrollment, live class, tryout                                         |
+| `/admin/dashboard`                         |   ✅   | Executive dashboard: KPI + Recharts (tren/mix/tryout/live) + activity; range 7/30 |
+| `/admin/settings`                          |   ✅   | Integrasi GA4 / Search Console (dipindah dari dashboard)                          |
 | `/admin/live-class`                        |   ✅   | CRUD jadwal live class + kolom peserta (enrollment) + dialog daftar siswa        |
 | `/admin/tryout`                            |   ✅   | CRUD sesi + pilih Paket Soal + peserta                                               |
 | `/admin/tryout/paket`                      |   ✅   | Paket Soal: tab blok by level (N1/N2 gabung Vocab+Grammar); audio master Choukai + `mondaiOrder` |
@@ -195,6 +196,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-24 | Admin executive dashboard: Recharts insights (enrollment/student/top courses/mix/tryout/live/placement), activity feed, range 7/30; GA4/GSC → `/admin/settings` |
 | 2026-07-24 | Tryout blok JLPT by level: N5–N3 tiga bagian, N1–N2 dua (Vocab/Grammar·Reading gabung); label EN jlpt.jp; CMS tab + exam intro mengikuti blok |
 | 2026-07-24 | Tryout Choukai: 1 audio master per paket + `mondaiOrder` dinamis; CMS paket upload; exam continuous player (tanpa intro per-mondai) |
 | 2026-07-23 | Placement Choukai: Intro Mondai 1–4 + navigator per grup + stub IMAGE/TEXT/NUMBER (36 soal total) |

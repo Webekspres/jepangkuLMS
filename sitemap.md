@@ -127,7 +127,8 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 
 ```plaintext
 /admin ***
-├── /dashboard                   → Overview Statistik Sederhana
+├── /dashboard                   → Executive dashboard (KPI + Recharts + activity)
+├── /settings                    → Integrasi GA4 / Search Console
 │
 ├── /pembayaran                  → Manajemen Validasi Akses Manual
 │

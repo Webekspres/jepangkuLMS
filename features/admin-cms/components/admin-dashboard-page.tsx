@@ -1,156 +1,210 @@
 import Link from 'next/link';
-import { BookOpen, Clock, GraduationCap, Target, Users, Video } from 'lucide-react';
+import {
+  Award,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  GraduationCap,
+  Target,
+  Users,
+  Video,
+} from 'lucide-react';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminStatCard } from '@/features/admin-cms/components/admin-stat-card';
-import type { AdminDashboardStats } from '@/features/admin-cms/lib/load-admin-dashboard-stats';
-import type { AdminAnalyticsConfig } from '@/features/admin-cms/lib/load-admin-analytics-config';
-import { AdminAnalyticsPanel } from '@/features/admin-cms/components/admin-analytics-panel';
-import { EnrollmentTrendChart } from '@/features/admin-cms/components/enrollment-trend-chart';
+import { DashboardAttentionBanner } from '@/features/admin-cms/components/dashboard/dashboard-attention-banner';
+import { DashboardQuickActions } from '@/features/admin-cms/components/dashboard/dashboard-quick-actions';
+import { DashboardRangeToggle } from '@/features/admin-cms/components/dashboard/dashboard-range-toggle';
+import { DashboardRecentActivity } from '@/features/admin-cms/components/dashboard/dashboard-recent-activity';
+import { EnrollmentTrendChart } from '@/features/admin-cms/components/dashboard/charts/enrollment-trend-chart';
+import { StudentGrowthChart } from '@/features/admin-cms/components/dashboard/charts/student-growth-chart';
+import { TopCoursesChart } from '@/features/admin-cms/components/dashboard/charts/top-courses-chart';
+import { EnrollmentMixChart } from '@/features/admin-cms/components/dashboard/charts/enrollment-mix-chart';
+import { TryoutPerformanceChart } from '@/features/admin-cms/components/dashboard/charts/tryout-performance-chart';
+import { LiveFillChart } from '@/features/admin-cms/components/dashboard/charts/live-fill-chart';
+import { PlacementMixChart } from '@/features/admin-cms/components/dashboard/charts/placement-mix-chart';
+import type { AdminDashboardInsights } from '@/features/admin-cms/lib/load-admin-dashboard-insights';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDisplayNumber } from '@/features/marketing/components/landing-data';
-import { cn } from '@/lib/utils';
 
-export function AdminDashboardPage({
-  stats,
-  analyticsConfig,
-}: {
-  stats: AdminDashboardStats;
-  analyticsConfig: AdminAnalyticsConfig;
-}) {
+export function AdminDashboardPage({ insights }: { insights: AdminDashboardInsights }) {
+  const { kpis, rangeDays } = insights;
   const approvalRate =
-    stats.totalEnrollments > 0
-      ? Math.round((stats.activeEnrollments / stats.totalEnrollments) * 100)
+    kpis.totalEnrollments > 0
+      ? Math.round((kpis.activeEnrollments / kpis.totalEnrollments) * 100)
       : 0;
+  const rangeLabel = `${rangeDays} hari`;
 
   return (
     <AdminPageShell
       label="Admin"
       title="Dashboard"
-      subtitle="Overview statistik JepangKu LMS — siswa, kursus, program, dan aktivitas belajar."
+      subtitle="Insight operasional JepangKu LMS — siswa, enrollment, belajar, dan program."
+      action={<DashboardRangeToggle rangeDays={rangeDays} />}
     >
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <AdminStatCard
-          title="Total Siswa"
-          value={formatDisplayNumber(stats.studentCount)}
-          description="Akun terdaftar di LMS"
-          icon={Users}
-        />
-        <AdminStatCard
-          title="Total Kursus"
-          value={formatDisplayNumber(stats.courseCount)}
-          description="Paket kursus di database"
-          icon={BookOpen}
-          accentClassName="bg-brand-orange/10 text-brand-orange"
-        />
-        <AdminStatCard
-          title="Pembayaran Pending"
-          value={formatDisplayNumber(stats.pendingEnrollments)}
-          description="Enrollment menunggu verifikasi"
-          icon={Clock}
-          accentClassName="bg-brand-yellow/10 text-yellow-600 "
-        />
-        <AdminStatCard
-          title="Enrollment Aktif"
-          value={formatDisplayNumber(stats.activeEnrollments)}
-          description={`${approvalRate}% dari total enrollment`}
-          icon={GraduationCap}
-          accentClassName="bg-emerald-500/10 text-emerald-600 "
-        />
-        <AdminStatCard
-          title="Live Class"
-          value={formatDisplayNumber(stats.upcomingLiveClasses)}
-          description={`${stats.publishedLiveClasses} terpublikasi · ${stats.upcomingLiveClasses} mendatang`}
-          icon={Video}
-          accentClassName="bg-blue-500/10 text-blue-600 "
-        />
-        <AdminStatCard
-          title="Sesi Tryout"
-          value={formatDisplayNumber(stats.activeTryoutSessions)}
-          description={`${stats.quizAttemptsThisWeek} attempt kuis minggu ini`}
-          icon={Target}
-          accentClassName="bg-violet-500/10 text-violet-600 "
-        />
+      <div className="space-y-6">
+        <DashboardQuickActions />
+
+        <DashboardAttentionBanner pendingCount={kpis.pendingEnrollments} />
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <AdminStatCard
+            title="Total Siswa"
+            value={formatDisplayNumber(kpis.studentCount)}
+            delta={
+              kpis.studentsNewInRange > 0
+                ? `+${formatDisplayNumber(kpis.studentsNewInRange)} (${rangeLabel})`
+                : undefined
+            }
+            description="Akun peran siswa"
+            icon={Users}
+          />
+          <AdminStatCard
+            title="Enrollment Aktif"
+            value={formatDisplayNumber(kpis.activeEnrollments)}
+            description={`${approvalRate}% dari ${formatDisplayNumber(kpis.totalEnrollments)} total`}
+            icon={GraduationCap}
+            accentClassName="bg-emerald-500/10 text-emerald-600"
+          />
+          <AdminStatCard
+            title="Pembayaran Pending"
+            value={formatDisplayNumber(kpis.pendingEnrollments)}
+            description="Menunggu verifikasi admin"
+            icon={Clock}
+            accentClassName="bg-brand-yellow/10 text-yellow-700"
+          />
+          <AdminStatCard
+            title="Kursus Published"
+            value={formatDisplayNumber(kpis.publishedCourseCount)}
+            description={`${formatDisplayNumber(kpis.courseCount)} total di database`}
+            icon={BookOpen}
+            accentClassName="bg-brand-orange/10 text-brand-orange"
+          />
+          <AdminStatCard
+            title="Completion Rate"
+            value={
+              kpis.courseCompletionRate != null ? `${kpis.courseCompletionRate}%` : '—'
+            }
+            description={`${formatDisplayNumber(kpis.lessonCompletionsInRange)} lesson selesai (${rangeLabel})`}
+            icon={CheckCircle2}
+            accentClassName="bg-emerald-500/10 text-emerald-600"
+          />
+          <AdminStatCard
+            title="Tryout Attempts"
+            value={formatDisplayNumber(kpis.tryoutAttemptsInRange)}
+            description={`${formatDisplayNumber(kpis.activeTryoutSessions)} sesi aktif · ${formatDisplayNumber(kpis.quizAttemptsInRange)} kuis (${rangeLabel})`}
+            icon={Target}
+            accentClassName="bg-violet-500/10 text-violet-600"
+          />
+          <AdminStatCard
+            title="Live Class"
+            value={formatDisplayNumber(kpis.upcomingLiveClasses)}
+            description={`${formatDisplayNumber(kpis.publishedLiveClasses)} terpublikasi · sesi mendatang`}
+            icon={Video}
+            accentClassName="bg-blue-500/10 text-blue-600"
+          />
+          <AdminStatCard
+            title="Badge Issued"
+            value={formatDisplayNumber(kpis.badgesIssuedTotal)}
+            delta={
+              kpis.badgesIssuedInRange > 0
+                ? `+${formatDisplayNumber(kpis.badgesIssuedInRange)} (${rangeLabel})`
+                : undefined
+            }
+            description="Unlock badge LMS"
+            icon={Award}
+            accentClassName="bg-brand-yellow/10 text-yellow-700"
+          />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Enrollment trend</CardTitle>
+              <CardDescription>Pendaftaran baru per hari ({rangeLabel}).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EnrollmentTrendChart data={insights.enrollmentTrend} />
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Student growth</CardTitle>
+              <CardDescription>Siswa baru terdaftar ({rangeLabel}).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StudentGrowthChart data={insights.studentGrowth} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Top courses</CardTitle>
+              <CardDescription>Kursus dengan enrollment terbanyak.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TopCoursesChart data={insights.topCourses} />
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Enrollment mix</CardTitle>
+              <CardDescription>Proporsi kursus, live class, dan tryout.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EnrollmentMixChart data={insights.enrollmentMix} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Tryout performance</CardTitle>
+              <CardDescription>
+                Attempt & rata-rata skor per level JLPT ({rangeLabel}).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TryoutPerformanceChart data={insights.tryoutByLevel} />
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Live class fill</CardTitle>
+              <CardDescription>Utilisasi slot kelas terpublikasi.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LiveFillChart data={insights.liveFill} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="border-border bg-card shadow-sm lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Placement mix</CardTitle>
+              <CardDescription>Level rekomendasi tes penempatan.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PlacementMixChart data={insights.placementMix} />
+            </CardContent>
+          </Card>
+          <div className="lg:col-span-2">
+            <DashboardRecentActivity items={insights.recentActivity} />
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Integrasi Google Analytics & Search Console ada di{' '}
+          <Link href={ADMIN_ROUTES.settings} className="underline underline-offset-2 hover:text-primary">
+            Pengaturan
+          </Link>
+          .
+        </p>
       </div>
-
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card className="border-border bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-bold">Enrollment (7 hari)</CardTitle>
-            <CardDescription>Pendaftaran baru per hari minggu ini.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EnrollmentTrendChart data={stats.enrollmentTrend} />
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-bold">Ringkasan Program</CardTitle>
-            <CardDescription>Status live class dan simulasi JLPT.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                label: 'Live class mendatang',
-                value: stats.upcomingLiveClasses,
-                href: ADMIN_ROUTES.liveClass,
-              },
-              {
-                label: 'Sesi tryout aktif',
-                value: stats.activeTryoutSessions,
-                href: ADMIN_ROUTES.tryoutSessions,
-              },
-              {
-                label: 'Attempt kuis (7 hari)',
-                value: stats.quizAttemptsThisWeek,
-                href: ADMIN_ROUTES.kursus,
-              },
-            ].map((row) => (
-              <Link
-                key={row.label}
-                href={row.href}
-                className={cn(
-                  'flex items-center justify-between rounded-xl border border-border px-4 py-3',
-                  'transition-colors hover:bg-muted/40',
-                )}
-              >
-                <span className="text-sm text-muted-foreground">{row.label}</span>
-                <span className="text-lg font-bold text-foreground">{row.value}</span>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-6">
-        <AdminAnalyticsPanel config={analyticsConfig} />
-      </div>
-
-      <Card className="mt-6 border-border bg-card shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-bold">Aksi Cepat</CardTitle>
-          <CardDescription>Shortcut ke modul CMS yang sering dipakai.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="default">
-            <Link href={ADMIN_ROUTES.kursusForm}>Buat Kursus</Link>
-          </Button>
-          <Button asChild variant="outline" className="border-border">
-            <Link href={ADMIN_ROUTES.pembayaran}>Verifikasi Pembayaran</Link>
-          </Button>
-          <Button asChild variant="outline" className="border-border">
-            <Link href={ADMIN_ROUTES.liveClassForm}>Jadwalkan Live Class</Link>
-          </Button>
-          <Button asChild variant="outline" className="border-border">
-            <Link href={ADMIN_ROUTES.tryoutSessionForm}>Buat Sesi Tryout</Link>
-          </Button>
-          <Button asChild variant="outline" className="border-border">
-            <Link href={ADMIN_ROUTES.kursus}>Kelola Kursus</Link>
-          </Button>
-        </CardContent>
-      </Card>
     </AdminPageShell>
   );
 }
