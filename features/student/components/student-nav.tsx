@@ -40,7 +40,7 @@ function MobileMenuSection({
 }) {
   return (
     <div className="px-2 py-0.5">
-      <p className="px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase dark:text-foreground">
+      <p className="px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase ">
         {title}
       </p>
       <div className="flex flex-col">{children}</div>
@@ -71,7 +71,7 @@ function MobileMenuAccordionSection({
         )}
       >
         <span className="min-w-0">
-          <span className="block text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase dark:text-foreground">
+          <span className="block text-[11px] font-extrabold tracking-[0.14em] text-brand-navy uppercase ">
             {title}
           </span>
           <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
@@ -148,7 +148,7 @@ export function StudentNav() {
   return (
     <nav
       className={cn(
-        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md dark:backdrop-blur-none',
+        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md ',
         menuOpen ? 'z-102' : 'z-50',
       )}
     >
@@ -222,7 +222,7 @@ export function StudentNav() {
       <MarketingMobileMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        panelClassName="border border-border bg-header backdrop-blur-xl dark:backdrop-blur-none"
+        panelClassName="border border-border bg-header backdrop-blur-xl "
       >
         <StudentProfileMenuHeader
           displayName={displayName}
@@ -286,7 +286,7 @@ export function StudentNav() {
                       'px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] uppercase',
                       isStudentNavGroupActive(pathname, item)
                         ? 'text-primary'
-                        : 'text-brand-navy dark:text-foreground',
+                        : 'text-brand-navy ',
                     )}
                   >
                     {item.label}

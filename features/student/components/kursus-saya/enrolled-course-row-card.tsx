@@ -93,7 +93,7 @@ export function EnrolledCourseCard({
       </div>
 
       <div className="flex flex-1 flex-col p-4 md:p-5">
-        <h3 className="line-clamp-2 text-base font-bold text-brand-navy dark:text-white">
+        <h3 className="line-clamp-2 text-base font-bold text-brand-navy ">
           {course.title}
         </h3>
 

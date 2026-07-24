@@ -87,7 +87,7 @@ export function CourseDetailPage({ course, paymentSettings }: CourseDetailPagePr
       <PublicNavbar activeHref="/kursus" />
 
       {/* Sub-nav breadcrumb */}
-      <div className="border-b border-border bg-header backdrop-blur-md dark:backdrop-blur-none">
+      <div className="border-b border-border bg-header backdrop-blur-md ">
         <div className="container mx-auto flex items-center gap-3 px-4 py-3 md:px-8">
           <Link
             href="/kursus"

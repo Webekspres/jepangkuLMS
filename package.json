@@ -30,7 +30,8 @@
     "verify:core-gamification": "bun scripts/verify-core-gamification.ts",
     "email:dev": "email dev --dir emails --port 3001",
     "kana:generate": "bun run scripts/generate-kana-manifest-from-xlsx.ts",
-    "kana:vocab-images": "bun run scripts/generate-kana-vocab-images.ts"
+    "kana:vocab-images": "bun run scripts/generate-kana-vocab-images.ts",
+    "placement:generate": "bun run scripts/generate-placement-paper-from-xlsx.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1077.0",
@@ -56,7 +57,6 @@
     "lucide-react": "^1.22.0",
     "motion": "^12.42.2",
     "next": "16.2.6",
-    "next-themes": "^0.4.6",
     "nextjs-toploader": "^3.9.17",
     "pg": "^8.22.0",
     "pino": "^10.3.1",

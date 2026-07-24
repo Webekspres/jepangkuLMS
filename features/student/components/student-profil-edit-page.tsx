@@ -358,11 +358,11 @@ export function StudentProfilEditPage() {
 
       {/* ── Modal Potong Foto (react-easy-crop) ────────────────────────────────── */}
       {isCropModalOpen && imageSrc && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/70 dark:bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-slate-200 dark:border-brand-yellow/30 bg-white dark:bg-slate-950 p-5 shadow-2xl">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/70  p-4 backdrop-blur-sm">
+          <div className="relative flex w-full max-w-lg flex-col rounded-3xl border border-slate-200  bg-white  p-5 shadow-2xl">
             {/* Header */}
             <div className="mb-4">
-              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900  flex items-center gap-2">
                 <Camera className="size-5 text-brand-yellow" />
                 Sesuaikan Foto Profil
               </h2>
@@ -372,7 +372,7 @@ export function StudentProfilEditPage() {
             </div>
 
             {/* Cropper Container — always dark canvas for focus */}
-            <div className="relative w-full h-64 sm:h-80 bg-black rounded-2xl overflow-hidden border border-black/10 dark:border-white/10">
+            <div className="relative w-full h-64 sm:h-80 bg-black rounded-2xl overflow-hidden border border-black/10 ">
               <Cropper
                 image={imageSrc}
                 crop={crop}
@@ -392,7 +392,7 @@ export function StudentProfilEditPage() {
             <div className="mt-4 space-y-4">
               {/* Zoom Slider */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 ">
                   <span>Perbesar (Zoom)</span>
                   <span>{zoom.toFixed(1)}x</span>
                 </div>
@@ -403,13 +403,13 @@ export function StudentProfilEditPage() {
                   step={0.1}
                   value={zoom}
                   onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                  className="w-full h-1.5 bg-slate-200  rounded-lg appearance-none cursor-pointer accent-brand-yellow"
                 />
               </div>
 
               {/* Rotation Slider */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <div className="flex justify-between text-xs font-semibold text-slate-600 ">
                   <span>Putar (Rotation)</span>
                   <span>{rotation}°</span>
                 </div>
@@ -420,20 +420,20 @@ export function StudentProfilEditPage() {
                   step={1}
                   value={rotation}
                   onChange={(e) => setRotation(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-yellow"
+                  className="w-full h-1.5 bg-slate-200  rounded-lg appearance-none cursor-pointer accent-brand-yellow"
                 />
               </div>
             </div>
 
             {/* Actions */}
-            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 dark:border-white/10 pt-4">
+            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100  pt-4">
               <Button
                 variant="ghost"
                 onClick={() => {
                   setIsCropModalOpen(false);
                   setImageSrc(null);
                 }}
-                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/5"
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100   "
               >
                 Batal
               </Button>

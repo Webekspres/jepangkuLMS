@@ -1,21 +1,12 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
-import { FIXED_THEME, THEME_SWITCHING_ENABLED } from '@/lib/theme/theme-config';
 
 export function Toaster({ ...props }: ToasterProps) {
-  const { resolvedTheme } = useTheme();
-  const theme: ToasterProps['theme'] = THEME_SWITCHING_ENABLED
-    ? resolvedTheme === 'dark'
-      ? 'dark'
-      : 'light'
-    : FIXED_THEME;
-
   return (
     <Sonner
       {...props}
-      theme={theme}
+      theme="light"
       className="toaster group"
       toastOptions={{
         classNames: {

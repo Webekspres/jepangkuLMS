@@ -16,6 +16,14 @@ function isTryoutReviewPath(pathname: string) {
   return /^\/dashboard\/tryout\/hasil\/[^/]+$/.test(pathname);
 }
 
+function isPlacementExamPath(pathname: string) {
+  return pathname === '/dashboard/tes-penempatan/ujian';
+}
+
+function isPlacementResultPath(pathname: string) {
+  return /^\/dashboard\/tes-penempatan\/hasil\/[^/]+$/.test(pathname);
+}
+
 /** Static tryout routes that are not exam sessions. */
 const TRYOUT_STATIC_SEGMENTS = new Set(['hasil', 'riwayat']);
 
@@ -30,7 +38,7 @@ function isTryoutExamPath(pathname: string) {
 export function StudentShell({ children }: StudentShellProps) {
   const pathname = usePathname();
 
-  if (isTryoutExamPath(pathname)) {
+  if (isTryoutExamPath(pathname) || isPlacementExamPath(pathname) || isPlacementResultPath(pathname)) {
     return <>{children}</>;
   }
 

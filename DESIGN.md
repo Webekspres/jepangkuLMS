@@ -75,11 +75,11 @@ Gunakan **urutan prioritas** ini saat memilih class:
 | Konteks | Class yang disarankan |
 | :--- | :--- |
 | Tombol aksi utama (Daftar, Submit kuis) | `<Button>` variant `default` → `bg-primary`, atau eksplisit `bg-brand-red hover:bg-brand-orange` pada hero marketing |
-| Tombol sekunder / outline | `variant="outline"` + `border-brand-navy/20` (light) atau border putih transparan (dark) |
-| Teks judul halaman marketing | `text-brand-navy dark:text-white` |
+| Tombol sekunder / outline | `variant="outline"` + `border-brand-navy/20` |
+| Teks judul halaman marketing | `text-brand-navy` (di atas hero navy: `text-white`) |
 | Teks pendukung | `text-muted-foreground` |
 | Link nav hover | `hover:text-brand-red` |
-| Badge XP / level / streak | `bg-brand-yellow/10`, `text-brand-yellow` atau `text-yellow-600` (light), border `border-brand-yellow/20` |
+| Badge XP / level / streak | `bg-brand-yellow/10`, `text-brand-yellow` atau `text-yellow-600`, border `border-brand-yellow/20` |
 | Progress bar XP | Gradient `from-brand-red via-brand-orange to-brand-yellow` |
 | Alert info gamifikasi | `bg-brand-yellow/5 border-brand-yellow/20` |
 | Alert promo / perhatian | `bg-brand-orange/5 border-brand-orange/20 text-brand-orange` |
@@ -87,14 +87,12 @@ Gunakan **urutan prioritas** ini saat memilih class:
 | Destructive (hapus, batalkan permanen) | `variant="destructive"` pada Button |
 | Chart / statistik admin | `--chart-1` … `--chart-5` (sudah map ke palet merek) |
 
-### 3.4 Dark mode
+### 3.4 Light-only (tanpa dark mode)
 
-* Variabel tema di blok `.dark` dalam `globals.css` — **jangan** hardcode warna dark di komponen.
-* Pola umum: `text-brand-navy dark:text-white`, `dark:border-white/20`, logo `dark:hidden` / `hidden dark:block` (lihat landing).
-* Aktifkan dark via class `.dark` pada ancestor (sesuai setup Shadcn); jangan asumsikan `prefers-color-scheme` saja tanpa class.
-* **Dark mode adalah midnight navy** — `--background: #181548` (navy gelap, bukan hitam/void). Card `#211e55`, muted `#282563`. Jangan mendaratkan ke nilai lebih gelap dari ini tanpa kebutuhan.
-* **Permukaan selalu-gelap** (footer, welcome banner dashboard) — gunakan `.bg-brand-hero-navy` atau `bg-brand-navy`; logo gunakan `variant="footer-dark"` agar selalu putih.
-* **Teks di atas permukaan gelap** — `text-white`, `text-white/70`, `text-white/50`; badge XP `text-brand-yellow`; badge streak `text-amber-300`.
+* LMS **light-only** — tidak ada theme switching, `next-themes`, class `.dark`, atau utilitas `dark:*`.
+* Token warna hanya di `:root` (`globals.css`); `color-scheme: light` di root layout / viewport.
+* **Permukaan gelap sebagai desain brand** (hero marketing, footer, welcome navy, quest card) — gunakan `.bg-brand-hero-navy` / `bg-brand-navy`; itu **bukan** dark mode. Logo di atas permukaan itu: `variant="footer-dark"` (putih).
+* **Teks di atas permukaan brand gelap** — `text-white`, `text-white/70`, `text-white/50`; badge XP `text-brand-yellow`; badge streak `text-amber-300`.
 
 ---
 
@@ -248,7 +246,7 @@ Centang mental ini sebelum mengakhiri tugas UI:
 
 ## 10. Perubahan desain & versi
 
-* **Ubah warna global** → edit `app/globals.css` saja, lalu verifikasi light + dark di landing.
+* **Ubah warna global** → edit `app/globals.css` saja, lalu verifikasi di landing (light-only).
 * **Ubah pola komponen** → update section yang relevan di `DESIGN.md` + contoh di `app/page.tsx` bila memengaruhi marketing.
 * **Fitur UI baru** yang belum tercakup → tambahkan sub-bab di §7, jangan mengandalkan prompt ad hoc.
 
@@ -256,3 +254,4 @@ Centang mental ini sebelum mengakhiri tugas UI:
 | :--- | :--- | :--- |
 | 1.0 | 2026-06-03 | Baseline dari AGENTS.md, globals.css, landing page |
 | 1.1 | 2026-06-18 | Revisi warna: light bg lavender-tinted `#f5f4fc`; dark mode midnight navy `#181548`; tambah `.bg-brand-hero-navy`/`-red`; footer & dashboard welcome dark navy; platform highlights band landing |
+| 1.2 | 2026-07-22 | Hapus dark mode — LMS light-only; §3.4 diganti; tidak ada `.dark` / `dark:*` / next-themes |

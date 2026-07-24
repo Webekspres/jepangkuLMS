@@ -37,9 +37,9 @@ export function PlacementTestInfoPage() {
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Button asChild className="h-11 w-full gap-2 px-6 sm:w-auto">
-            <Link href="/sign-up">
+            <Link href="/dashboard/tes-penempatan">
               <Zap className="size-4" />
-              Daftar &amp; Mulai Tes
+              Mulai Tes Penempatan
             </Link>
           </Button>
           <Button

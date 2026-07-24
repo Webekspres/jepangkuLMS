@@ -286,7 +286,7 @@ export function LiveClassDetailPage({
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
               <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              <p className="text-sm font-semibold text-emerald-700 ">
                 Kamu sudah terdaftar di program ini 🎉
               </p>
             </div>

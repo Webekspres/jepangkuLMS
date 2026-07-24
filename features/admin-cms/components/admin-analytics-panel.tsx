@@ -13,8 +13,8 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
       className={cn(
         'font-medium',
         ok
-          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-          : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 '
+          : 'border-amber-500/30 bg-amber-500/10 text-amber-700 ',
       )}
     >
       {label}

@@ -37,11 +37,11 @@ const PODIUM_META = [
         rankLabel: 'Shirogane',
         rankLabelEn: 'Silver',
         podiumHeight: 'h-[3.5rem] sm:h-24',
-        rankClass: 'text-slate-300 dark:text-slate-300 font-extrabold text-2xl sm:text-4xl',
+        rankClass: 'text-slate-300  font-extrabold text-2xl sm:text-4xl',
         glowClass: 'shadow-slate-400/20',
         ringClass: 'ring-slate-400/60 border-slate-400/40',
         cardClass:
-            'border-slate-400/30 bg-linear-to-br from-slate-800/90 to-slate-900/95 dark:from-slate-800/90 dark:to-slate-900/95',
+            'border-slate-400/30 bg-linear-to-br from-slate-800/90 to-slate-900/95  ',
         podiumClass:
             'border-t-2 border-slate-400/40 bg-linear-to-b from-slate-700/50 to-slate-800/60',
         avatarSize: 'size-12 sm:size-16 text-xs',
@@ -54,7 +54,7 @@ const PODIUM_META = [
         rankLabel: 'Ougon',
         rankLabelEn: 'Gold',
         podiumHeight: 'h-20 sm:h-36',
-        rankClass: 'text-brand-yellow dark:text-brand-yellow font-black text-3xl sm:text-5xl drop-shadow-[0_0_12px_rgba(248,231,28,0.8)]',
+        rankClass: 'text-brand-yellow  font-black text-3xl sm:text-5xl drop-shadow-[0_0_12px_rgba(248,231,28,0.8)]',
         glowClass: 'shadow-brand-yellow/30',
         ringClass: 'ring-brand-yellow/70 border-brand-yellow/60',
         cardClass:
@@ -71,7 +71,7 @@ const PODIUM_META = [
         rankLabel: 'Akagane',
         rankLabelEn: 'Bronze',
         podiumHeight: 'h-10 sm:h-16',
-        rankClass: 'text-amber-600 dark:text-amber-500 font-extrabold text-2xl sm:text-4xl',
+        rankClass: 'text-amber-600  font-extrabold text-2xl sm:text-4xl',
         glowClass: 'shadow-amber-700/20',
         ringClass: 'ring-amber-600/50 border-amber-600/40',
         cardClass:
@@ -98,19 +98,19 @@ function BadgeTitlePill({
         <span
             className={cn(
                 'inline-flex max-w-full items-center gap-1 rounded-full border truncate',
-                'bg-amber-500/10 border-amber-500/35 dark:bg-amber-400/10 dark:border-amber-400/30',
+                'bg-amber-500/10 border-amber-500/35  ',
                 'font-bold tracking-widest uppercase leading-none',
                 '[text-shadow:0_1px_3px_rgba(0,0,0,0.4)]',
                 size === 'sm'
-                    ? 'px-1.5 py-0.5 text-[8px] text-amber-700 dark:text-amber-300'
-                    : 'px-2 py-0.5 text-[9px] text-amber-700 dark:text-amber-300',
+                    ? 'px-1.5 py-0.5 text-[8px] text-amber-700 '
+                    : 'px-2 py-0.5 text-[9px] text-amber-700 ',
             )}
         >
             <Flame
                 className={cn(
                     'shrink-0',
                     size === 'sm' ? 'size-2' : 'size-2.5',
-                    'text-amber-500 dark:text-amber-400',
+                    'text-amber-500 ',
                 )}
             />
             {title}

@@ -220,9 +220,8 @@ jobs:
             echo "JEPANGKU_CORE_API_URL=http://jepangku_staging_core:8081" >> "\$DEPLOY_PATH/lms/.env"
           fi
 
-          # region agent log — pre-pull diagnostics (debug-cbc78f)
-          # Must not abort under set -euo pipefail (find/df on missing paths).
-          echo "==> Pre-pull diagnostics (debug-cbc78f)"
+          # Pre-pull: safe under set -euo pipefail (df/find on missing paths must not abort).
+          echo "==> Pre-pull disk / containerd check"
           set +e
           ROOT_USE=\$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
           DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
@@ -234,24 +233,20 @@ jobs:
             INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
             INGEST_COUNT=\${INGEST_COUNT:-0}
           fi
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\$ROOT_USE,\"dockerUsePct\":\$DOCKER_USE,\"env\":\"staging\"}}"
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\$INGEST_COUNT,\"env\":\"staging\"}}"
+          echo "disk root=\${ROOT_USE}% docker=\${DOCKER_USE}% ingest=\${INGEST_COUNT}"
           df -h / 2>/dev/null
-          df -h /var/lib/docker 2>/dev/null
-          df -h /var/lib/containerd 2>/dev/null
           docker system df 2>/dev/null
           if [ "\$INGEST_COUNT" -gt 0 ]; then
-            echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
+            echo "==> Clearing stale containerd ingest (count=\$INGEST_COUNT)"
             find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
           fi
           if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
-            echo "==> Disk high before pull — safe prune (hypothesis A)"
+            echo "==> Disk high before pull — safe prune"
             docker container prune -f
             docker image prune -a -f
             docker builder prune -a -f
           fi
           set -e
-          # endregion
 
           pull_image_resilient() {
             local image="\$1"
@@ -259,17 +254,15 @@ jobs:
             for attempt in 1 2 3 4 5; do
               echo "==> docker pull attempt \${attempt}/5: \$image"
               if docker pull "\$image"; then
-                echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-ok\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"staging\"}}"
                 return 0
               fi
-              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"staging\"}}"
               set +e
               if [ -d "\$INGEST_DIR" ]; then
-                echo "==> Clearing incomplete containerd ingest (hypothesis B)"
+                echo "==> Clearing incomplete containerd ingest"
                 find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
               fi
               if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
-                echo "==> Disk high — safe docker prune (hypothesis A)"
+                echo "==> Disk high — safe docker prune"
                 docker container prune -f
                 docker image prune -a -f
                 docker builder prune -a -f
@@ -308,13 +301,13 @@ jobs:
           for attempt in 1 2 3 4 5; do
             echo "==> docker compose pull lms attempt \${attempt}/5"
             if docker compose pull lms; then
-              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-ok\",\"data\":{\"attempt\":\$attempt,\"env\":\"staging\"}}"
               break
             fi
-            echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-fail\",\"data\":{\"attempt\":\$attempt,\"env\":\"staging\"}}"
+            set +e
             if [ -d "\$INGEST_DIR" ]; then
-              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
             fi
+            set -e
             [ "\$attempt" -eq 5 ] && { echo "::error::docker compose pull lms failed"; exit 1; }
             sleep \$((attempt * 5))
           done
@@ -413,9 +406,8 @@ jobs:
             echo "JEPANGKU_CORE_API_URL=http://jepangku-core:8080" >> "\$DEPLOY_PATH/lms/.env"
           fi
 
-          # region agent log — pre-pull diagnostics (debug-cbc78f)
-          # Must not abort under set -euo pipefail (find/df on missing paths).
-          echo "==> Pre-pull diagnostics (debug-cbc78f)"
+          # Pre-pull: safe under set -euo pipefail (df/find on missing paths must not abort).
+          echo "==> Pre-pull disk / containerd check"
           set +e
           ROOT_USE=\$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
           DOCKER_USE=\$(df -P /var/lib/docker 2>/dev/null | awk 'NR==2 {gsub(/%/,"",\$5); print \$5}')
@@ -427,24 +419,20 @@ jobs:
             INGEST_COUNT=\$(find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
             INGEST_COUNT=\${INGEST_COUNT:-0}
           fi
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"message\":\"pre-pull-disk\",\"data\":{\"rootUsePct\":\$ROOT_USE,\"dockerUsePct\":\$DOCKER_USE,\"env\":\"production\"}}"
-          echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"B\",\"message\":\"pre-pull-ingest\",\"data\":{\"ingestCount\":\$INGEST_COUNT,\"env\":\"production\"}}"
+          echo "disk root=\${ROOT_USE}% docker=\${DOCKER_USE}% ingest=\${INGEST_COUNT}"
           df -h / 2>/dev/null
-          df -h /var/lib/docker 2>/dev/null
-          df -h /var/lib/containerd 2>/dev/null
           docker system df 2>/dev/null
           if [ "\$INGEST_COUNT" -gt 0 ]; then
-            echo "==> Clearing stale containerd ingest before pull (count=\$INGEST_COUNT)"
+            echo "==> Clearing stale containerd ingest (count=\$INGEST_COUNT)"
             find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
           fi
           if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
-            echo "==> Disk high before pull — safe prune (hypothesis A)"
+            echo "==> Disk high before pull — safe prune"
             docker container prune -f
             docker image prune -a -f
             docker builder prune -a -f
           fi
           set -e
-          # endregion
 
           pull_image_resilient() {
             local image="\$1"
@@ -452,17 +440,15 @@ jobs:
             for attempt in 1 2 3 4 5; do
               echo "==> docker pull attempt \${attempt}/5: \$image"
               if docker pull "\$image"; then
-                echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-ok\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"production\"}}"
                 return 0
               fi
-              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"runId\":\"post-fix\",\"hypothesisId\":\"D\",\"message\":\"pull-fail\",\"data\":{\"attempt\":\$attempt,\"image\":\"\$image\",\"env\":\"production\"}}"
               set +e
               if [ -d "\$INGEST_DIR" ]; then
-                echo "==> Clearing incomplete containerd ingest (hypothesis B)"
+                echo "==> Clearing incomplete containerd ingest"
                 find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
               fi
               if [ "\$ROOT_USE" -ge 85 ] || [ "\$DOCKER_USE" -ge 85 ]; then
-                echo "==> Disk high — safe docker prune (hypothesis A)"
+                echo "==> Disk high — safe docker prune"
                 docker container prune -f
                 docker image prune -a -f
                 docker builder prune -a -f
@@ -500,13 +486,13 @@ jobs:
           for attempt in 1 2 3 4 5; do
             echo "==> docker compose pull lms attempt \${attempt}/5"
             if docker compose pull lms; then
-              echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-ok\",\"data\":{\"attempt\":\$attempt,\"env\":\"production\"}}"
               break
             fi
-            echo "DEBUG_CBC78F {\"sessionId\":\"cbc78f\",\"hypothesisId\":\"D\",\"message\":\"compose-pull-fail\",\"data\":{\"attempt\":\$attempt,\"env\":\"production\"}}"
+            set +e
             if [ -d "\$INGEST_DIR" ]; then
-              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+              find "\$INGEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null
             fi
+            set -e
             [ "\$attempt" -eq 5 ] && { echo "::error::docker compose pull lms failed"; exit 1; }
             sleep \$((attempt * 5))
           done

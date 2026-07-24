@@ -99,17 +99,17 @@ export function BadgeShareModal({
   const rarityLabel = resolveAchievementBadgeRarity(badge.rarity);
 
   const rarityGlows: Record<string, string> = {
-    Common: 'from-slate-500/20 dark:from-slate-400/20 to-transparent shadow-slate-500/10',
-    Rare: 'from-blue-500/20 dark:from-blue-400/25 to-transparent shadow-blue-500/10',
-    Epic: 'from-purple-500/25 dark:from-purple-400/30 to-transparent shadow-purple-500/15',
-    Legendary: 'from-amber-500/30 dark:from-amber-400/35 to-transparent shadow-amber-500/20',
+    Common: 'from-slate-500/20  to-transparent shadow-slate-500/10',
+    Rare: 'from-blue-500/20  to-transparent shadow-blue-500/10',
+    Epic: 'from-purple-500/25  to-transparent shadow-purple-500/15',
+    Legendary: 'from-amber-500/30  to-transparent shadow-amber-500/20',
   };
 
   const rarityTextColors: Record<string, string> = {
-    Common: 'text-slate-500 dark:text-slate-400',
-    Rare: 'text-blue-600 dark:text-blue-400',
-    Epic: 'text-purple-600 dark:text-purple-400',
-    Legendary: 'text-amber-600 dark:text-amber-400',
+    Common: 'text-slate-500 ',
+    Rare: 'text-blue-600 ',
+    Epic: 'text-purple-600 ',
+    Legendary: 'text-amber-600 ',
   };
 
   const glowClass = rarityGlows[rarityLabel] || rarityGlows.Common;
@@ -145,7 +145,7 @@ export function BadgeShareModal({
         >
           <div
             className={cn(
-              'absolute -left-1/4 -top-1/4 -z-10 size-64 rounded-full bg-linear-to-br opacity-40 blur-[70px] animate-pulse dark:opacity-35',
+              'absolute -left-1/4 -top-1/4 -z-10 size-64 rounded-full bg-linear-to-br opacity-40 blur-[70px] animate-pulse ',
               glowClass,
             )}
           />
@@ -209,8 +209,8 @@ export function BadgeShareModal({
           </div>
 
           {badge.xp > 0 ? (
-            <div className="mx-auto mt-2 flex w-max items-center justify-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-black text-amber-600 dark:text-amber-300">
-              <Zap className="size-3 fill-amber-500 dark:fill-amber-300" />+{badge.xp} XP BONUS
+            <div className="mx-auto mt-2 flex w-max items-center justify-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-black text-amber-600 ">
+              <Zap className="size-3 fill-amber-500 " />+{badge.xp} XP BONUS
             </div>
           ) : null}
 
@@ -274,7 +274,7 @@ export function BadgeShareModal({
                     Pasang badge sebagai Title Profil
                   </Button>
                 ) : (
-                  <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <p className="text-[11px] font-semibold text-emerald-600 ">
                     ✓ Aktif sebagai Title Profil Anda
                   </p>
                 )}

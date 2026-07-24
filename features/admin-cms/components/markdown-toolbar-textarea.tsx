@@ -130,7 +130,7 @@ export function MarkdownToolbarTextarea({
                 </TabsContent>
 
                 <TabsContent value="preview" className="m-0 p-3">
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground dark:prose-invert">
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground ">
                         {value.trim() ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown> : <p className="text-muted-foreground">Belum ada konten.</p>}
                     </div>
                 </TabsContent>

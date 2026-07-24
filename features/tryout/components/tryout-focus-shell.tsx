@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -55,7 +54,6 @@ export function TryoutFocusShell({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <ThemeToggle size="icon-sm" />
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold tabular-nums',
@@ -120,7 +118,6 @@ export function TryoutReviewShell({ children }: { children: React.ReactNode }) {
             <BrandLogo variant="nav" />
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeToggle size="icon-sm" />
             <Button asChild variant="outline" size="sm">
               <Link href={STUDENT_ROUTES.tryout}>← Pilih Sesi Tryout</Link>
             </Button>

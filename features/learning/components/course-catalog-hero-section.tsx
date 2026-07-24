@@ -84,7 +84,7 @@ export function CourseCatalogHeroSection({
             </span>
           </div>
 
-          <h1 className="mb-3 text-[clamp(1.75rem,4vw,3rem)] font-extrabold leading-tight text-brand-navy dark:text-white">
+          <h1 className="mb-3 text-[clamp(1.75rem,4vw,3rem)] font-extrabold leading-tight text-brand-navy ">
             Pilih Kursus
             <br />
             <span className="bg-linear-to-r from-brand-red via-brand-orange to-brand-red bg-clip-text text-transparent">

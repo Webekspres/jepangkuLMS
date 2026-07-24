@@ -51,7 +51,7 @@ export function CoreConnectionBanner() {
     >
       <div className="container mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-2.5">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 " />
           <div className="min-w-0 text-sm">
             <p className="font-semibold text-foreground">Profil belajar belum siap</p>
             <p className="text-muted-foreground">
