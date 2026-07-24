@@ -1,6 +1,7 @@
 import { StudentCoreDataHydrator } from '@/features/student/components/student-core-data-hydrator';
 import { DisplayNameSetupGate } from '@/features/student/components/display-name-setup-gate';
 import { StudentShell } from '@/features/student/components/student-shell';
+import { PlacementPromptGate } from '@/features/placement/components/placement-prompt-gate';
 import type { DailyLoginAward } from '@/lib/lms/points';
 import {
   DailyLoginRewardBridge,
@@ -23,6 +24,7 @@ export function StudentCoreDataBoundary({
         <DailyLoginRewardBridge reward={dailyLoginReward} />
         <StudentShell>
           <DisplayNameSetupGate />
+          <PlacementPromptGate />
           {children}
         </StudentShell>
       </RewardNotificationProvider>
