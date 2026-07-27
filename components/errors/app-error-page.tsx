@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/button';
 import { AppStatusPage } from '@/components/errors/app-status-page';
 
@@ -20,6 +21,7 @@ export function AppErrorPage({
 }: AppErrorPageProps) {
   useEffect(() => {
     console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   const isGateway =

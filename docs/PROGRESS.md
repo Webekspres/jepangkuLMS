@@ -7,28 +7,28 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-24                                                  |
+| **Terakhir diperbarui**   | 2026-07-27                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **87%** (70 item terlacak)                                  |
+| **Progres global Fase 1** | **88%** (71 item terlacak)                                  |
 
 ### Progres global
 
 ```text
-[█████████████████░░░] 87%
+[█████████████████░░░] 88%
 ```
 
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
-| Infrastruktur & platform |      16 |     12 |     4 |     0 |     85% |
+| Infrastruktur & platform |      17 |     13 |     4 |     0 |     86% |
 | Halaman & routing        |      31 |     25 |     6 |     0 |     88% |
 | Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **70** | **56** | **13** | **1** | **87%** |
+| **Total**                |  **71** | **57** | **13** | **1** | **88%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(56 + 5.2) ÷ 70 ≈ 87%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(57 + 5.2) ÷ 71 ≈ 88%`.
 
 ---
 
@@ -47,7 +47,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
-| Infrastruktur & platform |      12 |        4 |     0 |
+| Infrastruktur & platform |      13 |        4 |     0 |
 | Halaman & routing        |      25 |        6 |     0 |
 | Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
@@ -74,6 +74,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Shadcn UI primitif                                     |   🟡   | Cukup untuk MVP; tambah sesuai kebutuhan                     |
 | Prisma seed N5 + tryout + live class + 8 badge starter |   ✅   | `prisma/seed.ts`, `public/badges/*.png`                      |
 | Partner API v1                                         |   ✅   | `docs/PARTNER_API.md`                                        |
+| Sentry errors + tracing                                |   ✅   | `@sentry/nextjs`; tunnel `/monitoring`; Replay/Logs out of v1 |
 | `.env` / Clerk / DB                                    |   🟡   | Lokal OK; prod env tim                                       |
 
 ---
@@ -237,6 +238,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | 2026-07-08 | Course Import V1 fase 5: persistence transaksional REPLACE + external ID nullable (`courseExternalId`/`moduleExternalId`/`lessonExternalId`), backfill script `course-import:backfill-external-ids`, integration test DB-optional |
 | 2026-07-07 | Refactor arsitektur lesson bertipe tunggal dimulai: `Lesson.lessonType` nullable + registry tipe (`VIDEO`/`FLASHCARD`/`QUIZ`/`TEXT`), form/admin workspace/student workspace kompatibel legacy, guard mutasi materi/soal, dan script dry-run backfill `lesson:backfill-types` |
 | 2026-07-07 | Riwayat enrollment admin: model `EnrollmentLog` + migrasi; log REQUESTED/APPROVED/REJECTED/GRANTED/REVOKED; tab Antrian \| Riwayat di `/admin/pembayaran` (cari, filter aksi, pagination) |
+| 2026-07-27 | Sentry baseline: `@sentry/nextjs` init (client/server/edge), `withSentryConfig` + tunnel `/monitoring`, error boundary capture, Dockerfile/CI build args, env docs |
 | 2026-07-22 | Hapus dark mode total (light-only): cabut `next-themes`/ThemeProvider/toggle, scrub `html.dark` + `localStorage.theme`, hapus blok `.dark` & utilitas `dark:*`, Clerk/Sonner fixed light |
 | 2026-07-03 | Overhaul flashcard (3D flip tanpa ghosting, Furigana & Shuffle toggle, Onyomi/Kunyomi split dengan `|`, "Sudah tahu" front face shortcut, mobile max-height), instant progress updates (confetti, custom events, core session refresh), bottom lesson navigation, dan fix pg-pool seed crash |
 | 2026-07-07 | Admin daftar peserta per program: kolom Peserta di tabel Kursus/Live Class/Tryout (klik → dialog siswa + approve/cabut); detail pengguna wire enrollment Live Class & Tryout; sync `filledSlots` live class dari enrollment ACTIVE |
