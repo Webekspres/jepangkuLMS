@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 type PlacementHubHeroProps = {
   totalQuestions: number;
 };
@@ -5,6 +7,17 @@ type PlacementHubHeroProps = {
 export function PlacementHubHero({ totalQuestions }: PlacementHubHeroProps) {
   return (
     <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center text-white sm:px-10">
+      <div className="absolute inset-0">
+        <Image
+          src="/assets/placement-test-cover.webp"
+          alt="Ilustrasi tes penempatan"
+          fill
+          sizes="(max-width: 640px) 100vw, 80rem"
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-brand-hero-navy/85" />
+      </div>
       <div
         className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-brand-red/20 blur-[80px]"
         aria-hidden
