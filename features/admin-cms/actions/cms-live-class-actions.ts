@@ -228,15 +228,36 @@ export async function updateLiveClassAction(
 
 export async function deleteLiveClassAction(id: string): Promise<CmsLiveClassActionResult> {
   await requireAdminAction();
-  const existing = await prisma.liveClass.findUnique({
-    where: { id },
-    select: { coverImageUrl: true },
-  });
-  await prisma.liveClass.delete({ where: { id } });
-  await deletePreviousCoverIfManaged(existing?.coverImageUrl);
-  revalidatePath(ADMIN_ROUTES.liveClass);
-  revalidatePath('/dashboard/live-class');
-  return { ok: true };
+  try {
+    const existing = await prisma.liveClass.findUnique({
+      where: { id },
+      select: { coverImageUrl: true },
+    });
+    if (!existing) {
+      return { ok: false, message: 'Live class sudah tidak ada atau sudah dihapus.' };
+    }
+
+    await prisma.liveClass.delete({ where: { id } });
+    await deletePreviousCoverIfManaged(existing.coverImageUrl);
+    revalidatePath(ADMIN_ROUTES.liveClass);
+    revalidatePath('/dashboard/live-class');
+    return { ok: true };
+  } catch (error) {
+    const err = error as { code?: string };
+    if (err?.code === 'P2025') {
+      return { ok: false, message: 'Live class sudah tidak ada atau sudah dihapus.' };
+    }
+    if (err?.code === 'P2003') {
+      return {
+        ok: false,
+        message: 'Live class tidak bisa dihapus karena masih terhubung data lain. Hubungi tim tech.',
+      };
+    }
+    return {
+      ok: false,
+      message: 'Gagal menghapus live class. Coba lagi atau hubungi tim tech.',
+    };
+  }
 }
 
 export async function toggleLiveClassPublishedAction(
