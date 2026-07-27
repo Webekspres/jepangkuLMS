@@ -78,14 +78,18 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
   function handleDelete() {
     if (!deleteId) return;
     startTransition(async () => {
-      const result = await deleteLiveClassAction(deleteId);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
+      try {
+        const result = await deleteLiveClassAction(deleteId);
+        if (!result.ok) {
+          toast.error(result.message);
+          return;
+        }
+        toast.success('Live class dihapus');
+        setDeleteId(null);
+        router.refresh();
+      } catch {
+        toast.error('Gagal menghapus live class');
       }
-      toast.success('Live class dihapus');
-      setDeleteId(null);
-      router.refresh();
     });
   }
 
