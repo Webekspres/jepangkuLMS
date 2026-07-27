@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ClipboardCheck, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,6 +27,9 @@ function isPlacementFocusPath(pathname: string) {
     /^\/dashboard\/tes-penempatan\/hasil\/[^/]+$/.test(pathname)
   );
 }
+
+const springSoft = { type: 'spring' as const, stiffness: 320, damping: 24 };
+const springBounce = { type: 'spring' as const, stiffness: 260, damping: 16 };
 
 /**
  * Dialog opsional setelah onboarding nama/ponsel — ajak ikut tes penempatan.
@@ -66,40 +71,80 @@ export function PlacementPromptGate() {
         if (!nextOpen && !isPending) dismiss();
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ClipboardCheck className="size-5 text-primary" />
-            Tes penempatan
-          </DialogTitle>
-          <DialogDescription asChild>
-            <div className="space-y-2 text-left text-sm text-muted-foreground">
-              <p>
-                Baru bergabung? Ikuti tes penempatan singkat supaya kami bisa menyarankan jalur
-                belajar yang cocok (N5–N4).
-              </p>
-              <p>Opsional, tanpa timer. Kamu bisa mulai sekarang atau nanti dari menu Tes Penempatan.</p>
-            </div>
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isPending}
-            onClick={dismiss}
-            className="w-full sm:w-auto"
+      <DialogContent className="gap-5 overflow-hidden text-center sm:max-w-md">
+        <div className="flex flex-col items-center gap-2">
+          <motion.div
+            className="mx-auto w-full max-w-72 sm:max-w-80"
+            initial={{ opacity: 0, scale: 0.72, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ ...springBounce, delay: 0.05 }}
           >
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Nanti saja
-          </Button>
-          <Button asChild className="w-full sm:w-auto" disabled={isPending}>
-            <Link href={STUDENT_ROUTES.placement} onClick={dismiss}>
-              Mulai tes
-            </Link>
-          </Button>
-        </DialogFooter>
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{
+                duration: 2.8,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 0.55,
+              }}
+            >
+              <Image
+                src="/assets/CTA-placement.webp"
+                alt="Maskot tes penempatan"
+                width={640}
+                height={640}
+                className="mx-auto h-auto w-full object-contain"
+                priority
+              />
+            </motion.div>
+          </motion.div>
+
+          <DialogHeader className="items-center gap-1.5 text-center sm:text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...springSoft, delay: 0.18 }}
+            >
+              <DialogTitle className="text-xl font-bold sm:text-2xl">Tes penempatan</DialogTitle>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...springSoft, delay: 0.28 }}
+            >
+              <DialogDescription className="text-center text-sm text-muted-foreground">
+                Ikuti tes singkat untuk mengetahui
+                <br />
+                rekomendasi jalur belajar N5–N4.
+              </DialogDescription>
+            </motion.div>
+          </DialogHeader>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springSoft, delay: 0.38 }}
+        >
+          <DialogFooter className="w-full flex-row gap-2 sm:justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isPending}
+              onClick={dismiss}
+              className="min-w-0 flex-1"
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Nanti saja
+            </Button>
+            <Button asChild size="lg" className="min-w-0 flex-1" disabled={isPending}>
+              <Link href={STUDENT_ROUTES.placement} onClick={dismiss}>
+                Mulai tes
+              </Link>
+            </Button>
+          </DialogFooter>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );
