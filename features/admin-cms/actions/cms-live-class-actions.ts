@@ -1,18 +1,22 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { LevelJLPT, Prisma } from '@prisma/client';
+import { Prisma, type LevelJLPT } from '@prisma/client';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import {
   deletePreviousCoverIfManaged,
   resolveCoverImageUrl,
 } from '@/lib/media/cover-image';
+import { createLogger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { slugifyTitle } from '@/lib/lms/slug';
+
 export type CmsLiveClassActionResult =
   | { ok: true; id?: string }
   | { ok: false; message: string };
+
+const log = createLogger('admin-cms-live-class');
 
 const JLPT_LEVELS: LevelJLPT[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
@@ -31,6 +35,23 @@ type RawSession = {
   meetingUrl?: unknown;
   recordingUrl?: unknown;
 };
+
+function mapLiveClassMutationError(error: unknown, fallback: string): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2025') return 'Live class tidak ditemukan atau sudah dihapus.';
+    if (error.code === 'P2003') {
+      return 'Operasi gagal karena data masih terhubung ke data lain. Hubungi tim tech.';
+    }
+    if (error.code === 'P2002') return 'Data bentrok dengan live class lain (nilai unik).';
+  }
+  if (error instanceof Error && error.message.trim()) {
+    // Jangan bocorkan stack Prisma mentah ke UI
+    if (!error.message.includes('Invalid `prisma.')) {
+      return error.message;
+    }
+  }
+  return fallback;
+}
 
 function parseSessions(formData: FormData): ParsedSession[] {
   const raw = String(formData.get('sessionsJson') ?? '').trim();
@@ -97,6 +118,9 @@ function validateLiveClass(data: ReturnType<typeof parseLiveClassForm>): string 
   if (data.filledSlots < 0 || data.filledSlots > data.maxSlots) {
     return 'Jumlah peserta tidak valid.';
   }
+  if (data.sessions.length === 0) {
+    return 'Minimal satu pertemuan wajib diisi.';
+  }
   for (const [index, session] of data.sessions.entries()) {
     const label = `Pertemuan ${index + 1}`;
     if (!session.title) return `${label}: judul wajib diisi.`;
@@ -138,97 +162,113 @@ function toSessionCreateData(
 }
 
 export async function createLiveClassAction(formData: FormData): Promise<CmsLiveClassActionResult> {
-  await requireAdminAction();
-  const data = parseLiveClassForm(formData);
-  const error = validateLiveClass(data);
-  if (error) return { ok: false, message: error };
-
-  let coverImageUrl: string | null = null;
   try {
-    const cover = await resolveCoverImageUrl({
-      kind: 'live-class',
-      slug: slugifyTitle(data.title) || 'live-class',
-      formData,
+    await requireAdminAction();
+    const data = parseLiveClassForm(formData);
+    const error = validateLiveClass(data);
+    if (error) return { ok: false, message: error };
+
+    let coverImageUrl: string | null = null;
+    try {
+      const cover = await resolveCoverImageUrl({
+        kind: 'live-class',
+        slug: slugifyTitle(data.title) || 'live-class',
+        formData,
+      });
+      coverImageUrl = cover.url;
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+      };
+    }
+
+    const row = await prisma.liveClass.create({
+      data: {
+        ...toScalarData(data),
+        coverImageUrl,
+        sessions: { create: toSessionCreateData(data.sessions) },
+      },
     });
-    coverImageUrl = cover.url;
-  } catch (err) {
+
+    revalidatePath(ADMIN_ROUTES.liveClass);
+    revalidatePath('/dashboard/live-class');
+    return { ok: true, id: row.id };
+  } catch (error) {
+    log.error({ err: error }, 'createLiveClassAction failed');
     return {
       ok: false,
-      message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+      message: mapLiveClassMutationError(error, 'Gagal membuat live class. Coba lagi atau hubungi tim tech.'),
     };
   }
-
-  const row = await prisma.liveClass.create({
-    data: {
-      ...toScalarData(data),
-      coverImageUrl,
-      sessions: { create: toSessionCreateData(data.sessions) },
-    },
-  });
-
-  revalidatePath(ADMIN_ROUTES.liveClass);
-  revalidatePath('/dashboard/live-class');
-  return { ok: true, id: row.id };
 }
 
 export async function updateLiveClassAction(
   id: string,
   formData: FormData,
 ): Promise<CmsLiveClassActionResult> {
-  await requireAdminAction();
-  const existing = await prisma.liveClass.findUnique({ where: { id } });
-  if (!existing) return { ok: false, message: 'Live class tidak ditemukan.' };
-
-  const data = parseLiveClassForm(formData);
-  const error = validateLiveClass(data);
-  if (error) return { ok: false, message: error };
-
-  let coverImageUrl = existing.coverImageUrl;
   try {
-    const cover = await resolveCoverImageUrl({
-      kind: 'live-class',
-      slug: slugifyTitle(data.title) || id,
-      formData,
-      existingUrl: existing.coverImageUrl,
-    });
-    coverImageUrl = cover.url;
-    if (cover.replaced || cover.url !== existing.coverImageUrl) {
-      await deletePreviousCoverIfManaged(existing.coverImageUrl);
+    await requireAdminAction();
+    const existing = await prisma.liveClass.findUnique({ where: { id } });
+    if (!existing) return { ok: false, message: 'Live class tidak ditemukan.' };
+
+    const data = parseLiveClassForm(formData);
+    const error = validateLiveClass(data);
+    if (error) return { ok: false, message: error };
+
+    let coverImageUrl = existing.coverImageUrl;
+    try {
+      const cover = await resolveCoverImageUrl({
+        kind: 'live-class',
+        slug: slugifyTitle(data.title) || id,
+        formData,
+        existingUrl: existing.coverImageUrl,
+      });
+      coverImageUrl = cover.url;
+      if (cover.replaced || cover.url !== existing.coverImageUrl) {
+        await deletePreviousCoverIfManaged(existing.coverImageUrl);
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+      };
     }
-  } catch (err) {
+
+    // Reconcile sesi secara idempotent: ganti penuh dengan definisi terbaru.
+    await prisma.$transaction([
+      prisma.liveClass.update({
+        where: { id },
+        data: { ...toScalarData(data), coverImageUrl },
+      }),
+      prisma.liveClassSession.deleteMany({ where: { liveClassId: id } }),
+      prisma.liveClassSession.createMany({
+        data: data.sessions.map((session) => ({
+          liveClassId: id,
+          title: session.title,
+          scheduledAt: session.scheduledAt,
+          endsAt: session.endsAt,
+          meetingUrl: session.meetingUrl,
+          recordingUrl: session.recordingUrl,
+        })),
+      }),
+    ]);
+
+    revalidatePath(ADMIN_ROUTES.liveClass);
+    revalidatePath('/dashboard/live-class');
+    return { ok: true, id };
+  } catch (error) {
+    log.error({ err: error, liveClassId: id }, 'updateLiveClassAction failed');
     return {
       ok: false,
-      message: err instanceof Error ? err.message : 'Gagal mengunggah cover live class.',
+      message: mapLiveClassMutationError(error, 'Gagal memperbarui live class. Coba lagi atau hubungi tim tech.'),
     };
   }
-
-  // Reconcile sesi secara idempotent: ganti penuh dengan definisi terbaru.
-  await prisma.$transaction([
-    prisma.liveClass.update({
-      where: { id },
-      data: { ...toScalarData(data), coverImageUrl },
-    }),
-    prisma.liveClassSession.deleteMany({ where: { liveClassId: id } }),
-    prisma.liveClassSession.createMany({
-      data: data.sessions.map((session) => ({
-        liveClassId: id,
-        title: session.title,
-        scheduledAt: session.scheduledAt,
-        endsAt: session.endsAt,
-        meetingUrl: session.meetingUrl,
-        recordingUrl: session.recordingUrl,
-      })),
-    }),
-  ]);
-
-  revalidatePath(ADMIN_ROUTES.liveClass);
-  revalidatePath('/dashboard/live-class');
-  return { ok: true, id };
 }
 
 export async function deleteLiveClassAction(id: string): Promise<CmsLiveClassActionResult> {
-  await requireAdminAction();
   try {
+    await requireAdminAction();
     const existing = await prisma.liveClass.findUnique({
       where: { id },
       select: { coverImageUrl: true },
@@ -243,19 +283,10 @@ export async function deleteLiveClassAction(id: string): Promise<CmsLiveClassAct
     revalidatePath('/dashboard/live-class');
     return { ok: true };
   } catch (error) {
-    const err = error as { code?: string };
-    if (err?.code === 'P2025') {
-      return { ok: false, message: 'Live class sudah tidak ada atau sudah dihapus.' };
-    }
-    if (err?.code === 'P2003') {
-      return {
-        ok: false,
-        message: 'Live class tidak bisa dihapus karena masih terhubung data lain. Hubungi tim tech.',
-      };
-    }
+    log.error({ err: error, liveClassId: id }, 'deleteLiveClassAction failed');
     return {
       ok: false,
-      message: 'Gagal menghapus live class. Coba lagi atau hubungi tim tech.',
+      message: mapLiveClassMutationError(error, 'Gagal menghapus live class. Coba lagi atau hubungi tim tech.'),
     };
   }
 }
@@ -264,9 +295,20 @@ export async function toggleLiveClassPublishedAction(
   id: string,
   isPublished: boolean,
 ): Promise<CmsLiveClassActionResult> {
-  await requireAdminAction();
-  await prisma.liveClass.update({ where: { id }, data: { isPublished } });
-  revalidatePath(ADMIN_ROUTES.liveClass);
-  revalidatePath('/dashboard/live-class');
-  return { ok: true };
+  try {
+    await requireAdminAction();
+    await prisma.liveClass.update({ where: { id }, data: { isPublished } });
+    revalidatePath(ADMIN_ROUTES.liveClass);
+    revalidatePath('/dashboard/live-class');
+    return { ok: true };
+  } catch (error) {
+    log.error({ err: error, liveClassId: id }, 'toggleLiveClassPublishedAction failed');
+    return {
+      ok: false,
+      message: mapLiveClassMutationError(
+        error,
+        'Gagal mengubah status publikasi live class. Coba lagi atau hubungi tim tech.',
+      ),
+    };
+  }
 }
