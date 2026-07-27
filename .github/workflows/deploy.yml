@@ -131,6 +131,12 @@ jobs:
             NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ steps.meta.outputs.sign_up_url }}
             NEXT_PUBLIC_CORE_INTEGRATION_UI=${{ steps.meta.outputs.core_integration_ui }}
             JEPANGKU_CORE_API_URL=${{ steps.meta.outputs.core_api_url }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+            SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT }}
+            SENTRY_ENVIRONMENT=${{ steps.meta.outputs.version_tag }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version_tag }}
             ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
