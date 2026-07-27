@@ -106,18 +106,24 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
     if (coverState.file) formData.set('coverImage', coverState.file);
 
     startTransition(async () => {
-      const result = isEdit
-        ? await updateLiveClassAction(liveClass!.id!, formData)
-        : await createLiveClassAction(formData);
+      try {
+        const result = isEdit
+          ? await updateLiveClassAction(liveClass!.id!, formData)
+          : await createLiveClassAction(formData);
 
-      if (!result.ok) {
-        setError(result.message);
-        toast.error(result.message);
-        return;
+        if (!result.ok) {
+          setError(result.message);
+          toast.error(result.message);
+          return;
+        }
+        toast.success(isEdit ? 'Live class diperbarui' : 'Live class dibuat');
+        router.push(ADMIN_ROUTES.liveClass);
+        router.refresh();
+      } catch {
+        const message = 'Gagal menyimpan live class. Coba lagi atau hubungi tim tech.';
+        setError(message);
+        toast.error(message);
       }
-      toast.success(isEdit ? 'Live class diperbarui' : 'Live class dibuat');
-      router.push(ADMIN_ROUTES.liveClass);
-      router.refresh();
     });
   }
 

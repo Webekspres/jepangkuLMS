@@ -65,13 +65,17 @@ export function AdminLiveClassesPage({ classes }: { classes: AdminLiveClassRow[]
 
   function handleTogglePublished(id: string, current: boolean) {
     startTransition(async () => {
-      const result = await toggleLiveClassPublishedAction(id, !current);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
+      try {
+        const result = await toggleLiveClassPublishedAction(id, !current);
+        if (!result.ok) {
+          toast.error(result.message);
+          return;
+        }
+        toast.success(current ? 'Live class disembunyikan' : 'Live class dipublikasikan');
+        router.refresh();
+      } catch {
+        toast.error('Gagal mengubah status publikasi live class');
       }
-      toast.success(current ? 'Live class disembunyikan' : 'Live class dipublikasikan');
-      router.refresh();
     });
   }
 
