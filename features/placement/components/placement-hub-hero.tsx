@@ -31,7 +31,7 @@ export function PlacementHubHero({ totalQuestions }: PlacementHubHeroProps) {
           Program · Tes Penempatan
         </p>
         <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-white">
-          Temukan jalur belajar yang pas
+          Temukan jalur belajar <br/> yang pas
         </h1>
         <p className="mx-auto mt-3 text-sm text-white/70">
           Tes singkat {totalQuestions} soal untuk rekomendasi jalur N5 atau N4.
