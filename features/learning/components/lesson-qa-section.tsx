@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, Reply, Send, ThumbsUp, Trash2, X } from 'lucide-react';
@@ -14,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
+import { isUnoptimizedImageSrc, resolveMediaUrl } from '@/lib/media/image-src';
 import {
   deleteLessonComment,
   deleteLessonCommentReply,
@@ -29,35 +32,10 @@ import {
   isMentionToken,
   splitCommentWithMentions,
 } from '@/features/learning/lib/lesson-qa-utils';
-
-const AVATAR_COLORS = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-violet-500',
-  'bg-rose-500',
-  'bg-primary',
-];
-
-function avatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + hash * 31;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
-}
-
-function AvatarIcon({ initial, name, size = 'md' }: { initial: string; name: string; size?: 'sm' | 'md' }) {
-  return (
-    <div
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-full font-bold text-white',
-        avatarColor(name),
-        size === 'sm' ? 'size-7 text-[11px]' : 'size-9 text-sm',
-      )}
-    >
-      {initial}
-    </div>
-  );
-}
+import {
+  LESSON_QA_MAX_CHARS,
+  LESSON_QA_MIN_CHARS,
+} from '@/features/learning/lib/lesson-qa-limits';
 
 function CommentContent({ content }: { content: string }) {
   const parts = splitCommentWithMentions(content);
@@ -88,6 +66,11 @@ type DeleteTarget = {
   type: 'comment' | 'reply';
 };
 
+type AvatarPreviewState = {
+  name: string;
+  imageUrl: string;
+};
+
 function ReplyForm({
   target,
   onCancel,
@@ -100,10 +83,11 @@ function ReplyForm({
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const remaining = LESSON_QA_MAX_CHARS - draft.length;
 
   function handleSubmit() {
     const text = draft.trim();
-    if (text.length < 3) return;
+    if (text.length < LESSON_QA_MIN_CHARS || draft.length > LESSON_QA_MAX_CHARS) return;
     setError(null);
     startTransition(async () => {
       const result = await postLessonCommentReply(target.rootCommentId, text, {
@@ -137,10 +121,19 @@ function ReplyForm({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Tulis balasan kamu…"
-        className="min-h-[64px] rounded-sm border-border bg-background text-sm"
+        className="min-h-16 rounded-sm border-border bg-background text-sm"
         rows={2}
+        maxLength={LESSON_QA_MAX_CHARS}
         autoFocus
       />
+      <p
+        className={cn(
+          'mt-1 text-xs',
+          remaining <= 100 ? 'text-amber-600' : 'text-muted-foreground',
+        )}
+      >
+        {remaining} karakter tersisa
+      </p>
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isPending}>
@@ -149,7 +142,11 @@ function ReplyForm({
         <Button
           size="sm"
           className="gap-1.5"
-          disabled={isPending || draft.trim().length < 3}
+          disabled={
+            isPending ||
+            draft.trim().length < LESSON_QA_MIN_CHARS ||
+            draft.length > LESSON_QA_MAX_CHARS
+          }
           onClick={handleSubmit}
         >
           <Send className="size-3" />
@@ -170,6 +167,7 @@ function CommentItem({
   onDelete,
   onCancelReply,
   onReplySuccess,
+  onPreviewAvatar,
   depth = 0,
 }: {
   comment: LessonCommentView | LessonCommentReplyView;
@@ -181,6 +179,7 @@ function CommentItem({
   onDelete: (target: DeleteTarget) => void;
   onCancelReply: () => void;
   onReplySuccess: () => void;
+  onPreviewAvatar: (avatar: AvatarPreviewState) => void;
   depth?: number;
 }) {
   const [liked, setLiked] = useState(false);
@@ -203,7 +202,26 @@ function CommentItem({
       className={cn('flex gap-3', depth > 0 && 'mt-3 border-l-2 border-border')}
       style={depth > 0 ? { paddingLeft: `${indentDepth}rem` } : undefined}
     >
-      <AvatarIcon initial={comment.avatarInitial} name={comment.author} size={depth > 0 ? 'sm' : 'md'} />
+      {comment.avatarUrl ? (
+        <button
+          type="button"
+          className="rounded-xl transition-transform hover:scale-105"
+          aria-label={`Lihat foto ${comment.author}`}
+          onClick={() => onPreviewAvatar({ name: comment.author, imageUrl: comment.avatarUrl! })}
+        >
+          <ProfileAvatar
+            imageUrl={comment.avatarUrl}
+            initial={comment.avatarInitial}
+            size={depth > 0 ? 'sm' : 'md'}
+          />
+        </button>
+      ) : (
+        <ProfileAvatar
+          imageUrl={comment.avatarUrl}
+          initial={comment.avatarInitial}
+          size={depth > 0 ? 'sm' : 'md'}
+        />
+      )}
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-foreground">{comment.author}</span>
@@ -271,6 +289,7 @@ function CommentItem({
             onDelete={onDelete}
             onCancelReply={onCancelReply}
             onReplySuccess={onReplySuccess}
+            onPreviewAvatar={onPreviewAvatar}
             depth={depth + 1}
           />
         ))}
@@ -293,11 +312,14 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [previewAvatar, setPreviewAvatar] = useState<AvatarPreviewState | null>(null);
   const [isPending, startTransition] = useTransition();
+  const remaining = LESSON_QA_MAX_CHARS - draft.length;
+  const previewAvatarUrl = previewAvatar ? resolveMediaUrl(previewAvatar.imageUrl) : null;
 
   function handleSubmit() {
     const text = draft.trim();
-    if (!text) return;
+    if (text.length < LESSON_QA_MIN_CHARS || draft.length > LESSON_QA_MAX_CHARS) return;
     setError(null);
     startTransition(async () => {
       const result = await postLessonComment(lessonId, text);
@@ -372,6 +394,7 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
               onDelete={setDeleteTarget}
               onCancelReply={() => setReplyTarget(null)}
               onReplySuccess={handleReplySuccess}
+              onPreviewAvatar={setPreviewAvatar}
             />
           ))
         )}
@@ -382,12 +405,30 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Tulis pertanyaan atau komentar kamu…."
-          className="min-h-[80px] rounded-sm border-border bg-background"
+          className="min-h-20 rounded-sm border-border bg-background"
           rows={3}
+          maxLength={LESSON_QA_MAX_CHARS}
         />
+        <p
+          className={cn(
+            'text-xs',
+            remaining <= 100 ? 'text-amber-600' : 'text-muted-foreground',
+          )}
+        >
+          {remaining} karakter tersisa
+        </p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <div className="flex justify-end">
-          <Button size="sm" className="gap-2" disabled={isPending || !draft.trim()} onClick={handleSubmit}>
+          <Button
+            size="sm"
+            className="gap-2"
+            disabled={
+              isPending ||
+              draft.trim().length < LESSON_QA_MIN_CHARS ||
+              draft.length > LESSON_QA_MAX_CHARS
+            }
+            onClick={handleSubmit}
+          >
             <Send className="size-3.5" />
             Kirim
           </Button>
@@ -423,6 +464,27 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
               {isPending ? 'Menghapus...' : 'Hapus'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewAvatar !== null} onOpenChange={(open) => !open && setPreviewAvatar(null)}>
+        <DialogContent className="gap-4 sm:max-w-lg">
+          <DialogHeader className="pr-10 text-left">
+            <DialogTitle>Foto Profil</DialogTitle>
+            <DialogDescription>{previewAvatar?.name}</DialogDescription>
+          </DialogHeader>
+          {previewAvatar && previewAvatarUrl ? (
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/30">
+              <Image
+                src={previewAvatarUrl}
+                alt={previewAvatar.name}
+                width={720}
+                height={720}
+                className="h-auto w-full object-cover"
+                unoptimized={isUnoptimizedImageSrc(previewAvatarUrl)}
+              />
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </section>

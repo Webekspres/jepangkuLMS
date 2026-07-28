@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { AdminDateTimeField } from '@/features/admin-cms/components/admin-date-time-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createTryoutSessionAction,
@@ -66,6 +67,7 @@ export function AdminTryoutSessionFormPage({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [isStrict, setIsStrict] = useState(session?.isStrictTimeBound ?? false);
+  const [scheduledAt, setScheduledAt] = useState(session?.scheduledAt ?? '');
   const isEdit = Boolean(session?.id);
 
   const [title, setTitle] = useState(session?.title ?? '');
@@ -84,6 +86,7 @@ export function AdminTryoutSessionFormPage({
     formData.set('sortOrder', String(session?.sortOrder ?? 0));
     formData.set('level', level);
     formData.set('questionSetId', questionSetId);
+    formData.set('scheduledAt', scheduledAt);
 
     startTransition(async () => {
       const result = isEdit
@@ -233,12 +236,7 @@ export function AdminTryoutSessionFormPage({
             {isStrict ? (
               <div className="space-y-2 pt-1">
                 <Label htmlFor="scheduledAt">Jadwal mulai</Label>
-                <Input
-                  id="scheduledAt"
-                  name="scheduledAt"
-                  type="datetime-local"
-                  defaultValue={session?.scheduledAt ?? ''}
-                />
+                <AdminDateTimeField value={scheduledAt} onChange={setScheduledAt} />
               </div>
             ) : null}
           </div>

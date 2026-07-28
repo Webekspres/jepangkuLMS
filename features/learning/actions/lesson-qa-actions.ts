@@ -9,6 +9,10 @@ import {
   buildReplyWithMention,
   stripReplyMention,
 } from '@/features/learning/lib/lesson-qa-utils';
+import {
+  LESSON_QA_MAX_CHARS,
+  LESSON_QA_MIN_CHARS,
+} from '@/features/learning/lib/lesson-qa-limits';
 import { LMS_POINTS, lmsLessonCommentSourceKey } from '@/lib/lms/point-rules';
 import { awardLmsPoints } from '@/lib/lms/points';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
@@ -18,6 +22,7 @@ export type LessonCommentReplyView = {
   id: string;
   author: string;
   avatarInitial: string;
+  avatarUrl: string | null;
   content: string;
   time: string;
   likes: number;
@@ -31,6 +36,7 @@ export type LessonCommentView = {
   id: string;
   author: string;
   avatarInitial: string;
+  avatarUrl: string | null;
   content: string;
   time: string;
   likes: number;
@@ -48,7 +54,7 @@ type LessonCommentReplyRow = {
   likes: number;
   isInstructor: boolean;
   createdAt: Date;
-  user: { displayName: string | null; ssoDisplayName: string | null };
+  user: { displayName: string | null; ssoDisplayName: string | null; avatarUrl: string | null };
 };
 
 function getInitial(name: string): string {
@@ -83,10 +89,12 @@ export async function loadLessonComments(
     where: { lessonId },
     orderBy: { createdAt: 'desc' },
     include: {
-      user: { select: { id: true, displayName: true, ssoDisplayName: true } },
+      user: { select: { id: true, displayName: true, ssoDisplayName: true, avatarUrl: true } },
       replies: {
         orderBy: { createdAt: 'asc' },
-        include: { user: { select: { id: true, displayName: true, ssoDisplayName: true } } },
+        include: {
+          user: { select: { id: true, displayName: true, ssoDisplayName: true, avatarUrl: true } },
+        },
       },
     },
   });
@@ -108,6 +116,7 @@ export async function loadLessonComments(
       id: reply.id,
       author: replyAuthor,
       avatarInitial: getInitial(replyAuthor),
+      avatarUrl: reply.user.avatarUrl,
       content: reply.content,
       time: formatRelativeTime(reply.createdAt),
       likes: reply.likes,
@@ -133,6 +142,7 @@ export async function loadLessonComments(
           user: {
             displayName: reply.user.displayName,
             ssoDisplayName: reply.user.ssoDisplayName,
+            avatarUrl: reply.user.avatarUrl,
           },
         })),
       );
@@ -141,6 +151,7 @@ export async function loadLessonComments(
         id: row.id,
         author,
         avatarInitial: getInitial(author),
+        avatarUrl: row.user.avatarUrl,
         content: row.content,
         time: formatRelativeTime(row.createdAt),
         likes: row.likes,
@@ -161,11 +172,14 @@ export async function postLessonComment(lessonId: string, content: string) {
   const session = await getCoreSession();
   const isInstructor = await userHasLmsAdminAccess(userId, session?.roles ?? []);
   const trimmed = content.trim();
-  if (trimmed.length < 3) {
-    return { ok: false as const, message: 'Komentar minimal 3 karakter.' };
+  if (trimmed.length < LESSON_QA_MIN_CHARS) {
+    return { ok: false as const, message: `Komentar minimal ${LESSON_QA_MIN_CHARS} karakter.` };
   }
-  if (trimmed.length > 2000) {
-    return { ok: false as const, message: 'Komentar terlalu panjang (maks. 2000 karakter).' };
+  if (trimmed.length > LESSON_QA_MAX_CHARS) {
+    return {
+      ok: false as const,
+      message: `Komentar terlalu panjang (maks. ${LESSON_QA_MAX_CHARS} karakter).`,
+    };
   }
 
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { id: true } });
@@ -224,11 +238,14 @@ export async function postLessonCommentReply(
   const replyToAuthor = options?.replyToAuthor;
   const bodyText = replyToAuthor ? stripReplyMention(replyToAuthor, content) : content.trim();
 
-  if (bodyText.length < 3) {
-    return { ok: false as const, message: 'Balasan minimal 3 karakter.' };
+  if (bodyText.length < LESSON_QA_MIN_CHARS) {
+    return { ok: false as const, message: `Balasan minimal ${LESSON_QA_MIN_CHARS} karakter.` };
   }
-  if (bodyText.length > 2000) {
-    return { ok: false as const, message: 'Balasan terlalu panjang (maks. 2000 karakter).' };
+  if (bodyText.length > LESSON_QA_MAX_CHARS) {
+    return {
+      ok: false as const,
+      message: `Balasan terlalu panjang (maks. ${LESSON_QA_MAX_CHARS} karakter).`,
+    };
   }
 
   const comment = await prisma.lessonComment.findUnique({

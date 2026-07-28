@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
 import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
@@ -24,7 +25,19 @@ export async function requestLiveClassEnrollment(
 
   const liveClass = await prisma.liveClass.findFirst({
     where: { id: liveClassId, isPublished: true },
-    select: { id: true, title: true, senseiName: true, priceIdr: true, maxSlots: true, filledSlots: true },
+    select: {
+      id: true,
+      title: true,
+      senseiName: true,
+      priceIdr: true,
+      maxSlots: true,
+      filledSlots: true,
+      sessions: {
+        orderBy: { scheduledAt: 'asc' },
+        take: 1,
+        select: { scheduledAt: true },
+      },
+    },
   });
   if (!liveClass) return { ok: false, message: 'Live class tidak ditemukan.' };
 
@@ -35,6 +48,13 @@ export async function requestLiveClassEnrollment(
 
   if (existing?.status === 'ACTIVE') {
     return { ok: true, status: 'ACTIVE' };
+  }
+
+  if (!existing && isLiveClassEnrollmentClosed(liveClass.sessions[0]?.scheduledAt, new Date())) {
+    return {
+      ok: false,
+      message: 'Pendaftaran live class ini sudah ditutup H-1 sebelum pertemuan pertama.',
+    };
   }
 
   if (existing?.status !== 'PENDING' && liveClass.filledSlots >= liveClass.maxSlots) {

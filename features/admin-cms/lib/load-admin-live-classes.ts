@@ -3,6 +3,7 @@ import type { LevelJLPT } from '@prisma/client';
 import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
 import { createLogger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
+import { formatJakartaDateTimeInput } from '@/features/admin-cms/lib/admin-date-time';
 
 const log = createLogger('admin-cms-live-class');
 
@@ -98,8 +99,8 @@ export async function loadAdminLiveClassById(id: string) {
       sessions: row.sessions.map((session) => ({
         id: session.id,
         title: session.title,
-        scheduledAt: session.scheduledAt.toISOString().slice(0, 16),
-        endsAt: session.endsAt.toISOString().slice(0, 16),
+        scheduledAt: formatJakartaDateTimeInput(session.scheduledAt),
+        endsAt: formatJakartaDateTimeInput(session.endsAt),
         meetingUrl: session.meetingUrl,
         recordingUrl: session.recordingUrl,
       })),

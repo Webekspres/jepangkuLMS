@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
+import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 import type { JlptPathItem } from '@/features/student/components/dashboard-data';
@@ -317,6 +318,9 @@ export type LiveClassView = {
   filledSlots: number;
   coverImageUrl: string | null;
   isFull: boolean;
+  enrollmentStatus: 'none' | EnrollmentStatus;
+  isClickable: boolean;
+  accessMessage: string | null;
   sessionCount: number;
   /** Label sesi terjadwal terdekat untuk ringkasan kartu. */
   nextSessionLabel: string | null;
@@ -326,11 +330,23 @@ export type LiveClassView = {
 export const loadPublishedLiveClasses = cache(async function loadPublishedLiveClasses(): Promise<
   LiveClassView[]
 > {
+  const userId = await requireAuthUserId();
   const rows = await prisma.liveClass.findMany({
     where: { isPublished: true },
     include: { sessions: { orderBy: { scheduledAt: 'asc' } } },
     orderBy: { createdAt: 'desc' },
   });
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId,
+      type: 'LIVE_CLASS',
+      liveClassId: { in: rows.map((row) => row.id) },
+    },
+    select: { liveClassId: true, status: true },
+  });
+  const enrollmentByLiveClassId = new Map(
+    enrollments.map((row) => [row.liveClassId!, row.status]),
+  );
 
   const now = new Date();
 
@@ -360,6 +376,12 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
     });
 
     const nextSession = row.sessions.find((session) => session.scheduledAt >= now);
+    const enrollmentStatus = enrollmentByLiveClassId.get(row.id) ?? 'none';
+    const enrollmentClosed = isLiveClassEnrollmentClosed(row.sessions[0]?.scheduledAt, now);
+    const isClickable =
+      enrollmentStatus === 'ACTIVE' || enrollmentStatus === 'PENDING' || !enrollmentClosed;
+    const accessMessage =
+      !isClickable ? 'Pendaftaran ditutup H-1 sebelum pertemuan pertama.' : null;
 
     return {
       id: row.id,
@@ -374,6 +396,9 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
       filledSlots: row.filledSlots,
       coverImageUrl: row.coverImageUrl,
       isFull: row.filledSlots >= row.maxSlots,
+      enrollmentStatus,
+      isClickable,
+      accessMessage,
       sessionCount: row.sessions.length,
       nextSessionLabel: nextSession ? formatLiveClassSchedule(nextSession.scheduledAt) : null,
       sessions,
