@@ -29,6 +29,10 @@ import {
   isMentionToken,
   splitCommentWithMentions,
 } from '@/features/learning/lib/lesson-qa-utils';
+import {
+  LESSON_QA_MAX_CHARS,
+  LESSON_QA_MIN_CHARS,
+} from '@/features/learning/lib/lesson-qa-limits';
 
 const AVATAR_COLORS = [
   'bg-blue-500',
@@ -100,10 +104,11 @@ function ReplyForm({
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const remaining = LESSON_QA_MAX_CHARS - draft.length;
 
   function handleSubmit() {
     const text = draft.trim();
-    if (text.length < 3) return;
+    if (text.length < LESSON_QA_MIN_CHARS || draft.length > LESSON_QA_MAX_CHARS) return;
     setError(null);
     startTransition(async () => {
       const result = await postLessonCommentReply(target.rootCommentId, text, {
@@ -137,10 +142,19 @@ function ReplyForm({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Tulis balasan kamu…"
-        className="min-h-[64px] rounded-sm border-border bg-background text-sm"
+        className="min-h-16 rounded-sm border-border bg-background text-sm"
         rows={2}
+        maxLength={LESSON_QA_MAX_CHARS}
         autoFocus
       />
+      <p
+        className={cn(
+          'mt-1 text-xs',
+          remaining <= 100 ? 'text-amber-600' : 'text-muted-foreground',
+        )}
+      >
+        {remaining} karakter tersisa
+      </p>
       {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
       <div className="mt-2 flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isPending}>
@@ -149,7 +163,11 @@ function ReplyForm({
         <Button
           size="sm"
           className="gap-1.5"
-          disabled={isPending || draft.trim().length < 3}
+          disabled={
+            isPending ||
+            draft.trim().length < LESSON_QA_MIN_CHARS ||
+            draft.length > LESSON_QA_MAX_CHARS
+          }
           onClick={handleSubmit}
         >
           <Send className="size-3" />
@@ -294,10 +312,11 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const remaining = LESSON_QA_MAX_CHARS - draft.length;
 
   function handleSubmit() {
     const text = draft.trim();
-    if (!text) return;
+    if (text.length < LESSON_QA_MIN_CHARS || draft.length > LESSON_QA_MAX_CHARS) return;
     setError(null);
     startTransition(async () => {
       const result = await postLessonComment(lessonId, text);
@@ -382,12 +401,30 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Tulis pertanyaan atau komentar kamu…."
-          className="min-h-[80px] rounded-sm border-border bg-background"
+          className="min-h-20 rounded-sm border-border bg-background"
           rows={3}
+          maxLength={LESSON_QA_MAX_CHARS}
         />
+        <p
+          className={cn(
+            'text-xs',
+            remaining <= 100 ? 'text-amber-600' : 'text-muted-foreground',
+          )}
+        >
+          {remaining} karakter tersisa
+        </p>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <div className="flex justify-end">
-          <Button size="sm" className="gap-2" disabled={isPending || !draft.trim()} onClick={handleSubmit}>
+          <Button
+            size="sm"
+            className="gap-2"
+            disabled={
+              isPending ||
+              draft.trim().length < LESSON_QA_MIN_CHARS ||
+              draft.length > LESSON_QA_MAX_CHARS
+            }
+            onClick={handleSubmit}
+          >
             <Send className="size-3.5" />
             Kirim
           </Button>

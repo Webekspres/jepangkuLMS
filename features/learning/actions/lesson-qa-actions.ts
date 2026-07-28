@@ -9,6 +9,10 @@ import {
   buildReplyWithMention,
   stripReplyMention,
 } from '@/features/learning/lib/lesson-qa-utils';
+import {
+  LESSON_QA_MAX_CHARS,
+  LESSON_QA_MIN_CHARS,
+} from '@/features/learning/lib/lesson-qa-limits';
 import { LMS_POINTS, lmsLessonCommentSourceKey } from '@/lib/lms/point-rules';
 import { awardLmsPoints } from '@/lib/lms/points';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
@@ -161,11 +165,14 @@ export async function postLessonComment(lessonId: string, content: string) {
   const session = await getCoreSession();
   const isInstructor = await userHasLmsAdminAccess(userId, session?.roles ?? []);
   const trimmed = content.trim();
-  if (trimmed.length < 3) {
-    return { ok: false as const, message: 'Komentar minimal 3 karakter.' };
+  if (trimmed.length < LESSON_QA_MIN_CHARS) {
+    return { ok: false as const, message: `Komentar minimal ${LESSON_QA_MIN_CHARS} karakter.` };
   }
-  if (trimmed.length > 2000) {
-    return { ok: false as const, message: 'Komentar terlalu panjang (maks. 2000 karakter).' };
+  if (trimmed.length > LESSON_QA_MAX_CHARS) {
+    return {
+      ok: false as const,
+      message: `Komentar terlalu panjang (maks. ${LESSON_QA_MAX_CHARS} karakter).`,
+    };
   }
 
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { id: true } });
@@ -224,11 +231,14 @@ export async function postLessonCommentReply(
   const replyToAuthor = options?.replyToAuthor;
   const bodyText = replyToAuthor ? stripReplyMention(replyToAuthor, content) : content.trim();
 
-  if (bodyText.length < 3) {
-    return { ok: false as const, message: 'Balasan minimal 3 karakter.' };
+  if (bodyText.length < LESSON_QA_MIN_CHARS) {
+    return { ok: false as const, message: `Balasan minimal ${LESSON_QA_MIN_CHARS} karakter.` };
   }
-  if (bodyText.length > 2000) {
-    return { ok: false as const, message: 'Balasan terlalu panjang (maks. 2000 karakter).' };
+  if (bodyText.length > LESSON_QA_MAX_CHARS) {
+    return {
+      ok: false as const,
+      message: `Balasan terlalu panjang (maks. ${LESSON_QA_MAX_CHARS} karakter).`,
+    };
   }
 
   const comment = await prisma.lessonComment.findUnique({

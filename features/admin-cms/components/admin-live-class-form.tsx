@@ -13,6 +13,7 @@ import {
   createLiveClassAction,
   updateLiveClassAction,
 } from '@/features/admin-cms/actions/cms-live-class-actions';
+import { LIVE_CLASS_DESCRIPTION_MAX_CHARS } from '@/features/admin-cms/lib/live-class-form-limits';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [description, setDescription] = useState(liveClass?.description ?? '');
   const [level, setLevel] = useState(liveClass?.level ?? 'N5');
   const [category, setCategory] = useState(liveClass?.category ?? CATEGORIES[0]);
   const [sessions, setSessions] = useState<LiveClassSessionData[]>(
@@ -78,6 +80,9 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
     removeCover: false,
   });
   const isEdit = Boolean(liveClass?.id);
+  const descriptionRemaining = LIVE_CLASS_DESCRIPTION_MAX_CHARS - description.length;
+  const isDescriptionInvalid =
+    description.trim().length === 0 || description.length > LIVE_CLASS_DESCRIPTION_MAX_CHARS;
 
   function updateSession(index: number, patch: Partial<LiveClassSessionData>) {
     setSessions((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -154,9 +159,21 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
               id="description"
               name="description"
               rows={4}
-              defaultValue={liveClass?.description ?? ''}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={LIVE_CLASS_DESCRIPTION_MAX_CHARS}
               required
             />
+            <p
+              className={cn(
+                'text-xs',
+                descriptionRemaining <= 100 ? 'text-amber-600' : 'text-muted-foreground',
+              )}
+            >
+              {description.length}/{LIVE_CLASS_DESCRIPTION_MAX_CHARS} karakter
+              {' · '}
+              {descriptionRemaining} karakter tersisa
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -355,7 +372,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
             <Button type="button" variant="outline" asChild>
               <Link href={ADMIN_ROUTES.liveClass}>Batal</Link>
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isDescriptionInvalid}>
               {isEdit ? 'Simpan Perubahan' : 'Buat Program'}
             </Button>
           </div>

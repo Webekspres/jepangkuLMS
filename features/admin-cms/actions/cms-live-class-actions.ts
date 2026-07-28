@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { Prisma, type LevelJLPT } from '@prisma/client';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { LIVE_CLASS_DESCRIPTION_MAX_CHARS } from '@/features/admin-cms/lib/live-class-form-limits';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import {
   deletePreviousCoverIfManaged,
@@ -110,6 +111,9 @@ function parseLiveClassForm(formData: FormData) {
 function validateLiveClass(data: ReturnType<typeof parseLiveClassForm>): string | null {
   if (!data.title) return 'Judul kelas wajib diisi.';
   if (!data.description) return 'Deskripsi wajib diisi.';
+  if (data.description.length > LIVE_CLASS_DESCRIPTION_MAX_CHARS) {
+    return `Deskripsi maksimal ${LIVE_CLASS_DESCRIPTION_MAX_CHARS} karakter.`;
+  }
   if (!data.senseiName) return 'Nama sensei wajib diisi.';
   if (!data.category) return 'Kategori wajib diisi.';
   if (!JLPT_LEVELS.includes(data.level)) return 'Level JLPT tidak valid.';

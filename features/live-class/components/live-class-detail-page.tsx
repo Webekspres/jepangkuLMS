@@ -64,7 +64,7 @@ function SessionTimelineRow({
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
       {!isLast ? (
-        <span className="absolute left-[7px] top-5 h-full w-px bg-border" aria-hidden />
+        <span className="absolute left-1.75 top-5 h-full w-px bg-border" aria-hidden />
       ) : null}
       <span
         className={cn(
@@ -291,6 +291,16 @@ export function LiveClassDetailPage({
               </p>
             </div>
           </div>
+        ) : liveClass.accessMessage ? (
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Pendaftaran ditutup</p>
+                <p className="text-xs text-muted-foreground">{liveClass.accessMessage}</p>
+              </div>
+            </div>
+          </div>
         ) : isFreeCourse(liveClass.priceIdr) ? (
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -321,8 +331,12 @@ export function LiveClassDetailPage({
             paymentSettings={liveClass.paymentSettings}
             paymentLink={liveClass.paymentLink}
             onRequestEnrollment={handleEnroll}
-            disabled={liveClass.isFull}
-            disabledMessage={liveClass.isFull ? 'Kelas sudah penuh.' : undefined}
+            disabled={liveClass.isFull || Boolean(liveClass.accessMessage)}
+            disabledMessage={
+              liveClass.isFull
+                ? 'Kelas sudah penuh.'
+                : liveClass.accessMessage ?? undefined
+            }
           />
         )}
       </section>
