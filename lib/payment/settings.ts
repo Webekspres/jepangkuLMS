@@ -20,8 +20,8 @@ export function getPaymentSettings() {
 
   return {
     bankName: bankName ?? 'BCA',
-    accountName: accountName ?? 'PT Jepangku Indonesia',
-    accountNumber: accountNumber ?? '1234567890',
+    accountName: accountName ?? 'Jepang Versi Kamu PT',
+    accountNumber: accountNumber ?? '3199995678',
   } as const;
 }
 

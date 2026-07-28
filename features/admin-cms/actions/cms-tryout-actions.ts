@@ -2,6 +2,7 @@
 
 import type { LevelJLPT } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { parseJakartaDateTimeInput } from '@/features/admin-cms/lib/admin-date-time';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { validateSessionActivate } from '@/features/admin-cms/lib/jlpt-question-set-stats';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
@@ -29,7 +30,7 @@ function parseTryoutForm(formData: FormData) {
   const levelParsed = levelJlptSchema.safeParse(levelRaw);
   const level: LevelJLPT = levelParsed.success ? levelParsed.data : 'N5';
   const code = generateSlug(codeRaw || title);
-  const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null;
+  const scheduledAt = scheduledAtRaw ? parseJakartaDateTimeInput(scheduledAtRaw) : null;
   const questionSetRaw = String(formData.get('questionSetId') ?? '').trim();
   const questionSetId = questionSetRaw && questionSetRaw !== '__none__' ? questionSetRaw : null;
 

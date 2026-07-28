@@ -17,10 +17,13 @@ import { Progress } from '@/components/ui/progress';
 import { requestCourseEnrollment } from '@/features/learning/actions/learning-actions';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
+import {
+  buildProgramConsultMessage,
+  buildProgramPaymentConfirmMessage,
+  type PaymentSettings,
+} from '@/lib/payment/enrollment-payment-messages';
 import { cn } from '@/lib/utils';
 import { STUDENT_ROUTES } from './student-routes';
-
-type PaymentSettings = { bankName: string; accountName: string; accountNumber: string };
 
 type CoursePaymentSidebarProps = {
   courseSlug: string;
@@ -34,27 +37,6 @@ type CoursePaymentSidebarProps = {
   firstLessonSlug?: string;
   paymentSettings: PaymentSettings;
 };
-
-function buildPaymentConfirmMessage(input: {
-  courseTitle: string;
-  priceLabel: string;
-  studentName: string | null;
-  paymentSettings: PaymentSettings;
-}) {
-  const name = input.studentName?.trim() || '[nama Anda]';
-  return [
-    `Halo, saya ingin konfirmasi pembayaran untuk kursus "${input.courseTitle}" (${input.priceLabel}).`,
-    '',
-    `Nama: ${name}`,
-    `No. Rekening tujuan: ${input.paymentSettings.bankName} ${input.paymentSettings.accountNumber} a/n ${input.paymentSettings.accountName}`,
-    '',
-    'Mohon konfirmasi. Terima kasih!',
-  ].join('\n');
-}
-
-function buildConsultMessage(courseTitle: string) {
-  return `Halo, saya ingin konsultasi tentang kursus "${courseTitle}" sebelum mendaftar. Terima kasih!`;
-}
 
 export function CoursePaymentSidebar({
   courseSlug,
@@ -97,9 +79,18 @@ export function CoursePaymentSidebar({
   };
 
   const waConfirmUrl = buildWhatsAppUrl(
-    buildPaymentConfirmMessage({ courseTitle, priceLabel, studentName: studentDisplayName, paymentSettings }),
+    buildProgramPaymentConfirmMessage({
+      kind: 'course',
+      productTitle: courseTitle,
+      productDetail: courseSlug,
+      priceLabel,
+      studentName: studentDisplayName,
+      paymentSettings,
+    }),
   );
-  const waConsultUrl = buildWhatsAppUrl(buildConsultMessage(courseTitle));
+  const waConsultUrl = buildWhatsAppUrl(
+    buildProgramConsultMessage({ kind: 'course', productTitle: courseTitle }),
+  );
 
   return (
     <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">

@@ -22,6 +22,7 @@ export type LessonCommentReplyView = {
   id: string;
   author: string;
   avatarInitial: string;
+  avatarUrl: string | null;
   content: string;
   time: string;
   likes: number;
@@ -35,6 +36,7 @@ export type LessonCommentView = {
   id: string;
   author: string;
   avatarInitial: string;
+  avatarUrl: string | null;
   content: string;
   time: string;
   likes: number;
@@ -52,7 +54,7 @@ type LessonCommentReplyRow = {
   likes: number;
   isInstructor: boolean;
   createdAt: Date;
-  user: { displayName: string | null; ssoDisplayName: string | null };
+  user: { displayName: string | null; ssoDisplayName: string | null; avatarUrl: string | null };
 };
 
 function getInitial(name: string): string {
@@ -87,10 +89,12 @@ export async function loadLessonComments(
     where: { lessonId },
     orderBy: { createdAt: 'desc' },
     include: {
-      user: { select: { id: true, displayName: true, ssoDisplayName: true } },
+      user: { select: { id: true, displayName: true, ssoDisplayName: true, avatarUrl: true } },
       replies: {
         orderBy: { createdAt: 'asc' },
-        include: { user: { select: { id: true, displayName: true, ssoDisplayName: true } } },
+        include: {
+          user: { select: { id: true, displayName: true, ssoDisplayName: true, avatarUrl: true } },
+        },
       },
     },
   });
@@ -112,6 +116,7 @@ export async function loadLessonComments(
       id: reply.id,
       author: replyAuthor,
       avatarInitial: getInitial(replyAuthor),
+      avatarUrl: reply.user.avatarUrl,
       content: reply.content,
       time: formatRelativeTime(reply.createdAt),
       likes: reply.likes,
@@ -137,6 +142,7 @@ export async function loadLessonComments(
           user: {
             displayName: reply.user.displayName,
             ssoDisplayName: reply.user.ssoDisplayName,
+            avatarUrl: reply.user.avatarUrl,
           },
         })),
       );
@@ -145,6 +151,7 @@ export async function loadLessonComments(
         id: row.id,
         author,
         avatarInitial: getInitial(author),
+        avatarUrl: row.user.avatarUrl,
         content: row.content,
         time: formatRelativeTime(row.createdAt),
         likes: row.likes,

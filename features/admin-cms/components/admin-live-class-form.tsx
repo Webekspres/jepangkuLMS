@@ -8,12 +8,14 @@ import {
   AdminCoverImageField,
   type AdminCoverImageFieldState,
 } from '@/features/admin-cms/components/admin-cover-image-field';
+import { AdminDateTimeField } from '@/features/admin-cms/components/admin-date-time-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import {
   createLiveClassAction,
   updateLiveClassAction,
 } from '@/features/admin-cms/actions/cms-live-class-actions';
 import { LIVE_CLASS_DESCRIPTION_MAX_CHARS } from '@/features/admin-cms/lib/live-class-form-limits';
+import { LIVE_CLASS_CATEGORIES } from '@/features/live-class/lib/live-class-categories';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { Button } from '@/components/ui/button';
@@ -32,7 +34,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const CATEGORIES = ['Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
 const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'] as const;
 
 type LiveClassSessionData = {
@@ -71,7 +72,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState(liveClass?.description ?? '');
   const [level, setLevel] = useState(liveClass?.level ?? 'N5');
-  const [category, setCategory] = useState(liveClass?.category ?? CATEGORIES[0]);
+  const [category, setCategory] = useState(liveClass?.category ?? LIVE_CLASS_CATEGORIES[0]);
   const [sessions, setSessions] = useState<LiveClassSessionData[]>(
     liveClass?.sessions?.length ? liveClass.sessions : [emptySession()],
   );
@@ -200,7 +201,7 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((cat) => (
+                  {LIVE_CLASS_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -316,18 +317,16 @@ export function AdminLiveClassFormPage({ liveClass }: { liveClass?: LiveClassFor
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Mulai</Label>
-                    <Input
-                      type="datetime-local"
+                    <AdminDateTimeField
                       value={session.scheduledAt}
-                      onChange={(e) => updateSession(index, { scheduledAt: e.target.value })}
+                      onChange={(nextValue) => updateSession(index, { scheduledAt: nextValue })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Selesai</Label>
-                    <Input
-                      type="datetime-local"
+                    <AdminDateTimeField
                       value={session.endsAt}
-                      onChange={(e) => updateSession(index, { endsAt: e.target.value })}
+                      onChange={(nextValue) => updateSession(index, { endsAt: nextValue })}
                     />
                   </div>
                 </div>

@@ -18,13 +18,12 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
+import { LIVE_CLASS_FILTER_CATEGORIES } from '@/features/live-class/lib/live-class-categories';
 import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
-
-const CATEGORIES = ['Semua', 'Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
 
 function scheduleSummary(cls: LiveClassView): string {
   if (cls.sessionCount === 0) return 'Jadwal segera diumumkan';
@@ -37,7 +36,8 @@ type LiveClassPageProps = {
 };
 
 export function LiveClassPage({ classes }: LiveClassPageProps) {
-  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>('Semua');
+  const [activeCategory, setActiveCategory] =
+    useState<(typeof LIVE_CLASS_FILTER_CATEGORIES)[number]>('Semua');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -101,7 +101,7 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <Filter className="size-4 shrink-0 text-muted-foreground" />
-        {CATEGORIES.map((cat) => (
+        {LIVE_CLASS_FILTER_CATEGORIES.map((cat) => (
           <button
             key={cat}
             type="button"

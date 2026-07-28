@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, Reply, Send, ThumbsUp, Trash2, X } from 'lucide-react';
@@ -14,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ProfileAvatar } from '@/features/student/components/profile-avatar';
 import { cn } from '@/lib/utils';
+import { isUnoptimizedImageSrc, resolveMediaUrl } from '@/lib/media/image-src';
 import {
   deleteLessonComment,
   deleteLessonCommentReply,
@@ -33,35 +36,6 @@ import {
   LESSON_QA_MAX_CHARS,
   LESSON_QA_MIN_CHARS,
 } from '@/features/learning/lib/lesson-qa-limits';
-
-const AVATAR_COLORS = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-violet-500',
-  'bg-rose-500',
-  'bg-primary',
-];
-
-function avatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) hash = name.charCodeAt(i) + hash * 31;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
-}
-
-function AvatarIcon({ initial, name, size = 'md' }: { initial: string; name: string; size?: 'sm' | 'md' }) {
-  return (
-    <div
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-full font-bold text-white',
-        avatarColor(name),
-        size === 'sm' ? 'size-7 text-[11px]' : 'size-9 text-sm',
-      )}
-    >
-      {initial}
-    </div>
-  );
-}
 
 function CommentContent({ content }: { content: string }) {
   const parts = splitCommentWithMentions(content);
@@ -90,6 +64,11 @@ type ReplyTarget = {
 type DeleteTarget = {
   id: string;
   type: 'comment' | 'reply';
+};
+
+type AvatarPreviewState = {
+  name: string;
+  imageUrl: string;
 };
 
 function ReplyForm({
@@ -188,6 +167,7 @@ function CommentItem({
   onDelete,
   onCancelReply,
   onReplySuccess,
+  onPreviewAvatar,
   depth = 0,
 }: {
   comment: LessonCommentView | LessonCommentReplyView;
@@ -199,6 +179,7 @@ function CommentItem({
   onDelete: (target: DeleteTarget) => void;
   onCancelReply: () => void;
   onReplySuccess: () => void;
+  onPreviewAvatar: (avatar: AvatarPreviewState) => void;
   depth?: number;
 }) {
   const [liked, setLiked] = useState(false);
@@ -221,7 +202,26 @@ function CommentItem({
       className={cn('flex gap-3', depth > 0 && 'mt-3 border-l-2 border-border')}
       style={depth > 0 ? { paddingLeft: `${indentDepth}rem` } : undefined}
     >
-      <AvatarIcon initial={comment.avatarInitial} name={comment.author} size={depth > 0 ? 'sm' : 'md'} />
+      {comment.avatarUrl ? (
+        <button
+          type="button"
+          className="rounded-xl transition-transform hover:scale-105"
+          aria-label={`Lihat foto ${comment.author}`}
+          onClick={() => onPreviewAvatar({ name: comment.author, imageUrl: comment.avatarUrl! })}
+        >
+          <ProfileAvatar
+            imageUrl={comment.avatarUrl}
+            initial={comment.avatarInitial}
+            size={depth > 0 ? 'sm' : 'md'}
+          />
+        </button>
+      ) : (
+        <ProfileAvatar
+          imageUrl={comment.avatarUrl}
+          initial={comment.avatarInitial}
+          size={depth > 0 ? 'sm' : 'md'}
+        />
+      )}
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-foreground">{comment.author}</span>
@@ -289,6 +289,7 @@ function CommentItem({
             onDelete={onDelete}
             onCancelReply={onCancelReply}
             onReplySuccess={onReplySuccess}
+            onPreviewAvatar={onPreviewAvatar}
             depth={depth + 1}
           />
         ))}
@@ -311,6 +312,7 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [previewAvatar, setPreviewAvatar] = useState<AvatarPreviewState | null>(null);
   const [isPending, startTransition] = useTransition();
   const remaining = LESSON_QA_MAX_CHARS - draft.length;
 
@@ -391,6 +393,7 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
               onDelete={setDeleteTarget}
               onCancelReply={() => setReplyTarget(null)}
               onReplySuccess={handleReplySuccess}
+              onPreviewAvatar={setPreviewAvatar}
             />
           ))
         )}
@@ -460,6 +463,27 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
               {isPending ? 'Menghapus...' : 'Hapus'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewAvatar !== null} onOpenChange={(open) => !open && setPreviewAvatar(null)}>
+        <DialogContent className="gap-4 sm:max-w-lg">
+          <DialogHeader className="pr-10 text-left">
+            <DialogTitle>Foto Profil</DialogTitle>
+            <DialogDescription>{previewAvatar?.name}</DialogDescription>
+          </DialogHeader>
+          {previewAvatar ? (
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/30">
+              <Image
+                src={resolveMediaUrl(previewAvatar.imageUrl)}
+                alt={previewAvatar.name}
+                width={720}
+                height={720}
+                className="h-auto w-full object-cover"
+                unoptimized={isUnoptimizedImageSrc(resolveMediaUrl(previewAvatar.imageUrl))}
+              />
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </section>

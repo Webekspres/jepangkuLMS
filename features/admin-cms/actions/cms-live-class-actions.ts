@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { Prisma, type LevelJLPT } from '@prisma/client';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
+import { parseJakartaDateTimeInput } from '@/features/admin-cms/lib/admin-date-time';
 import { LIVE_CLASS_DESCRIPTION_MAX_CHARS } from '@/features/admin-cms/lib/live-class-form-limits';
+import { LIVE_CLASS_CATEGORIES } from '@/features/live-class/lib/live-class-categories';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import {
   deletePreviousCoverIfManaged,
@@ -70,8 +72,8 @@ function parseSessions(formData: FormData): ParsedSession[] {
     const session = item as RawSession;
     return {
       title: String(session.title ?? '').trim(),
-      scheduledAt: new Date(String(session.scheduledAt ?? '')),
-      endsAt: new Date(String(session.endsAt ?? '')),
+      scheduledAt: parseJakartaDateTimeInput(String(session.scheduledAt ?? '')) ?? new Date(''),
+      endsAt: parseJakartaDateTimeInput(String(session.endsAt ?? '')) ?? new Date(''),
       meetingUrl: String(session.meetingUrl ?? '').trim() || null,
       recordingUrl: String(session.recordingUrl ?? '').trim() || null,
     };
@@ -116,6 +118,9 @@ function validateLiveClass(data: ReturnType<typeof parseLiveClassForm>): string 
   }
   if (!data.senseiName) return 'Nama sensei wajib diisi.';
   if (!data.category) return 'Kategori wajib diisi.';
+  if (!LIVE_CLASS_CATEGORIES.includes(data.category as (typeof LIVE_CLASS_CATEGORIES)[number])) {
+    return 'Kategori live class tidak valid.';
+  }
   if (!JLPT_LEVELS.includes(data.level)) return 'Level JLPT tidak valid.';
   if (data.priceIdr < 0) return 'Harga tidak valid.';
   if (data.maxSlots < 1) return 'Kapasitas minimal 1.';
