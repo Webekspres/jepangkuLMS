@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
+import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
 import { getPaymentSettings } from '@/lib/payment/settings';
@@ -47,6 +48,8 @@ export type LiveClassDetailView = {
   sessionCount: number;
   isEnrolled: boolean;
   enrollmentStatus: EnrollmentStatus | 'NONE';
+  enrollmentClosed: boolean;
+  accessMessage: string | null;
   sessions: LiveClassDetailSession[];
 };
 
@@ -70,6 +73,11 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
 
   const isEnrolled = enrollment?.status === 'ACTIVE';
   const now = new Date();
+  const enrollmentClosed = isLiveClassEnrollmentClosed(row.sessions[0]?.scheduledAt, now);
+  const accessMessage =
+    !isEnrolled && enrollmentClosed
+      ? 'Pendaftaran live class ini sudah ditutup H-1 sebelum pertemuan pertama.'
+      : null;
 
   const sessions: LiveClassDetailSession[] = row.sessions.map((session) => {
     const status = resolveLiveSessionStatus(session.scheduledAt, session.endsAt, now);
@@ -109,6 +117,8 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     sessionCount: row.sessions.length,
     isEnrolled,
     enrollmentStatus: enrollment?.status ?? 'NONE',
+    enrollmentClosed,
+    accessMessage,
     sessions,
   };
 });

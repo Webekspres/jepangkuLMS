@@ -18,13 +18,12 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
+import { LIVE_CLASS_FILTER_CATEGORIES } from '@/features/live-class/lib/live-class-categories';
 import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
-
-const CATEGORIES = ['Semua', 'Tata Bahasa', 'Kosa Kata', 'Kanji', 'Speaking', 'JLPT Tips'] as const;
 
 function scheduleSummary(cls: LiveClassView): string {
   if (cls.sessionCount === 0) return 'Jadwal segera diumumkan';
@@ -37,7 +36,8 @@ type LiveClassPageProps = {
 };
 
 export function LiveClassPage({ classes }: LiveClassPageProps) {
-  const [activeCategory, setActiveCategory] = useState<(typeof CATEGORIES)[number]>('Semua');
+  const [activeCategory, setActiveCategory] =
+    useState<(typeof LIVE_CLASS_FILTER_CATEGORIES)[number]>('Semua');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -101,7 +101,7 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <Filter className="size-4 shrink-0 text-muted-foreground" />
-        {CATEGORIES.map((cat) => (
+        {LIVE_CLASS_FILTER_CATEGORIES.map((cat) => (
           <button
             key={cat}
             type="button"
@@ -124,6 +124,12 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
         {filtered.map((cls, index) => {
           const accent = JLPT_ACCENT[LEVEL_ACCENT[cls.level]];
           const fillPct = Math.round((cls.filledSlots / cls.maxSlots) * 100);
+          const cardClassName = cn(
+            'group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary',
+            cls.isClickable
+              ? 'hover:-translate-y-1 hover:border-secondary/50 hover:shadow-lg'
+              : 'cursor-not-allowed opacity-85',
+          );
 
           return (
             <motion.div
@@ -132,81 +138,160 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Link
-                href={`/dashboard/live-class/${cls.id}`}
-                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-secondary/50 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-              >
-                <div className="relative h-40 overflow-hidden">
-                  {(() => {
-                    const coverSrc = resolveLiveClassCoverUrl(cls.coverImageUrl);
-                    return (
-                      <Image
-                        src={coverSrc}
-                        alt={cls.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        unoptimized={isUnoptimizedImageSrc(coverSrc)}
+              {cls.isClickable ? (
+                <Link href={`/dashboard/live-class/${cls.id}`} className={cardClassName}>
+                  <div className="relative h-40 overflow-hidden">
+                    {(() => {
+                      const coverSrc = resolveLiveClassCoverUrl(cls.coverImageUrl);
+                      return (
+                        <Image
+                          src={coverSrc}
+                          alt={cls.title}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          unoptimized={isUnoptimizedImageSrc(coverSrc)}
+                        />
+                      );
+                    })()}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute top-3 left-3 flex gap-1.5">
+                      <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>
+                        {cls.level}
+                      </span>
+                      <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                        {cls.category}
+                      </span>
+                    </div>
+                    {cls.isFull ? (
+                      <span className="absolute top-3 right-3 rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-white">
+                        Penuh
+                      </span>
+                    ) : null}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs font-medium text-white">
+                      <User className="size-3.5" />
+                      {cls.senseiName}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-4">
+                    <h3 className="line-clamp-1 text-sm font-bold text-foreground">{cls.title}</h3>
+                    <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">
+                      {cls.description}
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="size-3.5 text-blue-500" />
+                        {cls.filledSlots}/{cls.maxSlots} peserta
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {cls.priceIdr > 0 ? `Rp${cls.priceIdr.toLocaleString('id-ID')}` : 'Gratis'}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          'h-full rounded-full',
+                          cls.isFull ? 'bg-destructive' : fillPct > 75 ? 'bg-amber-500' : 'bg-emerald-500',
+                        )}
+                        style={{ width: `${fillPct}%` }}
                       />
-                    );
-                  })()}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute top-3 left-3 flex gap-1.5">
-                    <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>
-                      {cls.level}
-                    </span>
-                    <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                      {cls.category}
-                    </span>
+                    </div>
+
+                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-4">
+                      <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        <CalendarClock className="size-3.5 shrink-0 text-emerald-500" />
+                        <span className="truncate">{scheduleSummary(cls)}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-secondary">
+                        Lihat detail
+                        <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                      </span>
+                    </div>
                   </div>
-                  {cls.isFull ? (
-                    <span className="absolute top-3 right-3 rounded-lg bg-destructive px-2.5 py-1 text-xs font-bold text-white">
-                      Penuh
+                </Link>
+              ) : (
+                <div
+                  aria-disabled="true"
+                  className={cardClassName}
+                  title={cls.accessMessage ?? undefined}
+                >
+                  <div className="relative h-40 overflow-hidden">
+                    {(() => {
+                      const coverSrc = resolveLiveClassCoverUrl(cls.coverImageUrl);
+                      return (
+                        <Image
+                          src={coverSrc}
+                          alt={cls.title}
+                          fill
+                          className="object-cover"
+                          unoptimized={isUnoptimizedImageSrc(coverSrc)}
+                        />
+                      );
+                    })()}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute top-3 left-3 flex gap-1.5">
+                      <span className={cn('rounded-md px-2 py-0.5 text-xs font-bold text-white', accent.badge)}>
+                        {cls.level}
+                      </span>
+                      <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                        {cls.category}
+                      </span>
+                    </div>
+                    <span className="absolute top-3 right-3 rounded-lg bg-slate-950/70 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                      Ditutup
                     </span>
-                  ) : null}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs font-medium text-white">
-                    <User className="size-3.5" />
-                    {cls.senseiName}
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-xs font-medium text-white">
+                      <User className="size-3.5" />
+                      {cls.senseiName}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-4">
+                    <h3 className="line-clamp-1 text-sm font-bold text-foreground">{cls.title}</h3>
+                    <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">
+                      {cls.description}
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Users className="size-3.5 text-blue-500" />
+                        {cls.filledSlots}/{cls.maxSlots} peserta
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {cls.priceIdr > 0 ? `Rp${cls.priceIdr.toLocaleString('id-ID')}` : 'Gratis'}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          'h-full rounded-full',
+                          cls.isFull ? 'bg-destructive' : fillPct > 75 ? 'bg-amber-500' : 'bg-emerald-500',
+                        )}
+                        style={{ width: `${fillPct}%` }}
+                      />
+                    </div>
+
+                    <div className="mt-auto space-y-2 border-t border-border pt-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                          <CalendarClock className="size-3.5 shrink-0 text-emerald-500" />
+                          <span className="truncate">{scheduleSummary(cls)}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground">
+                          Lihat detail
+                          <ArrowRight className="size-3.5" />
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {cls.accessMessage ?? 'Pendaftaran sudah ditutup.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="line-clamp-1 text-sm font-bold text-foreground">{cls.title}</h3>
-                  <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-relaxed text-muted-foreground">
-                    {cls.description}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="size-3.5 text-blue-500" />
-                      {cls.filledSlots}/{cls.maxSlots} peserta
-                    </span>
-                    <span className="font-semibold text-foreground">
-                      {cls.priceIdr > 0 ? `Rp${cls.priceIdr.toLocaleString('id-ID')}` : 'Gratis'}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn(
-                        'h-full rounded-full',
-                        cls.isFull ? 'bg-destructive' : fillPct > 75 ? 'bg-amber-500' : 'bg-emerald-500',
-                      )}
-                      style={{ width: `${fillPct}%` }}
-                    />
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-4">
-                    <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                      <CalendarClock className="size-3.5 shrink-0 text-emerald-500" />
-                      <span className="truncate">{scheduleSummary(cls)}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-secondary">
-                      Lihat detail
-                      <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
+              )}
             </motion.div>
           );
         })}

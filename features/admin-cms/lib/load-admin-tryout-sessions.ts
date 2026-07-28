@@ -1,5 +1,6 @@
 import type { LevelJLPT } from '@prisma/client';
 import { cache } from 'react';
+import { formatJakartaDateTimeInput } from '@/features/admin-cms/lib/admin-date-time';
 import { getEnrollmentCountsByProduct } from '@/features/admin-cms/lib/enrollment-counts';
 import { countTryoutCompositionQuestions } from '@/features/tryout/lib/count-tryout-paper-questions';
 import { prisma } from '@/lib/prisma';
@@ -90,7 +91,7 @@ export async function loadAdminTryoutSessionById(id: string) {
     phaseLabel: row.phaseLabel,
     level: row.level,
     description: row.description,
-    scheduledAt: row.scheduledAt?.toISOString().slice(0, 16) ?? '',
+    scheduledAt: formatJakartaDateTimeInput(row.scheduledAt),
     timeLimitMinutes: row.timeLimitMinutes,
     isActive: row.isActive,
     sortOrder: row.sortOrder,
