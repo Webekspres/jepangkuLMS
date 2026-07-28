@@ -315,6 +315,7 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
   const [previewAvatar, setPreviewAvatar] = useState<AvatarPreviewState | null>(null);
   const [isPending, startTransition] = useTransition();
   const remaining = LESSON_QA_MAX_CHARS - draft.length;
+  const previewAvatarUrl = previewAvatar ? resolveMediaUrl(previewAvatar.imageUrl) : null;
 
   function handleSubmit() {
     const text = draft.trim();
@@ -472,15 +473,15 @@ export function LessonQaSection({ lessonId, lessonTitle, initialComments }: Less
             <DialogTitle>Foto Profil</DialogTitle>
             <DialogDescription>{previewAvatar?.name}</DialogDescription>
           </DialogHeader>
-          {previewAvatar ? (
+          {previewAvatar && previewAvatarUrl ? (
             <div className="overflow-hidden rounded-2xl border border-border bg-muted/30">
               <Image
-                src={resolveMediaUrl(previewAvatar.imageUrl)}
+                src={previewAvatarUrl}
                 alt={previewAvatar.name}
                 width={720}
                 height={720}
                 className="h-auto w-full object-cover"
-                unoptimized={isUnoptimizedImageSrc(resolveMediaUrl(previewAvatar.imageUrl))}
+                unoptimized={isUnoptimizedImageSrc(previewAvatarUrl)}
               />
             </div>
           ) : null}

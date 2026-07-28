@@ -50,11 +50,7 @@ export async function requestLiveClassEnrollment(
     return { ok: true, status: 'ACTIVE' };
   }
 
-  if (
-    existing?.status !== 'ACTIVE' &&
-    existing?.status !== 'PENDING' &&
-    isLiveClassEnrollmentClosed(liveClass.sessions[0]?.scheduledAt, new Date())
-  ) {
+  if (!existing && isLiveClassEnrollmentClosed(liveClass.sessions[0]?.scheduledAt, new Date())) {
     return {
       ok: false,
       message: 'Pendaftaran live class ini sudah ditutup H-1 sebelum pertemuan pertama.',
