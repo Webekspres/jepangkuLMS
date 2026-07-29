@@ -93,9 +93,9 @@ export function ProgramPaymentPanel({
   };
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="space-y-4 p-5">
-        <div className="flex items-baseline justify-between gap-2">
+    <Card className="w-full min-w-0 overflow-hidden shadow-sm">
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           <span className="text-2xl font-extrabold text-brand-red">{priceLabel}</span>
           <span className="text-xs text-muted-foreground">sekali bayar</span>
         </div>
@@ -103,52 +103,54 @@ export function ProgramPaymentPanel({
         {isPending ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <p className="font-semibold">Menunggu verifikasi admin</p>
-            <p className="mt-1 text-xs text-amber-800">
+            <p className="mt-1 wrap-break-word text-xs text-amber-800">
               Setelah transfer, kirim bukti via WhatsApp. Admin akan mengaktifkan akses setelah
               pembayaran dikonfirmasi.
             </p>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="wrap-break-word text-xs text-muted-foreground">
             Transfer sesuai nominal, lalu konfirmasi via WhatsApp agar admin memverifikasi
             pendaftaranmu.
           </p>
         )}
 
         {disabled && disabledMessage ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="wrap-break-word rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {disabledMessage}
           </p>
         ) : null}
 
         {paymentLink ? (
-          <Button asChild className="h-11 w-full gap-2 font-bold">
+          <Button asChild className="h-11 w-full min-w-0 gap-2 font-bold whitespace-normal">
             <a href={paymentLink} target="_blank" rel="noopener noreferrer">
               Bayar Sekarang
-              <ExternalLink className="size-4" />
+              <ExternalLink className="size-4 shrink-0" />
             </a>
           </Button>
         ) : (
-          <div>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Transfer via {paymentSettings.bankName}
             </p>
-            <div className="space-y-2 rounded-xl bg-muted/60 p-3.5">
-              <div>
+            <div className="min-w-0 space-y-2 rounded-xl bg-muted/60 p-3.5">
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Nama Rekening</p>
-                <p className="text-sm font-semibold text-foreground">{paymentSettings.accountName}</p>
+                <p className="wrap-break-word text-sm font-semibold text-foreground">
+                  {paymentSettings.accountName}
+                </p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">Nomor Rekening</p>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-base font-bold tracking-widest text-foreground">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <p className="min-w-0 break-all font-bold tracking-wider text-foreground tabular-nums sm:tracking-widest text-sm sm:text-base">
                     {paymentSettings.accountNumber}
                   </p>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="h-8 gap-1 text-xs"
+                    className="h-8 shrink-0 gap-1 text-xs"
                     onClick={handleCopyAccount}
                   >
                     {copied ? (
@@ -175,21 +177,21 @@ export function ProgramPaymentPanel({
 
         <Button
           type="button"
-          className="h-11 w-full gap-2 bg-[#25d366] hover:bg-[#128c7e]"
+          className="h-auto min-h-11 w-full min-w-0 gap-2 whitespace-normal bg-[#25d366] py-2.5 text-sm sm:text-base hover:bg-[#128c7e]"
           disabled={isRequesting || disabled}
           onClick={handleConfirmPayment}
         >
-          <MessageCircle className="size-4" />
+          <MessageCircle className="size-4 shrink-0" />
           {isRequesting ? 'Memproses…' : 'Konfirmasi Pembayaran'}
         </Button>
 
         <Button
           asChild
           variant="outline"
-          className="h-11 w-full gap-2 border-2 border-brand-red text-brand-red hover:bg-brand-red/5"
+          className="h-auto min-h-11 w-full min-w-0 gap-2 whitespace-normal border-2 border-brand-red py-2.5 text-sm text-brand-red sm:text-base hover:bg-brand-red/5"
         >
           <a href={waConsultUrl} target="_blank" rel="noopener noreferrer">
-            <Phone className="size-4" />
+            <Phone className="size-4 shrink-0" />
             Konsultasi Terlebih Dahulu
           </a>
         </Button>
