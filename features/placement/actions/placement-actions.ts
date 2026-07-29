@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
+import { clearPlacementExamProgress } from '@/features/placement/actions/placement-exam-progress-actions';
 import { PLACEMENT_PAPER } from '@/features/placement/data/placement-paper';
 import { scorePlacementAnswers } from '@/features/placement/lib/score-placement';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
@@ -47,6 +48,8 @@ export async function submitPlacementAttempt(
     },
     select: { id: true },
   });
+
+  await clearPlacementExamProgress();
 
   revalidatePath(STUDENT_ROUTES.placement);
   revalidatePath(STUDENT_ROUTES.placementResult(attempt.id));

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getOrCreatePlacementExamProgress } from '@/features/placement/actions/placement-exam-progress-actions';
 import { PlacementExamWorkspace } from '@/features/placement/components/placement-exam-workspace';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 
@@ -9,5 +10,6 @@ export const metadata: Metadata = {
 
 export default async function DashboardPlacementExamPage() {
   await requireAuthUserWithAnchor();
-  return <PlacementExamWorkspace />;
+  const examProgress = await getOrCreatePlacementExamProgress();
+  return <PlacementExamWorkspace examProgress={examProgress} />;
 }
