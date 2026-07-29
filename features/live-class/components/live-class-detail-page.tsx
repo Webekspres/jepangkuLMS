@@ -144,9 +144,11 @@ function SessionTimelineRow({
             <p className="mt-3 text-xs text-muted-foreground">Rekaman belum tersedia.</p>
           )
         ) : (
-          <Button disabled size="sm" variant="outline" className="mt-3 h-9 w-full gap-2">
-            <CalendarClock className="size-4" />
-            {session.dateLabel} · {session.timeLabel}
+          <Button disabled size="sm" variant="outline" className="mt-3 h-auto min-h-9 w-full gap-2 whitespace-normal py-2 text-left">
+            <CalendarClock className="size-4 shrink-0" />
+            <span className="min-w-0 wrap-break-word">
+              {session.dateLabel} · {session.timeLabel}
+            </span>
           </Button>
         )}
       </div>
@@ -185,22 +187,22 @@ function EnrolledAccessCard({
   }, [sessions, now, liveSession]);
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
         <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-emerald-700">Terdaftar</p>
           <p className="text-xs text-emerald-700/80">Akses jadwal & meeting sudah aktif.</p>
         </div>
       </div>
 
       {nextSession ? (
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {liveSession ? 'Sedang berlangsung' : 'Sesi berikutnya'}
           </p>
-          <p className="mt-1 text-sm font-bold text-foreground">{nextSession.title}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 wrap-break-word text-sm font-bold text-foreground">{nextSession.title}</p>
+          <p className="mt-1 wrap-break-word text-xs text-muted-foreground">
             {nextSession.dateLabel} · {nextSession.timeLabel}
           </p>
         </div>
@@ -213,18 +215,18 @@ function EnrolledAccessCard({
       {liveSession?.meetingUrl ? (
         <Button
           asChild
-          className="h-11 w-full animate-pulse gap-2 bg-emerald-600 hover:bg-emerald-700 hover:animate-none"
+          className="h-11 w-full min-w-0 animate-pulse gap-2 whitespace-normal bg-emerald-600 hover:bg-emerald-700 hover:animate-none"
         >
           <a href={liveSession.meetingUrl} target="_blank" rel="noopener noreferrer">
-            <Video className="size-4" />
+            <Video className="size-4 shrink-0" />
             Gabung via Zoom
-            <ExternalLink className="size-3.5 opacity-70" />
+            <ExternalLink className="size-3.5 shrink-0 opacity-70" />
           </a>
         </Button>
       ) : (
-        <Button asChild variant="outline" className="h-11 w-full gap-2">
+        <Button asChild variant="outline" className="h-11 w-full min-w-0 gap-2">
           <a href={`#${JADWAL_SECTION_ID}`}>
-            <CalendarClock className="size-4" />
+            <CalendarClock className="size-4 shrink-0" />
             Lihat jadwal
           </a>
         </Button>
@@ -254,12 +256,12 @@ function LiveClassSidebarActions({
 
   if (liveClass.accessMessage) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">Pendaftaran ditutup</p>
-            <p className="text-xs text-muted-foreground">{liveClass.accessMessage}</p>
+            <p className="wrap-break-word text-xs text-muted-foreground">{liveClass.accessMessage}</p>
           </div>
         </div>
       </div>
@@ -268,10 +270,10 @@ function LiveClassSidebarActions({
 
   if (isFreeCourse(liveClass.priceIdr)) {
     return (
-      <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div>
+      <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <div className="min-w-0">
           <p className="text-2xl font-extrabold text-emerald-600">GRATIS</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 wrap-break-word text-xs text-muted-foreground">
             Daftar sekali — akses langsung aktif setelah pendaftaran.
           </p>
         </div>
@@ -279,7 +281,7 @@ function LiveClassSidebarActions({
           onClick={() => void onEnroll()}
           disabled={isPending || liveClass.isFull}
           size="lg"
-          className="h-11 w-full gap-2"
+          className="h-11 w-full min-w-0 gap-2"
         >
           {liveClass.isFull ? 'Kelas Penuh' : isPending ? 'Memproses…' : 'Daftar Gratis'}
         </Button>
@@ -364,7 +366,7 @@ export function LiveClassDetailPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 pb-10">
+    <div className="mx-auto w-full min-w-0 max-w-5xl space-y-8 pb-10">
       <Link
         href="/dashboard/live-class"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -373,23 +375,23 @@ export function LiveClassDetailPage({
         Semua Live Class
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Main column */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {/* Cover — fixed height like course detail */}
-          <div className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
-            <div className="relative h-52 sm:h-64">
+          <div className="relative w-full overflow-hidden rounded-2xl border border-border shadow-sm">
+            <div className="relative h-52 w-full sm:h-64">
               <Image
                 src={coverSrc}
                 alt={liveClass.title}
                 fill
                 priority
                 className="object-cover"
-                sizes="800px"
+                sizes="(max-width: 1024px) 100vw, 800px"
                 unoptimized={isUnoptimizedImageSrc(coverSrc)}
               />
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
-              <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
                 <span
                   className={cn(
                     'rounded-md px-2.5 py-1 text-xs font-bold text-white',
@@ -409,24 +411,28 @@ export function LiveClassDetailPage({
           </div>
 
           {/* Title + meta below cover */}
-          <div>
-            <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">{liveClass.title}</h1>
+          <div className="min-w-0">
+            <h1 className="wrap-break-word text-2xl font-extrabold text-foreground sm:text-3xl">
+              {liveClass.title}
+            </h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="grid size-7 place-items-center rounded-full bg-muted text-xs font-bold uppercase text-foreground">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-xs font-bold uppercase text-foreground">
                   {liveClass.senseiName.charAt(0)}
                 </span>
-                {liveClass.senseiName}
-                {liveClass.senseiLevel ? (
-                  <span className="text-muted-foreground/70">· {liveClass.senseiLevel}</span>
-                ) : null}
+                <span className="min-w-0 wrap-break-word">
+                  {liveClass.senseiName}
+                  {liveClass.senseiLevel ? (
+                    <span className="text-muted-foreground/70"> · {liveClass.senseiLevel}</span>
+                  ) : null}
+                </span>
               </span>
               <span className="flex items-center gap-1.5">
-                <Users className="size-4 text-primary" />
+                <Users className="size-4 shrink-0 text-primary" />
                 {liveClass.filledSlots}/{liveClass.maxSlots} peserta
               </span>
               <span className="flex items-center gap-1.5">
-                <CalendarClock className="size-4 text-primary" />
+                <CalendarClock className="size-4 shrink-0 text-primary" />
                 {liveClass.sessionCount} pertemuan
               </span>
             </div>
@@ -448,23 +454,23 @@ export function LiveClassDetailPage({
           </div>
 
           {/* Mobile: CTA after meta */}
-          <div className="lg:hidden">
+          <div className="min-w-0 lg:hidden">
             <LiveClassSidebarActions {...sidebarProps} />
           </div>
 
           {/* Tentang Program */}
-          <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <section className="overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-6">
             <h2 className="text-lg font-extrabold text-foreground">Tentang Program</h2>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground sm:text-base">
+            <p className="mt-3 wrap-break-word whitespace-pre-wrap text-sm leading-relaxed text-foreground sm:text-base">
               {liveClass.description}
             </p>
           </section>
 
           {/* Session timeline */}
-          <section id={JADWAL_SECTION_ID} className="scroll-mt-24">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-foreground">Jadwal Pertemuan</h2>
-              <span className="text-sm text-muted-foreground">{liveClass.sessionCount} sesi</span>
+          <section id={JADWAL_SECTION_ID} className="min-w-0 scroll-mt-24">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="min-w-0 text-lg font-extrabold text-foreground">Jadwal Pertemuan</h2>
+              <span className="shrink-0 text-sm text-muted-foreground">{liveClass.sessionCount} sesi</span>
             </div>
 
             {liveClass.sessions.length === 0 ? (
@@ -472,7 +478,7 @@ export function LiveClassDetailPage({
                 Jadwal pertemuan belum tersedia. Cek kembali nanti ya.
               </p>
             ) : (
-              <ol className="pl-1">
+              <ol className="min-w-0 pl-1">
                 {liveClass.sessions.map((session, index) => (
                   <SessionTimelineRow
                     key={session.id}
@@ -488,7 +494,7 @@ export function LiveClassDetailPage({
         </div>
 
         {/* Desktop sticky sidebar */}
-        <aside className="hidden lg:col-span-1 lg:block">
+        <aside className="hidden min-w-0 lg:col-span-1 lg:block">
           <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <LiveClassSidebarActions {...sidebarProps} />
           </div>
