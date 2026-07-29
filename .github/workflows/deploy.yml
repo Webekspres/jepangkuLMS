@@ -168,7 +168,7 @@ jobs:
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_USER: ${{ secrets.VPS_USER }}
-      MIGRATE_IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.migrate_sha_tag }}
+      MIGRATE_IMAGE: ghcr.io/webekspres/jepangku-lms:${{ needs.build.outputs.migrate_sha_tag }}
       LMS_IMAGE_TAG: staging
       HEALTH_URL: http://127.0.0.1:3003/
     steps:
@@ -253,6 +253,11 @@ jobs:
             docker builder prune -a -f
           fi
           set -e
+
+          if [ -z "$MIGRATE_IMAGE" ] || [[ "$MIGRATE_IMAGE" == :* ]]; then
+            echo "::error::MIGRATE_IMAGE is empty or invalid: '$MIGRATE_IMAGE'"
+            exit 1
+          fi
 
           pull_image_resilient() {
             local image="\$1"
@@ -356,7 +361,7 @@ jobs:
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_USER: ${{ secrets.VPS_USER }}
-      MIGRATE_IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.migrate_sha_tag }}
+      MIGRATE_IMAGE: ghcr.io/webekspres/jepangku-lms:${{ needs.build.outputs.migrate_sha_tag }}
       LMS_IMAGE_TAG: latest
       HEALTH_URL: http://127.0.0.1:3002/
     steps:
@@ -439,6 +444,11 @@ jobs:
             docker builder prune -a -f
           fi
           set -e
+
+          if [ -z "$MIGRATE_IMAGE" ] || [[ "$MIGRATE_IMAGE" == :* ]]; then
+            echo "::error::MIGRATE_IMAGE is empty or invalid: '$MIGRATE_IMAGE'"
+            exit 1
+          fi
 
           pull_image_resilient() {
             local image="\$1"
