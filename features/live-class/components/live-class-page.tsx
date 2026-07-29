@@ -59,10 +59,18 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
 
   return (
     <div className="space-y-8 pb-10">
-      <section
-        className="relative overflow-hidden rounded-2xl px-6 py-10 text-center sm:px-10"
-        style={{ background: 'linear-gradient(135deg, #1E1B57 0%, #1a2d5a 60%, #2a1b4e 100%)' }}
-      >
+      <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center sm:px-10">
+        <div className="absolute inset-0">
+          <Image
+            src="/assets/Cover-LiveClass.webp"
+            alt="Ilustrasi live class"
+            fill
+            sizes="(max-width: 640px) 100vw, 80rem"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-brand-hero-navy/85" />
+        </div>
         <div className="relative z-10 mx-auto max-w-2xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
             <Video className="size-4 text-brand-yellow" />
