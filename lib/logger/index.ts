@@ -15,7 +15,7 @@ const PRETTY_IGNORE =
   'pid,hostname,service,env,upstream,method,path,statusCode,code,durationMs,responseBody,timeoutMs,attempt,maxAttempts,userId,logFile,route';
 
 /** Folder output log di root repo — isi file di-gitignore, `.gitkeep` tetap di-track. */
-export const LOG_DIR = path.join(process.cwd(), 'logs');
+export const LOG_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), 'logs');
 export const DEFAULT_LOG_FILE = path.join(LOG_DIR, 'jepangku-lms.log');
 
 /** Path file log aktif; `null` jika `LOG_TO_FILE=false`. */
@@ -23,7 +23,9 @@ export function resolveLogFilePath(): string | null {
   if (process.env.LOG_TO_FILE === 'false') return null;
   const configured = process.env.LOG_FILE?.trim();
   if (!configured) return DEFAULT_LOG_FILE;
-  return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
+  return path.isAbsolute(configured)
+    ? configured
+    : path.join(/*turbopackIgnore: true*/ process.cwd(), configured);
 }
 
 /**
