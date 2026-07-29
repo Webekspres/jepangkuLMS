@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
@@ -80,10 +81,18 @@ export function TryoutSelectionPage({
 
   return (
     <div className="space-y-8 pb-10">
-      <section
-        className="relative overflow-hidden rounded-2xl px-6 py-10 text-center sm:px-10"
-        style={{ background: 'linear-gradient(135deg, #1E1B57 0%, #1a2d5a 60%, #2a1b4e 100%)' }}
-      >
+      <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center sm:px-10">
+        <div className="absolute inset-0">
+          <Image
+            src="/assets/Cover-JLPT-TryOut.webp"
+            alt="Ilustrasi simulasi ujian JLPT"
+            fill
+            sizes="(max-width: 640px) 100vw, 80rem"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-brand-hero-navy/85" />
+        </div>
         <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-brand-red/20 blur-[80px]" />
         <div className="pointer-events-none absolute -bottom-8 left-8 h-32 w-32 rounded-full bg-primary/20 blur-[60px]" />
         <div className="relative z-10">

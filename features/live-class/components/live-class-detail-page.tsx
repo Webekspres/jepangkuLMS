@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -42,6 +42,8 @@ const STATUS_DOT: Record<LiveSessionStatus, string> = {
   upcoming: 'bg-blue-500',
   ended: 'bg-muted-foreground/40',
 };
+
+const JADWAL_SECTION_ID = 'jadwal-pertemuan';
 
 function SessionTimelineRow({
   session,
@@ -152,6 +154,158 @@ function SessionTimelineRow({
   );
 }
 
+function EnrolledAccessCard({
+  sessions,
+  now,
+}: {
+  sessions: LiveClassDetailSession[];
+  now: number;
+}) {
+  const liveSession = useMemo(() => {
+    return sessions.find((session) => {
+      const status = resolveLiveSessionStatus(
+        new Date(session.scheduledAtISO),
+        new Date(session.endsAtISO),
+        new Date(now),
+      );
+      return status === 'live';
+    });
+  }, [sessions, now]);
+
+  const nextSession = useMemo(() => {
+    if (liveSession) return liveSession;
+    return sessions.find((session) => {
+      const status = resolveLiveSessionStatus(
+        new Date(session.scheduledAtISO),
+        new Date(session.endsAtISO),
+        new Date(now),
+      );
+      return status === 'upcoming';
+    });
+  }, [sessions, now, liveSession]);
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+        <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+        <div>
+          <p className="text-sm font-semibold text-emerald-700">Terdaftar</p>
+          <p className="text-xs text-emerald-700/80">Akses jadwal & meeting sudah aktif.</p>
+        </div>
+      </div>
+
+      {nextSession ? (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {liveSession ? 'Sedang berlangsung' : 'Sesi berikutnya'}
+          </p>
+          <p className="mt-1 text-sm font-bold text-foreground">{nextSession.title}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {nextSession.dateLabel} · {nextSession.timeLabel}
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Semua sesi sudah selesai. Cek jadwal untuk rekaman.
+        </p>
+      )}
+
+      {liveSession?.meetingUrl ? (
+        <Button
+          asChild
+          className="h-11 w-full animate-pulse gap-2 bg-emerald-600 hover:bg-emerald-700 hover:animate-none"
+        >
+          <a href={liveSession.meetingUrl} target="_blank" rel="noopener noreferrer">
+            <Video className="size-4" />
+            Gabung via Zoom
+            <ExternalLink className="size-3.5 opacity-70" />
+          </a>
+        </Button>
+      ) : (
+        <Button asChild variant="outline" className="h-11 w-full gap-2">
+          <a href={`#${JADWAL_SECTION_ID}`}>
+            <CalendarClock className="size-4" />
+            Lihat jadwal
+          </a>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function LiveClassSidebarActions({
+  liveClass,
+  studentDisplayName,
+  enrollmentStatus,
+  isPending,
+  onEnroll,
+  now,
+}: {
+  liveClass: LiveClassDetailView;
+  studentDisplayName: string | null;
+  enrollmentStatus: ProgramEnrollmentStatus;
+  isPending: boolean;
+  onEnroll: () => Promise<void>;
+  now: number;
+}) {
+  if (liveClass.enrollmentStatus === 'ACTIVE') {
+    return <EnrolledAccessCard sessions={liveClass.sessions} now={now} />;
+  }
+
+  if (liveClass.accessMessage) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Pendaftaran ditutup</p>
+            <p className="text-xs text-muted-foreground">{liveClass.accessMessage}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isFreeCourse(liveClass.priceIdr)) {
+    return (
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div>
+          <p className="text-2xl font-extrabold text-emerald-600">GRATIS</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Daftar sekali — akses langsung aktif setelah pendaftaran.
+          </p>
+        </div>
+        <Button
+          onClick={() => void onEnroll()}
+          disabled={isPending || liveClass.isFull}
+          size="lg"
+          className="h-11 w-full gap-2"
+        >
+          {liveClass.isFull ? 'Kelas Penuh' : isPending ? 'Memproses…' : 'Daftar Gratis'}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <ProgramPaymentPanel
+      kind="live-class"
+      productTitle={liveClass.title}
+      productDetail={liveClass.id}
+      priceIdr={liveClass.priceIdr}
+      enrollmentStatus={enrollmentStatus}
+      studentDisplayName={studentDisplayName}
+      paymentSettings={liveClass.paymentSettings}
+      paymentLink={liveClass.paymentLink}
+      onRequestEnrollment={onEnroll}
+      disabled={liveClass.isFull || Boolean(liveClass.accessMessage)}
+      disabledMessage={
+        liveClass.isFull ? 'Kelas sudah penuh.' : (liveClass.accessMessage ?? undefined)
+      }
+    />
+  );
+}
+
 export function LiveClassDetailPage({
   liveClass,
   studentDisplayName,
@@ -200,8 +354,17 @@ export function LiveClassDetailPage({
       : 'none';
   const coverSrc = resolveLiveClassCoverUrl(liveClass.coverImageUrl);
 
+  const sidebarProps = {
+    liveClass,
+    studentDisplayName,
+    enrollmentStatus,
+    isPending,
+    onEnroll: handleEnroll,
+    now,
+  };
+
   return (
-    <div className="space-y-8 pb-10">
+    <div className="mx-auto max-w-5xl space-y-8 pb-10">
       <Link
         href="/dashboard/live-class"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -210,162 +373,127 @@ export function LiveClassDetailPage({
         Semua Live Class
       </Link>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-border">
-        <div className="absolute inset-0">
-          <Image
-            src={coverSrc}
-            alt={liveClass.title}
-            fill
-            priority
-            className="object-cover"
-            unoptimized={isUnoptimizedImageSrc(coverSrc)}
-          />
-          <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/55 to-black/30 backdrop-blur-[1px]" />
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-4 p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-md px-2.5 py-1 text-xs font-bold text-white', accent.badge)}>
-              {liveClass.level}
-            </span>
-            <span className="rounded-md bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-              {liveClass.category}
-            </span>
-            <span className="rounded-md bg-brand-yellow px-2.5 py-1 text-xs font-bold text-brand-navy">
-              {formatIdr(liveClass.priceIdr)}
-            </span>
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Cover — fixed height like course detail */}
+          <div className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
+            <div className="relative h-52 sm:h-64">
+              <Image
+                src={coverSrc}
+                alt={liveClass.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="800px"
+                unoptimized={isUnoptimizedImageSrc(coverSrc)}
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
+                <span
+                  className={cn(
+                    'rounded-md px-2.5 py-1 text-xs font-bold text-white',
+                    accent.badge,
+                  )}
+                >
+                  {liveClass.level}
+                </span>
+                <span className="rounded-md bg-white/20 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  {liveClass.category}
+                </span>
+                <span className="rounded-md bg-brand-yellow px-2.5 py-1 text-xs font-bold text-brand-navy">
+                  {formatIdr(liveClass.priceIdr)}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="max-w-2xl">
-            <h1 className="text-[clamp(1.5rem,3.5vw,2.25rem)] font-extrabold leading-tight text-white">
-              {liveClass.title}
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-white/80 sm:text-base">
+          {/* Title + meta below cover */}
+          <div>
+            <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">{liveClass.title}</h1>
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="grid size-7 place-items-center rounded-full bg-muted text-xs font-bold uppercase text-foreground">
+                  {liveClass.senseiName.charAt(0)}
+                </span>
+                {liveClass.senseiName}
+                {liveClass.senseiLevel ? (
+                  <span className="text-muted-foreground/70">· {liveClass.senseiLevel}</span>
+                ) : null}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="size-4 text-primary" />
+                {liveClass.filledSlots}/{liveClass.maxSlots} peserta
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CalendarClock className="size-4 text-primary" />
+                {liveClass.sessionCount} pertemuan
+              </span>
+            </div>
+            <div className="mt-4 max-w-xs">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn(
+                    'h-full rounded-full',
+                    liveClass.isFull
+                      ? 'bg-destructive'
+                      : fillPct > 75
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400',
+                  )}
+                  style={{ width: `${fillPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: CTA after meta */}
+          <div className="lg:hidden">
+            <LiveClassSidebarActions {...sidebarProps} />
+          </div>
+
+          {/* Tentang Program */}
+          <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <h2 className="text-lg font-extrabold text-foreground">Tentang Program</h2>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground sm:text-base">
               {liveClass.description}
             </p>
-          </div>
+          </section>
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/85">
-            <span className="flex items-center gap-1.5">
-              <span className="grid size-7 place-items-center rounded-full bg-white/15 text-xs font-bold uppercase">
-                {liveClass.senseiName.charAt(0)}
-              </span>
-              {liveClass.senseiName}
-              {liveClass.senseiLevel ? (
-                <span className="text-white/60">· {liveClass.senseiLevel}</span>
-              ) : null}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users className="size-4" />
-              {liveClass.filledSlots}/{liveClass.maxSlots} peserta
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CalendarClock className="size-4" />
-              {liveClass.sessionCount} pertemuan
-            </span>
-          </div>
-
-          <div className="max-w-xs">
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
-              <div
-                className={cn(
-                  'h-full rounded-full',
-                  liveClass.isFull ? 'bg-destructive' : fillPct > 75 ? 'bg-amber-400' : 'bg-emerald-400',
-                )}
-                style={{ width: `${fillPct}%` }}
-              />
+          {/* Session timeline */}
+          <section id={JADWAL_SECTION_ID} className="scroll-mt-24">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-extrabold text-foreground">Jadwal Pertemuan</h2>
+              <span className="text-sm text-muted-foreground">{liveClass.sessionCount} sesi</span>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Action area */}
-      <section className="space-y-4">
-        {liveClass.enrollmentStatus === 'ACTIVE' ? (
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-              <p className="text-sm font-semibold text-emerald-700 ">
-                Kamu sudah terdaftar di program ini 🎉
+            {liveClass.sessions.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+                Jadwal pertemuan belum tersedia. Cek kembali nanti ya.
               </p>
-            </div>
-          </div>
-        ) : liveClass.accessMessage ? (
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-              <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Pendaftaran ditutup</p>
-                <p className="text-xs text-muted-foreground">{liveClass.accessMessage}</p>
-              </div>
-            </div>
-          </div>
-        ) : isFreeCourse(liveClass.priceIdr) ? (
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Program gratis</p>
-                <p className="text-xs text-muted-foreground">
-                  Daftar sekali — akses langsung aktif setelah pendaftaran.
-                </p>
-              </div>
-              <Button
-                onClick={() => void handleEnroll()}
-                disabled={isPending || liveClass.isFull}
-                size="lg"
-                className="gap-2"
-              >
-                {liveClass.isFull ? 'Kelas Penuh' : isPending ? 'Memproses…' : 'Daftar Gratis'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <ProgramPaymentPanel
-            kind="live-class"
-            productTitle={liveClass.title}
-            productDetail={liveClass.id}
-            priceIdr={liveClass.priceIdr}
-            enrollmentStatus={enrollmentStatus}
-            studentDisplayName={studentDisplayName}
-            paymentSettings={liveClass.paymentSettings}
-            paymentLink={liveClass.paymentLink}
-            onRequestEnrollment={handleEnroll}
-            disabled={liveClass.isFull || Boolean(liveClass.accessMessage)}
-            disabledMessage={
-              liveClass.isFull
-                ? 'Kelas sudah penuh.'
-                : liveClass.accessMessage ?? undefined
-            }
-          />
-        )}
-      </section>
-
-      {/* Session timeline */}
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-extrabold text-foreground">Jadwal Pertemuan</h2>
-          <span className="text-sm text-muted-foreground">{liveClass.sessionCount} sesi</span>
+            ) : (
+              <ol className="pl-1">
+                {liveClass.sessions.map((session, index) => (
+                  <SessionTimelineRow
+                    key={session.id}
+                    session={session}
+                    isEnrolled={liveClass.isEnrolled}
+                    now={now}
+                    isLast={index === liveClass.sessions.length - 1}
+                  />
+                ))}
+              </ol>
+            )}
+          </section>
         </div>
 
-        {liveClass.sessions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
-            Jadwal pertemuan belum tersedia. Cek kembali nanti ya.
-          </p>
-        ) : (
-          <ol className="pl-1">
-            {liveClass.sessions.map((session, index) => (
-              <SessionTimelineRow
-                key={session.id}
-                session={session}
-                isEnrolled={liveClass.isEnrolled}
-                now={now}
-                isLast={index === liveClass.sessions.length - 1}
-              />
-            ))}
-          </ol>
-        )}
-      </section>
+        {/* Desktop sticky sidebar */}
+        <aside className="hidden lg:col-span-1 lg:block">
+          <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+            <LiveClassSidebarActions {...sidebarProps} />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

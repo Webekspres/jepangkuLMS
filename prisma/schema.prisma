@@ -177,8 +177,9 @@ model User {
     notifications  LmsNotification[]
     lessonComments LessonComment[]
     commentReplies LessonCommentReply[]
-    tryoutProgress     TryoutExamProgress[]
-    placementAttempts  PlacementAttempt[]
+    tryoutProgress       TryoutExamProgress[]
+    placementAttempts    PlacementAttempt[]
+    placementExamProgress PlacementExamProgress[]
 }
 
 // ====================================================================
@@ -833,6 +834,23 @@ model QuizAttempt {
     tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: SetNull)
 
     @@index([userId, tryoutSessionId, createdAt(sort: Desc)])
+}
+
+/// Progress tes penempatan in-progress (jawaban + posisi soal).
+model PlacementExamProgress {
+    id           String   @id @default(uuid())
+    userId       String
+    paperId      String
+    paperVersion Int
+    /// JSON: answers, flagged, sectionIndex, questionIndex, phase, chokaiView, activeMondai
+    progressJson String   @db.Text
+    startedAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, paperId])
+    @@index([userId, updatedAt(sort: Desc)])
 }
 
 /// Hasil tes penempatan (soal statis di kode — tabel ini hanya menyimpan attempt).

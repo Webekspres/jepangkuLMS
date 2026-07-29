@@ -16,6 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { submitPlacementAttempt } from '@/features/placement/actions/placement-actions';
 import {
+  savePlacementExamProgressState,
+  type PlacementExamProgressView,
+} from '@/features/placement/actions/placement-exam-progress-actions';
+import {
   PlacementChokaiNavigator,
   type ChokaiNavTarget,
 } from '@/features/placement/components/placement-chokai-navigator';
@@ -46,6 +50,10 @@ const SECTION_COLORS: Record<PlacementSectionCode, string> = {
 
 type ExamPhase = 'section-intro' | 'section-exam';
 type ChokaiView = 'mondai-intro' | 'question';
+
+type PlacementExamWorkspaceProps = {
+  examProgress: PlacementExamProgressView;
+};
 
 function FlatSectionNavigator({
   sectionQuestions,
@@ -200,20 +208,23 @@ function QuestionOptions({
   );
 }
 
-export function PlacementExamWorkspace() {
+export function PlacementExamWorkspace({ examProgress }: PlacementExamWorkspaceProps) {
   const router = useRouter();
   const questions = PLACEMENT_PAPER.questions;
+  const initial = examProgress.state;
 
   const sectionsInExam = useMemo(
     () => SECTION_ORDER.filter((s) => questions.some((q) => q.section === s)),
     [questions],
   );
 
-  const [sectionIndex, setSectionIndex] = useState(0);
-  const [phase, setPhase] = useState<ExamPhase>('section-intro');
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [sectionIndex, setSectionIndex] = useState(
+    Math.min(initial.sectionIndex, Math.max(0, sectionsInExam.length - 1)),
+  );
+  const [phase, setPhase] = useState<ExamPhase>(initial.phase);
+  const [questionIndex, setQuestionIndex] = useState(initial.questionIndex);
+  const [answers, setAnswers] = useState<Record<string, string>>(initial.answers);
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set(initial.flagged));
   const [showNavigator, setShowNavigator] = useState(false);
   const [showSectionDialog, setShowSectionDialog] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
@@ -221,10 +232,11 @@ export function PlacementExamWorkspace() {
   const [pending, startTransition] = useTransition();
 
   // Choukai-only view state
-  const [chokaiView, setChokaiView] = useState<ChokaiView>('mondai-intro');
-  const [activeMondai, setActiveMondai] = useState<ChokaiMondaiKey>('CHOKAI_1');
+  const [chokaiView, setChokaiView] = useState<ChokaiView>(initial.chokaiView);
+  const [activeMondai, setActiveMondai] = useState<ChokaiMondaiKey>(initial.activeMondai);
 
   const advanceTimeoutRef = useRef<number | null>(null);
+  const skipFirstAutosaveRef = useRef(true);
 
   useEffect(() => {
     return () => {
@@ -238,6 +250,34 @@ export function PlacementExamWorkspace() {
       advanceTimeoutRef.current = null;
     }
   }, [questionIndex, activeMondai, chokaiView]);
+
+  useEffect(() => {
+    if (skipFirstAutosaveRef.current) {
+      skipFirstAutosaveRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void savePlacementExamProgressState(examProgress.id, {
+        answers,
+        flagged: Array.from(flagged),
+        sectionIndex,
+        questionIndex,
+        phase,
+        chokaiView,
+        activeMondai,
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    answers,
+    flagged,
+    sectionIndex,
+    questionIndex,
+    phase,
+    chokaiView,
+    activeMondai,
+    examProgress.id,
+  ]);
 
   const activeSection = sectionsInExam[sectionIndex];
   const isChokaiSection = activeSection === 'CHOKAI';
