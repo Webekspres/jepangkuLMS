@@ -111,15 +111,6 @@ jobs:
           fi
           echo "migrate_sha_tag=migrate-sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      # #region agent log
-      - name: Debug meta image outputs (build job)
-        run: |
-          IMG='${{ steps.meta.outputs.image }}'
-          MIG='${{ steps.meta.outputs.migrate_sha_tag }}'
-          echo "::notice title=debug-a965d3-H1::build_meta image_len=${#IMG} migrate_sha_len=${#MIG} image_empty=$([ -z \"$IMG\" ] && echo yes || echo no)"
-          echo "debug_session=a965d3 hypothesisId=H1 location=deploy.yml:build-meta image_len=${#IMG} migrate_sha_len=${#MIG}"
-      # #endregion
-
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -374,39 +365,6 @@ jobs:
       LMS_IMAGE_TAG: latest
       HEALTH_URL: http://127.0.0.1:3002/
     steps:
-      # #region agent log
-      - name: Debug job outputs (deploy-production)
-        env:
-          OUT_IMAGE: ${{ needs.build.outputs.image }}
-          OUT_MIGRATE_SHA: ${{ needs.build.outputs.migrate_sha_tag }}
-          OUT_VERSION: ${{ needs.build.outputs.version_tag }}
-          COMPOSED: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.migrate_sha_tag }}
-          FIXED_MIGRATE: ghcr.io/webekspres/jepangku-lms:${{ needs.build.outputs.migrate_sha_tag }}
-          HARDCODED_IMAGE: ghcr.io/webekspres/jepangku-lms
-          SENTRY_DSN_SET: ${{ secrets.SENTRY_DSN != '' }}
-          SENTRY_ORG_SET: ${{ secrets.SENTRY_ORG != '' }}
-          SENTRY_PROJECT_SET: ${{ secrets.SENTRY_PROJECT != '' }}
-          SENTRY_TOKEN_SET: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
-        run: |
-          # H1: job output `image` emptied by secret masking (SENTRY_PROJECT/ORG substring)
-          # H2: migrate_sha_tag missing (rejected if len>0 in prior run)
-          # H3: Sentry secrets missing → unrelated to empty image
-          # H4: composed MIGRATE_IMAGE malformed only when image empty
-          # H5: hardcoded image repo (FIXED_MIGRATE) remains valid for pull
-          echo "::notice title=debug-a965d3-H1::deploy_out image_len=${#OUT_IMAGE} migrate_sha_len=${#OUT_MIGRATE_SHA} version_len=${#OUT_VERSION}"
-          echo "::notice title=debug-a965d3-H1::deploy_out image_empty=$([ -z \"$OUT_IMAGE\" ] && echo yes || echo no) composed_starts_colon=$([ \"${COMPOSED:0:1}\" = ':' ] && echo yes || echo no)"
-          echo "::notice title=debug-a965d3-H3::sentry_secrets_present dsn=$SENTRY_DSN_SET org=$SENTRY_ORG_SET project=$SENTRY_PROJECT_SET token=$SENTRY_TOKEN_SET"
-          echo "::notice title=debug-a965d3-H5::fixed_migrate_len=${#FIXED_MIGRATE} fixed_starts_colon=$([ \"${FIXED_MIGRATE:0:1}\" = ':' ] && echo yes || echo no) env_MIGRATE_len=${#MIGRATE_IMAGE}"
-          echo "debug_session=a965d3 runId=post-fix hypothesisId=H1,H5 image_len=${#OUT_IMAGE} fixed_migrate_ok=$([ \"${FIXED_MIGRATE:0:1}\" != ':' ] && [ -n \"$FIXED_MIGRATE\" ] && echo yes || echo no)"
-          if [ -z "$OUT_IMAGE" ]; then
-            echo "::warning title=debug-a965d3::needs.build.outputs.image is EMPTY — secret masking confirmed; deploy uses hardcoded ghcr repo"
-          fi
-          if [ -z "$MIGRATE_IMAGE" ] || [[ "$MIGRATE_IMAGE" == :* ]]; then
-            echo "::error::MIGRATE_IMAGE is empty or invalid after fix (len=${#MIGRATE_IMAGE})"
-            exit 1
-          fi
-      # #endregion
-
       - name: Setup SSH key
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
