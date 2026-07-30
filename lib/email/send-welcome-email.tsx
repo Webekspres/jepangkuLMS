@@ -1,13 +1,13 @@
 import { WelcomeEmail } from '@/emails/welcome-email';
 import { createLogger } from '@/lib/logger';
-import { getEmailConfig } from '@/lib/email/config';
+import { getEmailConfig, LMS_PUBLIC_URL } from '@/lib/email/config';
 import { sendEmail } from '@/lib/email/send-email';
 import type { SendEmailResult, WelcomeEmailInput } from '@/lib/email/types';
 
 const emailLog = createLogger('email');
 
 function welcomeSubject(name: string): string {
-  return `Hajimemashite, ${name}! 🇯🇵`;
+  return `Hajimemashite, ${name}! Selamat datang di JepangKu`;
 }
 
 function welcomeIdempotencyKey(userId?: string, email?: string): string {
@@ -26,7 +26,11 @@ export async function sendWelcomeEmail(
     to: email,
     subject: welcomeSubject(name),
     react: (
-      <WelcomeEmail name={name} appUrl={config.appUrl} logoUrl={config.logoUrl} />
+      <WelcomeEmail
+        name={name}
+        appUrl={LMS_PUBLIC_URL}
+        logoUrl={config.logoUrl}
+      />
     ),
     idempotencyKey: welcomeIdempotencyKey(userId, email),
     tags: [

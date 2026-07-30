@@ -37,7 +37,13 @@ export function EmailLayout({
       <Body style={main}>
         <Container style={container}>
           <Section style={logoSection}>
-            <Img src={logoUrl} alt="JepangKu" width={180} height={52} style={logo} />
+            <Img
+              src={logoUrl}
+              alt="JepangKu"
+              width={200}
+              height={72}
+              style={logo}
+            />
           </Section>
 
           <Hr style={divider} />
@@ -110,32 +116,36 @@ const container = {
   borderRadius: '16px',
   margin: '0 auto',
   maxWidth: '560px',
-  padding: '32px 28px',
+  overflow: 'hidden' as const,
+  padding: '0 0 32px',
 };
 
 const logoSection = {
+  backgroundColor: '#000000',
+  margin: '0 0 8px',
+  padding: '20px 28px',
   textAlign: 'center' as const,
-  marginBottom: '8px',
 };
 
 const logo = {
+  display: 'block' as const,
   margin: '0 auto',
 };
 
 const divider = {
   borderColor: '#e5e7eb',
-  margin: '24px 0',
+  margin: '24px 28px',
 };
 
 const content = {
-  padding: '0',
+  padding: '0 28px',
 };
 
 const footer = {
   color: MUTED,
   fontSize: '12px',
   lineHeight: '20px',
-  margin: '0 0 8px',
+  margin: '0 28px 8px',
   textAlign: 'center' as const,
 };
 
@@ -143,7 +153,7 @@ const footerMuted = {
   color: MUTED,
   fontSize: '12px',
   lineHeight: '20px',
-  margin: 0,
+  margin: '0 28px',
   textAlign: 'center' as const,
 };
 
