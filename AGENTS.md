@@ -282,8 +282,8 @@ Email logic lives in `lib/email/` — **never** in React template components or 
 # Preview templates (React Email dev server on :3001)
 bun run email:dev
 
-# Send real test (Resend sandbox / verified domain)
-RESEND_API_KEY=re_... bun -e "
+# Send real test (verified domain send.jepangku.com)
+RESEND_API_KEY=re_... EMAIL_FROM="JepangKu LMS <noreply@send.jepangku.com>" bun -e "
   import { sendWelcomeEmail } from './lib/email/send-welcome-email.tsx';
   const r = await sendWelcomeEmail({ email: 'you@example.com', name: 'Test' });
   console.log(r);
@@ -297,13 +297,13 @@ Register Clerk webhook to `https://YOUR_HOST/api/webhooks/clerk` with event **`u
 | Variable | Required | Notes |
 | :--- | :---: | :--- |
 | `RESEND_API_KEY` | prod | Skip send + warn log if unset (dev OK) |
-| `EMAIL_FROM` | no | Default `JepangKu <hello@jepangku.com>` |
+| `EMAIL_FROM` | no | Default `JepangKu LMS <noreply@send.jepangku.com>` |
 | `NEXT_PUBLIC_APP_URL` | yes | CTA links + logo URL in emails |
 | `CLERK_WEBHOOK_SECRET` | yes | Welcome trigger |
 
 ### Deployment
 
-* Verify sending domain in Resend (`jepangku.com`).
+* Verify sending domain in Resend (`send.jepangku.com`).
 * Set `RESEND_API_KEY` and `EMAIL_FROM` in VPS `.env` / Docker build secrets.
 * Clerk Dashboard: LMS webhook URL + `user.created` event (can coexist with Core webhook).
 * Email failure **must not** block webhook — already handled via `dispatchWelcomeEmail` + `after()`.

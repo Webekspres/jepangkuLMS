@@ -1,43 +1,41 @@
 import { Heading, Link, Section, Text } from '@react-email/components';
 import { EmailLayout, emailStyles } from '@/emails/components/email-layout';
+import { LMS_PUBLIC_URL } from '@/lib/email/config';
 
 export type WelcomeEmailProps = {
   name: string;
-  appUrl: string;
+  /** CTA + footer link — production LMS URL. */
+  appUrl?: string;
   logoUrl: string;
 };
 
-export function WelcomeEmail({ name, appUrl, logoUrl }: WelcomeEmailProps) {
-  const preview = `Hajimemashite, ${name}! Selamat datang di JepangKu.`;
+export function WelcomeEmail({
+  name,
+  appUrl = LMS_PUBLIC_URL,
+  logoUrl,
+}: WelcomeEmailProps) {
+  const preview = `Selamat datang di JepangKu, ${name}.`;
 
   return (
     <EmailLayout
       preview={preview}
       logoUrl={logoUrl}
       appUrl={appUrl}
-      footerNote="Kamu menerima email ini karena baru saja membuat akun JepangKu."
+      footerNote="Anda menerima email ini karena baru saja membuat akun JepangKu."
     >
       <Heading style={emailStyles.heading}>Hajimemashite, {name}!</Heading>
 
-      <Text style={emailStyles.paragraph}>Terima kasih sudah bergabung di JepangKu.</Text>
-
       <Text style={emailStyles.paragraph}>
-        Saat ini, Kursus Bahasa Jepang di JepangKu masih berada dalam tahap Beta.
+        Terima kasih telah bergabung di JepangKu.
       </Text>
 
       <Text style={emailStyles.paragraph}>
-        Silakan jelajahi seluruh fitur di kursus.jepangku.com, coba materi yang tersedia, dan
-        berikan masukan kepada kami.
+        JepangKu adalah platform kursus bahasa Jepang yang membantu Anda belajar secara
+        terstruktur—dari materi pelajaran hingga latihan dan progres belajar.
       </Text>
 
       <Text style={emailStyles.paragraph}>
-        Setiap feedback yang kamu berikan sangat berarti untuk membantu kami mengembangkan
-        JepangKu menjadi platform belajar bahasa Jepang yang lebih baik.
-      </Text>
-
-      <Text style={emailStyles.paragraph}>
-        Sebagai bentuk apresiasi, kamu juga akan mendapatkan poin untuk setiap feedback yang
-        valid.
+        Silakan mulai perjalanan belajar Anda di kursus.jepangku.com.
       </Text>
 
       <Section style={emailStyles.ctaWrap}>
@@ -46,14 +44,10 @@ export function WelcomeEmail({ name, appUrl, logoUrl }: WelcomeEmailProps) {
         </Link>
       </Section>
 
-      <Text style={emailStyles.paragraph}>
-        Ganbarimashou! <span style={{ fontStyle: 'italic' }}>(がんばりましょう！)</span>
-      </Text>
-
       <Text style={emailStyles.signoff}>
         Salam,
         <br />
-        Tim JepangKu 🇯🇵
+        Tim JepangKu
       </Text>
     </EmailLayout>
   );
