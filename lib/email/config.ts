@@ -1,3 +1,6 @@
+/** Production LMS URL — welcome CTA/footer always point here. */
+export const LMS_PUBLIC_URL = 'https://kursus.jepangku.com';
+
 export type EmailConfig = {
   apiKey: string | undefined;
   from: string;
@@ -9,10 +12,12 @@ export type EmailConfig = {
 /** Resend + sender — no secrets hardcoded. */
 export function getEmailConfig(): EmailConfig {
   const apiKey = process.env.RESEND_API_KEY?.trim() || undefined;
-  const from = process.env.EMAIL_FROM?.trim() || 'JepangKu <hello@jepangku.com>';
+  const from =
+    process.env.EMAIL_FROM?.trim() ||
+    'JepangKu LMS <noreply@send.jepangku.com>';
   const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://kursus.jepangku.com';
-  const logoUrl = `${appUrl.replace(/\/$/, '')}/brand/logo-beta.png`;
+    process.env.NEXT_PUBLIC_APP_URL?.trim() || LMS_PUBLIC_URL;
+  const logoUrl = `${appUrl.replace(/\/$/, '')}/brand/logo.png`;
 
   return {
     apiKey,

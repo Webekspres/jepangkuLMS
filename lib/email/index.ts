@@ -1,4 +1,4 @@
-export { getEmailConfig, isEmailEnabled } from '@/lib/email/config';
+export { getEmailConfig, isEmailEnabled, LMS_PUBLIC_URL } from '@/lib/email/config';
 export { getResendClient } from '@/lib/email/resend';
 export { sendEmail } from '@/lib/email/send-email';
 export { dispatchWelcomeEmail, sendWelcomeEmail } from '@/lib/email/send-welcome-email';
