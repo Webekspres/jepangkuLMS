@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import { useRouter } from 'next/navigation';
@@ -106,9 +106,17 @@ export function CoursePaymentSidebar({
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
-  const [activePaymentId, setActivePaymentId] = useState<string | null>(initialPaymentId);
-  const [livePaymentStatus, setLivePaymentStatus] = useState<PaymentStatus | null>(paymentStatus);
-  const [snapStatus, setSnapStatus] = useState<SnapLoadStatus>('idle');
+  /** Set when checkout starts; falls back to server prop after refresh. */
+  const [checkoutPaymentId, setCheckoutPaymentId] = useState<string | null>(null);
+  const activePaymentId = checkoutPaymentId ?? initialPaymentId;
+  /** SSE override; cleared when server `paymentStatus` prop changes. */
+  const [ssePaymentStatus, setSsePaymentStatus] = useState<PaymentStatus | null>(null);
+  const [trackedPaymentStatus, setTrackedPaymentStatus] = useState(paymentStatus);
+  if (paymentStatus !== trackedPaymentStatus) {
+    setTrackedPaymentStatus(paymentStatus);
+    setSsePaymentStatus(null);
+  }
+  const [snapLoadStatus, setSnapLoadStatus] = useState<SnapLoadStatus>('loading');
 
   const isFree = isFreeCourse(priceIdr);
   const priceLabel = formatIdr(priceIdr);
@@ -121,44 +129,12 @@ export function CoursePaymentSidebar({
     !isCoreCheckout &&
     Boolean(paymentSettings.midtransClientKey) &&
     Boolean(paymentSettings.midtransSnapUrl);
-  const displayPaymentStatus = livePaymentStatus ?? paymentStatus;
-
-  useEffect(() => {
-    if (initialPaymentId) setActivePaymentId(initialPaymentId);
-  }, [initialPaymentId]);
-
-  useEffect(() => {
-    setLivePaymentStatus(paymentStatus);
-  }, [paymentStatus]);
-
-  useEffect(() => {
-    if (!shouldLoadSnap) {
-      setSnapStatus('idle');
-      if (process.env.NODE_ENV === 'development' && isMidtrans) {
-        console.debug('[midtrans-snap] Script skipped — missing client key or snap URL', {
-          hasClientKey: Boolean(paymentSettings.midtransClientKey),
-          hasSnapUrl: Boolean(paymentSettings.midtransSnapUrl),
-        });
-      }
-      return;
-    }
-
-    if (window.snap) {
-      setSnapStatus('ready');
-      return;
-    }
-
-    setSnapStatus((prev) => (prev === 'ready' || prev === 'error' ? prev : 'loading'));
-  }, [
-    shouldLoadSnap,
-    isMidtrans,
-    paymentSettings.midtransClientKey,
-    paymentSettings.midtransSnapUrl,
-  ]);
+  const snapStatus: SnapLoadStatus = shouldLoadSnap ? snapLoadStatus : 'idle';
+  const displayPaymentStatus = ssePaymentStatus ?? paymentStatus;
 
   const handlePaymentEvent = useCallback(
     (event: PaymentSseEvent) => {
-      setLivePaymentStatus(event.status);
+      setSsePaymentStatus(event.status);
 
       if (event.status === 'PAID' && event.enrollmentStatus === 'ACTIVE') {
         toast.success('Pembayaran berhasil. Akses kursus sudah aktif.');
@@ -201,7 +177,7 @@ export function CoursePaymentSidebar({
       return;
     }
 
-    if (snapStatus !== 'ready') setSnapStatus('ready');
+    if (snapStatus !== 'ready') setSnapLoadStatus('ready');
 
     window.snap.pay(snapToken, {
       onSuccess: () => {
@@ -269,7 +245,7 @@ export function CoursePaymentSidebar({
           return;
         }
         if (result.paymentId) {
-          setActivePaymentId(result.paymentId);
+          setCheckoutPaymentId(result.paymentId);
         }
         await openSnap(result.snapToken);
       } else {
@@ -304,7 +280,7 @@ export function CoursePaymentSidebar({
           strategy="afterInteractive"
           onLoad={() => {
             const ready = Boolean(window.snap);
-            setSnapStatus(ready ? 'ready' : 'error');
+            setSnapLoadStatus(ready ? 'ready' : 'error');
             if (process.env.NODE_ENV === 'development') {
               console.debug('[midtrans-snap] script onLoad', {
                 hasWindowSnap: ready,
@@ -313,7 +289,7 @@ export function CoursePaymentSidebar({
             }
           }}
           onError={() => {
-            setSnapStatus('error');
+            setSnapLoadStatus('error');
             if (process.env.NODE_ENV === 'development') {
               console.debug('[midtrans-snap] script onError', {
                 src: paymentSettings.midtransSnapUrl,
