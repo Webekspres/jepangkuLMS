@@ -164,8 +164,13 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
     select: enrollmentLogSelect,
   });
   if (!before) return { ok: false, message: 'Enrollment tidak ditemukan.' };
-  if (before.payment?.provider === 'MIDTRANS') {
-    return { ok: false, message: 'Enrollment Midtrans tidak bisa ditolak manual dari dashboard ini.' };
+  // Block reject of pending Midtrans payments only — ACTIVE revoke (Cabut akses) remains allowed.
+  if (before.payment?.provider === 'MIDTRANS' && before.status === 'PENDING') {
+    return {
+      ok: false,
+      message:
+        'Pembayaran Midtrans yang masih pending tidak bisa ditolak di sini. Biarkan kedaluwarsa/dibatalkan di Midtrans, atau minta siswa ganti metode.',
+    };
   }
 
   const enrollment = await prisma.enrollment.delete({
