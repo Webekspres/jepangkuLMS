@@ -10,7 +10,7 @@ import type { StudentPaymentHistoryItem } from '@/features/payment/lib/load-stud
 import { formatIdr } from '@/lib/lms/format-price';
 import { cn } from '@/lib/utils';
 
-const FILTERS: { id: 'all' | PaymentStatus; label: string }[] = [
+const FILTERS: { id: 'all' | Exclude<PaymentStatus, 'CHALLENGE'>; label: string }[] = [
   { id: 'all', label: 'Semua' },
   { id: 'PAID', label: 'Berhasil' },
   { id: 'PENDING', label: 'Pending' },
@@ -18,12 +18,11 @@ const FILTERS: { id: 'all' | PaymentStatus; label: string }[] = [
   { id: 'CANCELED', label: 'Dibatalkan' },
   { id: 'FAILED', label: 'Gagal' },
   { id: 'DENIED', label: 'Ditolak' },
-  { id: 'CHALLENGE', label: 'Challenge' },
 ];
 
 const STATUS_LABEL: Record<PaymentStatus, string> = {
   PENDING: 'Pending',
-  CHALLENGE: 'Challenge',
+  CHALLENGE: 'Sedang diverifikasi',
   PAID: 'Berhasil',
   DENIED: 'Ditolak',
   EXPIRED: 'Kedaluwarsa',
