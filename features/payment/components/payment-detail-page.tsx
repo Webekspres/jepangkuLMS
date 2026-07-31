@@ -13,7 +13,7 @@ import {
   syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
-import { checkoutPathFor } from '@/lib/payment-engine/products/paths';
+import { PaymentTransactionDetail } from '@/features/payment/components/payment-transaction-detail';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
 import type {
   CheckoutMethodId,
@@ -35,8 +35,13 @@ export type PaymentDetailView = {
   status: PaymentStatus;
   amountIdr: number;
   checkoutMethod: string | null;
+  methodLabel: string;
   instructions: PaymentInstructions | null;
   expiresAt: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  coverSrc: string;
+  historyHref: string;
   product: {
     type: CheckoutProductType;
     key: string;
@@ -241,7 +246,6 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
   const [busy, setBusy] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
   const [offline, setOffline] = useState(false);
-  const [successPending, setSuccessPending] = useState(initial.status === 'PAID');
 
   const live = status === 'PENDING' || status === 'CHALLENGE';
 
@@ -260,12 +264,8 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     (event: PaymentSseEvent) => {
       setStatus(event.status);
       if (event.status === 'PAID' && event.enrollmentStatus === 'ACTIVE') {
-        setSuccessPending(true);
         toast.success('Pembayaran berhasil. Akses sudah aktif.');
         router.refresh();
-        window.setTimeout(() => {
-          router.push(event.redirectPath ?? initial.product.successHref);
-        }, 1500);
         return;
       }
       if (isPaymentSseTerminalStatus(event.status) && event.status !== 'PAID') {
@@ -273,7 +273,7 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
         router.refresh();
       }
     },
-    [initial.product.successHref, router],
+    [router],
   );
 
   usePaymentEvents({
@@ -339,9 +339,7 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
       }
       setStatus(result.status as PaymentStatus);
       if (result.status === 'PAID') {
-        setSuccessPending(true);
-        toast.success('Pembayaran berhasil.');
-        window.setTimeout(() => router.push(initial.product.successHref), 1500);
+        toast.success('Pembayaran berhasil. Akses sudah aktif.');
       } else {
         toast.message(`Status: ${STATUS_LABEL[result.status as PaymentStatus] ?? result.status}`);
       }
@@ -351,23 +349,25 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     }
   };
 
-  if (successPending || status === 'PAID') {
+  if (!live) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col items-center gap-6 pb-12 pt-10 text-center">
-        <div className="flex size-20 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 animate-in zoom-in-50 duration-500">
-          <CheckCircle2 className="size-12" />
-        </div>
-        <div>
-          <h1 className="font-heading text-2xl font-extrabold text-foreground">Pembayaran berhasil</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Akses <span className="font-semibold text-foreground">{initial.product.title}</span> sudah
-            aktif. Mengalihkan…
-          </p>
-        </div>
-        <Button asChild className="w-full max-w-xs">
-          <Link href={initial.product.successHref}>{initial.product.successLabel}</Link>
-        </Button>
-      </div>
+      <PaymentTransactionDetail
+        orderId={initial.orderId}
+        status={status}
+        amountIdr={initial.amountIdr}
+        methodLabel={initial.methodLabel}
+        createdAt={initial.createdAt}
+        paidAt={initial.paidAt}
+        coverSrc={initial.coverSrc}
+        historyHref={initial.historyHref}
+        product={{
+          type: initial.product.type,
+          key: initial.product.key,
+          title: initial.product.title,
+          successHref: initial.product.successHref,
+          successLabel: initial.product.successLabel,
+        }}
+      />
     );
   }
 
@@ -375,10 +375,10 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     <div className="mx-auto max-w-lg space-y-6 pb-12">
       <div>
         <Link
-          href={initial.product.backHref}
+          href={initial.historyHref}
           className="text-sm text-muted-foreground hover:text-primary"
         >
-          ← {initial.product.title}
+          ← Riwayat pembayaran
         </Link>
         <h1 className="mt-3 font-heading text-2xl font-extrabold md:text-3xl">Pembayaran</h1>
         <p className="mt-1 font-mono text-xs text-muted-foreground">Order {initial.orderId}</p>
@@ -399,14 +399,9 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
               status === 'PENDING' &&
                 'border-amber-500/30 bg-amber-500/10 text-foreground',
               status === 'CHALLENGE' && 'border-border bg-muted text-foreground',
-              (status === 'EXPIRED' ||
-                status === 'CANCELED' ||
-                status === 'FAILED' ||
-                status === 'DENIED') &&
-                'border-destructive/30 bg-destructive/10 text-destructive',
             )}
           >
-            {live ? <Loader2 className="size-4 shrink-0 animate-spin" /> : null}
+            <Loader2 className="size-4 shrink-0 animate-spin" />
             <span>{STATUS_LABEL[status] ?? status}</span>
           </div>
 
@@ -420,50 +415,37 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
         </CardContent>
       </Card>
 
-      {live ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            className="w-full gap-2"
-            onClick={handleSync}
-          >
-            <RefreshCw className={cn('size-4', busy && 'animate-spin')} />
-            Cek status
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            className="w-full"
-            onClick={() => setShowMethods((v) => !v)}
-          >
-            Ganti metode
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5 sm:col-span-2"
-            onClick={handleCancel}
-          >
-            <Ban className="size-4" />
-            Batalkan pembayaran
-          </Button>
-        </div>
-      ) : null}
-
-      {(status === 'EXPIRED' ||
-        status === 'CANCELED' ||
-        status === 'FAILED' ||
-        status === 'DENIED') && (
-        <Button asChild className="w-full">
-          <Link href={checkoutPathFor(initial.product.type, initial.product.key)}>
-            Buat pembayaran baru
-          </Link>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          className="w-full gap-2"
+          onClick={handleSync}
+        >
+          <RefreshCw className={cn('size-4', busy && 'animate-spin')} />
+          Cek status
         </Button>
-      )}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          className="w-full"
+          onClick={() => setShowMethods((v) => !v)}
+        >
+          Ganti metode
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={busy}
+          className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5 sm:col-span-2"
+          onClick={handleCancel}
+        >
+          <Ban className="size-4" />
+          Batalkan pembayaran
+        </Button>
+      </div>
 
       {showMethods ? (
         <Card>
