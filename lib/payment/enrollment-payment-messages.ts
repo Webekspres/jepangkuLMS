@@ -1,11 +1,12 @@
 export type PaymentSettings = {
-  provider?: 'manual' | 'midtrans';
-  checkoutMode?: 'manual' | 'snap' | 'core';
+  provider: 'midtrans' | 'unavailable';
+  checkoutMode: 'snap' | 'core' | 'unavailable';
+  /** @deprecated Bank transfer retired — empty defaults only. */
   bankName: string;
   accountName: string;
   accountNumber: string;
-  midtransClientKey?: string | null;
-  midtransSnapUrl?: string | null;
+  midtransClientKey: string | null;
+  midtransSnapUrl: string | null;
 };
 
 export type ProgramPaymentKind = 'course' | 'tryout' | 'live-class';
@@ -16,29 +17,10 @@ function programKindLabel(kind: ProgramPaymentKind): string {
   return 'kursus';
 }
 
-export function buildProgramPaymentConfirmMessage(input: {
-  kind: ProgramPaymentKind;
-  productTitle: string;
-  productDetail?: string;
-  priceLabel: string;
-  studentName: string | null;
-  paymentSettings: PaymentSettings;
-}): string {
-  const name = input.studentName?.trim() || '[nama Anda]';
-  const detail = input.productDetail ? ` (${input.productDetail})` : '';
-  return [
-    `Halo, saya ingin konfirmasi pembayaran untuk ${programKindLabel(input.kind)} "${input.productTitle}"${detail} (${input.priceLabel}).`,
-    '',
-    `Nama: ${name}`,
-    `No. Rekening tujuan: ${input.paymentSettings.bankName} ${input.paymentSettings.accountNumber} a/n ${input.paymentSettings.accountName}`,
-    '',
-    'Mohon konfirmasi. Terima kasih!',
-  ].join('\n');
-}
-
+/** Consult-only WhatsApp message (no bank transfer details). */
 export function buildProgramConsultMessage(input: {
   kind: ProgramPaymentKind;
   productTitle: string;
 }): string {
-  return `Halo, saya ingin konsultasi tentang ${programKindLabel(input.kind)} "${input.productTitle}" sebelum mendaftar. Terima kasih!`;
+  return `Halo, saya ingin bertanya tentang ${programKindLabel(input.kind)} "${input.productTitle}".`;
 }

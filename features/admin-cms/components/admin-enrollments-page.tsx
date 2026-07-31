@@ -64,7 +64,20 @@ type AdminEnrollmentsPageProps = {
 };
 
 type StatusFilter = 'all' | 'PENDING' | 'ACTIVE';
-type HistoryActionFilter = 'all' | 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'GRANTED' | 'REVOKED';
+type PaymentFilter =
+  | 'all'
+  | 'midtrans_pending'
+  | 'midtrans_paid'
+  | 'midtrans_terminal'
+  | 'no_payment';
+type HistoryActionFilter =
+  | 'all'
+  | 'REQUESTED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'GRANTED'
+  | 'REVOKED'
+  | 'PAYMENT_SETTLED';
 type MainTab = 'queue' | 'history';
 
 const PRODUCT_TYPE_LABEL: Record<EnrollmentProductType, string> = {
@@ -103,6 +116,7 @@ export function AdminEnrollmentsPage({
   const [historyQuery, setHistoryQuery] = useState('');
   const [historyActionFilter, setHistoryActionFilter] = useState<HistoryActionFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('PENDING');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -126,6 +140,28 @@ export function AdminEnrollmentsPage({
     const q = query.trim().toLowerCase();
     return enrollments.filter((row) => {
       if (statusFilter !== 'all' && row.status !== statusFilter) return false;
+
+      if (paymentFilter === 'no_payment') {
+        if (row.paymentProvider) return false;
+      } else if (paymentFilter === 'midtrans_pending') {
+        if (
+          row.paymentProvider !== 'MIDTRANS' ||
+          (row.paymentStatus !== 'PENDING' && row.paymentStatus !== 'CHALLENGE')
+        ) {
+          return false;
+        }
+      } else if (paymentFilter === 'midtrans_paid') {
+        if (row.paymentProvider !== 'MIDTRANS' || row.paymentStatus !== 'PAID') return false;
+      } else if (paymentFilter === 'midtrans_terminal') {
+        if (
+          row.paymentProvider !== 'MIDTRANS' ||
+          !row.paymentStatus ||
+          !['EXPIRED', 'CANCELED', 'FAILED', 'DENIED'].includes(row.paymentStatus)
+        ) {
+          return false;
+        }
+      }
+
       if (!q) return true;
       return (
         row.userId.toLowerCase().includes(q) ||
@@ -134,7 +170,7 @@ export function AdminEnrollmentsPage({
         row.productSubtitle.toLowerCase().includes(q)
       );
     });
-  }, [enrollments, query, statusFilter]);
+  }, [enrollments, query, statusFilter, paymentFilter]);
 
   const filteredHistory = useMemo(() => {
     const q = historyQuery.trim().toLowerCase();
@@ -158,7 +194,9 @@ export function AdminEnrollmentsPage({
     totalItems,
     setPage,
     setPageSize,
-  } = useAdminTablePagination(filtered, { resetKey: `${query}-${statusFilter}` });
+  } = useAdminTablePagination(filtered, {
+    resetKey: `${query}-${statusFilter}-${paymentFilter}`,
+  });
 
   const {
     paginatedItems: paginatedHistory,
@@ -200,7 +238,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Verifikasi pembayaran manual, aktifkan akses program, dan lacak riwayat tindakan enrollment."
+      subtitle="Pantau pembayaran Midtrans, aktifkan akses manual (grant), dan lacak riwayat tindakan enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -338,7 +376,22 @@ export function AdminEnrollmentsPage({
           <SelectContent>
             <SelectItem value="PENDING">Menunggu</SelectItem>
             <SelectItem value="ACTIVE">Aktif</SelectItem>
-            <SelectItem value="all">Semua</SelectItem>
+            <SelectItem value="all">Semua status</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={paymentFilter}
+          onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}
+        >
+          <SelectTrigger className="w-full sm:w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua pembayaran</SelectItem>
+            <SelectItem value="midtrans_pending">Midtrans · Menunggu</SelectItem>
+            <SelectItem value="midtrans_paid">Midtrans · Lunas</SelectItem>
+            <SelectItem value="midtrans_terminal">Midtrans · Gagal/expired</SelectItem>
+            <SelectItem value="no_payment">Tanpa Payment (gratis/grant)</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -465,6 +518,7 @@ export function AdminEnrollmentsPage({
               <SelectContent>
                 <SelectItem value="all">Semua aksi</SelectItem>
                 <SelectItem value="REQUESTED">Diajukan</SelectItem>
+                <SelectItem value="PAYMENT_SETTLED">Dibayar otomatis</SelectItem>
                 <SelectItem value="APPROVED">Disetujui</SelectItem>
                 <SelectItem value="GRANTED">Diberikan manual</SelectItem>
                 <SelectItem value="REJECTED">Ditolak</SelectItem>

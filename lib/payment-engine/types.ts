@@ -53,6 +53,7 @@ export type CheckoutContext = {
 export type PaymentMethodMeta = {
   id: CheckoutMethodId;
   displayName: string;
+  description?: string;
   logoKey: string;
   category: PaymentMethodCategory;
   enabled: boolean;

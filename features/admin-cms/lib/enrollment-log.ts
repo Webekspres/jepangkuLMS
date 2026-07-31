@@ -57,6 +57,12 @@ export async function logEnrollmentRequested(input: {
   productSubtitle?: string | null;
   studentName: string;
 }): Promise<void> {
+  const existing = await prisma.enrollmentLog.findFirst({
+    where: { enrollmentId: input.enrollmentId, action: 'REQUESTED' },
+    select: { id: true },
+  });
+  if (existing) return;
+
   await writeEnrollmentLog({
     enrollmentId: input.enrollmentId,
     userId: input.userId,
@@ -67,5 +73,26 @@ export async function logEnrollmentRequested(input: {
     productSubtitle: input.productSubtitle ?? null,
     studentName: input.studentName,
     actorName: input.studentName,
+  });
+}
+
+export async function logEnrollmentPaymentSettled(input: {
+  enrollmentId: string;
+  userId: string;
+  type: EnrollmentType;
+  productTitle: string;
+  productSubtitle?: string | null;
+  studentName?: string | null;
+}): Promise<void> {
+  await writeEnrollmentLog({
+    enrollmentId: input.enrollmentId,
+    userId: input.userId,
+    actorUserId: null,
+    type: input.type,
+    action: 'PAYMENT_SETTLED',
+    productTitle: input.productTitle,
+    productSubtitle: input.productSubtitle ?? null,
+    studentName: input.studentName ?? null,
+    actorName: 'Midtrans',
   });
 }

@@ -3,6 +3,7 @@ import type { EnrollmentStatus, LevelJLPT } from '@prisma/client';
 import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
 import { requireAuthUserId } from '@/lib/auth/require-auth-user';
 import { prisma } from '@/lib/prisma';
+import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
 import { getPaymentSettings } from '@/lib/payment/settings';
 import {
   resolveLiveSessionStatus,
@@ -39,15 +40,12 @@ export type LiveClassDetailView = {
   filledSlots: number;
   coverImageUrl: string | null;
   paymentLink: string | null;
-  paymentSettings: {
-    bankName: string;
-    accountName: string;
-    accountNumber: string;
-  };
+  paymentSettings: PaymentSettings;
   isFull: boolean;
   sessionCount: number;
   isEnrolled: boolean;
   enrollmentStatus: EnrollmentStatus | 'NONE';
+  pendingPaymentId: string | null;
   enrollmentClosed: boolean;
   accessMessage: string | null;
   sessions: LiveClassDetailSession[];
@@ -65,13 +63,18 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     }),
     prisma.enrollment.findUnique({
       where: { userId_liveClassId: { userId, liveClassId: id } },
-      select: { status: true },
+      select: {
+        status: true,
+        payment: { select: { id: true, status: true } },
+      },
     }),
   ]);
 
   if (!row) return null;
 
   const isEnrolled = enrollment?.status === 'ACTIVE';
+  const pendingPaymentId =
+    enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null;
   const now = new Date();
   const enrollmentClosed = isLiveClassEnrollmentClosed(row.sessions[0]?.scheduledAt, now);
   const accessMessage =
@@ -117,6 +120,7 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     sessionCount: row.sessions.length,
     isEnrolled,
     enrollmentStatus: enrollment?.status ?? 'NONE',
+    pendingPaymentId,
     enrollmentClosed,
     accessMessage,
     sessions,

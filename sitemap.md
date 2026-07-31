@@ -72,8 +72,11 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 /dashboard/kursus *              → Katalog Kursus (jelajahi + daftar)
 └── /[courseSlug] *              → Detail kursus + enrollment
 
-/dashboard/checkout/kursus/[courseSlug] * → Checkout Core (pilih metode + Bayar)
-/dashboard/pembayaran/[paymentId] *       → Instruksi pembayaran + SSE status
+/dashboard/checkout/kursus/[courseSlug] *      → Checkout Core (Course)
+/dashboard/checkout/live-class/[id] *          → Checkout Core (Live Class)
+/dashboard/checkout/tryout/[sessionCode] *     → Checkout Core (Tryout)
+/dashboard/pembayaran *                        → Riwayat pembayaran siswa
+/dashboard/pembayaran/[paymentId] *            → Instruksi pembayaran + SSE status
 
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 
@@ -133,7 +136,7 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 ├── /dashboard                   → Executive dashboard (KPI + Recharts + activity)
 ├── /settings                    → Integrasi GA4 / Search Console
 │
-├── /pembayaran                  → Manajemen Validasi Akses Manual
+├── /pembayaran                  → Manajemen enrollment (Midtrans auto + manual)
 │
 ├── /kursus                      → CMS: Manajemen Kursus
 │   ├── /import                  → Impor kursus dari workbook sensei N4/N5
