@@ -15,7 +15,6 @@ import {
   lmsQuizCompletedSourceKey,
   lmsQuizCorrectSourceKey,
 } from '@/lib/lms/point-rules';
-import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
@@ -36,7 +35,7 @@ async function requireUserId(): Promise<string> {
 }
 
 type CourseCheckoutResult =
-  | { ok: true; mode: 'free' | 'manual'; status: 'ACTIVE' | 'PENDING'; enrollmentId: string }
+  | { ok: true; mode: 'free'; status: 'ACTIVE'; enrollmentId: string }
   | {
       ok: true;
       mode: 'midtrans';
@@ -67,13 +66,17 @@ export async function requestEnrollment(courseId: string) {
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
 
-/** Request enrollment — kursus berbayar → PENDING; gratis → ACTIVE langsung. */
+/** Request enrollment — gratis → ACTIVE; berbayar harus lewat Midtrans checkout. */
 export async function requestCourseEnrollment(courseSlug: string) {
   const userId = await requireUserId();
 
   const course = await prisma.course.findUnique({ where: { slug: courseSlug } });
   if (!course) throw new Error('Kursus tidak ditemukan');
   if (!course.isPublished) throw new Error('Kursus belum tersedia');
+
+  if (course.priceIdr > 0) {
+    throw new Error('Kursus berbayar dibayar lewat checkout Midtrans.');
+  }
 
   const existing = await prisma.enrollment.findUnique({
     where: { userId_courseId: { userId, courseId: course.id } },
@@ -83,32 +86,11 @@ export async function requestCourseEnrollment(courseSlug: string) {
     return { enrollmentId: existing.id, courseSlug, status: existing.status };
   }
 
-  const status = course.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
-
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, type: 'COURSE', status },
-    update: { status },
+    create: { userId, courseId: course.id, type: 'COURSE', status: 'ACTIVE' },
+    update: { status: 'ACTIVE' },
   });
-
-  if (status === 'PENDING' && existing?.status !== 'PENDING') {
-    const studentName =
-      (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
-    await notifyEnrollmentPending({
-      enrollmentId: enrollment.id,
-      studentUserId: userId,
-      studentName,
-      courseTitle: course.title,
-    });
-    await logEnrollmentRequested({
-      enrollmentId: enrollment.id,
-      userId,
-      type: 'COURSE',
-      productTitle: course.title,
-      productSubtitle: course.slug,
-      studentName,
-    });
-  }
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard');
@@ -140,12 +122,9 @@ export async function requestCourseCheckout(courseSlug: string): Promise<CourseC
   }
 
   if (!isMidtransEnabled()) {
-    const result = await requestCourseEnrollment(courseSlug);
     return {
-      ok: true,
-      mode: 'manual',
-      status: result.status as 'PENDING' | 'ACTIVE',
-      enrollmentId: result.enrollmentId,
+      ok: false,
+      message: 'Pembayaran online sedang tidak tersedia. Hubungi admin jika berlanjut.',
     };
   }
 

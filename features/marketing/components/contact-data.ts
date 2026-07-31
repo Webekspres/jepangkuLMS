@@ -36,9 +36,9 @@ export const CONTACT_TOPICS: ContactTopic[] = [
   {
     icon: CreditCard,
     title: 'Pembayaran & Paket',
-    desc: 'Konfirmasi transfer, harga paket, atau invoice pembayaran.',
+    desc: 'Pertanyaan harga, metode Midtrans, atau status pembayaran.',
     message:
-      'Halo, saya ingin konfirmasi / bertanya tentang pembayaran kursus JepangKu.',
+      'Halo, saya ingin bertanya tentang pembayaran kursus JepangKu.',
   },
   {
     icon: HelpCircle,
@@ -59,8 +59,8 @@ export const CONTACT_FAQ: { q: string; a: string }[] = [
     a: 'Ya. Gunakan tombol WhatsApp di halaman ini atau di detail kursus untuk tanya level yang cocok.',
   },
   {
-    q: 'Bagaimana cara konfirmasi pembayaran?',
-    a: 'Kirim bukti transfer via WhatsApp dengan nama kursus yang dipilih. Admin akan verifikasi dan mengaktifkan akses.',
+    q: 'Bagaimana cara membayar kursus?',
+    a: 'Pilih kursus di dashboard, lalu bayar via Midtrans (QRIS, VA, e-wallet, dll.). Akses aktif otomatis setelah pembayaran berhasil. Jika butuh akses tanpa bayar, hubungi admin.',
   },
 ];
 

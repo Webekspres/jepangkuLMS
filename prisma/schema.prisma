@@ -60,6 +60,8 @@ enum EnrollmentLogAction {
     REJECTED
     GRANTED
     REVOKED
+    /// Midtrans (or future PSP) auto-activated enrollment after PAID
+    PAYMENT_SETTLED
 }
 
 enum QuestionType {

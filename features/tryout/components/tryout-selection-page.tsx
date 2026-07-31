@@ -1,20 +1,14 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
-import { requestTryoutEnrollment } from '@/features/tryout/actions/tryout-actions';
 import type { TryoutSessionView } from '@/features/student/lib/load-dashboard-extras';
-import {
-  ProgramPaymentPanel,
-  type ProgramEnrollmentStatus,
-} from '@/features/student/components/program-payment-panel';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { isFreeCourse } from '@/lib/lms/format-price';
 import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
@@ -26,18 +20,11 @@ type TryoutSelectionPageProps = {
   studentDisplayName: string | null;
 };
 
-function mapEnrollmentStatus(status: TryoutSessionView['enrollmentStatus']): ProgramEnrollmentStatus {
-  if (status === 'ACTIVE' || status === 'PENDING') return status;
-  return 'none';
-}
-
 export function TryoutSelectionPage({
   sessions,
   paymentSettings,
-  studentDisplayName,
 }: TryoutSelectionPageProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [selectedSession, setSelectedSession] = useState(sessions[0]?.code ?? '');
 
   const activeSession = useMemo(
@@ -57,27 +44,6 @@ export function TryoutSelectionPage({
   const canStart = Boolean(
     activeSession && hasQuestions && activeSession.isAccessible && isEnrolled,
   );
-
-  const handleRequestEnrollment = () => {
-    if (!activeSession) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
-      startTransition(async () => {
-        const result = await requestTryoutEnrollment(activeSession.code);
-        if (!result.ok) {
-          toast.error(result.message);
-          reject(new Error(result.message));
-          return;
-        }
-        toast.success(
-          result.status === 'ACTIVE'
-            ? 'Akses tryout aktif. Selamat berlatih!'
-            : 'Pendaftaran dikirim — menunggu verifikasi pembayaran.',
-        );
-        router.refresh();
-        resolve();
-      });
-    });
-  };
 
   return (
     <div className="space-y-8 pb-10">
@@ -219,22 +185,31 @@ export function TryoutSelectionPage({
       </section>
 
       {activeSession && needsPayment ? (
-        <ProgramPaymentPanel
-          kind="tryout"
-          productTitle={activeSession.title}
-          productDetail={`${activeSession.code} · ${activeSession.level}`}
-          priceIdr={activeSession.priceIdr}
-          enrollmentStatus={mapEnrollmentStatus(activeSession.enrollmentStatus)}
-          studentDisplayName={studentDisplayName}
-          paymentSettings={paymentSettings}
-          onRequestEnrollment={handleRequestEnrollment}
-        />
+        paymentSettings.provider === 'midtrans' ? (
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-sm text-muted-foreground">
+              Selesaikan pembayaran untuk membuka akses tryout{' '}
+              <span className="font-semibold text-foreground">{activeSession.title}</span>.
+            </p>
+            <Button asChild className="mt-4 h-11 w-full" size="lg">
+              <Link href={STUDENT_ROUTES.checkoutTryout(activeSession.code)}>
+                {activeSession.enrollmentStatus === 'PENDING'
+                  ? 'Lanjutkan / buat pembayaran'
+                  : 'Bayar sekarang'}
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+            Pembayaran online sedang tidak tersedia. Silakan coba lagi nanti atau hubungi admin.
+          </div>
+        )
       ) : null}
 
       <div className="flex flex-col items-center gap-3">
         <Button
           size="lg"
-          disabled={!canStart || isPending}
+          disabled={!canStart}
           className="h-12 min-w-55 gap-2 px-8 text-base font-bold"
           onClick={() => {
             if (!canStart) return;
@@ -250,7 +225,7 @@ export function TryoutSelectionPage({
           </p>
         ) : needsPayment && hasQuestions ? (
           <p className="text-xs text-muted-foreground">
-            Selesaikan pembayaran dan tunggu verifikasi admin untuk mengakses ujian ini.
+            Selesaikan pembayaran online untuk mengakses ujian ini.
           </p>
         ) : !hasQuestions ? (
           <p className="text-xs text-muted-foreground">

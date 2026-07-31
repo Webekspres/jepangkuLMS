@@ -1,4 +1,8 @@
-import type { CheckoutMethodId, PaymentMethodMeta } from '@/lib/payment-engine/types';
+import type {
+  CheckoutMethodId,
+  PaymentMethodCategory,
+  PaymentMethodMeta,
+} from '@/lib/payment-engine/types';
 
 /**
  * Canonical method catalog. UI maps this metadata → cards; never hardcode methods in JSX.
@@ -8,6 +12,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'qris',
     displayName: 'QRIS',
+    description: 'Scan QR dari semua e-wallet & mobile banking',
     logoKey: 'qris',
     category: 'qris',
     enabled: true,
@@ -20,6 +25,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'gopay',
     displayName: 'GoPay',
+    description: 'Bayar lewat aplikasi Gojek / GoPay',
     logoKey: 'gopay',
     category: 'ewallet',
     enabled: true,
@@ -32,6 +38,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'shopeepay',
     displayName: 'ShopeePay',
+    description: 'Bayar lewat aplikasi Shopee',
     logoKey: 'shopeepay',
     category: 'ewallet',
     enabled: true,
@@ -44,6 +51,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'va_bca',
     displayName: 'BCA Virtual Account',
+    description: 'Transfer VA BCA (ATM / m-banking)',
     logoKey: 'bca',
     category: 'va',
     enabled: true,
@@ -56,6 +64,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'va_bni',
     displayName: 'BNI Virtual Account',
+    description: 'Transfer VA BNI (ATM / m-banking)',
     logoKey: 'bni',
     category: 'va',
     enabled: true,
@@ -68,6 +77,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'va_bri',
     displayName: 'BRI Virtual Account',
+    description: 'Transfer VA BRI (ATM / m-banking)',
     logoKey: 'bri',
     category: 'va',
     enabled: true,
@@ -80,6 +90,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'va_mandiri',
     displayName: 'Mandiri Virtual Account',
+    description: 'Transfer VA Mandiri (ATM / Livin)',
     logoKey: 'mandiri',
     category: 'va',
     enabled: true,
@@ -92,6 +103,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'indomaret',
     displayName: 'Indomaret',
+    description: 'Bayar tunai di kasir Indomaret',
     logoKey: 'indomaret',
     category: 'cstore',
     enabled: true,
@@ -104,6 +116,7 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'alfamart',
     displayName: 'Alfamart',
+    description: 'Bayar tunai di kasir Alfamart / Alfamidi',
     logoKey: 'alfamart',
     category: 'cstore',
     enabled: true,
@@ -115,6 +128,21 @@ const METHOD_CATALOG: PaymentMethodMeta[] = [
   },
 ];
 
+export type PaymentMethodGroupId = 'ewallet' | 'va' | 'retail';
+
+export type PaymentMethodGroup = {
+  id: PaymentMethodGroupId;
+  label: string;
+  methods: PaymentMethodMeta[];
+};
+
+const GROUP_ORDER: { id: PaymentMethodGroupId; label: string; categories: PaymentMethodCategory[] }[] =
+  [
+    { id: 'ewallet', label: 'E-Wallet', categories: ['qris', 'ewallet'] },
+    { id: 'va', label: 'Virtual Account', categories: ['va'] },
+    { id: 'retail', label: 'Retail', categories: ['cstore'] },
+  ];
+
 function parseEnabledAllowlist(): Set<CheckoutMethodId> | null {
   const raw = process.env.PAYMENT_METHODS_ENABLED?.trim();
   if (!raw) return null;
@@ -125,6 +153,11 @@ function parseEnabledAllowlist(): Set<CheckoutMethodId> | null {
   return new Set(ids);
 }
 
+/** Local asset path for method icon (public/payment-icons). */
+export function paymentMethodIconSrc(logoKey: string): string {
+  return `/payment-icons/${logoKey}.svg`;
+}
+
 /** Methods available for checkout UI (enabled, not in maintenance unless still listed). */
 export function listCheckoutMethods(): PaymentMethodMeta[] {
   const allow = parseEnabledAllowlist();
@@ -133,6 +166,16 @@ export function listCheckoutMethods(): PaymentMethodMeta[] {
     if (allow && !allow.has(m.id)) return false;
     return true;
   }).sort((a, b) => a.priority - b.priority);
+}
+
+export function listCheckoutMethodGroups(
+  methods: PaymentMethodMeta[] = listCheckoutMethods(),
+): PaymentMethodGroup[] {
+  return GROUP_ORDER.map((group) => ({
+    id: group.id,
+    label: group.label,
+    methods: methods.filter((m) => group.categories.includes(m.category)),
+  })).filter((g) => g.methods.length > 0);
 }
 
 export function getCheckoutMethod(id: CheckoutMethodId): PaymentMethodMeta | undefined {

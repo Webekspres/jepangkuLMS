@@ -10,10 +10,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  Copy,
   Lock,
   MessageCircle,
-  Phone,
   Play,
   Shield,
   UserPlus,
@@ -29,19 +27,17 @@ import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { CourseSyllabusAccordion } from './course-syllabus-accordion';
 import type { CourseDetail } from './course-detail-data';
 
-type PaymentSettingsProp = {
-  bankName: string;
-  accountName: string;
-  accountNumber: string;
-};
-
 type CourseDetailPageProps = {
   course: CourseDetail;
-  paymentSettings: PaymentSettingsProp;
+  /** @deprecated Bank transfer retired — kept for call-site compatibility. */
+  paymentSettings?: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+  };
 };
 
-export function CourseDetailPage({ course, paymentSettings }: CourseDetailPageProps) {
-  const [copied, setCopied] = useState(false);
+export function CourseDetailPage({ course }: CourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
   const isFree = course.priceNum === 0;
   const isAvailable = course.availability === 'tersedia';
@@ -75,12 +71,6 @@ export function CourseDetailPage({ course, paymentSettings }: CourseDetailPagePr
   const waConsultUrl = buildWhatsAppUrl(
     `Halo, saya ingin konsultasi mengenai kursus "${course.title}" (${course.price}).`,
   );
-
-  const handleCopyAccount = () => {
-    navigator.clipboard.writeText(paymentSettings.accountNumber).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
@@ -275,71 +265,18 @@ export function CourseDetailPage({ course, paymentSettings }: CourseDetailPagePr
                   </>
                 ) : isAvailable && !isFree ? (
                   <>
-                    <div className="mb-4">
-                      <p className="mb-3 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                        Transfer via {paymentSettings.bankName}
-                      </p>
-                      <div className="space-y-2 rounded-xl bg-muted/50 p-3.5">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Nama Rekening</p>
-                          <p className="text-sm font-semibold text-foreground">
-                            {paymentSettings.accountName}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Nomor Rekening</p>
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-base font-bold tracking-widest text-foreground">
-                              {paymentSettings.accountNumber}
-                            </p>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCopyAccount}
-                              className={cn(
-                                'h-8 gap-1 rounded-lg px-2.5 text-xs font-medium',
-                                copied && 'bg-emerald-500/15 text-emerald-600',
-                              )}
-                            >
-                              {copied ? (
-                                <>
-                                  <CheckCircle2 className="size-3.5" />
-                                  Tersalin
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="size-3.5" />
-                                  Salin
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="border-t border-border pt-1">
-                          <p className="text-xs text-muted-foreground">Jumlah Transfer</p>
-                          <p className="text-sm font-bold text-primary">{course.price}</p>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Bayar online setelah masuk akun — akses aktif otomatis setelah pembayaran
+                      berhasil.
+                    </p>
                     <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
                       <Link href="/sign-up">
                         <UserPlus className="size-4" />
                         Daftar Sekarang
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" className="mb-3 h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-in">Masuk</Link>
-                    </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
-                      <a
-                        href={waConsultUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Phone className="size-4" />
-                        Konsultasi Terlebih Dahulu
-                      </a>
+                      <Link href="/sign-in">Masuk untuk beli</Link>
                     </Button>
                   </>
                 ) : (

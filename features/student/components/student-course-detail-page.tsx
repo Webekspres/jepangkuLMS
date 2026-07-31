@@ -25,6 +25,7 @@ import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
+import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
 import type { EnrollmentStatus, PaymentStatus } from '@prisma/client';
 
 type DbLesson = {
@@ -62,17 +63,8 @@ export type StudentCourseDetailPageProps = {
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
-  paymentSettings: {
-    provider: 'manual' | 'midtrans';
-    checkoutMode?: 'manual' | 'snap' | 'core';
-    bankName: string;
-    accountName: string;
-    accountNumber: string;
-    midtransClientKey: string | null;
-    midtransSnapUrl: string | null;
-  };
+  paymentSettings: PaymentSettings;
 };
-
 export function StudentCourseDetailPage({
   course,
   whatYouLearn,

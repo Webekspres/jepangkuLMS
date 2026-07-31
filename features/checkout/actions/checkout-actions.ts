@@ -4,10 +4,15 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { isMidtransEnabled } from '@/lib/midtrans/config';
-import { chargeCoursePayment } from '@/lib/payment-engine/charge-course';
+import { chargeProductPayment } from '@/lib/payment-engine/charge-product';
+import {
+  checkoutPathFor,
+  resolveProductCheckout,
+} from '@/lib/payment-engine/products';
 import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
+import { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
-import type { CheckoutContext, CheckoutMethodId } from '@/lib/payment-engine/types';
+import type { CheckoutMethodId, CheckoutProductType } from '@/lib/payment-engine/types';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { getPaymentSettings } from '@/lib/payment/settings';
@@ -18,66 +23,32 @@ async function requireUserId() {
   return requireAuthUserWithAnchor();
 }
 
-async function buildCourseCheckoutContext(
-  userId: string,
-  courseSlug: string,
-): Promise<{ context: CheckoutContext; course: { id: string; slug: string; title: string; priceIdr: number; isPublished: boolean } } | { error: string }> {
-  const course = await prisma.course.findUnique({
-    where: { slug: courseSlug },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      priceIdr: true,
-      isPublished: true,
-      coverImageUrl: true,
-    },
-  });
-
-  if (!course) return { error: 'Kursus tidak ditemukan.' };
-  if (!course.isPublished) return { error: 'Kursus belum tersedia.' };
-  if (course.priceIdr <= 0) return { error: 'Kursus ini gratis — daftar tanpa pembayaran.' };
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { displayName: true, ssoDisplayName: true, ssoEmail: true, phone: true },
-  });
-
-  const context: CheckoutContext = {
-    product: {
-      type: 'COURSE',
-      id: course.id,
-      slug: course.slug,
-      title: course.title,
-      imageUrl: course.coverImageUrl,
-    },
-    buyer: {
-      userId,
-      email: user?.ssoEmail,
-      name: user?.displayName ?? user?.ssoDisplayName,
-      phone: user?.phone,
-    },
-    pricing: {
-      currency: 'IDR',
-      listPriceIdr: course.priceIdr,
-      discountIdr: 0,
-      feesIdr: 0,
-      totalIdr: course.priceIdr,
-    },
-    providerId: 'midtrans',
-  };
-
-  return { context, course };
+function assertCoreCheckout() {
+  return isMidtransEnabled() && getPaymentSettings().checkoutMode === 'core';
 }
 
-export type StartCourseCheckoutResult =
+function productKeyFromEnrollment(enrollment: {
+  type: CheckoutProductType;
+  course?: { slug: string } | null;
+  liveClass?: { id: string } | null;
+  tryoutSession?: { code: string } | null;
+}): string | null {
+  if (enrollment.type === 'COURSE') return enrollment.course?.slug ?? null;
+  if (enrollment.type === 'LIVE_CLASS') return enrollment.liveClass?.id ?? null;
+  return enrollment.tryoutSession?.code ?? null;
+}
+
+export type StartCheckoutResult =
   | {
       ok: true;
-      course: {
-        slug: string;
+      product: {
+        type: CheckoutProductType;
+        key: string;
         title: string;
         priceIdr: number;
         imageUrl: string | null;
+        backHref: string;
+        successHref: string;
       };
       methods: ReturnType<typeof listCheckoutMethods>;
       existingPaymentId: string | null;
@@ -85,32 +56,38 @@ export type StartCourseCheckoutResult =
     }
   | { ok: false; message: string };
 
-export async function startCourseCheckout(courseSlug: string): Promise<StartCourseCheckoutResult> {
+export async function startCheckout(input: {
+  productType: CheckoutProductType;
+  productKey: string;
+}): Promise<StartCheckoutResult> {
   const userId = await requireUserId();
 
-  if (!isMidtransEnabled() || getPaymentSettings().checkoutMode !== 'core') {
+  if (!assertCoreCheckout()) {
     return { ok: false, message: 'Checkout Core Midtrans tidak aktif.' };
   }
 
-  const built = await buildCourseCheckoutContext(userId, courseSlug);
+  const built = await resolveProductCheckout(userId, input.productType, input.productKey);
   if ('error' in built) return { ok: false, message: built.error };
 
   const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId: built.course.id } },
+    where: built.enrollmentWhere,
     include: { payment: { select: { id: true, status: true } } },
   });
 
   if (enrollment?.status === 'ACTIVE') {
-    return { ok: false, message: 'Kamu sudah terdaftar di kursus ini.' };
+    return { ok: false, message: 'Kamu sudah punya akses ke produk ini.' };
   }
 
   return {
     ok: true,
-    course: {
-      slug: built.course.slug,
-      title: built.course.title,
-      priceIdr: built.course.priceIdr,
+    product: {
+      type: built.context.product.type,
+      key: built.productKey,
+      title: built.context.product.title,
+      priceIdr: built.priceIdr,
       imageUrl: built.context.product.imageUrl ?? null,
+      backHref: built.backHref,
+      successHref: built.successHref,
     },
     methods: listCheckoutMethods(),
     existingPaymentId:
@@ -119,35 +96,31 @@ export async function startCourseCheckout(courseSlug: string): Promise<StartCour
   };
 }
 
-export type PayCourseCheckoutResult =
+export type PayCheckoutResult =
   | { ok: true; paymentId: string; redirectPath: string }
   | { ok: false; message: string };
 
-export async function payCourseCheckout(input: {
-  courseSlug: string;
+export async function payCheckout(input: {
+  productType: CheckoutProductType;
+  productKey: string;
   methodId: CheckoutMethodId;
-}): Promise<PayCourseCheckoutResult> {
+}): Promise<PayCheckoutResult> {
   const userId = await requireUserId();
 
-  if (!isMidtransEnabled() || getPaymentSettings().checkoutMode !== 'core') {
+  if (!assertCoreCheckout()) {
     return { ok: false, message: 'Checkout Core Midtrans tidak aktif.' };
   }
 
-  const built = await buildCourseCheckoutContext(userId, input.courseSlug);
+  const built = await resolveProductCheckout(userId, input.productType, input.productKey);
   if ('error' in built) return { ok: false, message: built.error };
 
   const enrollment = await prisma.enrollment.upsert({
-    where: { userId_courseId: { userId, courseId: built.course.id } },
-    create: {
-      userId,
-      courseId: built.course.id,
-      type: 'COURSE',
-      status: 'PENDING',
-    },
+    where: built.enrollmentWhere,
+    create: built.enrollmentCreate,
     update: { status: 'PENDING' },
   });
 
-  const result = await chargeCoursePayment({
+  const result = await chargeProductPayment({
     context: built.context,
     methodId: input.methodId,
     enrollmentId: enrollment.id,
@@ -162,14 +135,22 @@ export async function payCourseCheckout(input: {
   };
 }
 
-export async function cancelCoursePayment(
+export async function cancelPayment(
   paymentId: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const userId = await requireUserId();
 
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
-    include: { enrollment: { include: { course: { select: { slug: true } } } } },
+    include: {
+      enrollment: {
+        include: {
+          course: { select: { slug: true } },
+          liveClass: { select: { id: true } },
+          tryoutSession: { select: { code: true } },
+        },
+      },
+    },
   });
 
   if (!payment || payment.enrollment.userId !== userId) {
@@ -198,7 +179,7 @@ export async function cancelCoursePayment(
       enrollmentId: payment.enrollmentId,
       enrollmentStatus: payment.enrollment.status,
       productType: payment.enrollment.type,
-      courseSlug: payment.enrollment.course?.slug ?? null,
+      productKey: productKeyFromEnrollment(payment.enrollment),
     }),
   );
 
@@ -206,10 +187,10 @@ export async function cancelCoursePayment(
   return { ok: true };
 }
 
-export async function changeCoursePaymentMethod(input: {
+export async function changePaymentMethod(input: {
   paymentId: string;
   methodId: CheckoutMethodId;
-}): Promise<PayCourseCheckoutResult> {
+}): Promise<PayCheckoutResult> {
   const userId = await requireUserId();
 
   const payment = await prisma.payment.findUnique({
@@ -217,16 +198,9 @@ export async function changeCoursePaymentMethod(input: {
     include: {
       enrollment: {
         include: {
-          course: {
-            select: {
-              id: true,
-              slug: true,
-              title: true,
-              priceIdr: true,
-              isPublished: true,
-              coverImageUrl: true,
-            },
-          },
+          course: { select: { slug: true } },
+          liveClass: { select: { id: true } },
+          tryoutSession: { select: { code: true } },
         },
       },
     },
@@ -240,13 +214,13 @@ export async function changeCoursePaymentMethod(input: {
     return { ok: false, message: 'Metode pembayaran tidak bisa diganti untuk status ini.' };
   }
 
-  const course = payment.enrollment.course;
-  if (!course) return { ok: false, message: 'Kursus terkait tidak ditemukan.' };
+  const productKey = productKeyFromEnrollment(payment.enrollment);
+  if (!productKey) return { ok: false, message: 'Produk terkait tidak ditemukan.' };
 
-  const built = await buildCourseCheckoutContext(userId, course.slug);
+  const built = await resolveProductCheckout(userId, payment.enrollment.type, productKey);
   if ('error' in built) return { ok: false, message: built.error };
 
-  const result = await chargeCoursePayment({
+  const result = await chargeProductPayment({
     context: built.context,
     methodId: input.methodId,
     enrollmentId: payment.enrollmentId,
@@ -261,3 +235,71 @@ export async function changeCoursePaymentMethod(input: {
     redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
   };
 }
+
+export async function syncPaymentStatus(
+  paymentId: string,
+): Promise<{ ok: true; status: string } | { ok: false; message: string }> {
+  const userId = await requireUserId();
+
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: { enrollment: { select: { userId: true } } },
+  });
+
+  if (!payment || payment.enrollment.userId !== userId) {
+    return { ok: false, message: 'Pembayaran tidak ditemukan.' };
+  }
+
+  try {
+    const result = await applyProviderPaymentEvent({ externalOrderId: payment.orderId });
+    revalidatePath(STUDENT_ROUTES.pembayaran(paymentId));
+    return { ok: true, status: result.status };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Gagal menyinkronkan status.',
+    };
+  }
+}
+
+/** Course aliases — thin wrappers for existing call sites. */
+export async function startCourseCheckout(courseSlug: string) {
+  const result = await startCheckout({ productType: 'COURSE', productKey: courseSlug });
+  if (!result.ok) return result;
+  return {
+    ok: true as const,
+    course: {
+      slug: result.product.key,
+      title: result.product.title,
+      priceIdr: result.product.priceIdr,
+      imageUrl: result.product.imageUrl,
+    },
+    methods: result.methods,
+    existingPaymentId: result.existingPaymentId,
+    existingPaymentStatus: result.existingPaymentStatus,
+  };
+}
+
+export async function payCourseCheckout(input: {
+  courseSlug: string;
+  methodId: CheckoutMethodId;
+}) {
+  return payCheckout({
+    productType: 'COURSE',
+    productKey: input.courseSlug,
+    methodId: input.methodId,
+  });
+}
+
+export async function cancelCoursePayment(paymentId: string) {
+  return cancelPayment(paymentId);
+}
+
+export async function changeCoursePaymentMethod(input: {
+  paymentId: string;
+  methodId: CheckoutMethodId;
+}) {
+  return changePaymentMethod(input);
+}
+
+export { checkoutPathFor };

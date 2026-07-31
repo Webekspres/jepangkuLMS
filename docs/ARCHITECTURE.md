@@ -53,7 +53,7 @@ jepangkuLMS/
 │   │   ├── layout.tsx
 │   │   └── admin/
 │   │       ├── dashboard/         # Statistik ringkasan
-│   │       ├── pembayaran/        # Validasi enrollment manual
+│   │       ├── pembayaran/        # Antrian Midtrans + grant enrollment manual
 │   │       ├── kursus/            # CMS kursus
 │   │       ├── lesson/            # CMS lesson
 │   │       └── quiz/              # CMS soal & import
@@ -108,11 +108,11 @@ Setiap sub-folder di dalam `features/` memiliki batas tanggung jawab yang jelas:
   - `submitQuizAttempt()`: Mengirim jawaban akhir ke server untuk divalidasi dan dihitung skornya.
 
 ### 4. `features/admin-cms`
-- **Tanggung Jawab:** Dashboard khusus admin untuk manajemen materi pelajaran, import bulk bank soal via Excel/CSV, serta validasi manual bukti transfer pembayaran kelas (MVP).
+- **Tanggung Jawab:** Dashboard khusus admin untuk manajemen materi pelajaran, import bulk bank soal via Excel/CSV, serta antrian pembayaran Midtrans + grant enrollment manual.
 - **Server Actions (`actions/`):**
   - `approveEnrollmentAction` / `rejectEnrollmentAction` / `grantEnrollmentAction`: Ubah status `Enrollment` dan tulis `EnrollmentLog` (bukan ledger Payment terpisah).
   - `uploadExcelMateri()`: Membaca file CSV/Excel dan menyimpannya ke database (Prisma).
-- **Model pembayaran (locked):** checkout **per item** (satu produk = satu transaksi) — bukan cart. Lihat **[PAYMENT_MODEL.md](./PAYMENT_MODEL.md)**. Midtrans Snap + tabel `Payment` = PR berikutnya.
+- **Model pembayaran (locked):** checkout **per item** (satu produk = satu transaksi) — bukan cart. Midtrans Core only untuk path bayar siswa; CMS grant tetap. Lihat **[PAYMENT_MODEL.md](./PAYMENT_MODEL.md)**.
 
 ---
 

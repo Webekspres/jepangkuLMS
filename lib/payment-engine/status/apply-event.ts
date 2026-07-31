@@ -1,10 +1,17 @@
 import { Prisma } from '@prisma/client';
-import { notifyEnrollmentApproved } from '@/lib/lms/notifications';
+import { syncLiveClassFilledSlots } from '@/features/admin-cms/lib/enrollment-counts';
+import { logEnrollmentPaymentSettled } from '@/features/admin-cms/lib/enrollment-log';
+import {
+  notifyEnrollmentApproved,
+  notifyLiveClassApproval,
+} from '@/lib/lms/notifications';
+import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 const log = loggers.api.child({ module: 'payment-engine-status' });
 
@@ -22,7 +29,11 @@ export async function applyProviderPaymentEvent(input: {
     where: { orderId: statusResult.externalOrderId },
     include: {
       enrollment: {
-        include: { course: { select: { title: true, slug: true } } },
+        include: {
+          course: { select: { title: true, slug: true } },
+          liveClass: { select: { id: true, title: true } },
+          tryoutSession: { select: { code: true, title: true } },
+        },
       },
     },
   });
@@ -35,6 +46,13 @@ export async function applyProviderPaymentEvent(input: {
   const nextStatus = statusResult.status;
   const nextEnrollmentStatus =
     nextStatus === 'PAID' || payment.enrollment.status === 'ACTIVE' ? 'ACTIVE' : payment.enrollment.status;
+
+  const productKey =
+    payment.enrollment.type === 'COURSE'
+      ? (payment.enrollment.course?.slug ?? null)
+      : payment.enrollment.type === 'LIVE_CLASS'
+        ? (payment.enrollment.liveClass?.id ?? null)
+        : (payment.enrollment.tryoutSession?.code ?? null);
 
   await prisma.$transaction(async (tx) => {
     await tx.payment.update({
@@ -60,12 +78,57 @@ export async function applyProviderPaymentEvent(input: {
   });
 
   if (nextStatus === 'PAID' && previousStatus !== 'PAID') {
-    await notifyEnrollmentApproved({
-      enrollmentId: payment.enrollmentId,
-      studentUserId: payment.enrollment.userId,
-      courseTitle: payment.enrollment.course?.title ?? 'Kursus',
-      courseSlug: payment.enrollment.course?.slug ?? '',
-    });
+    const productTitle =
+      payment.enrollment.course?.title ??
+      payment.enrollment.liveClass?.title ??
+      payment.enrollment.tryoutSession?.title ??
+      'Program';
+    const productSubtitle =
+      payment.enrollment.course?.slug ??
+      payment.enrollment.liveClass?.id ??
+      payment.enrollment.tryoutSession?.code ??
+      null;
+    const studentName = await resolveLmsDisplayName(payment.enrollment.userId, null);
+
+    try {
+      await logEnrollmentPaymentSettled({
+        enrollmentId: payment.enrollmentId,
+        userId: payment.enrollment.userId,
+        type: payment.enrollment.type,
+        productTitle,
+        productSubtitle,
+        studentName,
+      });
+    } catch (error) {
+      log.warn(
+        { paymentId: payment.id, error: error instanceof Error ? error.message : error },
+        'EnrollmentLog PAYMENT_SETTLED failed (non-fatal)',
+      );
+    }
+
+    if (payment.enrollment.type === 'LIVE_CLASS' && payment.enrollment.liveClass) {
+      await syncLiveClassFilledSlots(payment.enrollment.liveClass.id);
+      await notifyLiveClassApproval({
+        studentUserId: payment.enrollment.userId,
+        liveClassTitle: payment.enrollment.liveClass.title,
+      });
+    } else if (payment.enrollment.type === 'TRYOUT' && payment.enrollment.tryoutSession) {
+      await notifyEnrollmentApproved({
+        enrollmentId: payment.enrollmentId,
+        studentUserId: payment.enrollment.userId,
+        productTitle: payment.enrollment.tryoutSession.title,
+        href: STUDENT_ROUTES.tryoutExam(payment.enrollment.tryoutSession.code),
+      });
+    } else {
+      await notifyEnrollmentApproved({
+        enrollmentId: payment.enrollmentId,
+        studentUserId: payment.enrollment.userId,
+        productTitle: payment.enrollment.course?.title ?? 'Kursus',
+        href: payment.enrollment.course?.slug
+          ? STUDENT_ROUTES.kursusDetail(payment.enrollment.course.slug)
+          : STUDENT_ROUTES.kursus,
+      });
+    }
   }
 
   try {
@@ -77,7 +140,7 @@ export async function applyProviderPaymentEvent(input: {
         enrollmentId: payment.enrollmentId,
         enrollmentStatus: nextEnrollmentStatus,
         productType: payment.enrollment.type,
-        courseSlug: payment.enrollment.course?.slug ?? null,
+        productKey,
       }),
     );
   } catch (error) {

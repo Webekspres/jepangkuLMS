@@ -6,8 +6,6 @@ import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import { awardLmsSplitActivity } from '@/lib/lms/award-activity';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
-import { notifyEnrollmentPending } from '@/lib/lms/notifications';
-import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import {
   calculateTryoutPoints,
   lmsTryoutCompletedSourceKey,
@@ -15,7 +13,6 @@ import {
 } from '@/lib/lms/point-rules';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
-import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import {
   resolveTryoutXp,
   TRYOUT_PASS_SCORE_PERCENT,
@@ -45,10 +42,10 @@ export type TryoutSubmitResult =
   | { ok: false; message: string };
 
 export type RequestTryoutEnrollmentResult =
-  | { ok: true; status: 'PENDING' | 'ACTIVE'; sessionCode: string }
+  | { ok: true; status: 'ACTIVE'; sessionCode: string }
   | { ok: false; message: string };
 
-/** Request enrollment for a paid tryout session (PENDING) or instant ACTIVE when free. */
+/** Free tryout → ACTIVE. Paid tryout must use Midtrans checkout. */
 export async function requestTryoutEnrollment(
   sessionCode: string,
 ): Promise<RequestTryoutEnrollmentResult> {
@@ -67,7 +64,12 @@ export async function requestTryoutEnrollment(
     return { ok: true, sessionCode, status: 'ACTIVE' };
   }
 
-  const status = session.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
+  if (session.priceIdr > 0) {
+    return {
+      ok: false,
+      message: 'Tryout berbayar dibayar lewat checkout Midtrans.',
+    };
+  }
 
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_tryoutSessionId: { userId, tryoutSessionId: session.id } },
@@ -75,28 +77,10 @@ export async function requestTryoutEnrollment(
       userId,
       tryoutSessionId: session.id,
       type: 'TRYOUT',
-      status,
+      status: 'ACTIVE',
     },
-    update: { status, type: 'TRYOUT' },
+    update: { status: 'ACTIVE', type: 'TRYOUT' },
   });
-
-  if (status === 'PENDING' && existing?.status !== 'PENDING') {
-    const studentName = (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
-    await notifyEnrollmentPending({
-      enrollmentId: enrollment.id,
-      studentUserId: userId,
-      studentName,
-      courseTitle: `${session.title} (${session.level})`,
-    });
-    await logEnrollmentRequested({
-      enrollmentId: enrollment.id,
-      userId,
-      type: 'TRYOUT',
-      productTitle: session.title,
-      productSubtitle: session.code,
-      studentName,
-    });
-  }
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard/tryout');
@@ -105,7 +89,7 @@ export async function requestTryoutEnrollment(
   return {
     ok: true,
     sessionCode,
-    status: enrollment.status as 'PENDING' | 'ACTIVE',
+    status: enrollment.status as 'ACTIVE',
   };
 }
 
