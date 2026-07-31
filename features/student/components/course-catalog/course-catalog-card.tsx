@@ -108,6 +108,20 @@ export function CourseCatalogCard({ course, enrollment, index = 0 }: CourseCatal
           </span>
         </div>
 
+        <div className="mt-3 flex items-baseline justify-between gap-2">
+          <span
+            className={cn(
+              'text-base font-extrabold tabular-nums',
+              course.price === 'Gratis' ? 'text-emerald-600' : 'text-brand-red',
+            )}
+          >
+            {course.price}
+          </span>
+          {course.price !== 'Gratis' ? (
+            <span className="text-[11px] text-muted-foreground">sekali bayar</span>
+          ) : null}
+        </div>
+
         {isEnrolled ? (
           <div className="mt-4">
             <div className="mb-2 flex justify-between text-[11px] font-medium">

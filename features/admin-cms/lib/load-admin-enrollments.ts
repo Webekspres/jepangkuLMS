@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import type { EnrollmentStatus, EnrollmentType } from '@prisma/client';
+import type { EnrollmentStatus, EnrollmentType, PaymentProvider, PaymentStatus } from '@prisma/client';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
@@ -16,6 +16,8 @@ export type AdminEnrollmentRow = {
   /** Baris kedua: slug kursus / nama sensei / kode tryout. */
   productSubtitle: string;
   priceIdr: number;
+  paymentProvider: PaymentProvider | null;
+  paymentStatus: PaymentStatus | null;
 };
 
 export type AdminEnrollmentProductOption = { id: string; title: string };
@@ -35,6 +37,7 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
         course: { select: { title: true, slug: true, priceIdr: true } },
         liveClass: { select: { title: true, senseiName: true, priceIdr: true } },
         tryoutSession: { select: { title: true, code: true, priceIdr: true } },
+        payment: { select: { provider: true, status: true } },
       },
     }),
     prisma.course.findMany({ orderBy: { title: 'asc' }, select: { id: true, title: true } }),
@@ -57,6 +60,8 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
         displayName: row.user.displayName,
         ssoDisplayName: row.user.ssoDisplayName,
       }),
+      paymentProvider: row.payment?.provider ?? null,
+      paymentStatus: row.payment?.status ?? null,
     };
 
     if (row.type === 'COURSE' && row.course && row.courseId) {

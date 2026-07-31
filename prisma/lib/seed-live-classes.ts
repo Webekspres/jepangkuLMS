@@ -19,6 +19,7 @@ type LiveClassSeed = {
   priceIdr: number;
   maxSlots: number;
   filledSlots: number;
+  isPublished: boolean;
   sessions: LiveSessionSeed[];
 };
 
@@ -34,6 +35,7 @@ const LIVE_CLASSES: LiveClassSeed[] = [
     priceIdr: 150_000,
     maxSlots: 30,
     filledSlots: 22,
+    isPublished: true,
     sessions: [
       {
         title: 'Pertemuan 1 — て-form & Sambungan Kata Kerja',
@@ -72,6 +74,7 @@ const LIVE_CLASSES: LiveClassSeed[] = [
     priceIdr: 0,
     maxSlots: 25,
     filledSlots: 18,
+    isPublished: true,
     sessions: [
       {
         title: 'Pertemuan 1 — 50 Kanji Dasar',
@@ -102,6 +105,7 @@ const LIVE_CLASSES: LiveClassSeed[] = [
     priceIdr: 200_000,
     maxSlots: 20,
     filledSlots: 13,
+    isPublished: true,
     sessions: [
       {
         title: 'Pertemuan 1 — Salam & Perkenalan Formal',
@@ -145,7 +149,7 @@ export async function seedLiveClasses(prisma: PrismaClient): Promise<void> {
       maxSlots: program.maxSlots,
       filledSlots: program.filledSlots,
       coverImageUrl: null,
-      isPublished: true,
+      isPublished: program.isPublished,
     };
 
     const existing = await prisma.liveClass.findFirst({

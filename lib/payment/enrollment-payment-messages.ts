@@ -1,7 +1,11 @@
 export type PaymentSettings = {
+  provider?: 'manual' | 'midtrans';
+  checkoutMode?: 'manual' | 'snap' | 'core';
   bankName: string;
   accountName: string;
   accountNumber: string;
+  midtransClientKey?: string | null;
+  midtransSnapUrl?: string | null;
 };
 
 export type ProgramPaymentKind = 'course' | 'tryout' | 'live-class';

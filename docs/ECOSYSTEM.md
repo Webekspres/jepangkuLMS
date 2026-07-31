@@ -186,6 +186,7 @@ LMS tidak menjadi “monolith data user” untuk seluruh ekosistem.
 | [jepangku-core/docs/](../../jepangku-core/docs/) | **Schema canonical Core** (Prisma + DBML + README) |
 | [CORE_ERD.md](./CORE_ERD.md) | Konsep ringkas Core DB (bukan schema detail) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur teknis LMS (folder, data flow) |
+| [PAYMENT_MODEL.md](./PAYMENT_MODEL.md) | Model bisnis checkout (per item, no cart) + checklist Midtrans |
 | [sitemap.md](../sitemap.md) | URL — scope LMS saja |
 | [PROGRESS.md](./PROGRESS.md) | Status implementasi |
 | [CORE_INTEGRATION_STATUS.md](./CORE_INTEGRATION_STATUS.md) | Blocker Core, Clerk-only sementara, rencana dev LMS |

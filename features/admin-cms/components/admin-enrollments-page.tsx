@@ -79,6 +79,16 @@ const PRODUCT_TYPE_BADGE: Record<EnrollmentProductType, string> = {
   TRYOUT: 'bg-amber-500/10 text-amber-600 ',
 };
 
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Menunggu bayar',
+  CHALLENGE: 'Perlu review',
+  PAID: 'Lunas',
+  DENIED: 'Ditolak',
+  EXPIRED: 'Kedaluwarsa',
+  CANCELED: 'Dibatalkan',
+  FAILED: 'Gagal',
+};
+
 export function AdminEnrollmentsPage({
   enrollments,
   history,
@@ -383,6 +393,11 @@ export function AdminEnrollmentsPage({
                     <Badge variant={row.status === 'PENDING' ? 'secondary' : 'default'}>
                       {row.status === 'PENDING' ? 'Menunggu' : 'Aktif'}
                     </Badge>
+                    {row.paymentProvider === 'MIDTRANS' && row.paymentStatus ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Midtrans · {PAYMENT_STATUS_LABEL[row.paymentStatus] ?? row.paymentStatus}
+                      </p>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {row.createdAt.toLocaleDateString('id-ID')}
@@ -393,7 +408,7 @@ export function AdminEnrollmentsPage({
                         <Button
                           size="sm"
                           className="gap-1"
-                          disabled={isPending}
+                          disabled={isPending || row.paymentProvider === 'MIDTRANS'}
                           onClick={() =>
                             runAction(
                               () => approveEnrollmentAction(row.id),
@@ -406,7 +421,7 @@ export function AdminEnrollmentsPage({
                         </Button>
                         <AdminTableActionDelete
                           label="Tolak enrollment"
-                          disabled={isPending}
+                          disabled={isPending || row.paymentProvider === 'MIDTRANS'}
                           onClick={() => setRejectId(row.id)}
                         />
                       </AdminTableActions>

@@ -33,6 +33,20 @@ enum EnrollmentType {
     TRYOUT
 }
 
+enum PaymentProvider {
+    MIDTRANS
+}
+
+enum PaymentStatus {
+    PENDING
+    CHALLENGE
+    PAID
+    DENIED
+    EXPIRED
+    CANCELED
+    FAILED
+}
+
 enum LessonType {
     VIDEO
     FLASHCARD
@@ -360,11 +374,45 @@ model Enrollment {
     course        Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
     liveClass     LiveClass?     @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
     tryoutSession TryoutSession? @relation(fields: [tryoutSessionId], references: [id], onDelete: Cascade)
+    payment       Payment?
 
     @@unique([userId, courseId])
     @@unique([userId, liveClassId])
     @@unique([userId, tryoutSessionId])
     @@index([userId, type])
+}
+
+/// Payment ledger — money state is tracked separately from Enrollment access state.
+model Payment {
+    id                String          @id @default(uuid())
+    enrollmentId      String          @unique
+    provider          PaymentProvider @default(MIDTRANS)
+    orderId           String          @unique
+    amountIdr         Int
+    currency          String          @default("IDR")
+    status            PaymentStatus   @default(PENDING)
+    snapToken         String?
+    /// Our checkout method id (qris, va_bca, gopay, …) — Core API checkout
+    checkoutMethod    String?
+    /// Normalized PaymentInstructions JSON for Payment Detail UI
+    instructions      Json?
+    /// Raw Midtrans Core charge response (audit/debug)
+    rawChargeResponse Json?
+    transactionId     String?
+    paymentType       String?
+    statusCode        String?
+    transactionStatus String?
+    fraudStatus       String?
+    rawNotification   Json?
+    paidAt            DateTime?
+    expiresAt         DateTime?
+    createdAt         DateTime        @default(now())
+    updatedAt         DateTime        @updatedAt
+
+    enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+    @@index([status, createdAt(sort: Desc)])
+    @@index([provider, createdAt(sort: Desc)])
 }
 
 /// Audit trail enrollment — permintaan siswa & tindakan admin.

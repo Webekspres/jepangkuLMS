@@ -72,6 +72,9 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 /dashboard/kursus *              → Katalog Kursus (jelajahi + daftar)
 └── /[courseSlug] *              → Detail kursus + enrollment
 
+/dashboard/checkout/kursus/[courseSlug] * → Checkout Core (pilih metode + Bayar)
+/dashboard/pembayaran/[paymentId] *       → Instruksi pembayaran + SSE status
+
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 
 /dashboard/kana                       → Redirect → /dashboard/kana/hiragana
