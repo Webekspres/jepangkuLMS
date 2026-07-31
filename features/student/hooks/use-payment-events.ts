@@ -22,7 +22,10 @@ export function usePaymentEvents({
   onEvent,
 }: UsePaymentEventsOptions): void {
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     if (!enabled || !paymentId) return;
