@@ -4,6 +4,8 @@ export const STUDENT_ROUTES = {
   kursus: '/dashboard/kursus',
   kursusSaya: '/dashboard/kursus-saya',
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
+  checkoutKursus: (courseSlug: string) => `/dashboard/checkout/kursus/${courseSlug}`,
+  pembayaran: (paymentId: string) => `/dashboard/pembayaran/${paymentId}`,
   kana: '/dashboard/kana',
   kanaScript: (script: 'hiragana' | 'katakana') => `/dashboard/kana/${script}`,
   leaderboard: '/dashboard/leaderboard',

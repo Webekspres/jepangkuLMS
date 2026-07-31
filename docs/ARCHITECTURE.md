@@ -108,10 +108,11 @@ Setiap sub-folder di dalam `features/` memiliki batas tanggung jawab yang jelas:
   - `submitQuizAttempt()`: Mengirim jawaban akhir ke server untuk divalidasi dan dihitung skornya.
 
 ### 4. `features/admin-cms`
-- **Tanggung Jawab:** Dashboard khusus admin untuk manajemen materi pelajaran, import bulk bank soal via Excel/CSV, serta validasi manual bukti transfer pembayaran kelas.
+- **Tanggung Jawab:** Dashboard khusus admin untuk manajemen materi pelajaran, import bulk bank soal via Excel/CSV, serta validasi manual bukti transfer pembayaran kelas (MVP).
 - **Server Actions (`actions/`):**
-  - `approvePayment()`: Mengubah status pembayaran dan men-enroll siswa ke kelas terkait.
+  - `approveEnrollmentAction` / `rejectEnrollmentAction` / `grantEnrollmentAction`: Ubah status `Enrollment` dan tulis `EnrollmentLog` (bukan ledger Payment terpisah).
   - `uploadExcelMateri()`: Membaca file CSV/Excel dan menyimpannya ke database (Prisma).
+- **Model pembayaran (locked):** checkout **per item** (satu produk = satu transaksi) — bukan cart. Lihat **[PAYMENT_MODEL.md](./PAYMENT_MODEL.md)**. Midtrans Snap + tabel `Payment` = PR berikutnya.
 
 ---
 

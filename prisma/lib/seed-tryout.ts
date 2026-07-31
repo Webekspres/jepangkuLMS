@@ -136,14 +136,14 @@ const SESSIONS = [
     priceIdr: 0,
   },
   {
-    code: 'fase-2',
-    title: 'Simulasi JLPT N4 — Fase 2',
-    phaseLabel: 'Fase 2',
-    level: 'N4' as const,
-    description: 'Sesi lanjutan dengan distribusi soal lebih menantang.',
+    code: 'fase-1-premium',
+    title: 'Simulasi JLPT N5 — Fase 1 Premium',
+    phaseLabel: 'Fase 1 Premium',
+    level: 'N5' as const,
+    description: 'Versi berbayar untuk simulasi N5 dengan alur enrollment/payment lokal.',
     sortOrder: 2,
     isActive: true,
-    priceIdr: 0,
+    priceIdr: 79_000,
   },
   {
     code: 'fase-3',
@@ -152,8 +152,8 @@ const SESSIONS = [
     level: 'N3' as const,
     description: 'Simulasi intensif menjelang ujian resmi.',
     sortOrder: 3,
-    isActive: false,
-    priceIdr: 0,
+    isActive: true,
+    priceIdr: 99_000,
   },
   {
     code: 'fase-4',
@@ -162,8 +162,8 @@ const SESSIONS = [
     level: 'N2' as const,
     description: 'Final drill — kondisi ujian penuh.',
     sortOrder: 4,
-    isActive: false,
-    priceIdr: 0,
+    isActive: true,
+    priceIdr: 129_000,
   },
 ] as const;
 
@@ -335,7 +335,7 @@ export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
       },
     });
 
-    if (session.code === 'fase-1') {
+    if (session.code === 'fase-1' || session.code === 'fase-1-premium') {
       await seedFase1N5Bank(prisma, row.id);
     }
   }

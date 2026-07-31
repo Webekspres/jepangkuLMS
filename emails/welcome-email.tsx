@@ -31,7 +31,7 @@ export function WelcomeEmail({
 
       <Text style={emailStyles.paragraph}>
         JepangKu adalah platform kursus bahasa Jepang yang membantu Anda belajar secara
-        terstruktur—dari materi pelajaran hingga latihan dan progres belajar.
+        terstruktur dari materi pelajaran hingga latihan dan progres belajar.
       </Text>
 
       <Text style={emailStyles.paragraph}>

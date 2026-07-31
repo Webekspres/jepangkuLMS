@@ -7,6 +7,7 @@
 | [ECOSYSTEM.md](./ECOSYSTEM.md) | Batas LMS vs Core vs News |
 | [DRAFT_LMS_PLATFORM_POINTS.md](./DRAFT_LMS_PLATFORM_POINTS.md) | **Draft** poin LMS & leaderboard platform (belum implementasi) |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arsitektur feature-based |
+| [PAYMENT_MODEL.md](./PAYMENT_MODEL.md) | Checkout per item; Snap today; payment-engine shape + Core checkout ADR |
 | [DATABASE.md](./DATABASE.md) | Strategi DB LMS |
 | [CORE_ERD.md](./CORE_ERD.md) | Konsep DB Core (ringkas) |
 | [PROGRESS.md](./PROGRESS.md) | Tracker implementasi MVP |
