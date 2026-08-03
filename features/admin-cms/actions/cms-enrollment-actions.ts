@@ -34,6 +34,7 @@ const enrollmentLogSelect = {
   type: true,
   status: true,
   liveClassId: true,
+  payment: { select: { provider: true, status: true } },
   course: { select: { title: true, slug: true } },
   liveClass: { select: { title: true, senseiName: true } },
   tryoutSession: { select: { title: true, code: true } },
@@ -83,6 +84,9 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
     select: enrollmentLogSelect,
   });
   if (!before) return { ok: false, message: 'Enrollment tidak ditemukan.' };
+  if (before.payment?.provider === 'MIDTRANS') {
+    return { ok: false, message: 'Enrollment Midtrans diaktifkan otomatis lewat webhook pembayaran.' };
+  }
 
   const enrollment = await prisma.enrollment.update({
     where: { id: parsedId.data },
@@ -160,6 +164,14 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
     select: enrollmentLogSelect,
   });
   if (!before) return { ok: false, message: 'Enrollment tidak ditemukan.' };
+  // Block reject of pending Midtrans payments only — ACTIVE revoke (Cabut akses) remains allowed.
+  if (before.payment?.provider === 'MIDTRANS' && before.status === 'PENDING') {
+    return {
+      ok: false,
+      message:
+        'Pembayaran Midtrans yang masih pending tidak bisa ditolak di sini. Biarkan kedaluwarsa/dibatalkan di Midtrans, atau minta siswa ganti metode.',
+    };
+  }
 
   const enrollment = await prisma.enrollment.delete({
     where: { id: parsedId.data },

@@ -14,6 +14,13 @@ import { evaluateTryoutAccess } from '@/features/tryout/lib/tryout-access';
 import { countTryoutCompositionQuestions } from '@/features/tryout/lib/count-tryout-paper-questions';
 import { loadTryoutExamPaper } from '@/features/tryout/lib/load-tryout-exam-paper';
 import { ensureTryoutEnrollmentAccess } from '@/lib/lms/tryout-enrollment';
+import {
+  formatJakartaDateLong,
+  formatJakartaTime,
+  formatJakartaTimeRange,
+  getJakartaDateKey,
+  getNextJakartaDateKey,
+} from '@/lib/jakarta-calendar';
 
 const DAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
 
@@ -52,19 +59,21 @@ const MILESTONE_META: Record<
   N1: { label: 'Mahir', icon: '👑', desc: 'Lulus tryout resmi level tertinggi JLPT N1' },
 };
 
-function formatLiveClassSchedule(date: Date): string {
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+function formatLiveClassSchedule(date: Date, now = new Date()): string {
+  const dateKey = getJakartaDateKey(date);
+  const todayKey = getJakartaDateKey(now);
+  const tomorrowKey = getNextJakartaDateKey(todayKey);
+  const time = formatJakartaTime(date);
 
-  const isToday = date.toDateString() === now.toDateString();
-  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  if (dateKey === todayKey) return `Hari ini, ${time} WIB`;
+  if (dateKey === tomorrowKey) return `Besok, ${time} WIB`;
 
-  const time = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-  if (isToday) return `Hari ini, ${time} WIB`;
-  if (isTomorrow) return `Besok, ${time} WIB`;
-
-  const day = date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' });
+  const day = date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'Asia/Jakarta',
+  });
   return `${day}, ${time} WIB`;
 }
 
@@ -353,13 +362,8 @@ export const loadPublishedLiveClasses = cache(async function loadPublishedLiveCl
   return rows.map((row) => {
     const sessions: LiveSessionView[] = row.sessions.map((session) => {
       const status = resolveLiveSessionStatus(session.scheduledAt, session.endsAt, now);
-      const dateLabel = session.scheduledAt.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-      const timeLabel = `${session.scheduledAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} – ${session.endsAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+      const dateLabel = formatJakartaDateLong(session.scheduledAt);
+      const timeLabel = formatJakartaTimeRange(session.scheduledAt, session.endsAt);
 
       return {
         id: session.id,

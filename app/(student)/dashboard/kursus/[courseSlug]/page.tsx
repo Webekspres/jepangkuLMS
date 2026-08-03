@@ -50,6 +50,8 @@ export default async function DashboardCourseDetailRoute({ params }: CourseDetai
       priceIdr={data.priceIdr}
       studentDisplayName={data.studentDisplayName}
       enrollmentStatus={data.enrollmentStatus}
+      paymentStatus={data.paymentStatus}
+      paymentId={data.paymentId}
       isEnrolled={data.isEnrolled}
       progressPercent={data.progress.percent}
       continueLessonSlug={data.progress.continueLessonSlug}

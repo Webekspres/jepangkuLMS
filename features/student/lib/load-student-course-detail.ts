@@ -7,7 +7,7 @@ import {
 } from '@/lib/cache/learning-cache';
 import { estimateCourseDuration } from '@/features/learning/lib/course-display';
 import { prisma } from '@/lib/prisma';
-import type { EnrollmentStatus } from '@prisma/client';
+import type { EnrollmentStatus, PaymentStatus } from '@prisma/client';
 import { computeCourseProgressFromLessons } from '@/features/learning/lib/progress';
 
 export const loadStudentCourseDetail = cache(async function loadStudentCourseDetail(
@@ -20,7 +20,18 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
     getCachedCourseWithLessons(courseSlug),
     prisma.enrollment.findFirst({
       where: { userId, course: { slug: courseSlug } },
-      select: { id: true, status: true, courseId: true },
+      select: {
+        id: true,
+        status: true,
+        courseId: true,
+        payment: {
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+          },
+        },
+      },
     }),
     prisma.user.findUnique({
       where: { id: userId },
@@ -54,6 +65,8 @@ export const loadStudentCourseDetail = cache(async function loadStudentCourseDet
     enrollment,
     progress,
     enrollmentStatus,
+    paymentStatus: (enrollmentRow?.payment?.status ?? null) as PaymentStatus | null,
+    paymentId: enrollmentRow?.payment?.id ?? null,
     isEnrolled,
     isPending: !adminAccess && enrollmentStatus === 'PENDING',
     studentDisplayName: user?.displayName ?? null,

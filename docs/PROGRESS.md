@@ -7,9 +7,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-27                                                  |
+| **Terakhir diperbarui**   | 2026-07-31                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **88%** (71 item terlacak)                                  |
+| **Progres global Fase 1** | **88%** (74 item terlacak)                                 |
 
 ### Progres global
 
@@ -20,15 +20,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      17 |     13 |     4 |     0 |     86% |
-| Halaman & routing        |      31 |     25 |     6 |     0 |     88% |
+| Halaman & routing        |      33 |     27 |     6 |     0 |     89% |
 | Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
-| Keamanan & bisnis        |       6 |      5 |     1 |     0 |     90% |
-| **Total**                |  **71** | **57** | **13** | **1** | **88%** |
+| Keamanan & bisnis        |       7 |      6 |     1 |     0 |     91% |
+| **Total**                |  **74** | **60** | **13** | **1** | **88%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(57 + 5.2) ÷ 71 ≈ 88%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(60 + 5.2) ÷ 74 ≈ 88%`.
 
 ---
 
@@ -48,10 +48,10 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      13 |        4 |     0 |
-| Halaman & routing        |      25 |        6 |     0 |
+| Halaman & routing        |      27 |        6 |     0 |
 | Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
-| Keamanan & bisnis        |       5 |        1 |     0 |
+| Keamanan & bisnis        |       6 |        1 |     0 |
 
 ---
 
@@ -118,6 +118,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/tes-penempatan`                     |   🟡   | Hub + stub paper; asset sensei belum final                                              |
 | `/dashboard/tes-penempatan/ujian`               |   🟡   | Focus UI: Bunpou flat + Choukai Mondai Intro/navigator grup; audio kontinu; stub soal Choukai |
 | `/dashboard/tes-penempatan/hasil/[attemptId]`   |   🟡   | Rekomendasi level dari score bands; isi soal masih stub                                 |
+| `/dashboard/checkout/...`                       |   ✅   | Shared Core checkout: kursus / live-class / tryout + ikon metode tergrup                |
+| `/dashboard/pembayaran`, `/dashboard/pembayaran/[id]` |   ✅   | Riwayat pembayaran + detail instruksi + SSE / Cek status                          |
 
 ### 2.4 Admin
 
@@ -181,15 +183,18 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info     |   ✅   |
 | Secured video (enrolled only)      |   🟡   | API gate + player hardening; YouTube bukan DRM penuh                          |
 | Enrollment gate lesson             |   ✅   |
+| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans-only paid path (Course/Live/Tryout); CMS grant tetap; bank transfer retired; audit `PAYMENT_SETTLED` |
 | Rate Limiting (Middleware + Redis) |   🟡   | Dihapus dari `proxy.ts` (429 di staging); `lib/rate-limit/` tetap untuk nanti |
 
 ---
 
 ## 6. Backlog Fase 2 🔮
 
+- Status admin enrollment yang lebih kaya + `EnrollmentLog` on Midtrans auto-settle
 - Integrasi News Partner API v1
 - Tryout semua level N4–N1 + sesi Fase 2–4 penuh
 - Leaderboard global dari Core API
+- Membership / bundle / voucher (lihat PAYMENT_MODEL.md)
 
 ---
 
@@ -197,6 +202,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-31 | Midtrans cutover: retire student bank transfer; `PAYMENT_SETTLED` EnrollmentLog; admin Antrian payment filters; CMS grant tetap |
+| 2026-07-31 | Payment Phase 1 product-agnostic: `chargeProductPayment` + resolvers; shared checkout Course/Live/Tryout; icons + grouped methods; payment detail SSE UX + Cek status; student payment history; docs/sitemap |
+| 2026-07-31 | Midtrans Core checkout Course: `Payment.instructions`/`checkoutMethod`, CoreApi charge via `lib/payment-engine`, routes `/dashboard/checkout/kursus/[slug]` + `/dashboard/pembayaran/[paymentId]`, sidebar CTA tanpa Snap (default `PAYMENT_CHECKOUT_MODE=core`) |
+| 2026-07-31 | Payment engine shape: `lib/payment-engine` (provider port, CheckoutContext, method registry metadata, instruction DTO); ADR updated — no PaymentIntent table; Core checkout migration still pending |
+| 2026-07-31 | Seed monetisasi diperluas: Course 1 gratis + 5 berbayar published; Live Class 1 gratis + 2 berbayar published; Tryout 1 gratis + 3 berbayar active |
+| 2026-07-31 | Payment SSE realtime: hub (memory + Redis), `GET /api/payments/[paymentId]/events`, webhook publish setelah settle, Course sidebar EventSource unlock/redirect; kontrak di [PAYMENT_MODEL.md](./PAYMENT_MODEL.md) |
+| 2026-07-30 | Seed lokal untuk uji monetisasi diperjelas: masing-masing ada 1 Course gratis + 1 berbayar yang published, 1 Live Class gratis + 1 berbayar yang published, dan 1 Tryout gratis + 1 berbayar yang active |
+| 2026-07-30 | Midtrans sandbox tahap awal: schema `Payment`, provider flag `PAYMENT_PROVIDER`, checkout Course via Snap, webhook `/api/webhooks/midtrans`, dan guard admin agar enrollment Midtrans tidak di-approve manual |
+| 2026-07-30 | Lock model pembayaran: checkout **per item** (bukan cart); ADR [PAYMENT_MODEL.md](./PAYMENT_MODEL.md); Midtrans implementasi ditunda PR terpisah |
 | 2026-07-24 | Admin executive dashboard: Recharts insights (enrollment/student/top courses/mix/tryout/live/placement), activity feed, range 7/30; GA4/GSC → `/admin/settings` |
 | 2026-07-24 | Tryout blok JLPT by level: N5–N3 tiga bagian, N1–N2 dua (Vocab/Grammar·Reading gabung); label EN jlpt.jp; CMS tab + exam intro mengikuti blok |
 | 2026-07-24 | Tryout Choukai: 1 audio master per paket + `mondaiOrder` dinamis; CMS paket upload; exam continuous player (tanpa intro per-mondai) |

@@ -29,12 +29,9 @@ import type {
   LiveClassDetailSession,
   LiveClassDetailView,
 } from '@/features/live-class/lib/load-live-class-detail';
-import {
-  ProgramPaymentPanel,
-  type ProgramEnrollmentStatus,
-} from '@/features/student/components/program-payment-panel';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
 
 const STATUS_DOT: Record<LiveSessionStatus, string> = {
@@ -237,15 +234,11 @@ function EnrolledAccessCard({
 
 function LiveClassSidebarActions({
   liveClass,
-  studentDisplayName,
-  enrollmentStatus,
   isPending,
   onEnroll,
   now,
 }: {
   liveClass: LiveClassDetailView;
-  studentDisplayName: string | null;
-  enrollmentStatus: ProgramEnrollmentStatus;
   isPending: boolean;
   onEnroll: () => Promise<void>;
   now: number;
@@ -289,28 +282,54 @@ function LiveClassSidebarActions({
     );
   }
 
+  const useMidtrans =
+    liveClass.paymentSettings.provider === 'midtrans' &&
+    (liveClass.paymentSettings.checkoutMode === 'core' ||
+      liveClass.paymentSettings.checkoutMode === 'snap');
+
+  if (!useMidtrans) {
+    return (
+      <div className="min-w-0 space-y-3 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <p className="text-2xl font-extrabold text-brand-red">{formatIdr(liveClass.priceIdr)}</p>
+        <p className="text-sm text-muted-foreground">
+          Pembayaran online sedang tidak tersedia. Silakan coba lagi nanti atau hubungi admin.
+        </p>
+      </div>
+    );
+  }
+
+  const checkoutHref = liveClass.pendingPaymentId
+    ? STUDENT_ROUTES.pembayaran(liveClass.pendingPaymentId)
+    : STUDENT_ROUTES.checkoutLiveClass(liveClass.id);
   return (
-    <ProgramPaymentPanel
-      kind="live-class"
-      productTitle={liveClass.title}
-      productDetail={liveClass.id}
-      priceIdr={liveClass.priceIdr}
-      enrollmentStatus={enrollmentStatus}
-      studentDisplayName={studentDisplayName}
-      paymentSettings={liveClass.paymentSettings}
-      paymentLink={liveClass.paymentLink}
-      onRequestEnrollment={onEnroll}
-      disabled={liveClass.isFull || Boolean(liveClass.accessMessage)}
-      disabledMessage={
-        liveClass.isFull ? 'Kelas sudah penuh.' : (liveClass.accessMessage ?? undefined)
-      }
-    />
+    <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <div>
+        <p className="text-2xl font-extrabold text-brand-red">{formatIdr(liveClass.priceIdr)}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Bayar online — akses aktif otomatis setelah pembayaran berhasil.
+        </p>
+      </div>
+      <Button
+        asChild
+        size="lg"
+        className="h-11 w-full"
+        disabled={liveClass.isFull || Boolean(liveClass.accessMessage)}
+      >
+        <Link href={checkoutHref}>
+          {liveClass.isFull
+            ? 'Kelas Penuh'
+            : liveClass.pendingPaymentId
+              ? 'Lanjutkan pembayaran'
+              : 'Bayar sekarang'}
+        </Link>
+      </Button>
+    </div>
   );
 }
 
 export function LiveClassDetailPage({
   liveClass,
-  studentDisplayName,
+  studentDisplayName: _studentDisplayName,
 }: {
   liveClass: LiveClassDetailView;
   studentDisplayName: string | null;
@@ -340,26 +359,16 @@ export function LiveClassDetailPage({
           reject(new Error(result.message));
           return;
         }
-        toast.success(
-          result.status === 'ACTIVE'
-            ? 'Berhasil terdaftar! Selamat belajar 🎉'
-            : 'Pendaftaran dikirim — menunggu verifikasi pembayaran.',
-        );
+        toast.success('Berhasil terdaftar! Selamat belajar 🎉');
         router.refresh();
         resolve();
       });
     });
 
-  const enrollmentStatus: ProgramEnrollmentStatus =
-    liveClass.enrollmentStatus === 'ACTIVE' || liveClass.enrollmentStatus === 'PENDING'
-      ? liveClass.enrollmentStatus
-      : 'none';
   const coverSrc = resolveLiveClassCoverUrl(liveClass.coverImageUrl);
 
   const sidebarProps = {
     liveClass,
-    studentDisplayName,
-    enrollmentStatus,
     isPending,
     onEnroll: handleEnroll,
     now,

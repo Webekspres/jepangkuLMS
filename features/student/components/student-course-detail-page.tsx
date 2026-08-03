@@ -25,7 +25,8 @@ import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
-import type { EnrollmentStatus } from '@prisma/client';
+import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
+import type { EnrollmentStatus, PaymentStatus } from '@prisma/client';
 
 type DbLesson = {
   id: string;
@@ -57,12 +58,13 @@ export type StudentCourseDetailPageProps = {
   priceIdr: number;
   studentDisplayName: string | null;
   enrollmentStatus: EnrollmentStatus | null;
+  paymentStatus: PaymentStatus | null;
+  paymentId?: string | null;
   isEnrolled: boolean;
   progressPercent: number;
   continueLessonSlug: string | null;
-  paymentSettings: { bankName: string; accountName: string; accountNumber: string };
+  paymentSettings: PaymentSettings;
 };
-
 export function StudentCourseDetailPage({
   course,
   whatYouLearn,
@@ -71,6 +73,8 @@ export function StudentCourseDetailPage({
   priceIdr,
   studentDisplayName,
   enrollmentStatus,
+  paymentStatus,
+  paymentId = null,
   isEnrolled,
   progressPercent,
   continueLessonSlug,
@@ -216,6 +220,8 @@ export function StudentCourseDetailPage({
               priceIdr={priceIdr}
               studentDisplayName={studentDisplayName}
               enrollmentStatus={sidebarStatus}
+              paymentStatus={paymentStatus}
+              paymentId={paymentId}
               progressPercent={progressPercent}
               continueLessonSlug={continueLessonSlug}
               firstLessonSlug={course.lessons[0]?.slug}

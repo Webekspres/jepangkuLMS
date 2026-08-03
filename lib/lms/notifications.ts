@@ -69,15 +69,23 @@ export async function notifyEnrollmentPending(input: {
 export async function notifyEnrollmentApproved(input: {
   enrollmentId: string;
   studentUserId: string;
-  courseTitle: string;
-  courseSlug: string;
+  /** @deprecated Prefer productTitle */
+  courseTitle?: string;
+  /** @deprecated Prefer href */
+  courseSlug?: string;
+  productTitle?: string;
+  href?: string;
 }): Promise<void> {
+  const title = input.productTitle ?? input.courseTitle ?? 'Program';
+  const href =
+    input.href ??
+    (input.courseSlug ? `/dashboard/kursus/${input.courseSlug}` : '/dashboard/kursus');
   await createLmsNotification({
     userId: input.studentUserId,
     type: 'ENROLLMENT_APPROVED',
     title: 'Enrollment disetujui',
-    body: `Akses kursus ${input.courseTitle} sudah aktif. Selamat belajar!`,
-    href: `/dashboard/kursus/${input.courseSlug}`,
+    body: `Akses ${title} sudah aktif. Selamat belajar!`,
+    href,
     dedupeKey: `enrollment-approved:${input.enrollmentId}`,
   });
 }

@@ -4,6 +4,12 @@ export const STUDENT_ROUTES = {
   kursus: '/dashboard/kursus',
   kursusSaya: '/dashboard/kursus-saya',
   kursusDetail: (courseSlug: string) => `/dashboard/kursus/${courseSlug}`,
+  checkoutKursus: (courseSlug: string) => `/dashboard/checkout/kursus/${courseSlug}`,
+  checkoutLiveClass: (liveClassId: string) => `/dashboard/checkout/live-class/${liveClassId}`,
+  checkoutTryout: (sessionCode: string) =>
+    `/dashboard/checkout/tryout/${encodeURIComponent(sessionCode)}`,
+  pembayaran: (paymentId: string) => `/dashboard/pembayaran/${paymentId}`,
+  pembayaranHistory: '/dashboard/pembayaran',
   kana: '/dashboard/kana',
   kanaScript: (script: 'hiragana' | 'katakana') => `/dashboard/kana/${script}`,
   leaderboard: '/dashboard/leaderboard',
@@ -17,6 +23,7 @@ export const STUDENT_ROUTES = {
   placementResult: (attemptId: string) =>
     `/dashboard/tes-penempatan/hasil/${encodeURIComponent(attemptId)}`,
   liveClass: '/dashboard/live-class',
+  liveClassDetail: (id: string) => `/dashboard/live-class/${id}`,
   profil: '/dashboard/profil',
   achievements: '/dashboard/achievements',
   belajar: (courseSlug: string, lessonSlug: string) =>
