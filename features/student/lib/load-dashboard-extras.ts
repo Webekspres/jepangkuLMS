@@ -189,6 +189,8 @@ export type TryoutSessionView = {
   /** Pesan jika belum bisa diakses (mis. di luar jadwal). */
   accessMessage: string | null;
   enrollmentStatus: 'none' | EnrollmentStatus;
+  /** Midtrans Payment id when enrollment is PENDING with an open payment. */
+  pendingPaymentId: string | null;
 };
 
 export const loadTryoutSessions = cache(async function loadTryoutSessions(): Promise<
@@ -226,10 +228,14 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
       type: 'TRYOUT',
       tryoutSessionId: { in: sessions.map((session) => session.id) },
     },
-    select: { tryoutSessionId: true, status: true },
+    select: {
+      tryoutSessionId: true,
+      status: true,
+      payment: { select: { id: true, status: true } },
+    },
   });
   const enrollmentBySessionId = new Map(
-    enrollments.map((row) => [row.tryoutSessionId!, row.status]),
+    enrollments.map((row) => [row.tryoutSessionId!, row]),
   );
 
   const now = new Date();
@@ -248,6 +254,9 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
     const composed =
       fromSet > 0 ? fromSet : countTryoutCompositionQuestions(session.items);
     const questionCount = composed > 0 ? composed : session._count.questions;
+    const enrollment = enrollmentBySessionId.get(session.id);
+    const pendingPaymentId =
+      enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null;
 
     return {
       id: session.id,
@@ -263,7 +272,8 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
       isStrictTimeBound: session.isStrictTimeBound,
       isAccessible: access.ok,
       accessMessage: access.ok ? null : access.message,
-      enrollmentStatus: enrollmentBySessionId.get(session.id) ?? 'none',
+      enrollmentStatus: enrollment?.status ?? 'none',
+      pendingPaymentId,
     };
   });
 });
