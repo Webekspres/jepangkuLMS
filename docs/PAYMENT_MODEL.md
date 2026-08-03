@@ -52,7 +52,7 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no Midtrans)
 | Antrian | Filter enrollment status + filter pembayaran Midtrans (`pending` / `paid` / `terminal` / tanpa Payment) |
 | Riwayat | `EnrollmentLog` including **Dibayar otomatis** (`PAYMENT_SETTLED`) and **Diberikan manual** (`GRANTED`) |
 
-Midtrans rows: approve/reject disabled (settle via webhook).
+Midtrans PENDING: **Batalkan** (Cancel API + tutup enrollment). Settle hanya lewat webhook — tidak ada Setujui/Tolak.
 
 ---
 

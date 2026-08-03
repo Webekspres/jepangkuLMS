@@ -18,9 +18,12 @@ import {
   notifyEnrollmentRejected,
   notifyLiveClassApproval,
 } from '@/lib/lms/notifications';
+import { getPaymentProvider } from '@/lib/payment-engine/service';
 import { prisma } from '@/lib/prisma';
 import { userAnchorCreateData } from '@/lib/auth/sync-user-anchor';
 import { uuidSchema } from '@/lib/validations/shared';
+
+const TERMINAL_OR_CANCELED_PAYMENT = new Set(['CANCELED', 'EXPIRED', 'DENIED', 'FAILED']);
 
 const grantEnrollmentSchema = z.object({
   userId: z.string().trim().min(1, 'User ID wajib diisi'),
@@ -164,17 +167,129 @@ export async function rejectEnrollmentAction(enrollmentId: string): Promise<CmsA
     select: enrollmentLogSelect,
   });
   if (!before) return { ok: false, message: 'Enrollment tidak ditemukan.' };
-  // Block reject of pending Midtrans payments only — ACTIVE revoke (Cabut akses) remains allowed.
+  // Midtrans PENDING must use cancelMidtransEnrollmentAction (Cancel API), not Tolak.
   if (before.payment?.provider === 'MIDTRANS' && before.status === 'PENDING') {
     return {
       ok: false,
       message:
-        'Pembayaran Midtrans yang masih pending tidak bisa ditolak di sini. Biarkan kedaluwarsa/dibatalkan di Midtrans, atau minta siswa ganti metode.',
+        'Pembayaran Midtrans yang masih pending dibatalkan lewat aksi Batalkan, bukan Tolak.',
     };
   }
 
-  const enrollment = await prisma.enrollment.delete({
+  return closeEnrollmentAsRejected({
+    adminId,
+    enrollmentId: parsedId.data,
+    before,
+  });
+}
+
+/**
+ * Admin cancel for Midtrans PENDING: cancel Midtrans order, mark Payment CANCELED,
+ * then remove enrollment (same audit trail as REJECTED).
+ */
+export async function cancelMidtransEnrollmentAction(
+  enrollmentId: string,
+): Promise<CmsActionResult> {
+  const adminId = await requireAdminAction();
+
+  const parsedId = uuidSchema.safeParse(enrollmentId);
+  if (!parsedId.success) {
+    return { ok: false, message: 'Enrollment tidak valid.' };
+  }
+
+  const before = await prisma.enrollment.findUnique({
     where: { id: parsedId.data },
+    select: {
+      ...enrollmentLogSelect,
+      payment: {
+        select: { id: true, provider: true, status: true, orderId: true },
+      },
+    },
+  });
+  if (!before) return { ok: false, message: 'Enrollment tidak ditemukan.' };
+  if (before.status !== 'PENDING') {
+    return { ok: false, message: 'Hanya enrollment menunggu yang bisa dibatalkan.' };
+  }
+  if (!before.payment || before.payment.provider !== 'MIDTRANS') {
+    return { ok: false, message: 'Enrollment ini bukan pembayaran Midtrans.' };
+  }
+  if (before.payment.status === 'PAID') {
+    return {
+      ok: false,
+      message: 'Pembayaran sudah lunas. Batalkan tidak tersedia — cabut akses jika perlu.',
+    };
+  }
+  if (!['PENDING', 'CHALLENGE'].includes(before.payment.status)) {
+    return {
+      ok: false,
+      message: 'Status pembayaran Midtrans sudah terminal; hapus antrean tidak diperlukan.',
+    };
+  }
+
+  const provider = getPaymentProvider('midtrans');
+  const orderId = before.payment.orderId;
+
+  try {
+    await provider.cancel?.(orderId);
+  } catch {
+    let remoteStatus: string | null = null;
+    try {
+      const statusResult = await provider.fetchStatus(orderId);
+      remoteStatus = statusResult.status;
+    } catch {
+      return {
+        ok: false,
+        message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
+      };
+    }
+
+    if (remoteStatus === 'PAID') {
+      return {
+        ok: false,
+        message: 'Pembayaran sudah lunas di Midtrans. Batalkan tidak tersedia.',
+      };
+    }
+    if (!remoteStatus || !TERMINAL_OR_CANCELED_PAYMENT.has(remoteStatus)) {
+      return {
+        ok: false,
+        message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
+      };
+    }
+  }
+
+  await prisma.payment.update({
+    where: { id: before.payment.id },
+    data: {
+      status: 'CANCELED',
+      transactionStatus: 'cancel',
+    },
+  });
+
+  return closeEnrollmentAsRejected({
+    adminId,
+    enrollmentId: parsedId.data,
+    before,
+  });
+}
+
+async function closeEnrollmentAsRejected(input: {
+  adminId: string;
+  enrollmentId: string;
+  before: {
+    userId: string;
+    type: 'COURSE' | 'LIVE_CLASS' | 'TRYOUT';
+    status: 'PENDING' | 'ACTIVE';
+    liveClassId: string | null;
+    course: { title: string; slug: string } | null;
+    liveClass: { title: string; senseiName: string } | null;
+    tryoutSession: { title: string; code: string } | null;
+    user: { displayName: string | null; ssoDisplayName: string | null };
+  };
+}): Promise<CmsActionResult> {
+  const { adminId, enrollmentId, before } = input;
+
+  const enrollment = await prisma.enrollment.delete({
+    where: { id: enrollmentId },
     select: {
       id: true,
       userId: true,
