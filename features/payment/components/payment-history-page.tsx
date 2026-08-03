@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { PaymentStatus } from '@prisma/client';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { StudentPaymentHistoryItem } from '@/features/payment/lib/load-student-payments';
 import { formatIdr } from '@/lib/lms/format-price';
+import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 
 const FILTERS: { id: 'all' | Exclude<PaymentStatus, 'CHALLENGE'>; label: string }[] = [
@@ -92,35 +94,49 @@ export function PaymentHistoryPage({ items }: { items: StudentPaymentHistoryItem
           {filtered.map((item) => (
             <li key={item.id}>
               <Card className="overflow-hidden shadow-sm">
-                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] uppercase">
-                        {TYPE_LABEL[item.productType]}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn('text-[10px]', statusBadgeClass(item.status))}
-                      >
-                        {STATUS_LABEL[item.status]}
-                      </Badge>
-                    </div>
-                    <p className="mt-2 truncate font-semibold text-foreground">{item.productTitle}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                      {item.orderId}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(item.createdAt).toLocaleString('id-ID', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </p>
+                <CardContent className="flex gap-3 p-4 sm:gap-4">
+                  <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-20">
+                    <Image
+                      src={item.coverSrc}
+                      alt={item.productTitle}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                      unoptimized={isUnoptimizedImageSrc(item.coverSrc)}
+                    />
                   </div>
-                  <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
-                    <p className="font-extrabold text-brand-red">{formatIdr(item.amountIdr)}</p>
-                    <Button asChild size="sm" variant="secondary">
-                      <Link href={item.detailHref}>Detail</Link>
-                    </Button>
+                  <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {TYPE_LABEL[item.productType]}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={cn('text-[10px]', statusBadgeClass(item.status))}
+                        >
+                          {STATUS_LABEL[item.status]}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 truncate font-semibold text-foreground">
+                        {item.productTitle}
+                      </p>
+                      <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                        {item.orderId}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(item.createdAt).toLocaleString('id-ID', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
+                      <p className="font-extrabold text-brand-red">{formatIdr(item.amountIdr)}</p>
+                      <Button asChild size="sm" variant="secondary">
+                        <Link href={item.detailHref}>Detail</Link>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -1,6 +1,7 @@
 import type { EnrollmentType, PaymentStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { resolvePaymentProductCover } from '@/features/payment/lib/payment-product-cover';
 
 export type StudentPaymentHistoryItem = {
   id: string;
@@ -11,6 +12,7 @@ export type StudentPaymentHistoryItem = {
   paidAt: string | null;
   productType: EnrollmentType;
   productTitle: string;
+  coverSrc: string;
   detailHref: string;
 };
 
@@ -23,8 +25,8 @@ export async function loadStudentPayments(
     include: {
       enrollment: {
         include: {
-          course: { select: { title: true } },
-          liveClass: { select: { title: true } },
+          course: { select: { title: true, coverImageUrl: true } },
+          liveClass: { select: { title: true, coverImageUrl: true } },
           tryoutSession: { select: { title: true } },
         },
       },
@@ -46,6 +48,11 @@ export async function loadStudentPayments(
       paidAt: row.paidAt?.toISOString() ?? null,
       productType: row.enrollment.type,
       productTitle: title,
+      coverSrc: resolvePaymentProductCover({
+        type: row.enrollment.type,
+        courseCoverUrl: row.enrollment.course?.coverImageUrl,
+        liveClassCoverUrl: row.enrollment.liveClass?.coverImageUrl,
+      }),
       detailHref: STUDENT_ROUTES.pembayaran(row.id),
     };
   });

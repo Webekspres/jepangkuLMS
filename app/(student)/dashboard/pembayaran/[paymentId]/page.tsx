@@ -3,6 +3,10 @@ import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { parsePaymentInstructions } from '@/lib/payment-engine/charge-product';
 import type { CheckoutProductType } from '@/lib/payment-engine/types';
+import {
+  paymentMethodDisplayLabel,
+  resolvePaymentProductCover,
+} from '@/features/payment/lib/payment-product-cover';
 import { PaymentDetailPage } from '@/features/payment/components/payment-detail-page';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { prisma } from '@/lib/prisma';
@@ -11,8 +15,8 @@ type Props = { params: Promise<{ paymentId: string }> };
 
 function productView(enrollment: {
   type: CheckoutProductType;
-  course: { slug: string; title: string } | null;
-  liveClass: { id: string; title: string } | null;
+  course: { slug: string; title: string; coverImageUrl: string | null } | null;
+  liveClass: { id: string; title: string; coverImageUrl: string | null } | null;
   tryoutSession: { code: string; title: string } | null;
 }) {
   if (enrollment.type === 'COURSE' && enrollment.course) {
@@ -57,8 +61,8 @@ export default async function PembayaranDetailRoute({ params }: Props) {
     include: {
       enrollment: {
         include: {
-          course: { select: { slug: true, title: true } },
-          liveClass: { select: { id: true, title: true } },
+          course: { select: { slug: true, title: true, coverImageUrl: true } },
+          liveClass: { select: { id: true, title: true, coverImageUrl: true } },
           tryoutSession: { select: { code: true, title: true } },
         },
       },
@@ -70,6 +74,12 @@ export default async function PembayaranDetailRoute({ params }: Props) {
   const product = productView(payment.enrollment);
   if (!product) notFound();
 
+  const coverSrc = resolvePaymentProductCover({
+    type: payment.enrollment.type,
+    courseCoverUrl: payment.enrollment.course?.coverImageUrl,
+    liveClassCoverUrl: payment.enrollment.liveClass?.coverImageUrl,
+  });
+
   return (
     <PaymentDetailPage
       initial={{
@@ -78,8 +88,13 @@ export default async function PembayaranDetailRoute({ params }: Props) {
         status: payment.status,
         amountIdr: payment.amountIdr,
         checkoutMethod: payment.checkoutMethod,
+        methodLabel: paymentMethodDisplayLabel(payment.checkoutMethod),
         instructions: parsePaymentInstructions(payment.instructions),
         expiresAt: payment.expiresAt?.toISOString() ?? null,
+        createdAt: payment.createdAt.toISOString(),
+        paidAt: payment.paidAt?.toISOString() ?? null,
+        coverSrc,
+        historyHref: STUDENT_ROUTES.pembayaranHistory,
         product,
         methods: listCheckoutMethods(),
       }}

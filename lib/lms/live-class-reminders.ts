@@ -2,14 +2,12 @@ import {
   buildLiveClassReminderIdempotencyKey,
   sendLiveClassReminderEmail,
 } from '@/lib/email/send-live-class-reminder-email';
-import { getJakartaDateKey, getJakartaDayBounds } from '@/lib/jakarta-calendar';
+import { getJakartaDateKey, getJakartaDayBounds, formatJakartaDateLong, formatJakartaTimeRange } from '@/lib/jakarta-calendar';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { createLogger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 
 const reminderLog = createLogger('live-class-reminder');
-
-const JAKARTA_TZ = 'Asia/Jakarta';
 
 export type LiveClassReminderRunResult = {
   jakartaDateKey: string;
@@ -22,18 +20,11 @@ export type LiveClassReminderRunResult = {
 };
 
 export function formatLiveClassReminderDateLabel(date: Date): string {
-  return date.toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: JAKARTA_TZ,
-  });
+  return formatJakartaDateLong(date);
 }
 
 export function formatLiveClassReminderTimeRange(start: Date, end: Date): string {
-  const timeOptions = { hour: '2-digit', minute: '2-digit', timeZone: JAKARTA_TZ } as const;
-  return `${start.toLocaleTimeString('id-ID', timeOptions)} – ${end.toLocaleTimeString('id-ID', timeOptions)} WIB`;
+  return formatJakartaTimeRange(start, end);
 }
 
 /**
