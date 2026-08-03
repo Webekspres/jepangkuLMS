@@ -464,8 +464,8 @@ export function AdminEnrollmentsPage({
                         <AdminTableActions>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="gap-1 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            variant="destructive"
+                            className="gap-1"
                             disabled={isPending}
                             onClick={() => setCancelId(row.id)}
                           >
