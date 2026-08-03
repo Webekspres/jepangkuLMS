@@ -9,6 +9,10 @@ import {
   resolveLiveSessionStatus,
   type LiveSessionStatus,
 } from '@/features/live-class/lib/session-access';
+import {
+  formatJakartaDateLong,
+  formatJakartaTimeRange,
+} from '@/lib/jakarta-calendar';
 
 export type LiveClassDetailSession = {
   id: string;
@@ -89,13 +93,8 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
       title: session.title,
       scheduledAtISO: session.scheduledAt.toISOString(),
       endsAtISO: session.endsAt.toISOString(),
-      dateLabel: session.scheduledAt.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }),
-      timeLabel: `${session.scheduledAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} – ${session.endsAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+      dateLabel: formatJakartaDateLong(session.scheduledAt),
+      timeLabel: formatJakartaTimeRange(session.scheduledAt, session.endsAt),
       status,
       meetingUrl: isEnrolled ? session.meetingUrl : null,
       recordingUrl: isEnrolled ? session.recordingUrl : null,
