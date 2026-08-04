@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
-import { requestLiveClassEnrollment } from '@/features/live-class/actions/live-class-actions';
+import { requestLiveClassEnrollment, recordLiveClassSessionJoinAction } from '@/features/live-class/actions/live-class-actions';
 import {
   resolveLiveSessionStatus,
   type LiveSessionStatus,
@@ -46,13 +46,59 @@ const STATUS_DOT: Record<LiveSessionStatus, string> = {
 
 const JADWAL_SECTION_ID = 'jadwal-pertemuan';
 
+function LiveClassJoinZoomButton({
+  liveClassId,
+  sessionId,
+  meetingUrl,
+  className,
+  size = 'default',
+}: {
+  liveClassId: string;
+  sessionId: string;
+  meetingUrl: string;
+  className?: string;
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+}) {
+  const [joining, setJoining] = useState(false);
+
+  return (
+    <Button
+      type="button"
+      size={size}
+      className={className}
+      disabled={joining}
+      onClick={() => {
+        void (async () => {
+          setJoining(true);
+          try {
+            const result = await recordLiveClassSessionJoinAction({ liveClassId, sessionId });
+            if (!result.ok) {
+              toast.error(result.message);
+              return;
+            }
+            window.open(result.meetingUrl || meetingUrl, '_blank', 'noopener,noreferrer');
+          } finally {
+            setJoining(false);
+          }
+        })();
+      }}
+    >
+      <Video className="size-4 shrink-0" />
+      {joining ? 'Membuka…' : 'Gabung via Zoom'}
+      <ExternalLink className="size-3.5 shrink-0 opacity-70" />
+    </Button>
+  );
+}
+
 function SessionTimelineRow({
   session,
+  liveClassId,
   isEnrolled,
   now,
   isLast,
 }: {
   session: LiveClassDetailSession;
+  liveClassId: string;
   isEnrolled: boolean;
   now: number;
   isLast: boolean;
@@ -117,17 +163,13 @@ function SessionTimelineRow({
           </p>
         ) : status === 'live' ? (
           session.meetingUrl ? (
-            <Button
-              asChild
+            <LiveClassJoinZoomButton
+              liveClassId={liveClassId}
+              sessionId={session.id}
+              meetingUrl={session.meetingUrl}
               size="sm"
               className="mt-3 h-9 w-full animate-pulse gap-2 bg-emerald-600 hover:bg-emerald-700 hover:animate-none"
-            >
-              <a href={session.meetingUrl} target="_blank" rel="noopener noreferrer">
-                <Video className="size-4" />
-                Gabung via Zoom
-                <ExternalLink className="size-3.5 opacity-70" />
-              </a>
-            </Button>
+            />
           ) : (
             <Button disabled size="sm" variant="outline" className="mt-3 h-9 w-full">
               Link meeting belum tersedia
@@ -158,9 +200,11 @@ function SessionTimelineRow({
 }
 
 function EnrolledAccessCard({
+  liveClassId,
   sessions,
   now,
 }: {
+  liveClassId: string;
   sessions: LiveClassDetailSession[];
   now: number;
 }) {
@@ -214,16 +258,12 @@ function EnrolledAccessCard({
       )}
 
       {liveSession?.meetingUrl ? (
-        <Button
-          asChild
+        <LiveClassJoinZoomButton
+          liveClassId={liveClassId}
+          sessionId={liveSession.id}
+          meetingUrl={liveSession.meetingUrl}
           className="h-11 w-full min-w-0 animate-pulse gap-2 whitespace-normal bg-emerald-600 hover:bg-emerald-700 hover:animate-none"
-        >
-          <a href={liveSession.meetingUrl} target="_blank" rel="noopener noreferrer">
-            <Video className="size-4 shrink-0" />
-            Gabung via Zoom
-            <ExternalLink className="size-3.5 shrink-0 opacity-70" />
-          </a>
-        </Button>
+        />
       ) : (
         <Button asChild variant="outline" className="h-11 w-full min-w-0 gap-2">
           <a href={`#${JADWAL_SECTION_ID}`}>
@@ -250,7 +290,9 @@ function LiveClassSidebarActions({
   now: number;
 }) {
   if (liveClass.enrollmentStatus === 'ACTIVE') {
-    return <EnrolledAccessCard sessions={liveClass.sessions} now={now} />;
+    return (
+      <EnrolledAccessCard liveClassId={liveClass.id} sessions={liveClass.sessions} now={now} />
+    );
   }
 
   if (liveClass.accessMessage) {
@@ -560,6 +602,7 @@ export function LiveClassDetailPage({
                   <SessionTimelineRow
                     key={session.id}
                     session={session}
+                    liveClassId={liveClass.id}
                     isEnrolled={liveClass.isEnrolled}
                     now={now}
                     isLast={index === liveClass.sessions.length - 1}

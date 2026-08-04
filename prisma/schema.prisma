@@ -125,6 +125,8 @@ enum LmsBadgeUnlockRule {
     SPECIFIC_COURSE_COMPLETE
     SPECIFIC_MODULE_COMPLETE
     SPECIFIC_LESSON_COMPLETE
+    /// First time student opens a Live Class Zoom/meeting link
+    FIRST_LIVE_CLASS_JOIN
 }
 
 /// Status sinkronisasi XP ke Core (outbox). PENDING = perlu retry, SYNCED = sukses,

@@ -1,4 +1,4 @@
-import type { LmsBadgeUnlockRule, LmsCoreSyncStatus } from '@prisma/client';
+import type { LevelJLPT, LmsBadgeUnlockRule, LmsCoreSyncStatus } from '@prisma/client';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
 import {
   awardLmsXp,
@@ -14,9 +14,8 @@ const badgeLog = loggers.learning.child({ module: 'badge-unlock' });
 
 export type BadgeUnlockEvent =
   | { type: 'FIRST_LESSON' }
-  | { type: 'FIRST_QUIZ' }
-  | { type: 'TRYOUT_SCORE_THRESHOLD'; score: number }
-  | { type: 'TRYOUT_PASS'; score: number }
+  | { type: 'FIRST_LIVE_CLASS_JOIN' }
+  | { type: 'TRYOUT_SCORE_THRESHOLD'; score: number; level: LevelJLPT }
   | {
       type: 'SPECIFIC_COURSE_COMPLETE';
       courseId: string;
@@ -37,12 +36,10 @@ function eventToRule(event: BadgeUnlockEvent): LmsBadgeUnlockRule {
   switch (event.type) {
     case 'FIRST_LESSON':
       return 'FIRST_LESSON';
-    case 'FIRST_QUIZ':
-      return 'FIRST_QUIZ';
+    case 'FIRST_LIVE_CLASS_JOIN':
+      return 'FIRST_LIVE_CLASS_JOIN';
     case 'TRYOUT_SCORE_THRESHOLD':
       return 'TRYOUT_SCORE_THRESHOLD';
-    case 'TRYOUT_PASS':
-      return 'TRYOUT_PASS';
     case 'SPECIFIC_COURSE_COMPLETE':
       return 'SPECIFIC_COURSE_COMPLETE';
     case 'SPECIFIC_MODULE_COMPLETE':
@@ -57,24 +54,25 @@ function matchesUnlockValue(
   unlockValue: number | null,
   event: BadgeUnlockEvent,
 ): boolean {
-  if (rule === 'TRYOUT_PASS' || rule === 'TRYOUT_SCORE_THRESHOLD') {
+  if (rule === 'TRYOUT_SCORE_THRESHOLD') {
     const minScore = unlockValue ?? 60;
-    return (
-      (event.type === 'TRYOUT_PASS' || event.type === 'TRYOUT_SCORE_THRESHOLD') &&
-      event.score >= minScore
-    );
+    return event.type === 'TRYOUT_SCORE_THRESHOLD' && event.score >= minScore;
   }
   return true;
 }
 
 function matchesUnlockTarget(
   badge: {
+    targetLevel: LevelJLPT | null;
     targetCourseId: string | null;
     targetModuleId: string | null;
     targetLessonId: string | null;
   },
   event: BadgeUnlockEvent,
 ): boolean {
+  if (event.type === 'TRYOUT_SCORE_THRESHOLD') {
+    return !badge.targetLevel || badge.targetLevel === event.level;
+  }
   if (event.type === 'SPECIFIC_COURSE_COMPLETE') {
     return badge.targetCourseId === event.courseId;
   }

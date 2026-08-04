@@ -497,10 +497,6 @@ export async function submitQuizAnswers(input: {
     },
   });
 
-  const priorQuizAttempts = await prisma.quizAttempt.count({
-    where: { userId, type: 'QUIZ', id: { not: attempt.id } },
-  });
-
   await awardLmsSplitActivity({
     userId,
     coreKind: 'quiz_complete',
@@ -527,10 +523,6 @@ export async function submitQuizAnswers(input: {
         : []),
     ],
   });
-
-  if (priorQuizAttempts === 0) {
-    await evaluateBadgeUnlocks(userId, { type: 'FIRST_QUIZ' });
-  }
 
   await retryPendingCoreXp({ userId, limit: 10 }).catch((error) => {
     learningLog.warn({ userId, error }, 'Core XP outbox drain skipped');

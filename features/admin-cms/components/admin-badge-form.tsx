@@ -42,7 +42,6 @@ type BadgeFormData = {
   xpBonus: number;
   requirementText: string | null;
   targetLevel?: string | null;
-  targetCategory?: string | null;
   targetCourseId?: string | null;
   targetModuleId?: string | null;
   targetLessonId?: string | null;
@@ -59,10 +58,34 @@ type BadgeTargetCourse = {
 };
 
 // Zod schema for client-side form validation
+const CMS_UNLOCK_RULES = [
+  'MANUAL',
+  'FIRST_LESSON',
+  'FIRST_LIVE_CLASS_JOIN',
+  'TRYOUT_SCORE_THRESHOLD',
+  'SPECIFIC_COURSE_COMPLETE',
+  'SPECIFIC_MODULE_COMPLETE',
+  'SPECIFIC_LESSON_COMPLETE',
+] as const;
+
+function normalizeCmsUnlockRule(rule: string | undefined): string {
+  if (rule && (CMS_UNLOCK_RULES as readonly string[]).includes(rule)) return rule;
+  return 'MANUAL';
+}
+
+function previewSlugFromTitle(title: string): string {
+  return (
+    title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'badge'
+  );
+}
+
 const badgeFormSchema = z
   .object({
     title: z.string().min(1, 'Judul badge wajib diisi.'),
-    code: z.string().optional(),
     description: z.string().nullable().optional(),
     rarity: z.string(),
     sortOrder: z.coerce.number().min(0, 'Urutan tampil tidak boleh negatif.'),
@@ -76,18 +99,13 @@ const badgeFormSchema = z
     requirementText: z.string().nullable().optional(),
     imageUrl: z.string().nullable().optional(),
     targetLevel: z.string().nullable().optional(),
-    targetCategory: z.string().nullable().optional(),
     targetCourseId: z.string().nullable().optional(),
     targetModuleId: z.string().nullable().optional(),
     targetLessonId: z.string().nullable().optional(),
   })
   .refine(
     (data) => {
-      const needsScore = [
-        'QUIZ_SCORE_THRESHOLD',
-        'TRYOUT_SCORE_THRESHOLD',
-      ].includes(data.unlockRule);
-      if (needsScore) {
+      if (data.unlockRule === 'TRYOUT_SCORE_THRESHOLD') {
         return data.unlockValue !== null;
       }
       return true;
@@ -99,11 +117,7 @@ const badgeFormSchema = z
   )
   .refine(
     (data) => {
-      const needsScore = [
-        'QUIZ_SCORE_THRESHOLD',
-        'TRYOUT_SCORE_THRESHOLD',
-      ].includes(data.unlockRule);
-      if (needsScore && data.unlockValue !== null) {
+      if (data.unlockRule === 'TRYOUT_SCORE_THRESHOLD' && data.unlockValue !== null) {
         return data.unlockValue >= 0 && data.unlockValue <= 100;
       }
       return true;
@@ -138,18 +152,6 @@ const badgeFormSchema = z
     {
       message: 'Target modul wajib dipilih.',
       path: ['targetModuleId'],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.unlockRule === 'SPECIFIC_LESSON_COMPLETE') {
-        return Boolean(data.targetCourseId && data.targetCourseId.trim() !== '');
-      }
-      return true;
-    },
-    {
-      message: 'Pilih kursus terlebih dahulu.',
-      path: ['targetCourseId'],
     },
   )
   .refine(
@@ -203,10 +205,10 @@ export function AdminBadgeFormPage({
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [removeImage, setRemoveImage] = useState(false);
-  const [unlockRule, setUnlockRule] = useState(badge?.unlockRule ?? 'MANUAL');
+  const [unlockRule, setUnlockRule] = useState(normalizeCmsUnlockRule(badge?.unlockRule));
   const [rarity, setRarity] = useState(badge?.rarity ?? 'COMMON');
+  const [titleValue, setTitleValue] = useState(badge?.title ?? '');
   const [targetLevel, setTargetLevel] = useState<string>(badge?.targetLevel ?? '');
-  const [targetCategory, setTargetCategory] = useState<string>(badge?.targetCategory ?? '');
   const [targetCourseId, setTargetCourseId] = useState<string>(badge?.targetCourseId ?? '');
   const [targetModuleId, setTargetModuleId] = useState<string>(badge?.targetModuleId ?? '');
   const [targetLessonId, setTargetLessonId] = useState<string>(badge?.targetLessonId ?? '');
@@ -299,7 +301,6 @@ export function AdminBadgeFormPage({
     // Prepare data for validation
     const rawData = {
       title: formData.get('title'),
-      code: formData.get('code'),
       description: formData.get('description'),
       rarity: rarity,
       sortOrder: formData.get('sortOrder'),
@@ -309,7 +310,6 @@ export function AdminBadgeFormPage({
       requirementText: formData.get('requirementText'),
       imageUrl: formData.get('imageUrl'),
       targetLevel: targetLevel || null,
-      targetCategory: targetCategory || null,
       targetCourseId: targetCourseId || null,
       targetModuleId: targetModuleId || null,
       targetLessonId: targetLessonId || null,
@@ -369,18 +369,18 @@ export function AdminBadgeFormPage({
           <input type="hidden" name="unlockRule" value={unlockRule} />
           <input type="hidden" name="rarity" value={rarity} />
           <input type="hidden" name="targetLevel" value={targetLevel} />
-          <input type="hidden" name="targetCategory" value={targetCategory} />
           <input type="hidden" name="targetCourseId" value={targetCourseId} />
           <input type="hidden" name="targetModuleId" value={targetModuleId} />
           <input type="hidden" name="targetLessonId" value={targetLessonId} />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">Judul</Label>
               <Input
                 id="title"
                 name="title"
-                defaultValue={badge?.title ?? ''}
+                value={titleValue}
+                onChange={(event) => setTitleValue(event.target.value)}
                 className={validationErrors.title ? 'border-destructive' : ''}
                 required
               />
@@ -391,20 +391,31 @@ export function AdminBadgeFormPage({
 
             <div className="space-y-2">
               <Label htmlFor="code">Kode (slug)</Label>
-              <Input
-                id="code"
-                name="code"
-                defaultValue={badge?.code ?? ''}
-                placeholder="first-lesson"
-                disabled={isEdit}
-                required={!isEdit}
-                className={validationErrors.code ? 'border-destructive' : ''}
-              />
-              {validationErrors.code ? (
-                <p className="text-xs text-destructive">{validationErrors.code}</p>
-              ) : isEdit ? (
-                <p className="text-xs text-muted-foreground">Kode tidak bisa diubah setelah dibuat.</p>
-              ) : null}
+              {isEdit ? (
+                <>
+                  <p
+                    id="code"
+                    className="rounded-lg border border-border bg-muted/40 px-3 py-2 font-mono text-sm text-foreground"
+                  >
+                    {badge?.code}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Kode digenerate dari judul saat dibuat dan tidak diubah.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p
+                    id="code"
+                    className="rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 font-mono text-sm text-muted-foreground"
+                  >
+                    {previewSlugFromTitle(titleValue)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Otomatis dari judul (unik; ditambah suffix jika bentrok).
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -453,18 +464,20 @@ export function AdminBadgeFormPage({
                 value={unlockRule}
                 onValueChange={(val) => {
                   setUnlockRule(val);
-                  // Clear validation errors for these fields when rule changes
                   setValidationErrors((prev) => {
                     const copy = { ...prev };
                     delete copy.unlockValue;
                     delete copy.targetLevel;
-                    delete copy.targetCategory;
                     delete copy.targetCourseId;
                     delete copy.targetModuleId;
                     delete copy.targetLessonId;
                     return copy;
                   });
-                  if (!['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(val)) {
+                  if (
+                    !['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(
+                      val,
+                    )
+                  ) {
                     setTargetCourseId('');
                     setTargetModuleId('');
                     setTargetLessonId('');
@@ -477,10 +490,8 @@ export function AdminBadgeFormPage({
                 <SelectContent>
                   <SelectItem value="MANUAL">Manual (admin grant)</SelectItem>
                   <SelectItem value="FIRST_LESSON">Lesson pertama selesai</SelectItem>
-                  <SelectItem value="FIRST_QUIZ">Quiz pertama selesai</SelectItem>
-                  <SelectItem value="QUIZ_SCORE_THRESHOLD">Skor kuis minimum</SelectItem>
-                  <SelectItem value="CATEGORY_COMPLETE">Selesaikan kategori materi</SelectItem>
-                  <SelectItem value="TRYOUT_SCORE_THRESHOLD">Skor tryout minimum</SelectItem>
+                  <SelectItem value="FIRST_LIVE_CLASS_JOIN">Hadiri Live Class pertama</SelectItem>
+                  <SelectItem value="TRYOUT_SCORE_THRESHOLD">Skor tryout JLPT minimum</SelectItem>
                   <SelectItem value="SPECIFIC_COURSE_COMPLETE">Selesaikan kursus spesifik</SelectItem>
                   <SelectItem value="SPECIFIC_MODULE_COMPLETE">Selesaikan modul spesifik</SelectItem>
                   <SelectItem value="SPECIFIC_LESSON_COMPLETE">Selesaikan lesson spesifik</SelectItem>
@@ -492,14 +503,14 @@ export function AdminBadgeFormPage({
             </div>
 
             {/* Conditional Fields Container */}
-            {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD', 'SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(
-              unlockRule,
-            ) && (
-              <div className="grid gap-4 pt-4 sm:grid-cols-2 border-t border-border/50">
-                {/* Nilai Unlock (Skor Min %) */}
-                {['QUIZ_SCORE_THRESHOLD', 'TRYOUT_SCORE_THRESHOLD'].includes(
-                  unlockRule,
-                ) && (
+            {[
+              'TRYOUT_SCORE_THRESHOLD',
+              'SPECIFIC_COURSE_COMPLETE',
+              'SPECIFIC_MODULE_COMPLETE',
+              'SPECIFIC_LESSON_COMPLETE',
+            ].includes(unlockRule) && (
+              <div className="grid gap-4 border-t border-border/50 pt-4 sm:grid-cols-2">
+                {unlockRule === 'TRYOUT_SCORE_THRESHOLD' && (
                   <div className="space-y-2">
                     <Label htmlFor="unlockValue" className="flex items-center gap-1">
                       Nilai unlock (skor min %) <span className="text-destructive">*</span>
@@ -518,18 +529,13 @@ export function AdminBadgeFormPage({
                       <p className="text-xs text-destructive">{validationErrors.unlockValue}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        {unlockRule === 'QUIZ_SCORE_THRESHOLD'
-                          ? 'Masukkan nilai 0-100 (misal: 100 untuk Perfect Master, 75 untuk High Performer).'
-                          : 'Masukkan nilai minimum kelulusan tryout dalam persen (misal: 70 untuk N4 Daily Conversation).'}
+                        Minimum skor tryout JLPT dalam persen (misal: 75 atau 100).
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* Target Level (JLPT) */}
-                {['QUIZ_SCORE_THRESHOLD', 'CATEGORY_COMPLETE', 'TRYOUT_SCORE_THRESHOLD'].includes(
-                  unlockRule,
-                ) && (
+                {unlockRule === 'TRYOUT_SCORE_THRESHOLD' && (
                   <div className="space-y-2">
                     <Label htmlFor="targetLevel">Target Level (JLPT)</Label>
                     <Select value={targetLevel} onValueChange={setTargetLevel}>
@@ -546,34 +552,15 @@ export function AdminBadgeFormPage({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Batasi aturan ini pada level JLPT tertentu.
-                    </p>
-                  </div>
-                )}
-
-                {/* Target Kategori (Materi) */}
-                {unlockRule === 'CATEGORY_COMPLETE' && (
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="targetCategory">Target Kategori (Materi)</Label>
-                    <Select value={targetCategory} onValueChange={setTargetCategory}>
-                      <SelectTrigger id="targetCategory">
-                        <SelectValue placeholder="Semua Kategori" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value=" ">Semua Kategori</SelectItem>
-                        <SelectItem value="KANJI">Kanji (漢字)</SelectItem>
-                        <SelectItem value="KOSAKATA">Kosakata (語彙)</SelectItem>
-                        <SelectItem value="TATA_BAHASA">Tata Bahasa (文法)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Tentukan skill track spesifik yang memicu badge.
+                      Batasi aturan ini pada level JLPT tryout tertentu.
                     </p>
                   </div>
                 )}
 
                 {/* Target Kursus Spesifik */}
-                {['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(unlockRule) && (
+                {['SPECIFIC_COURSE_COMPLETE', 'SPECIFIC_MODULE_COMPLETE', 'SPECIFIC_LESSON_COMPLETE'].includes(
+                  unlockRule,
+                ) && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="targetCourseId">
                       Target Kursus <span className="text-destructive">*</span>
@@ -660,49 +647,49 @@ export function AdminBadgeFormPage({
                     </div>
 
                     {unlockRule === 'SPECIFIC_LESSON_COMPLETE' ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="targetLessonId">
-                        Target Lesson <span className="text-destructive">*</span>
-                      </Label>
-                      <Select
-                        value={targetLessonId}
-                        disabled={!targetModuleId}
-                        onValueChange={setTargetLessonId}
-                      >
-                        <SelectTrigger
-                          id="targetLessonId"
-                          className={validationErrors.targetLessonId ? 'border-destructive' : ''}
+                      <div className="space-y-2">
+                        <Label htmlFor="targetLessonId">
+                          Target Lesson <span className="text-destructive">*</span>
+                        </Label>
+                        <Select
+                          value={targetLessonId}
+                          disabled={!targetModuleId}
+                          onValueChange={setTargetLessonId}
                         >
-                          <SelectValue
-                            placeholder={
-                              targetModuleId ? 'Pilih Lesson' : 'Pilih modul terlebih dahulu'
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lessonOptions.length > 0 ? (
-                            lessonOptions.map((lesson) => (
-                              <SelectItem key={lesson.id} value={lesson.id}>
-                                {lesson.title}
+                          <SelectTrigger
+                            id="targetLessonId"
+                            className={validationErrors.targetLessonId ? 'border-destructive' : ''}
+                          >
+                            <SelectValue
+                              placeholder={
+                                targetModuleId ? 'Pilih Lesson' : 'Pilih modul terlebih dahulu'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lessonOptions.length > 0 ? (
+                              lessonOptions.map((lesson) => (
+                                <SelectItem key={lesson.id} value={lesson.id}>
+                                  {lesson.title}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="__no_lesson" disabled>
+                                {targetModuleId
+                                  ? 'Modul ini belum punya lesson'
+                                  : 'Pilih modul terlebih dahulu'}
                               </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="__no_lesson" disabled>
-                              {targetModuleId
-                                ? 'Modul ini belum punya lesson'
-                                : 'Pilih modul terlebih dahulu'}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      {validationErrors.targetLessonId ? (
-                        <p className="text-xs text-destructive">{validationErrors.targetLessonId}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Lesson hanya ditampilkan dari modul yang dipilih.
-                        </p>
-                      )}
-                    </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {validationErrors.targetLessonId ? (
+                          <p className="text-xs text-destructive">{validationErrors.targetLessonId}</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Lesson hanya ditampilkan dari modul yang dipilih.
+                          </p>
+                        )}
+                      </div>
                     ) : null}
                   </>
                 )}
