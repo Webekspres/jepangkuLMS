@@ -241,7 +241,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Pantau pembayaran Midtrans, aktifkan akses manual (grant), dan lacak riwayat tindakan enrollment."
+      subtitle="Pantau Midtrans & transfer manual, aktifkan akses (grant/Setujui), dan lacak riwayat enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -362,6 +362,9 @@ export function AdminEnrollmentsPage({
         </TabsList>
 
         <TabsContent value="queue" className="mt-0 space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Midtrans PENDING: Batalkan (cancel gateway). Transfer manual / tanpa Payment: Setujui atau Tolak.
+      </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
