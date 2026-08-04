@@ -30,6 +30,15 @@ type AdminCoverImageFieldProps = {
   nativeForm?: boolean;
   inputName?: string;
   onChange?: (state: AdminCoverImageFieldState) => void;
+  /** Crop aspect ratio — default cover 16:9 */
+  aspect?: number;
+  /** Tailwind classes for dropzone frame — default `aspect-video` */
+  previewAspectClass?: string;
+  recommendedWidth?: number;
+  recommendedHeight?: number;
+  cropTitle?: string;
+  /** e.g. "16:9" or "1:1" — used in hint copy */
+  aspectLabel?: string;
 };
 
 function formatFileSize(bytes: number): string {
@@ -56,6 +65,12 @@ export function AdminCoverImageField({
   nativeForm = false,
   inputName = 'coverImage',
   onChange,
+  aspect = COVER_IMAGE_ASPECT,
+  previewAspectClass = 'aspect-video',
+  recommendedWidth = COVER_IMAGE_RECOMMENDED_WIDTH,
+  recommendedHeight = COVER_IMAGE_RECOMMENDED_HEIGHT,
+  cropTitle = 'Sesuaikan Cover Image',
+  aspectLabel = '16:9',
 }: AdminCoverImageFieldProps) {
   const autoId = useId();
   const fieldId = idProp ?? `cover-image-${autoId}`;
@@ -211,7 +226,7 @@ export function AdminCoverImageField({
   const statusLabel = file
     ? `${file.name} · ${formatFileSize(file.size)}`
     : resolvedExisting && !removeCover
-      ? 'Cover tersimpan'
+      ? 'Gambar tersimpan'
       : null;
 
   return (
@@ -222,7 +237,7 @@ export function AdminCoverImageField({
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
-          aria-label="Unggah cover image"
+          aria-label={`Unggah ${label}`}
           onKeyDown={(event) => {
             if (disabled) return;
             if (event.key === 'Enter' || event.key === ' ') {
@@ -242,7 +257,8 @@ export function AdminCoverImageField({
           }}
           onClick={() => !disabled && inputRef.current?.click()}
           className={cn(
-            'relative m-3 aspect-video cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-colors',
+            'relative m-3 cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-colors',
+            previewAspectClass,
             dragOver
               ? 'border-secondary bg-secondary/10'
               : 'border-secondary/50 bg-secondary/5 hover:border-secondary hover:bg-secondary/10',
@@ -253,7 +269,7 @@ export function AdminCoverImageField({
             <>
               <Image
                 src={previewSrc}
-                alt="Pratinjau cover"
+                alt={`Pratinjau ${label}`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 40rem"
@@ -287,7 +303,7 @@ export function AdminCoverImageField({
               size="icon"
               className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
               disabled={disabled}
-              aria-label="Hapus cover"
+              aria-label={`Hapus ${label}`}
               onClick={(event) => {
                 event.stopPropagation();
                 handleRemove();
@@ -317,8 +333,8 @@ export function AdminCoverImageField({
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
       <p className="text-xs text-muted-foreground">
-        Rekomendasi: {COVER_IMAGE_RECOMMENDED_WIDTH}×{COVER_IMAGE_RECOMMENDED_HEIGHT} px (rasio 16:9),
-        format WebP/JPEG/PNG, maks. 2 MB. Gambar akan dipotong agar pas sebelum diunggah.
+        Rekomendasi: {recommendedWidth}×{recommendedHeight} px (rasio {aspectLabel}), format
+        WebP/JPEG/PNG, maks. 2 MB. Gambar akan dipotong agar pas sebelum diunggah.
       </p>
 
       {cropModalOpen && cropImageSrc ? (
@@ -332,21 +348,26 @@ export function AdminCoverImageField({
           >
             <div className="mb-4">
               <h2 id={`${fieldId}-crop-title`} className="text-lg font-bold text-foreground">
-                Sesuaikan Cover Image
+                {cropTitle}
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                Geser dan perbesar agar pas di bingkai 16:9 ({COVER_IMAGE_RECOMMENDED_WIDTH}×
-                {COVER_IMAGE_RECOMMENDED_HEIGHT} px).
+                Geser dan perbesar agar pas di bingkai {aspectLabel} ({recommendedWidth}×
+                {recommendedHeight} px).
               </p>
             </div>
 
-            <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+            <div
+              className={cn(
+                'relative w-full overflow-hidden rounded-xl border border-border bg-black',
+                aspect === 1 ? 'mx-auto aspect-square max-w-sm' : 'aspect-video',
+              )}
+            >
               <Cropper
                 image={cropImageSrc}
                 crop={crop}
                 zoom={zoom}
                 rotation={rotation}
-                aspect={COVER_IMAGE_ASPECT}
+                aspect={aspect}
                 showGrid
                 onCropChange={setCrop}
                 onZoomChange={setZoom}

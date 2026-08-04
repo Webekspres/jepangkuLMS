@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
 import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
+import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
 import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
 import { isManualPaymentEnabled } from '@/lib/payment/settings';
@@ -118,4 +120,36 @@ export async function requestLiveClassEnrollment(
     'Live class enrollment requested',
   );
   return { ok: true, status: enrollment.status as 'PENDING' | 'ACTIVE' };
+}
+
+/**
+ * Best-effort attendance: student opens Zoom/meeting link.
+ * Unlocks FIRST_LIVE_CLASS_JOIN badges (idempotent).
+ */
+export async function recordLiveClassSessionJoinAction(input: {
+  liveClassId: string;
+  sessionId: string;
+}): Promise<{ ok: true; meetingUrl: string } | { ok: false; message: string }> {
+  const userId = await requireAuthUserWithAnchor();
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { userId_liveClassId: { userId, liveClassId: input.liveClassId } },
+    select: { status: true },
+  });
+  if (enrollment?.status !== 'ACTIVE') {
+    return { ok: false, message: 'Daftar Live Class dulu untuk bergabung.' };
+  }
+
+  const session = await prisma.liveClassSession.findFirst({
+    where: { id: input.sessionId, liveClassId: input.liveClassId },
+    select: { meetingUrl: true },
+  });
+  if (!session?.meetingUrl) {
+    return { ok: false, message: 'Link meeting belum tersedia.' };
+  }
+
+  await evaluateBadgeUnlocks(userId, { type: 'FIRST_LIVE_CLASS_JOIN' });
+
+  revalidatePath(STUDENT_ROUTES.achievements);
+  return { ok: true, meetingUrl: session.meetingUrl };
 }

@@ -7,7 +7,7 @@ import { BADGE_XP_BONUS_BY_RARITY } from '@/features/student/lib/gamification-re
  * Starter badges — gambar dari `public/badges/*.png`.
  * Mapping nama file ↔ aturan unlock mengacu pada docs/checklist-lms.md (Fase 1 MVP).
  *
- * Catatan: Hanya satu badge per rule FIRST_LESSON / FIRST_QUIZ (evaluasi unlock saat ini).
+ * Catatan: Hanya satu badge per rule FIRST_LESSON / FIRST_LIVE_CLASS_JOIN (evaluasi unlock saat ini).
  * Badge lain memakai TRYOUT_SCORE_THRESHOLD (skor minimum) atau MANUAL (admin / aturan lanjutan).
  */
 type BadgeSeed = {
@@ -18,6 +18,7 @@ type BadgeSeed = {
   sortOrder: number;
   unlockRule: LmsBadgeUnlockRule;
   unlockValue?: number;
+  targetLevel?: 'N5' | 'N4' | 'N3' | 'N2' | 'N1';
   /** Bonus XP diturunkan dari rarity (lihat BADGE_XP_BONUS_BY_RARITY), bukan literal. */
   requirementText: string;
   rarity: LmsBadgeRarity;
@@ -40,8 +41,8 @@ const BADGE_CATALOG: BadgeSeed[] = [
     file: 'Grammar Starter.png',
     description: 'Badge tata bahasa N5 — memulai pemahaman 文法.',
     sortOrder: 2,
-    unlockRule: 'FIRST_QUIZ',
-    requirementText: 'Selesaikan kuis pertama',
+    unlockRule: 'MANUAL',
+    requirementText: 'Diberikan admin',
     rarity: 'COMMON',
   },
   {
@@ -92,6 +93,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     sortOrder: 7,
     unlockRule: 'TRYOUT_SCORE_THRESHOLD',
     unlockValue: 75,
+    targetLevel: 'N5',
     requirementText: 'Lulus simulasi JLPT N5 dengan skor ≥ 75%',
     rarity: 'EPIC',
   },
@@ -103,6 +105,7 @@ const BADGE_CATALOG: BadgeSeed[] = [
     sortOrder: 8,
     unlockRule: 'TRYOUT_SCORE_THRESHOLD',
     unlockValue: 100,
+    targetLevel: 'N5',
     requirementText: 'Skor sempurna 100% pada simulasi JLPT N5',
     rarity: 'LEGENDARY',
   },
@@ -144,6 +147,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
+        targetLevel: badge.targetLevel ?? null,
         xpBonus,
         requirementText: badge.requirementText,
       },
@@ -155,6 +159,7 @@ export async function seedLmsBadges(prisma: PrismaClient): Promise<number> {
         rarity: badge.rarity,
         unlockRule: badge.unlockRule,
         unlockValue: badge.unlockValue ?? null,
+        targetLevel: badge.targetLevel ?? null,
         xpBonus,
         requirementText: badge.requirementText,
       },
