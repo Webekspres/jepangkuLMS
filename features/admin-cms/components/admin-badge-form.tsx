@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Image from 'next/image';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import {
+  AdminCoverImageField,
+  type AdminCoverImageFieldState,
+} from '@/features/admin-cms/components/admin-cover-image-field';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { ADMIN_FORM_CARD_CLASS } from '@/features/admin-cms/lib/admin-layout';
 import { cn } from '@/lib/utils';
@@ -13,7 +16,6 @@ import {
   updateBadgeAction,
 } from '@/features/admin-cms/actions/cms-badge-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
-import { optimizeImageFileForUpload } from '@/lib/media/optimize-image-client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -204,7 +206,6 @@ export function AdminBadgeFormPage({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [removeImage, setRemoveImage] = useState(false);
   const [unlockRule, setUnlockRule] = useState(normalizeCmsUnlockRule(badge?.unlockRule));
   const [rarity, setRarity] = useState(badge?.rarity ?? 'COMMON');
   const [titleValue, setTitleValue] = useState(badge?.title ?? '');
@@ -212,14 +213,10 @@ export function AdminBadgeFormPage({
   const [targetCourseId, setTargetCourseId] = useState<string>(badge?.targetCourseId ?? '');
   const [targetModuleId, setTargetModuleId] = useState<string>(badge?.targetModuleId ?? '');
   const [targetLessonId, setTargetLessonId] = useState<string>(badge?.targetLessonId ?? '');
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    badge?.imageUrl && !removeImage ? badge.imageUrl : null,
-  );
-  const [imageOptimizing, setImageOptimizing] = useState(false);
-  const [imageHint, setImageHint] = useState<string | null>(null);
-  const [hasNewImage, setHasNewImage] = useState(false);
-  const optimizedFileRef = useRef<File | null>(null);
-  const previewBlobRef = useRef<string | null>(null);
+  const [badgeImageState, setBadgeImageState] = useState<AdminCoverImageFieldState>({
+    file: null,
+    removeCover: false,
+  });
   const isEdit = Boolean(badge?.id);
   const r2Ready = r2Configured;
 
@@ -237,55 +234,6 @@ export function AdminBadgeFormPage({
   );
   const lessonOptions = selectedModule?.lessons ?? [];
 
-  useEffect(() => {
-    return () => {
-      if (previewBlobRef.current?.startsWith('blob:')) {
-        URL.revokeObjectURL(previewBlobRef.current);
-      }
-    };
-  }, []);
-
-  async function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setError(null);
-    setImageOptimizing(true);
-    setImageHint(null);
-    setRemoveImage(false);
-
-    try {
-      const optimized = await optimizeImageFileForUpload(file, {
-        maxWidth: 512,
-        maxHeight: 512,
-      });
-      optimizedFileRef.current = optimized.file;
-      setHasNewImage(true);
-
-      if (previewBlobRef.current?.startsWith('blob:')) {
-        URL.revokeObjectURL(previewBlobRef.current);
-      }
-      previewBlobRef.current = optimized.previewUrl;
-      setImagePreview(optimized.previewUrl);
-
-      const savedPct =
-        optimized.originalSize > optimized.optimizedSize
-          ? Math.round((1 - optimized.optimizedSize / optimized.originalSize) * 100)
-          : 0;
-      setImageHint(
-        savedPct > 0
-          ? `Dioptimalkan ke WebP (${Math.round(optimized.optimizedSize / 1024)} KB, −${savedPct}%).`
-          : `Siap diunggah (${Math.round(optimized.optimizedSize / 1024)} KB).`,
-      );
-    } catch {
-      setError('Gagal memproses gambar. Coba file lain.');
-      optimizedFileRef.current = null;
-      setHasNewImage(false);
-    } finally {
-      setImageOptimizing(false);
-    }
-  }
-
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -293,9 +241,9 @@ export function AdminBadgeFormPage({
 
     const form = event.currentTarget;
     const formData = new FormData(form);
-    if (removeImage) formData.set('removeImage', 'true');
-    if (optimizedFileRef.current) {
-      formData.set('image', optimizedFileRef.current);
+    if (badgeImageState.removeCover) formData.set('removeImage', 'true');
+    if (badgeImageState.file) {
+      formData.set('image', badgeImageState.file);
     }
 
     // Prepare data for validation
@@ -744,67 +692,20 @@ export function AdminBadgeFormPage({
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="image">Gambar badge (upload)</Label>
-            {badge?.imageUrl && !removeImage && !hasNewImage ? (
-              <div className="mb-2 flex items-center gap-3">
-                <Image
-                  src={badge.imageUrl}
-                  alt=""
-                  width={64}
-                  height={64}
-                  className="size-16 rounded-xl object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setRemoveImage(true);
-                    setImagePreview(null);
-                    setImageHint(null);
-                    optimizedFileRef.current = null;
-                    setHasNewImage(false);
-                  }}
-                >
-                  Hapus gambar
-                </Button>
-              </div>
-            ) : null}
-            {imagePreview ? (
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
-                <Image
-                  src={imagePreview}
-                  alt="Pratinjau badge"
-                  width={80}
-                  height={80}
-                  unoptimized
-                  className="size-20 rounded-xl object-cover"
-                />
-                <div className="min-w-0 flex-1 text-sm text-muted-foreground">
-                  {imageOptimizing ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="size-4 animate-spin" />
-                      Mengoptimalkan gambar…
-                    </span>
-                  ) : (
-                    imageHint ?? 'Pratinjau gambar yang akan diunggah.'
-                  )}
-                </div>
-              </div>
-            ) : null}
-            <Input
-              id="image"
-              name="image"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={handleImageChange}
-              disabled={imageOptimizing || isPending}
-            />
-            <p className="text-xs text-muted-foreground">
-              Upload PNG/JPEG/WebP (maks. 2 MB). R2 jika tersedia; jika gagal, disimpan ke public/badges.
-            </p>
-          </div>
+          <AdminCoverImageField
+            id="image"
+            label="Gambar badge"
+            inputName="image"
+            existingUrl={badge?.imageUrl}
+            aspect={1}
+            aspectLabel="1:1"
+            previewAspectClass="mx-auto aspect-square w-full max-w-xs"
+            recommendedWidth={512}
+            recommendedHeight={512}
+            cropTitle="Sesuaikan gambar badge"
+            onChange={setBadgeImageState}
+            disabled={isPending}
+          />
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
