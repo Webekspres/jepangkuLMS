@@ -51,7 +51,6 @@ export default async function AdminBadgeFormRoutePage({
               xpBonus: badge.xpBonus,
               requirementText: badge.requirementText,
               targetLevel: badge.targetLevel,
-              targetCategory: badge.targetCategory,
               targetCourseId: badge.targetCourseId,
               targetModuleId: badge.targetModuleId,
               targetLessonId: badge.targetLessonId,
