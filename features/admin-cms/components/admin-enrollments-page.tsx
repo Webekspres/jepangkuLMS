@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Clock, Eye, History, Search, UserPlus } from 'lucide-react';
+import { Ban, Check, Clock, Eye, History, Search, UserPlus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
@@ -13,6 +13,7 @@ import {
 } from '@/features/admin-cms/components/admin-table-actions';
 import {
   approveEnrollmentAction,
+  cancelMidtransEnrollmentAction,
   grantEnrollmentAction,
   rejectEnrollmentAction,
 } from '@/features/admin-cms/actions/cms-enrollment-actions';
@@ -118,6 +119,7 @@ export function AdminEnrollmentsPage({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('PENDING');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [grantUserId, setGrantUserId] = useState('');
@@ -210,6 +212,7 @@ export function AdminEnrollmentsPage({
   });
 
   const rejectTarget = enrollments.find((row) => row.id === rejectId);
+  const cancelTarget = enrollments.find((row) => row.id === cancelId);
 
   const runAction = (action: () => Promise<{ ok: boolean; message?: string }>, successMessage?: string) => {
     startTransition(async () => {
@@ -238,7 +241,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Pantau pembayaran Midtrans, aktifkan akses manual (grant), dan lacak riwayat tindakan enrollment."
+      subtitle="Pantau Midtrans & transfer manual, aktifkan akses (grant/Setujui), dan lacak riwayat enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -359,6 +362,9 @@ export function AdminEnrollmentsPage({
         </TabsList>
 
         <TabsContent value="queue" className="mt-0 space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Midtrans PENDING: Batalkan (cancel gateway). Transfer manual / tanpa Payment: Setujui atau Tolak.
+      </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -457,27 +463,42 @@ export function AdminEnrollmentsPage({
                   </TableCell>
                   <TableCell className="text-right">
                     {row.status === 'PENDING' ? (
-                      <AdminTableActions>
-                        <Button
-                          size="sm"
-                          className="gap-1"
-                          disabled={isPending || row.paymentProvider === 'MIDTRANS'}
-                          onClick={() =>
-                            runAction(
-                              () => approveEnrollmentAction(row.id),
-                              'Enrollment disetujui.',
-                            )
-                          }
-                        >
-                          <Check className="size-3.5" />
-                          Setujui
-                        </Button>
-                        <AdminTableActionDelete
-                          label="Tolak enrollment"
-                          disabled={isPending || row.paymentProvider === 'MIDTRANS'}
-                          onClick={() => setRejectId(row.id)}
-                        />
-                      </AdminTableActions>
+                      row.paymentProvider === 'MIDTRANS' ? (
+                        <AdminTableActions>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="gap-1"
+                            disabled={isPending}
+                            onClick={() => setCancelId(row.id)}
+                          >
+                            <Ban className="size-3.5" />
+                            Batalkan
+                          </Button>
+                        </AdminTableActions>
+                      ) : (
+                        <AdminTableActions>
+                          <Button
+                            size="sm"
+                            className="gap-1"
+                            disabled={isPending}
+                            onClick={() =>
+                              runAction(
+                                () => approveEnrollmentAction(row.id),
+                                'Enrollment disetujui.',
+                              )
+                            }
+                          >
+                            <Check className="size-3.5" />
+                            Setujui
+                          </Button>
+                          <AdminTableActionDelete
+                            label="Tolak enrollment"
+                            disabled={isPending}
+                            onClick={() => setRejectId(row.id)}
+                          />
+                        </AdminTableActions>
+                      )
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
@@ -627,6 +648,28 @@ export function AdminEnrollmentsPage({
         }}
         onOpenChange={(open) => {
           if (!open) setRejectId(null);
+        }}
+      />
+
+      <AdminConfirmDialog
+        open={cancelId !== null}
+        title="Batalkan pembayaran Midtrans?"
+        description={
+          cancelTarget
+            ? `Batalkan order Midtrans dan hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
+            : 'Batalkan pembayaran Midtrans dan hapus antrean ini?'
+        }
+        confirmLabel="Batalkan"
+        onConfirm={() => {
+          if (!cancelId) return;
+          runAction(
+            () => cancelMidtransEnrollmentAction(cancelId),
+            'Pembayaran Midtrans dibatalkan.',
+          );
+          setCancelId(null);
+        }}
+        onOpenChange={(open) => {
+          if (!open) setCancelId(null);
         }}
       />
     </AdminPageShell>

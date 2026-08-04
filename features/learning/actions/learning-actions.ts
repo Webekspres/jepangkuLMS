@@ -25,6 +25,8 @@ import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { getMidtransSnapClient } from '@/lib/midtrans/client';
 import { buildMidtransOrderId } from '@/lib/midtrans/payment';
 import { isMidtransEnabled } from '@/lib/midtrans/config';
+import { isManualPaymentEnabled } from '@/lib/payment/settings';
+import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -66,7 +68,7 @@ export async function requestEnrollment(courseId: string) {
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
 
-/** Request enrollment — gratis → ACTIVE; berbayar harus lewat Midtrans checkout. */
+/** Request enrollment — free → ACTIVE; paid + manual → PENDING; paid + Midtrans → checkout only. */
 export async function requestCourseEnrollment(courseSlug: string) {
   const userId = await requireUserId();
 
@@ -74,7 +76,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   if (!course) throw new Error('Kursus tidak ditemukan');
   if (!course.isPublished) throw new Error('Kursus belum tersedia');
 
-  if (course.priceIdr > 0) {
+  if (course.priceIdr > 0 && !isManualPaymentEnabled()) {
     throw new Error('Kursus berbayar dibayar lewat checkout Midtrans.');
   }
 
@@ -86,11 +88,31 @@ export async function requestCourseEnrollment(courseSlug: string) {
     return { enrollmentId: existing.id, courseSlug, status: existing.status };
   }
 
+  const status = course.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
+
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, type: 'COURSE', status: 'ACTIVE' },
-    update: { status: 'ACTIVE' },
+    create: { userId, courseId: course.id, type: 'COURSE', status },
+    update: { status },
   });
+
+  if (status === 'PENDING' && existing?.status !== 'PENDING') {
+    const studentName = (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
+    await notifyEnrollmentPending({
+      enrollmentId: enrollment.id,
+      studentUserId: userId,
+      studentName,
+      courseTitle: course.title,
+    });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'COURSE',
+      productTitle: course.title,
+      productSubtitle: course.slug,
+      studentName,
+    });
+  }
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard');

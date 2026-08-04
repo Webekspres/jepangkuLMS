@@ -1,6 +1,6 @@
 # Payment model — JepangKu LMS
 
-**Status:** Midtrans-only paid path (2026-07-31); CMS grant remains  
+**Status:** Dual-mode via `PAYMENT_PROVIDER` (2026-08-04); Midtrans remains production target  
 **Scope:** Business rules + settle path + payment engine boundaries  
 **Related:** Admin `/admin/pembayaran`; schema `Enrollment` / `Payment` / `EnrollmentLog`; code `lib/payment-engine/`, `features/checkout/`, `features/payment/`
 
@@ -12,12 +12,21 @@
 
 | Approach | JepangKu |
 | :--- | :--- |
-| Per-item (adopted) | Yes — one `Course` / `LiveClass` / `TryoutSession` → one Midtrans transaction → one `Enrollment` |
+| Per-item (adopted) | Yes — one `Course` / `LiveClass` / `TryoutSession` → one payment/enrollment |
 | Cart (multi-line) | Out of scope |
-| Student bank transfer | **Retired** — Midtrans Core only |
 | CMS grant | **Kept** — admin may `GRANTED` access without payment |
 
 Bundles later are a single SKU with one `priceIdr` that grants multiple enrollments — still one checkout.
+
+### Provider modes (`PAYMENT_PROVIDER`)
+
+| Env | Siswa | Settle |
+| :--- | :--- | :--- |
+| `midtrans` | Core/Snap checkout | Webhook → `PAID` + Enrollment `ACTIVE` |
+| `manual` | Bank transfer UI (bridge sampai Midtrans production approved) | Admin **Setujui** di Antrian |
+| unset / other | CTA unavailable + WhatsApp konsultasi | CMS grant only |
+
+`manual` is a **temporary bridge** — not a permanent ADR rollback. After Midtrans business review: set `PAYMENT_PROVIDER=midtrans` + `MIDTRANS_IS_PRODUCTION=true`.
 
 ---
 
@@ -31,16 +40,21 @@ Course / Live Class / Tryout (priceIdr > 0, PAYMENT_PROVIDER=midtrans)
   → Webhook settle → Payment PAID + Enrollment ACTIVE
   → EnrollmentLog: REQUESTED (charge) → PAYMENT_SETTLED (first PAID)
 
+Course / Live Class / Tryout (priceIdr > 0, PAYMENT_PROVIDER=manual)
+  → tampil rekening (PAYMENT_BANK_*) + Konfirmasi WA
+  → Enrollment PENDING (tanpa baris Payment Midtrans)
+  → Admin Setujui → Enrollment ACTIVE (+ EnrollmentLog APPROVED)
+
 CMS grant
   → grantEnrollmentAction → Enrollment ACTIVE + EnrollmentLog GRANTED
 
-priceIdr <= 0 → Enrollment ACTIVE immediately (no Midtrans)
+priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 
-/dashboard/pembayaran → riwayat pembayaran siswa
+/dashboard/pembayaran → riwayat pembayaran siswa (Midtrans)
 ```
 
 - **Access SoT:** `Enrollment.status`
-- **Money SoT:** `Payment.status`
+- **Money SoT (Midtrans):** `Payment.status`
 - Engine: `lib/payment-engine/` — `chargeProductPayment`, product resolvers, method icons under `public/payment-icons/`
 
 ---
@@ -52,7 +66,8 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no Midtrans)
 | Antrian | Filter enrollment status + filter pembayaran Midtrans (`pending` / `paid` / `terminal` / tanpa Payment) |
 | Riwayat | `EnrollmentLog` including **Dibayar otomatis** (`PAYMENT_SETTLED`) and **Diberikan manual** (`GRANTED`) |
 
-Midtrans rows: approve/reject disabled (settle via webhook).
+- Midtrans PENDING: **Batalkan** (Cancel API + tutup enrollment). Settle hanya lewat webhook.
+- Manual / tanpa Payment PENDING: **Setujui** + **Tolak**.
 
 ---
 
@@ -60,9 +75,9 @@ Midtrans rows: approve/reject disabled (settle via webhook).
 
 1. Unit of sale: polymorphic product (`COURSE` | `LIVE_CLASS` | `TRYOUT`).
 2. Amount = product `priceIdr` (IDR).
-3. One Midtrans order → one enrollment.
-4. Free products never call Midtrans.
-5. No student bank-transfer UX; grant is admin-only.
+3. One Midtrans order → one enrollment (when Midtrans).
+4. Free products never call Midtrans / never need bank transfer.
+5. `PAYMENT_PROVIDER=manual` requires `PAYMENT_BANK_NAME` / `ACCOUNT_NAME` / `ACCOUNT_NUMBER` in production.
 
 ---
 
@@ -86,7 +101,7 @@ Midtrans rows: approve/reject disabled (settle via webhook).
 2. ✅ SSE + Core checkout UI (Course / Live / Tryout)
 3. ✅ Local payment icons + grouped methods
 4. ✅ Student payment history
-5. ✅ Midtrans-only paid path (bank transfer retired)
+5. ✅ Midtrans paid path + **manual bridge** via `PAYMENT_PROVIDER`
 6. ✅ `EnrollmentLog` REQUESTED + PAYMENT_SETTLED
 7. ✅ Admin payment filters + Riwayat “Dibayar otomatis”
 8. ✅ CMS grant (`GRANTED`) retained
@@ -94,4 +109,5 @@ Midtrans rows: approve/reject disabled (settle via webhook).
 ### Out of scope
 
 - Cart, vouchers, second PSP, subscriptions, refunds
+- Proof-of-transfer upload
 - Backfill historical EnrollmentLog for old payments
