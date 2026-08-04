@@ -17,15 +17,3 @@ export async function saveBadgeToPublicDir(
   await writeFile(path.join(BADGE_DIR, filename), buffer);
   return `/badges/${filename}`;
 }
-
-export function isStaticBadgeUrl(url: string | null | undefined): boolean {
-  return Boolean(url?.startsWith('/badges/'));
-}
-
-export function parseStaticImageUrl(raw: string | null | undefined): string | null {
-  const trimmed = raw?.trim();
-  if (!trimmed) return null;
-  if (!trimmed.startsWith('/badges/')) return null;
-  if (trimmed.includes('..')) return null;
-  return trimmed;
-}

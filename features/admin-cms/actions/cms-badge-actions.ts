@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { BADGE_IMAGE_MAX_BYTES, BADGE_IMAGE_MIME_TYPES } from '@/lib/media/constants';
 import {
-  parseStaticImageUrl,
   saveBadgeToPublicDir,
 } from '@/lib/media/local-badge-storage';
 import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@/lib/r2';
@@ -45,6 +44,12 @@ async function allocateUniqueBadgeCode(title: string): Promise<string> {
     n += 1;
   }
   return code;
+}
+
+/** Next display order for new badges (append to end of list). */
+async function nextBadgeSortOrder(): Promise<number> {
+  const agg = await prisma.lmsBadge.aggregate({ _max: { sortOrder: true } });
+  return (agg._max.sortOrder ?? 0) + 1;
 }
 
 function parseBadgeMeta(formData: FormData) {
@@ -175,9 +180,6 @@ async function resolveBadgeImageUrl(
   formData: FormData,
   existingUrl: string | null = null,
 ): Promise<string | null> {
-  const staticUrl = parseStaticImageUrl(String(formData.get('imageUrl') ?? ''));
-  if (staticUrl) return staticUrl;
-
   const image = await parseBadgeImage(formData);
   if (!image) return existingUrl;
 
@@ -198,131 +200,153 @@ async function resolveBadgeImageUrl(
 }
 
 export async function createBadgeAction(formData: FormData): Promise<CmsBadgeActionResult> {
-  await requireAdminAction();
-
-  const title = String(formData.get('title') ?? '').trim();
-  const description = String(formData.get('description') ?? '').trim() || null;
-  const sortOrder = Number(formData.get('sortOrder') ?? 0) || 0;
-  const meta = parseBadgeMeta(formData);
-
-  if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
-
-  const targetError = await validateBadgeTargets(meta);
-  if (targetError) return { ok: false, message: targetError };
-
-  const code = await allocateUniqueBadgeCode(title);
-
-  let imageUrl: string | null = null;
   try {
-    imageUrl = await resolveBadgeImageUrl(code, formData);
+    await requireAdminAction();
+
+    const title = String(formData.get('title') ?? '').trim();
+    const description = String(formData.get('description') ?? '').trim() || null;
+    const meta = parseBadgeMeta(formData);
+
+    if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
+
+    const targetError = await validateBadgeTargets(meta);
+    if (targetError) return { ok: false, message: targetError };
+
+    const code = await allocateUniqueBadgeCode(title);
+    const sortOrder = await nextBadgeSortOrder();
+
+    let imageUrl: string | null = null;
+    try {
+      imageUrl = await resolveBadgeImageUrl(code, formData);
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+      };
+    }
+
+    const badge = await prisma.lmsBadge.create({
+      data: {
+        code,
+        title,
+        description,
+        imageUrl,
+        sortOrder,
+        rarity: meta.rarity,
+        unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
+        unlockValue: meta.unlockValue,
+        xpBonus: meta.xpBonus,
+        requirementText: meta.requirementText,
+        targetLevel: meta.targetLevel,
+        targetCategory: null,
+        targetCourseId: meta.targetCourseId,
+        targetModuleId: meta.targetModuleId,
+        targetLessonId: meta.targetLessonId,
+      },
+    });
+
+    revalidatePath('/admin/badges');
+    revalidatePath(STUDENT_ROUTES.achievements);
+    return { ok: true, id: badge.id };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+      message:
+        error instanceof Error ? error.message : 'Gagal membuat badge. Coba lagi atau hubungi admin.',
     };
   }
-
-  const badge = await prisma.lmsBadge.create({
-    data: {
-      code,
-      title,
-      description,
-      imageUrl,
-      sortOrder,
-      rarity: meta.rarity,
-      unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
-      unlockValue: meta.unlockValue,
-      xpBonus: meta.xpBonus,
-      requirementText: meta.requirementText,
-      targetLevel: meta.targetLevel,
-      targetCategory: null,
-      targetCourseId: meta.targetCourseId,
-      targetModuleId: meta.targetModuleId,
-      targetLessonId: meta.targetLessonId,
-    },
-  });
-
-  revalidatePath('/admin/badges');
-  revalidatePath(STUDENT_ROUTES.achievements);
-  return { ok: true, id: badge.id };
 }
 
 export async function updateBadgeAction(id: string, formData: FormData): Promise<CmsBadgeActionResult> {
-  await requireAdminAction();
-
-  const badge = await prisma.lmsBadge.findUnique({ where: { id } });
-  if (!badge) return { ok: false, message: 'Badge tidak ditemukan.' };
-
-  const title = String(formData.get('title') ?? '').trim();
-  const description = String(formData.get('description') ?? '').trim() || null;
-  const sortOrder = Number(formData.get('sortOrder') ?? badge.sortOrder) || 0;
-  const meta = parseBadgeMeta(formData);
-  const removeImage = formData.get('removeImage') === 'true';
-
-  if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
-
-  const targetError = await validateBadgeTargets(meta);
-  if (targetError) return { ok: false, message: targetError };
-
-  let imageUrl = badge.imageUrl;
-
-  if (removeImage && imageUrl) {
-    const key = extractR2KeyFromUrl(imageUrl);
-    if (key) await deleteFromR2(key).catch(() => undefined);
-    imageUrl = null;
-  }
-
   try {
-    const resolved = await resolveBadgeImageUrl(badge.code, formData, imageUrl);
-    if (resolved !== imageUrl) {
-      const oldKey = extractR2KeyFromUrl(badge.imageUrl);
-      if (oldKey) await deleteFromR2(oldKey).catch(() => undefined);
-      imageUrl = resolved;
+    await requireAdminAction();
+
+    const badge = await prisma.lmsBadge.findUnique({ where: { id } });
+    if (!badge) return { ok: false, message: 'Badge tidak ditemukan.' };
+
+    const title = String(formData.get('title') ?? '').trim();
+    const description = String(formData.get('description') ?? '').trim() || null;
+    const meta = parseBadgeMeta(formData);
+    const removeImage = formData.get('removeImage') === 'true';
+
+    if (!title) return { ok: false, message: 'Judul badge wajib diisi.' };
+
+    const targetError = await validateBadgeTargets(meta);
+    if (targetError) return { ok: false, message: targetError };
+
+    let imageUrl = badge.imageUrl;
+
+    if (removeImage && imageUrl) {
+      const key = extractR2KeyFromUrl(imageUrl);
+      if (key) await deleteFromR2(key).catch(() => undefined);
+      imageUrl = null;
     }
+
+    try {
+      const resolved = await resolveBadgeImageUrl(badge.code, formData, imageUrl);
+      if (resolved !== imageUrl) {
+        const oldKey = extractR2KeyFromUrl(badge.imageUrl);
+        if (oldKey) await deleteFromR2(oldKey).catch(() => undefined);
+        imageUrl = resolved;
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+      };
+    }
+
+    await prisma.lmsBadge.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        imageUrl,
+        rarity: meta.rarity,
+        unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
+        unlockValue: meta.unlockValue,
+        xpBonus: meta.xpBonus,
+        requirementText: meta.requirementText,
+        targetLevel: meta.targetLevel,
+        targetCategory: null,
+        targetCourseId: meta.targetCourseId,
+        targetModuleId: meta.targetModuleId,
+        targetLessonId: meta.targetLessonId,
+      },
+    });
+
+    revalidatePath('/admin/badges');
+    revalidatePath(STUDENT_ROUTES.achievements);
+    return { ok: true, id };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : 'Gagal menyimpan gambar badge.',
+      message:
+        error instanceof Error ? error.message : 'Gagal memperbarui badge. Coba lagi atau hubungi admin.',
     };
   }
-
-  await prisma.lmsBadge.update({
-    where: { id },
-    data: {
-      title,
-      description,
-      sortOrder,
-      imageUrl,
-      rarity: meta.rarity,
-      unlockRule: meta.unlockRule as LmsBadgeUnlockRule,
-      unlockValue: meta.unlockValue,
-      xpBonus: meta.xpBonus,
-      requirementText: meta.requirementText,
-      targetLevel: meta.targetLevel,
-      targetCategory: null,
-      targetCourseId: meta.targetCourseId,
-      targetModuleId: meta.targetModuleId,
-      targetLessonId: meta.targetLessonId,
-    },
-  });
-
-  revalidatePath('/admin/badges');
-  revalidatePath(STUDENT_ROUTES.achievements);
-  return { ok: true, id };
 }
 
 export async function deleteBadgeAction(id: string): Promise<CmsBadgeActionResult> {
-  await requireAdminAction();
+  try {
+    await requireAdminAction();
 
-  const badge = await prisma.lmsBadge.findUnique({ where: { id } });
-  if (!badge) return { ok: false, message: 'Badge tidak ditemukan.' };
+    const badge = await prisma.lmsBadge.findUnique({ where: { id } });
+    if (!badge) return { ok: false, message: 'Badge tidak ditemukan.' };
 
-  const key = extractR2KeyFromUrl(badge.imageUrl);
-  if (key) await deleteFromR2(key).catch(() => undefined);
+    const key = extractR2KeyFromUrl(badge.imageUrl);
+    if (key) await deleteFromR2(key).catch(() => undefined);
 
-  await prisma.lmsBadge.delete({ where: { id } });
+    await prisma.lmsBadge.delete({ where: { id } });
 
-  revalidatePath('/admin/badges');
-  revalidatePath(STUDENT_ROUTES.achievements);
-  return { ok: true };
+    revalidatePath('/admin/badges');
+    revalidatePath(STUDENT_ROUTES.achievements);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error ? error.message : 'Gagal menghapus badge. Coba lagi atau hubungi admin.',
+    };
+  }
 }

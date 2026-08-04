@@ -14,6 +14,7 @@ import {
   COVER_IMAGE_RECOMMENDED_WIDTH,
 } from '@/lib/media/constants';
 import { isUnoptimizedImageSrc, resolveMediaUrl } from '@/lib/media/image-src';
+import { optimizeImageFileForUpload } from '@/lib/media/optimize-image-client';
 import { cn } from '@/lib/utils';
 
 export type AdminCoverImageFieldState = {
@@ -192,14 +193,22 @@ export function AdminCoverImageField({
       const croppedFile = new File([croppedBlob], pendingFileName, {
         type: 'image/jpeg',
       });
-      if (croppedFile.size > COVER_IMAGE_MAX_BYTES) {
+      const optimized = await optimizeImageFileForUpload(croppedFile, {
+        maxWidth: recommendedWidth,
+        maxHeight: recommendedHeight,
+        maxBytes: COVER_IMAGE_MAX_BYTES,
+      });
+      // commitFile makes its own preview URL
+      URL.revokeObjectURL(optimized.previewUrl);
+
+      if (optimized.file.size > COVER_IMAGE_MAX_BYTES) {
         setError('Hasil potongan melebihi 2 MB. Perkecil zoom atau pilih gambar lain.');
         return;
       }
-      commitFile(croppedFile);
+      commitFile(optimized.file);
       closeCropModal();
       // Pastikan file hasil crop tetap di input native (jangan dikosongkan).
-      if (nativeForm) syncNativeFileInput(inputRef.current, croppedFile);
+      if (nativeForm) syncNativeFileInput(inputRef.current, optimized.file);
     } catch {
       setError('Gagal memproses potongan gambar.');
     } finally {

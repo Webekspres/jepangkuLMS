@@ -90,7 +90,6 @@ const badgeFormSchema = z
     title: z.string().min(1, 'Judul badge wajib diisi.'),
     description: z.string().nullable().optional(),
     rarity: z.string(),
-    sortOrder: z.coerce.number().min(0, 'Urutan tampil tidak boleh negatif.'),
     unlockRule: z.string(),
     unlockValue: z.preprocess((val) => {
       if (val === '' || val === null || val === undefined) return null;
@@ -99,7 +98,6 @@ const badgeFormSchema = z
     }, z.number().int('Nilai harus berupa angka bulat.').nullable()),
     xpBonus: z.coerce.number().min(0, 'Bonus XP tidak boleh negatif.'),
     requirementText: z.string().nullable().optional(),
-    imageUrl: z.string().nullable().optional(),
     targetLevel: z.string().nullable().optional(),
     targetCourseId: z.string().nullable().optional(),
     targetModuleId: z.string().nullable().optional(),
@@ -239,62 +237,75 @@ export function AdminBadgeFormPage({
     setError(null);
     setValidationErrors({});
 
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    if (badgeImageState.removeCover) formData.set('removeImage', 'true');
-    if (badgeImageState.file) {
-      formData.set('image', badgeImageState.file);
-    }
+    try {
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      if (badgeImageState.removeCover) formData.set('removeImage', 'true');
+      if (badgeImageState.file) {
+        formData.set('image', badgeImageState.file);
+      }
 
-    // Prepare data for validation
-    const rawData = {
-      title: formData.get('title'),
-      description: formData.get('description'),
-      rarity: rarity,
-      sortOrder: formData.get('sortOrder'),
-      unlockRule: unlockRule,
-      unlockValue: formData.get('unlockValue'),
-      xpBonus: formData.get('xpBonus'),
-      requirementText: formData.get('requirementText'),
-      imageUrl: formData.get('imageUrl'),
-      targetLevel: targetLevel || null,
-      targetCourseId: targetCourseId || null,
-      targetModuleId: targetModuleId || null,
-      targetLessonId: targetLessonId || null,
-    };
+      const rawData = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        rarity: rarity,
+        unlockRule: unlockRule,
+        unlockValue: formData.get('unlockValue'),
+        xpBonus: formData.get('xpBonus'),
+        requirementText: formData.get('requirementText'),
+        targetLevel: targetLevel || null,
+        targetCourseId: targetCourseId || null,
+        targetModuleId: targetModuleId || null,
+        targetLessonId: targetLessonId || null,
+      };
 
-    const validation = badgeFormSchema.safeParse(rawData);
-    if (!validation.success) {
-      const fieldErrors: Record<string, string> = {};
-      validation.error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message;
-        }
-      });
-      setValidationErrors(fieldErrors);
-      setError('Harap periksa kembali isian form Anda.');
-      return;
-    }
-
-    startTransition(async () => {
-      const result = isEdit
-        ? await updateBadgeAction(badge!.id!, formData)
-        : await createBadgeAction(formData);
-
-      if (!result.ok) {
-        setError(result.message);
+      const validation = badgeFormSchema.safeParse(rawData);
+      if (!validation.success) {
+        const fieldErrors: Record<string, string> = {};
+        validation.error.issues.forEach((err) => {
+          if (err.path[0]) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setValidationErrors(fieldErrors);
+        setError('Harap periksa kembali isian form Anda.');
         return;
       }
-      router.push(ADMIN_ROUTES.badges);
-      router.refresh();
-    });
+
+      startTransition(async () => {
+        try {
+          const result = isEdit
+            ? await updateBadgeAction(badge!.id!, formData)
+            : await createBadgeAction(formData);
+
+          if (!result.ok) {
+            setError(result.message);
+            return;
+          }
+          router.push(ADMIN_ROUTES.badges);
+          router.refresh();
+        } catch (err) {
+          const message =
+            err instanceof Error && err.message.trim()
+              ? err.message
+              : 'Gagal menyimpan (koneksi/batas unggah). Coba gambar lebih kecil atau refresh halaman.';
+          setError(message);
+        }
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message.trim()
+          ? err.message
+          : 'Terjadi kesalahan saat memproses form. Coba refresh halaman.';
+      setError(message);
+    }
   }
 
   return (
     <AdminPageShell
       label="Gamifikasi"
       title={isEdit ? 'Edit Badge' : 'Badge Baru'}
-      subtitle="Upload ke R2 jika dikonfigurasi; jika tidak, gambar disimpan ke public/badges (lokal/VPS). Atau pakai URL statis /badges/…"
+      subtitle="Upload gambar ke R2 jika dikonfigurasi; jika tidak, disimpan ke public/badges (lokal/VPS)."
       action={
         <Button asChild variant="outline">
           <Link href={ADMIN_ROUTES.badges}>
@@ -308,7 +319,7 @@ export function AdminBadgeFormPage({
         <Card className="mb-4 border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
           R2 belum dikonfigurasi atau token tidak punya izin tulis — upload gambar akan disimpan ke{' '}
           <code className="text-foreground">public/badges/</code> (cocok untuk dev/VPS). Untuk production
-          dengan CDN, perbaiki env R2 atau gunakan field URL statis di bawah.
+          dengan CDN, perbaiki env R2.
         </Card>
       ) : null}
 
@@ -372,36 +383,24 @@ export function AdminBadgeFormPage({
             <Textarea id="description" name="description" rows={3} defaultValue={badge?.description ?? ''} />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="rarity">Rarity</Label>
-              <Select value={rarity} onValueChange={setRarity}>
-                <SelectTrigger id="rarity">
-                  <SelectValue placeholder="Pilih rarity" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LMS_BADGE_RARITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Common (abu), Rare (biru), Epic (ungu), Legendary (emas).
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sortOrder">Urutan tampil</Label>
-              <Input
-                id="sortOrder"
-                name="sortOrder"
-                type="number"
-                min={0}
-                defaultValue={badge?.sortOrder ?? 0}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="rarity">Rarity</Label>
+            <Select value={rarity} onValueChange={setRarity}>
+              <SelectTrigger id="rarity">
+                <SelectValue placeholder="Pilih rarity" />
+              </SelectTrigger>
+              <SelectContent>
+                {LMS_BADGE_RARITY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Common (abu), Rare (biru), Epic (ungu), Legendary (emas). Badge baru otomatis
+              ditambahkan di urutan terakhir daftar.
+            </p>
           </div>
 
           {/* Aturan Unlock Section */}
@@ -675,21 +674,6 @@ export function AdminBadgeFormPage({
                 defaultValue={badge?.requirementText ?? ''}
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">URL gambar statis (opsional)</Label>
-            <Input
-              id="imageUrl"
-              name="imageUrl"
-              placeholder="/badges/Word Rookie.png"
-              defaultValue={
-                badge?.imageUrl?.startsWith('/badges/') ? badge.imageUrl : ''
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Pakai file di <code>public/badges/</code> tanpa upload — mis. hasil seed awal.
-            </p>
           </div>
 
           <AdminCoverImageField
