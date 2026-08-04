@@ -45,6 +45,12 @@ const CONTENT_SECURITY_POLICY = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      // App allows 2 MB uploads; leave headroom for multipart boundaries/metadata.
+      bodySizeLimit: "3mb",
+    },
+  },
   serverExternalPackages: [
     "pino",
     "pino-pretty",
