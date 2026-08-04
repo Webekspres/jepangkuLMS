@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-07-31                                                  |
+| **Terakhir diperbarui**   | 2026-08-04                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **88%** (74 item terlacak)                                 |
 
@@ -183,7 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info     |   ✅   |
 | Secured video (enrolled only)      |   🟡   | API gate + player hardening; YouTube bukan DRM penuh                          |
 | Enrollment gate lesson             |   ✅   |
-| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans-only paid path (Course/Live/Tryout); CMS grant tetap; bank transfer retired; audit `PAYMENT_SETTLED` |
+| Model pembayaran: checkout per item (no cart) |   ✅   | Dual-mode `PAYMENT_PROVIDER`: midtrans \| manual bridge \| unavailable; CMS grant tetap; audit `PAYMENT_SETTLED` |
 | Rate Limiting (Middleware + Redis) |   🟡   | Dihapus dari `proxy.ts` (429 di staging); `lib/rate-limit/` tetap untuk nanti |
 
 ---
@@ -202,6 +202,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-04 | Dual-mode payment bridge: `PAYMENT_PROVIDER=manual` restores student bank transfer + admin Setujui; Midtrans tetap target production via env flip |
 | 2026-07-31 | Midtrans cutover: retire student bank transfer; `PAYMENT_SETTLED` EnrollmentLog; admin Antrian payment filters; CMS grant tetap |
 | 2026-07-31 | Payment Phase 1 product-agnostic: `chargeProductPayment` + resolvers; shared checkout Course/Live/Tryout; icons + grouped methods; payment detail SSE UX + Cek status; student payment history; docs/sitemap |
 | 2026-07-31 | Midtrans Core checkout Course: `Payment.instructions`/`checkoutMethod`, CoreApi charge via `lib/payment-engine`, routes `/dashboard/checkout/kursus/[slug]` + `/dashboard/pembayaran/[paymentId]`, sidebar CTA tanpa Snap (default `PAYMENT_CHECKOUT_MODE=core`) |

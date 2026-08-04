@@ -2,18 +2,23 @@
 
 import { revalidatePath } from 'next/cache';
 import { isLiveClassEnrollmentClosed } from '@/features/live-class/lib/live-class-access';
+import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
-import { notifyLiveClassRegistration } from '@/lib/lms/notifications';
+import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
+import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import { isManualPaymentEnabled } from '@/lib/payment/settings';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
 export type RequestLiveClassResult =
-  | { ok: true; status: 'ACTIVE' }
+  | { ok: true; status: 'PENDING' | 'ACTIVE' }
   | { ok: false; message: string };
 
 /**
- * Daftar ke Live Class gratis → ACTIVE.
- * Berbayar harus lewat checkout Midtrans.
+ * Daftar Live Class.
+ * - Gratis → ACTIVE
+ * - Berbayar + PAYMENT_PROVIDER=manual → PENDING (admin Setujui)
+ * - Berbayar + Midtrans → must use checkout
  */
 export async function requestLiveClassEnrollment(
   liveClassId: string,
@@ -47,35 +52,63 @@ export async function requestLiveClassEnrollment(
     return { ok: true, status: 'ACTIVE' };
   }
 
-  if (liveClass.priceIdr > 0) {
+  if (liveClass.priceIdr > 0 && !isManualPaymentEnabled()) {
     return {
       ok: false,
       message: 'Live Class berbayar dibayar lewat checkout Midtrans.',
     };
   }
 
-  if (!existing && isLiveClassEnrollmentClosed(liveClass.sessions[0]?.scheduledAt, new Date())) {
+  if (
+    existing?.status !== 'PENDING' &&
+    isLiveClassEnrollmentClosed(liveClass.sessions[0]?.scheduledAt, new Date())
+  ) {
     return {
       ok: false,
       message: 'Pendaftaran live class ini sudah ditutup H-1 sebelum pertemuan pertama.',
     };
   }
 
-  if (liveClass.filledSlots >= liveClass.maxSlots) {
+  if (existing?.status !== 'PENDING' && liveClass.filledSlots >= liveClass.maxSlots) {
     return { ok: false, message: 'Kelas sudah penuh.' };
   }
 
+  const status = liveClass.priceIdr > 0 ? 'PENDING' : 'ACTIVE';
+
   const enrollment = await prisma.enrollment.upsert({
     where: { userId_liveClassId: { userId, liveClassId } },
-    create: { userId, liveClassId, type: 'LIVE_CLASS', status: 'ACTIVE' },
-    update: { status: 'ACTIVE' },
+    create: { userId, liveClassId, type: 'LIVE_CLASS', status },
+    update: { status },
   });
 
-  await notifyLiveClassRegistration({
-    studentUserId: userId,
-    liveClassTitle: liveClass.title,
-    priceIdr: liveClass.priceIdr,
-  });
+  if (status === 'PENDING' && existing?.status !== 'PENDING') {
+    const studentName = (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
+    await notifyEnrollmentPending({
+      enrollmentId: enrollment.id,
+      studentUserId: userId,
+      studentName,
+      courseTitle: `Live Class — ${liveClass.title}`,
+    });
+    await notifyLiveClassRegistration({
+      studentUserId: userId,
+      liveClassTitle: liveClass.title,
+      priceIdr: liveClass.priceIdr,
+    });
+    await logEnrollmentRequested({
+      enrollmentId: enrollment.id,
+      userId,
+      type: 'LIVE_CLASS',
+      productTitle: liveClass.title,
+      productSubtitle: liveClass.senseiName,
+      studentName,
+    });
+  } else if (status === 'ACTIVE') {
+    await notifyLiveClassRegistration({
+      studentUserId: userId,
+      liveClassTitle: liveClass.title,
+      priceIdr: liveClass.priceIdr,
+    });
+  }
 
   revalidatePath('/admin/pembayaran');
   revalidatePath('/dashboard/live-class');
@@ -84,5 +117,5 @@ export async function requestLiveClassEnrollment(
     { userId, liveClassId, status: enrollment.status },
     'Live class enrollment requested',
   );
-  return { ok: true, status: 'ACTIVE' };
+  return { ok: true, status: enrollment.status as 'PENDING' | 'ACTIVE' };
 }

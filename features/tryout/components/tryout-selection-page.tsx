@@ -73,6 +73,7 @@ function TryoutEnterExamCard({
 export function TryoutSelectionPage({
   sessions,
   paymentSettings,
+  studentDisplayName,
 }: TryoutSelectionPageProps) {
   const router = useRouter();
   const [selectedSession, setSelectedSession] = useState(sessions[0]?.code ?? '');
@@ -239,7 +240,11 @@ export function TryoutSelectionPage({
           </section>
 
           {activeSession && needsPayment ? (
-            <TryoutAccessPanel session={activeSession} paymentSettings={paymentSettings} />
+            <TryoutAccessPanel
+              session={activeSession}
+              paymentSettings={paymentSettings}
+              studentDisplayName={studentDisplayName}
+            />
           ) : activeSession ? (
             <TryoutEnterExamCard
               session={activeSession}

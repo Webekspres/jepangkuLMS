@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen, CreditCard, Target, Trophy, User } from 'lucide-react';
+import { BookOpen, CreditCard, History, Trophy, User } from 'lucide-react';
 import { STUDENT_ROUTES } from './student-routes';
 
 export type StudentAccountMenuItem = {
@@ -13,6 +13,6 @@ export const STUDENT_ACCOUNT_MENU_ITEMS: StudentAccountMenuItem[] = [
   { href: STUDENT_ROUTES.profil, label: 'Profil Saya', icon: User },
   { href: STUDENT_ROUTES.kursusSaya, label: 'Kursus Saya', icon: BookOpen },
   { href: STUDENT_ROUTES.pembayaranHistory, label: 'Riwayat Pembayaran', icon: CreditCard },
-  { href: STUDENT_ROUTES.tryout, label: 'JLPT Try Out', icon: Target },
+  { href: STUDENT_ROUTES.tryoutHistory, label: 'Riwayat Tryout', icon: History },
   { href: STUDENT_ROUTES.achievements, label: 'Pencapaian', icon: Trophy },
 ];

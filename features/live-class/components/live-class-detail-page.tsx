@@ -11,6 +11,7 @@ import {
   Clock,
   ExternalLink,
   Lock,
+  MessageCircle,
   PlayCircle,
   Users,
   Video,
@@ -29,8 +30,11 @@ import type {
   LiveClassDetailSession,
   LiveClassDetailView,
 } from '@/features/live-class/lib/load-live-class-detail';
+import { ManualBankTransferCard } from '@/features/student/components/manual-bank-transfer-card';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
+import { buildWhatsAppUrl } from '@/lib/admin-contact';
+import { buildProgramPaymentConfirmMessage } from '@/lib/payment/enrollment-payment-messages';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { cn } from '@/lib/utils';
 
@@ -234,11 +238,13 @@ function EnrolledAccessCard({
 
 function LiveClassSidebarActions({
   liveClass,
+  studentDisplayName,
   isPending,
   onEnroll,
   now,
 }: {
   liveClass: LiveClassDetailView;
+  studentDisplayName: string | null;
   isPending: boolean;
   onEnroll: () => Promise<void>;
   now: number;
@@ -286,11 +292,68 @@ function LiveClassSidebarActions({
     liveClass.paymentSettings.provider === 'midtrans' &&
     (liveClass.paymentSettings.checkoutMode === 'core' ||
       liveClass.paymentSettings.checkoutMode === 'snap');
+  const isManual = liveClass.paymentSettings.provider === 'manual';
+  const priceLabel = formatIdr(liveClass.priceIdr);
+  const waConfirmUrl = buildWhatsAppUrl(
+    buildProgramPaymentConfirmMessage({
+      kind: 'live-class',
+      productTitle: liveClass.title,
+      priceLabel,
+      studentName: studentDisplayName,
+      paymentSettings: liveClass.paymentSettings,
+    }),
+  );
+
+  if (isManual) {
+    return (
+      <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <div>
+          <p className="text-2xl font-extrabold text-brand-red">{priceLabel}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Transfer manual — admin mengaktifkan akses setelah konfirmasi.
+          </p>
+        </div>
+        {liveClass.enrollmentStatus === 'PENDING' ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-foreground">
+            <p className="font-semibold">Menunggu verifikasi admin</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Setelah transfer, kirim bukti via WhatsApp.
+            </p>
+          </div>
+        ) : null}
+        <ManualBankTransferCard
+          paymentSettings={liveClass.paymentSettings}
+          priceLabel={priceLabel}
+        />
+        <Button
+          type="button"
+          size="lg"
+          className="h-11 w-full gap-2 bg-[#25d366] hover:bg-[#128c7e]"
+          disabled={isPending || liveClass.isFull}
+          onClick={() => {
+            void (async () => {
+              try {
+                if (liveClass.enrollmentStatus !== 'PENDING') {
+                  await onEnroll();
+                }
+                window.open(waConfirmUrl, '_blank', 'noopener,noreferrer');
+              } catch {
+                // onEnroll already toasted
+              }
+            })();
+          }}
+        >
+          <MessageCircle className="size-4" />
+          {isPending ? 'Memproses…' : 'Konfirmasi Pembayaran'}
+        </Button>
+      </div>
+    );
+  }
 
   if (!useMidtrans) {
     return (
       <div className="min-w-0 space-y-3 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-        <p className="text-2xl font-extrabold text-brand-red">{formatIdr(liveClass.priceIdr)}</p>
+        <p className="text-2xl font-extrabold text-brand-red">{priceLabel}</p>
         <p className="text-sm text-muted-foreground">
           Pembayaran online sedang tidak tersedia. Silakan coba lagi nanti atau hubungi admin.
         </p>
@@ -304,7 +367,7 @@ function LiveClassSidebarActions({
   return (
     <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
       <div>
-        <p className="text-2xl font-extrabold text-brand-red">{formatIdr(liveClass.priceIdr)}</p>
+        <p className="text-2xl font-extrabold text-brand-red">{priceLabel}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Bayar online — akses aktif otomatis setelah pembayaran berhasil.
         </p>
@@ -329,7 +392,7 @@ function LiveClassSidebarActions({
 
 export function LiveClassDetailPage({
   liveClass,
-  studentDisplayName: _studentDisplayName,
+  studentDisplayName,
 }: {
   liveClass: LiveClassDetailView;
   studentDisplayName: string | null;
@@ -359,7 +422,11 @@ export function LiveClassDetailPage({
           reject(new Error(result.message));
           return;
         }
-        toast.success('Berhasil terdaftar! Selamat belajar 🎉');
+        toast.success(
+          result.status === 'PENDING'
+            ? 'Permintaan terkirim. Selesaikan transfer lalu konfirmasi via WhatsApp.'
+            : 'Berhasil terdaftar! Selamat belajar 🎉',
+        );
         router.refresh();
         resolve();
       });
@@ -369,6 +436,7 @@ export function LiveClassDetailPage({
 
   const sidebarProps = {
     liveClass,
+    studentDisplayName,
     isPending,
     onEnroll: handleEnroll,
     now,
