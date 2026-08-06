@@ -20,7 +20,7 @@ export async function loadStudentPayments(
   userId: string,
 ): Promise<StudentPaymentHistoryItem[]> {
   const rows = await prisma.payment.findMany({
-    where: { enrollment: { userId } },
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     include: {
       enrollment: {
@@ -35,10 +35,11 @@ export async function loadStudentPayments(
 
   return rows.map((row) => {
     const title =
-      row.enrollment.course?.title ??
-      row.enrollment.liveClass?.title ??
-      row.enrollment.tryoutSession?.title ??
-      'Produk';
+      row.enrollment?.course?.title ??
+      row.enrollment?.liveClass?.title ??
+      row.enrollment?.tryoutSession?.title ??
+      row.productTitle;
+    const productType = row.enrollment?.type ?? row.productType;
     return {
       id: row.id,
       orderId: row.orderId,
@@ -46,12 +47,12 @@ export async function loadStudentPayments(
       amountIdr: row.amountIdr,
       createdAt: row.createdAt.toISOString(),
       paidAt: row.paidAt?.toISOString() ?? null,
-      productType: row.enrollment.type,
+      productType,
       productTitle: title,
       coverSrc: resolvePaymentProductCover({
-        type: row.enrollment.type,
-        courseCoverUrl: row.enrollment.course?.coverImageUrl,
-        liveClassCoverUrl: row.enrollment.liveClass?.coverImageUrl,
+        type: productType,
+        courseCoverUrl: row.enrollment?.course?.coverImageUrl,
+        liveClassCoverUrl: row.enrollment?.liveClass?.coverImageUrl,
       }),
       detailHref: STUDENT_ROUTES.pembayaran(row.id),
     };

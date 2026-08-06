@@ -13,6 +13,9 @@ import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
 import type { CheckoutMethodId, CheckoutProductType } from '@/lib/payment-engine/types';
+import {
+  closePendingEnrollmentForTerminalPayment,
+} from '@/lib/payment/close-pending-enrollment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { getPaymentSettings } from '@/lib/payment/settings';
@@ -153,7 +156,7 @@ export async function cancelPayment(
     },
   });
 
-  if (!payment || payment.enrollment.userId !== userId) {
+  if (!payment || payment.userId !== userId) {
     return { ok: false, message: 'Pembayaran tidak ditemukan.' };
   }
   if (payment.status !== 'PENDING' && payment.status !== 'CHALLENGE') {
@@ -171,19 +174,34 @@ export async function cancelPayment(
     data: { status: 'CANCELED' },
   });
 
+  const enrollmentId = payment.enrollmentId;
+  const closed = enrollmentId
+    ? await closePendingEnrollmentForTerminalPayment({
+        enrollmentId,
+        actorUserId: userId,
+      })
+    : { closed: false, revalidatePaths: [] as string[] };
+
   await publishPaymentEvent(
     buildPaymentSseEvent({
       paymentId: payment.id,
       orderId: payment.orderId,
       status: 'CANCELED',
-      enrollmentId: payment.enrollmentId,
-      enrollmentStatus: payment.enrollment.status,
-      productType: payment.enrollment.type,
-      productKey: productKeyFromEnrollment(payment.enrollment),
+      enrollmentId: enrollmentId ?? payment.id,
+      enrollmentStatus: payment.enrollment?.status ?? 'PENDING',
+      productType: payment.enrollment?.type ?? payment.productType,
+      productKey:
+        payment.productKey ??
+        (payment.enrollment ? productKeyFromEnrollment(payment.enrollment) : null),
     }),
   );
 
   revalidatePath(STUDENT_ROUTES.pembayaran(paymentId));
+  revalidatePath(STUDENT_ROUTES.pembayaranHistory);
+  for (const path of closed.revalidatePaths) {
+    revalidatePath(path);
+  }
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   return { ok: true };
 }
 
@@ -206,15 +224,23 @@ export async function changePaymentMethod(input: {
     },
   });
 
-  if (!payment || payment.enrollment.userId !== userId) {
+  if (!payment || payment.userId !== userId) {
     return { ok: false, message: 'Pembayaran tidak ditemukan.' };
   }
 
-  if (!['PENDING', 'EXPIRED', 'CANCELED', 'FAILED', 'DENIED'].includes(payment.status)) {
+  if (!payment.enrollment || !payment.enrollmentId) {
+    return {
+      ok: false,
+      message: 'Pembayaran ini sudah ditutup. Mulai checkout baru dari halaman produk.',
+    };
+  }
+
+  if (payment.status !== 'PENDING' && payment.status !== 'CHALLENGE') {
     return { ok: false, message: 'Metode pembayaran tidak bisa diganti untuk status ini.' };
   }
 
-  const productKey = productKeyFromEnrollment(payment.enrollment);
+  const productKey =
+    payment.productKey ?? productKeyFromEnrollment(payment.enrollment);
   if (!productKey) return { ok: false, message: 'Produk terkait tidak ditemukan.' };
 
   const built = await resolveProductCheckout(userId, payment.enrollment.type, productKey);
@@ -243,16 +269,16 @@ export async function syncPaymentStatus(
 
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
-    include: { enrollment: { select: { userId: true } } },
   });
 
-  if (!payment || payment.enrollment.userId !== userId) {
+  if (!payment || payment.userId !== userId) {
     return { ok: false, message: 'Pembayaran tidak ditemukan.' };
   }
 
   try {
     const result = await applyProviderPaymentEvent({ externalOrderId: payment.orderId });
     revalidatePath(STUDENT_ROUTES.pembayaran(paymentId));
+    revalidatePath(STUDENT_ROUTES.pembayaranHistory);
     return { ok: true, status: result.status };
   } catch (error) {
     return {

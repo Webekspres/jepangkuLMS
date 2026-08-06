@@ -184,6 +184,7 @@ model User {
 
     equippedBadge  LmsBadge?            @relation("EquippedBadge", fields: [equippedBadgeId], references: [id], onDelete: SetNull)
     enrollments    Enrollment[]
+    payments       Payment[]
     enrollmentLogsAsStudent EnrollmentLog[] @relation("EnrollmentLogStudent")
     enrollmentLogsAsActor   EnrollmentLog[] @relation("EnrollmentLogActor")
     progress       UserProgress[]
@@ -387,9 +388,18 @@ model Enrollment {
 }
 
 /// Payment ledger — money state is tracked separately from Enrollment access state.
+/// Survives enrollment delete (cancel/expire) so student history keeps CANCELED/EXPIRED rows.
 model Payment {
     id                String          @id @default(uuid())
-    enrollmentId      String          @unique
+    /// Null after PENDING enrollment closed on terminal payment (SetNull).
+    enrollmentId      String?         @unique
+    /// Owner — required for history/detail after enrollment is gone.
+    userId            String
+    /// Snapshot at charge time (UI without join when enrollment null).
+    productType       EnrollmentType
+    productTitle      String
+    /// Course slug / live-class id / tryout code
+    productKey        String?
     provider          PaymentProvider @default(MIDTRANS)
     orderId           String          @unique
     amountIdr         Int
@@ -413,8 +423,10 @@ model Payment {
     createdAt         DateTime        @default(now())
     updatedAt         DateTime        @updatedAt
 
-    enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+    enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+    user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+    @@index([userId, createdAt(sort: Desc)])
     @@index([status, createdAt(sort: Desc)])
     @@index([provider, createdAt(sort: Desc)])
 }

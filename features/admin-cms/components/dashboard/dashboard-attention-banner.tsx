@@ -12,7 +12,7 @@ export function DashboardAttentionBanner({ pendingCount }: { pendingCount: numbe
         <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-700" aria-hidden />
         <div>
           <p className="text-sm font-semibold text-foreground">
-            {pendingCount} enrollment menunggu verifikasi
+            {pendingCount} enrollment menunggu bayar
           </p>
           <p className="text-xs text-muted-foreground">
             Segera tinjau agar siswa bisa mulai belajar.
