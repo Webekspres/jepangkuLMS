@@ -195,7 +195,17 @@ export async function notifyLiveClassApproval(input: {
 }
 
 export async function getPendingEnrollmentCount(): Promise<number> {
-  return prisma.enrollment.count({ where: { status: 'PENDING' } });
+  return prisma.enrollment.count({
+    where: {
+      status: 'PENDING',
+      payment: {
+        is: {
+          provider: 'MIDTRANS',
+          status: { in: ['PENDING', 'CHALLENGE'] },
+        },
+      },
+    },
+  });
 }
 
 export type LmsNotificationView = {
