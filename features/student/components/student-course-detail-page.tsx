@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { CoursePaymentSidebar } from './course-payment-sidebar';
 import { STUDENT_ROUTES } from './student-routes';
 import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
-import type { EnrollmentStatus, PaymentStatus } from '@prisma/client';
+import type { EnrollmentStatus, LessonType, PaymentStatus } from '@prisma/client';
 
 type DbLesson = {
   id: string;
@@ -34,6 +34,7 @@ type DbLesson = {
   title: string;
   order: number;
   content: string | null;
+  lessonType?: LessonType | null;
   hasQuiz: boolean;
 };
 

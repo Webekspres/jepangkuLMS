@@ -44,6 +44,7 @@ import { groupLessonsFlat, type ModuleRow } from '@/features/learning/lib/course
 import type { LessonCommentView } from '@/features/learning/actions/lesson-qa-actions';
 import { LessonQaSection } from './lesson-qa-section';
 import type { LessonNavItem } from '@/features/learning/lib/queries';
+import { LESSON_TYPE_LABEL } from '@/features/learning/lib/lesson-type';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { requestStudentCoreDataRefresh } from '@/features/student/lib/student-core-data-events';
 import { showReward } from '@/features/student/components/reward-notification/show-reward';
@@ -233,11 +234,15 @@ function LessonCurriculumList({
                                                     {item.title}
                                                 </p>
                                             </div>
-                                            {item.hasQuiz && (
+                                            {item.lessonType ? (
+                                                <Badge variant="outline" className="shrink-0 text-[10px]">
+                                                    {LESSON_TYPE_LABEL[item.lessonType]}
+                                                </Badge>
+                                            ) : item.hasQuiz ? (
                                                 <Badge variant="outline" className="shrink-0 text-[10px]">
                                                     Quiz
                                                 </Badge>
-                                            )}
+                                            ) : null}
                                         </Link>
                                     );
                                 })}

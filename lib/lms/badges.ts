@@ -11,10 +11,11 @@ const UNLOCK_RULE_LABELS: Record<LmsBadgeUnlockRule, string> = {
     TRYOUT_PASS: 'Lulus tryout JLPT',
     QUIZ_SCORE_THRESHOLD: 'Skor kuis minimum',
     CATEGORY_COMPLETE: 'Selesaikan kategori materi',
-    TRYOUT_SCORE_THRESHOLD: 'Skor tryout minimum',
+    TRYOUT_SCORE_THRESHOLD: 'Skor tryout JLPT minimum',
     SPECIFIC_COURSE_COMPLETE: 'Selesaikan kursus spesifik',
     SPECIFIC_MODULE_COMPLETE: 'Selesaikan modul spesifik',
     SPECIFIC_LESSON_COMPLETE: 'Selesaikan lesson spesifik',
+    FIRST_LIVE_CLASS_JOIN: 'Hadiri Live Class pertama',
 };
 
 function formatBadgeDate(date: Date): string {
@@ -39,6 +40,9 @@ function requirementLabel(
     if (rule === 'TRYOUT_PASS' || rule === 'TRYOUT_SCORE_THRESHOLD') {
         const levelStr = targetLevel ? ` ${targetLevel}` : '';
         return `Lulus simulasi JLPT${levelStr} (skor ≥ ${unlockValue ?? 60}%)`;
+    }
+    if (rule === 'FIRST_LIVE_CLASS_JOIN') {
+        return 'Gabung Live Class pertama kali via Zoom';
     }
     if (rule === 'QUIZ_SCORE_THRESHOLD') {
         const levelStr = targetLevel ? ` ${targetLevel}` : '';
