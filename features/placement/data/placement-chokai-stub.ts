@@ -35,7 +35,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m1-2-c', label: '3 かい' },
       { id: 'chokai-m1-2-d', label: '4 かい' },
     ],
-    correctOptionId: 'chokai-m1-2-c',
+    correctOptionId: 'chokai-m1-2-b',
   },
   {
     id: 'chokai-m1-3',
@@ -51,7 +51,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m1-3-c', label: '3' },
       { id: 'chokai-m1-3-d', label: '4' },
     ],
-    correctOptionId: 'chokai-m1-3-b',
+    correctOptionId: 'chokai-m1-3-c',
   },
   {
     id: 'chokai-m1-4',
@@ -67,7 +67,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m1-4-c', label: '3' },
       { id: 'chokai-m1-4-d', label: '4' },
     ],
-    correctOptionId: 'chokai-m1-4-a',
+    correctOptionId: 'chokai-m1-4-c',
   },
   {
     id: 'chokai-m1-5',
@@ -99,7 +99,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m1-6-c', label: '3' },
       { id: 'chokai-m1-6-d', label: '4' },
     ],
-    correctOptionId: 'chokai-m1-6-b',
+    correctOptionId: 'chokai-m1-6-d',
   },
   {
     id: 'chokai-m1-7',
@@ -114,7 +114,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m1-7-c', label: '5 ばん' },
       { id: 'chokai-m1-7-d', label: '7 ばん' },
     ],
-    correctOptionId: 'chokai-m1-7-b',
+    correctOptionId: 'chokai-m1-7-d',
   },
   // —— Mondai 2 (text only) ——
   {
@@ -160,7 +160,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m2-3-c', label: 'いもうと' },
       { id: 'chokai-m2-3-d', label: 'おとうと' },
     ],
-    correctOptionId: 'chokai-m2-3-c',
+    correctOptionId: 'chokai-m2-3-b',
   },
   {
     id: 'chokai-m2-4',
@@ -175,7 +175,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m2-4-c', label: 'パンや' },
       { id: 'chokai-m2-4-d', label: 'きょうしつ' },
     ],
-    correctOptionId: 'chokai-m2-4-b',
+    correctOptionId: 'chokai-m2-4-d',
   },
   {
     id: 'chokai-m2-5',
@@ -190,7 +190,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m2-5-c', label: 'くろい　えんぴつ' },
       { id: 'chokai-m2-5-d', label: 'あかい　えんぴつ' },
     ],
-    correctOptionId: 'chokai-m2-5-c',
+    correctOptionId: 'chokai-m2-5-a',
   },
   {
     id: 'chokai-m2-6',
@@ -205,7 +205,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m2-6-c', label: 'きっさてん' },
       { id: 'chokai-m2-6-d', label: 'レストラン' },
     ],
-    correctOptionId: 'chokai-m2-6-b',
+    correctOptionId: 'chokai-m2-6-c',
   },
   // —— Mondai 3 (scene image + options 1–3) ——
   {
@@ -221,7 +221,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m3-1-b', label: '2' },
       { id: 'chokai-m3-1-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m3-1-c',
+    correctOptionId: 'chokai-m3-1-a',
   },
   {
     id: 'chokai-m3-2',
@@ -251,7 +251,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m3-3-b', label: '2' },
       { id: 'chokai-m3-3-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m3-3-a',
+    correctOptionId: 'chokai-m3-3-b',
   },
   {
     id: 'chokai-m3-4',
@@ -266,7 +266,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m3-4-b', label: '2' },
       { id: 'chokai-m3-4-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m3-4-b',
+    correctOptionId: 'chokai-m3-4-c',
   },
   {
     id: 'chokai-m3-5',
@@ -310,7 +310,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m4-2-b', label: '2' },
       { id: 'chokai-m4-2-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m4-2-c',
+    correctOptionId: 'chokai-m4-2-a',
   },
   {
     id: 'chokai-m4-3',
@@ -324,7 +324,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m4-3-b', label: '2' },
       { id: 'chokai-m4-3-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m4-3-c',
+    correctOptionId: 'chokai-m4-3-b',
   },
   {
     id: 'chokai-m4-4',
@@ -338,7 +338,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m4-4-b', label: '2' },
       { id: 'chokai-m4-4-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m4-4-b',
+    correctOptionId: 'chokai-m4-4-c',
   },
   {
     id: 'chokai-m4-5',
@@ -352,7 +352,7 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m4-5-b', label: '2' },
       { id: 'chokai-m4-5-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m4-5-a',
+    correctOptionId: 'chokai-m4-5-c',
   },
   {
     id: 'chokai-m4-6',
@@ -366,6 +366,6 @@ export const PLACEMENT_CHOKAI_STUB_QUESTIONS: PlacementQuestion[] = [
       { id: 'chokai-m4-6-b', label: '2' },
       { id: 'chokai-m4-6-c', label: '3' },
     ],
-    correctOptionId: 'chokai-m4-6-b',
+    correctOptionId: 'chokai-m4-6-a',
   },
 ];
