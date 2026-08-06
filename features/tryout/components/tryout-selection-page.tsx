@@ -185,7 +185,9 @@ export function TryoutSelectionPage({
                       >
                         {session.isStrictTimeBound ? 'Terjadwal' : 'Latihan'}
                       </span>
-                      {session.priceIdr > 0 && session.enrollmentStatus === 'PENDING' ? (
+                      {session.priceIdr > 0 &&
+                      session.enrollmentStatus === 'PENDING' &&
+                      session.pendingPaymentId ? (
                         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-600">
                           Menunggu bayar
                         </span>

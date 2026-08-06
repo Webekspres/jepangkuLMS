@@ -29,12 +29,6 @@ import type { CourseDetail } from './course-detail-data';
 
 type CourseDetailPageProps = {
   course: CourseDetail;
-  /** @deprecated Bank transfer retired — kept for call-site compatibility. */
-  paymentSettings?: {
-    bankName: string;
-    accountName: string;
-    accountNumber: string;
-  };
 };
 
 export function CourseDetailPage({ course }: CourseDetailPageProps) {

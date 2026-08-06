@@ -78,7 +78,9 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
 
   const isEnrolled = enrollment?.status === 'ACTIVE';
   const pendingPaymentId =
-    enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null;
+    enrollment?.payment?.status === 'PENDING' || enrollment?.payment?.status === 'CHALLENGE'
+      ? enrollment.payment.id
+      : null;
   const now = new Date();
   const enrollmentClosed = isLiveClassEnrollmentClosed(row.sessions[0]?.scheduledAt, now);
   const accessMessage =

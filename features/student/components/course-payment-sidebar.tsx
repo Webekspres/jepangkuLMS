@@ -6,7 +6,6 @@ import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
-  MessageCircle,
   Phone,
   Play,
   Shield,
@@ -16,15 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { requestCourseCheckout, requestCourseEnrollment } from '@/features/learning/actions/learning-actions';
-import { ManualBankTransferCard } from '@/features/student/components/manual-bank-transfer-card';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import {
   buildProgramConsultMessage,
-  buildProgramPaymentConfirmMessage,
   type PaymentSettings,
 } from '@/lib/payment/enrollment-payment-messages';
+import { isOpenMidtransPaymentStatus } from '@/lib/payment/payment-status';
 import {
   isPaymentSseTerminalStatus,
   type PaymentSseEvent,
@@ -120,9 +118,7 @@ export function CoursePaymentSidebar({
   const isFree = isFreeCourse(priceIdr);
   const priceLabel = formatIdr(priceIdr);
   const isActive = enrollmentStatus === 'ACTIVE';
-  const isPending = enrollmentStatus === 'PENDING';
   const isMidtrans = paymentSettings.provider === 'midtrans';
-  const isManual = paymentSettings.provider === 'manual';
   const isCoreCheckout = isMidtrans && paymentSettings.checkoutMode !== 'snap';
   const shouldLoadSnap =
     isMidtrans &&
@@ -131,17 +127,9 @@ export function CoursePaymentSidebar({
     Boolean(paymentSettings.midtransSnapUrl);
   const snapStatus: SnapLoadStatus = shouldLoadSnap ? snapLoadStatus : 'idle';
   const displayPaymentStatus = ssePaymentStatus ?? paymentStatus;
+  const isAwaitingPayment =
+    enrollmentStatus === 'PENDING' && isOpenMidtransPaymentStatus(displayPaymentStatus);
 
-  const waConfirmUrl = buildWhatsAppUrl(
-    buildProgramPaymentConfirmMessage({
-      kind: 'course',
-      productTitle: courseTitle,
-      productDetail: courseSlug,
-      priceLabel,
-      studentName: _studentDisplayName,
-      paymentSettings,
-    }),
-  );
   const waConsultUrl = buildWhatsAppUrl(
     buildProgramConsultMessage({ kind: 'course', productTitle: courseTitle }),
   );
@@ -169,7 +157,7 @@ export function CoursePaymentSidebar({
 
   usePaymentEvents({
     paymentId: activePaymentId,
-    enabled: isMidtrans && isPending && Boolean(activePaymentId),
+    enabled: isMidtrans && isAwaitingPayment && Boolean(activePaymentId),
     onEvent: handlePaymentEvent,
   });
 
@@ -207,25 +195,8 @@ export function CoursePaymentSidebar({
   };
 
   const handleConfirmPayment = async () => {
-    if (isManual) {
-      if (!isPending && !isActive) {
-        setIsRequesting(true);
-        try {
-          await requestCourseEnrollment(courseSlug);
-          router.refresh();
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : 'Gagal mengajukan enrollment.');
-          return;
-        } finally {
-          setIsRequesting(false);
-        }
-      }
-      window.open(waConfirmUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
     if (isCoreCheckout) {
-      if (isPending && activePaymentId) {
+      if (isAwaitingPayment && activePaymentId) {
         router.push(STUDENT_ROUTES.pembayaran(activePaymentId));
         return;
       }
@@ -368,31 +339,18 @@ export function CoursePaymentSidebar({
                 </Button>
               ) : (
                 <>
-                  {isPending ? (
+                  {isAwaitingPayment ? (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      <p className="font-semibold">
-                        {isManual ? 'Menunggu verifikasi admin' : 'Menunggu penyelesaian pembayaran'}
-                      </p>
+                      <p className="font-semibold">Menunggu penyelesaian pembayaran</p>
                       <p className="mt-1 text-xs text-amber-800">
-                        {isManual
-                          ? 'Setelah transfer, kirim bukti via WhatsApp. Admin akan mengaktifkan akses kursus setelah pembayaran dikonfirmasi.'
-                          : isMidtrans
-                            ? isCoreCheckout
-                              ? `Status: ${displayPaymentStatus ?? 'PENDING'}. Selesaikan di halaman pembayaran — status diperbarui otomatis.`
-                              : `Midtrans status saat ini: ${displayPaymentStatus ?? 'PENDING'}. Status akan diperbarui otomatis setelah pembayaran berhasil.`
-                            : 'Pembayaran online sedang tidak tersedia. Hubungi admin jika akses belum aktif.'}
+                        {isCoreCheckout
+                          ? `Status: ${displayPaymentStatus ?? 'PENDING'}. Selesaikan di halaman pembayaran — status diperbarui otomatis.`
+                          : `Midtrans status saat ini: ${displayPaymentStatus ?? 'PENDING'}. Status akan diperbarui otomatis setelah pembayaran berhasil.`}
                       </p>
                     </div>
                   ) : null}
 
-                  {isManual ? (
-                    <ManualBankTransferCard
-                      paymentSettings={paymentSettings}
-                      priceLabel={priceLabel}
-                    />
-                  ) : null}
-
-                  {!isMidtrans && !isManual ? (
+                  {!isMidtrans ? (
                     <p className="rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                       Pembayaran online sedang tidak tersedia. Silakan coba lagi nanti.
                     </p>
@@ -404,37 +362,25 @@ export function CoursePaymentSidebar({
                     </p>
                   ) : null}
 
-                  {isManual ? (
-                    <Button
-                      type="button"
-                      className="h-11 w-full gap-2 bg-[#25d366] hover:bg-[#128c7e]"
-                      disabled={isRequesting}
-                      onClick={handleConfirmPayment}
-                    >
-                      <MessageCircle className="size-4" />
-                      {isRequesting ? 'Memproses…' : 'Konfirmasi Pembayaran'}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      className="h-11 w-full gap-2"
-                      disabled={isRequesting || !isMidtrans || (isMidtrans && snapStatus === 'error')}
-                      onClick={handleConfirmPayment}
-                    >
-                      <Shield className="size-4" />
-                      {isRequesting
-                        ? 'Memproses…'
-                        : isMidtrans
-                          ? isPending
-                            ? 'Lanjutkan Pembayaran'
-                            : isCoreCheckout
-                              ? 'Beli Kursus'
-                              : snapStatus === 'loading'
-                                ? 'Menyiapkan Snap…'
-                                : 'Bayar Sekarang'
-                          : 'Pembayaran tidak tersedia'}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    className="h-11 w-full gap-2"
+                    disabled={isRequesting || !isMidtrans || (isMidtrans && snapStatus === 'error')}
+                    onClick={handleConfirmPayment}
+                  >
+                    <Shield className="size-4" />
+                    {isRequesting
+                      ? 'Memproses…'
+                      : isMidtrans
+                        ? isAwaitingPayment
+                          ? 'Lanjutkan Pembayaran'
+                          : isCoreCheckout
+                            ? 'Beli Kursus'
+                            : snapStatus === 'loading'
+                              ? 'Menyiapkan Snap…'
+                              : 'Bayar Sekarang'
+                        : 'Pembayaran tidak tersedia'}
+                  </Button>
 
                   <Button
                     asChild

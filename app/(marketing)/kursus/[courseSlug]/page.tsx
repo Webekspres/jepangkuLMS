@@ -4,7 +4,6 @@ import { notFound, redirect } from 'next/navigation';
 import { CourseDetailPage } from '@/features/learning/components/course-detail-page';
 import { loadMarketingCourseDetail } from '@/features/learning/lib/load-marketing-courses';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
-import { getPaymentSettings } from '@/lib/payment/settings';
 
 type PageProps = {
   params: Promise<{ courseSlug: string }>;
@@ -41,7 +40,5 @@ export default async function KursusDetailRoute({ params }: PageProps) {
     notFound();
   }
 
-  const paymentSettings = getPaymentSettings();
-
-  return <CourseDetailPage course={course} paymentSettings={paymentSettings} />;
+  return <CourseDetailPage course={course} />;
 }

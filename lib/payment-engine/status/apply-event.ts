@@ -6,12 +6,18 @@ import {
   notifyLiveClassApproval,
 } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
+import {
+  closePendingEnrollmentForTerminalPayment,
+  isTerminalPaymentStatus,
+} from '@/lib/payment/close-pending-enrollment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 
 const log = loggers.api.child({ module: 'payment-engine-status' });
 
@@ -44,8 +50,10 @@ export async function applyProviderPaymentEvent(input: {
 
   const previousStatus = payment.status;
   const nextStatus = statusResult.status;
-  const nextEnrollmentStatus =
-    nextStatus === 'PAID' || payment.enrollment.status === 'ACTIVE' ? 'ACTIVE' : payment.enrollment.status;
+  let nextEnrollmentStatus =
+    nextStatus === 'PAID' || payment.enrollment.status === 'ACTIVE'
+      ? ('ACTIVE' as const)
+      : payment.enrollment.status;
 
   const productKey =
     payment.enrollment.type === 'COURSE'
@@ -76,6 +84,24 @@ export async function applyProviderPaymentEvent(input: {
       });
     }
   });
+
+  if (
+    isTerminalPaymentStatus(nextStatus) &&
+    payment.enrollment.status === 'PENDING' &&
+    previousStatus !== nextStatus
+  ) {
+    const closed = await closePendingEnrollmentForTerminalPayment({
+      enrollmentId: payment.enrollmentId,
+      actorUserId: null,
+    });
+    if (closed.closed) {
+      nextEnrollmentStatus = payment.enrollment.status;
+      for (const path of closed.revalidatePaths) {
+        revalidatePath(path);
+      }
+      revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(payment.enrollment.userId), 'default');
+    }
+  }
 
   if (nextStatus === 'PAID' && previousStatus !== 'PAID') {
     const productTitle =

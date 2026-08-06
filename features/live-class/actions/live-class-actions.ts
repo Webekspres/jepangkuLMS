@@ -8,7 +8,6 @@ import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { evaluateBadgeUnlocks } from '@/lib/lms/badge-unlock';
 import { notifyEnrollmentPending, notifyLiveClassRegistration } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
-import { isManualPaymentEnabled } from '@/lib/payment/settings';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 
@@ -54,7 +53,7 @@ export async function requestLiveClassEnrollment(
     return { ok: true, status: 'ACTIVE' };
   }
 
-  if (liveClass.priceIdr > 0 && !isManualPaymentEnabled()) {
+  if (liveClass.priceIdr > 0) {
     return {
       ok: false,
       message: 'Live Class berbayar dibayar lewat checkout Midtrans.',

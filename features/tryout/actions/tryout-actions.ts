@@ -26,7 +26,6 @@ import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { logEnrollmentRequested } from '@/features/admin-cms/lib/enrollment-log';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { resolveLmsDisplayName } from '@/lib/lms/user-profile';
-import { isManualPaymentEnabled } from '@/lib/payment/settings';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
 import { clearTryoutExamProgress } from '@/features/tryout/actions/tryout-exam-progress-actions';
@@ -49,7 +48,7 @@ export type RequestTryoutEnrollmentResult =
   | { ok: true; status: 'PENDING' | 'ACTIVE'; sessionCode: string }
   | { ok: false; message: string };
 
-/** Free → ACTIVE. Paid + manual → PENDING. Paid + Midtrans → checkout only. */
+/** Free → ACTIVE. Paid → Midtrans checkout only. */
 export async function requestTryoutEnrollment(
   sessionCode: string,
 ): Promise<RequestTryoutEnrollmentResult> {
@@ -68,7 +67,7 @@ export async function requestTryoutEnrollment(
     return { ok: true, sessionCode, status: 'ACTIVE' };
   }
 
-  if (session.priceIdr > 0 && !isManualPaymentEnabled()) {
+  if (session.priceIdr > 0) {
     return {
       ok: false,
       message: 'Tryout berbayar dibayar lewat checkout Midtrans.',

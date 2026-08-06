@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ban, Check, Clock, Eye, History, Search, UserPlus } from 'lucide-react';
+import { Ban, Clock, Eye, History, Search, UserPlus } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
@@ -12,7 +12,6 @@ import {
   AdminTableActions,
 } from '@/features/admin-cms/components/admin-table-actions';
 import {
-  approveEnrollmentAction,
   cancelMidtransEnrollmentAction,
   grantEnrollmentAction,
   rejectEnrollmentAction,
@@ -29,6 +28,7 @@ import {
 } from '@/features/admin-cms/lib/enrollment-log-labels';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { formatIdr } from '@/lib/lms/format-price';
+import { isOpenMidtransPaymentStatus, isTerminalPaymentStatus } from '@/lib/payment/payment-status';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -103,6 +103,31 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   FAILED: 'Gagal',
 };
 
+function isQueueActionNeeded(row: AdminEnrollmentRow): boolean {
+  if (row.status !== 'PENDING') return false;
+  if (!row.paymentProvider) return true;
+  if (row.paymentProvider === 'MIDTRANS') {
+    return isOpenMidtransPaymentStatus(row.paymentStatus);
+  }
+  return false;
+}
+
+function enrollmentStatusLabel(row: AdminEnrollmentRow): {
+  label: string;
+  pending: boolean;
+} {
+  if (row.paymentProvider === 'MIDTRANS' && row.paymentStatus) {
+    return {
+      label: PAYMENT_STATUS_LABEL[row.paymentStatus] ?? row.paymentStatus,
+      pending: isOpenMidtransPaymentStatus(row.paymentStatus),
+    };
+  }
+  if (row.status === 'PENDING') {
+    return { label: 'Menunggu bayar', pending: true };
+  }
+  return { label: 'Akses aktif', pending: false };
+}
+
 export function AdminEnrollmentsPage({
   enrollments,
   history,
@@ -141,14 +166,18 @@ export function AdminEnrollmentsPage({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return enrollments.filter((row) => {
-      if (statusFilter !== 'all' && row.status !== statusFilter) return false;
+      if (statusFilter === 'PENDING') {
+        if (!isQueueActionNeeded(row)) return false;
+      } else if (statusFilter === 'ACTIVE') {
+        if (row.status !== 'ACTIVE') return false;
+      }
 
       if (paymentFilter === 'no_payment') {
         if (row.paymentProvider) return false;
       } else if (paymentFilter === 'midtrans_pending') {
         if (
           row.paymentProvider !== 'MIDTRANS' ||
-          (row.paymentStatus !== 'PENDING' && row.paymentStatus !== 'CHALLENGE')
+          !isOpenMidtransPaymentStatus(row.paymentStatus)
         ) {
           return false;
         }
@@ -157,8 +186,7 @@ export function AdminEnrollmentsPage({
       } else if (paymentFilter === 'midtrans_terminal') {
         if (
           row.paymentProvider !== 'MIDTRANS' ||
-          !row.paymentStatus ||
-          !['EXPIRED', 'CANCELED', 'FAILED', 'DENIED'].includes(row.paymentStatus)
+          !isTerminalPaymentStatus(row.paymentStatus)
         ) {
           return false;
         }
@@ -241,7 +269,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Pantau Midtrans & transfer manual, aktifkan akses (grant/Setujui), dan lacak riwayat enrollment."
+      subtitle="Pantau pembayaran Midtrans, aktifkan akses via grant CMS, dan lacak riwayat enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -252,7 +280,7 @@ export function AdminEnrollmentsPage({
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Menunggu verifikasi
+            Menunggu bayar
           </p>
           <p className="mt-1 text-2xl font-bold text-amber-600">{pendingCount}</p>
         </Card>
@@ -363,7 +391,8 @@ export function AdminEnrollmentsPage({
 
         <TabsContent value="queue" className="mt-0 space-y-4">
       <p className="text-xs text-muted-foreground">
-        Midtrans PENDING: Batalkan (cancel gateway). Transfer manual / tanpa Payment: Setujui atau Tolak.
+        Midtrans menunggu: Batalkan (cancel gateway + hapus antrean). Tanpa Payment: Tolak. Akses
+        langsung lewat grant di atas.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
@@ -380,9 +409,9 @@ export function AdminEnrollmentsPage({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="PENDING">Menunggu</SelectItem>
-            <SelectItem value="ACTIVE">Aktif</SelectItem>
-            <SelectItem value="all">Semua status</SelectItem>
+            <SelectItem value="PENDING">Menunggu bayar</SelectItem>
+            <SelectItem value="ACTIVE">Akses aktif</SelectItem>
+            <SelectItem value="all">Semua</SelectItem>
           </SelectContent>
         </Select>
         <Select
@@ -393,11 +422,11 @@ export function AdminEnrollmentsPage({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Semua pembayaran</SelectItem>
-            <SelectItem value="midtrans_pending">Midtrans · Menunggu</SelectItem>
-            <SelectItem value="midtrans_paid">Midtrans · Lunas</SelectItem>
-            <SelectItem value="midtrans_terminal">Midtrans · Gagal/expired</SelectItem>
-            <SelectItem value="no_payment">Tanpa Payment (gratis/grant)</SelectItem>
+            <SelectItem value="all">Semua</SelectItem>
+            <SelectItem value="midtrans_pending">Menunggu bayar</SelectItem>
+            <SelectItem value="midtrans_paid">Lunas</SelectItem>
+            <SelectItem value="midtrans_terminal">Gagal/batal/expired</SelectItem>
+            <SelectItem value="no_payment">Tanpa payment</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -423,7 +452,13 @@ export function AdminEnrollmentsPage({
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedItems.map((row) => (
+              paginatedItems.map((row) => {
+                const status = enrollmentStatusLabel(row);
+                const midtransTerminalStuck =
+                  row.status === 'PENDING' &&
+                  row.paymentProvider === 'MIDTRANS' &&
+                  isTerminalPaymentStatus(row.paymentStatus);
+                return (
                 <TableRow key={row.id}>
                   <TableCell>
                     <p className="font-medium">{row.userDisplayName ?? '—'}</p>
@@ -449,14 +484,9 @@ export function AdminEnrollmentsPage({
                   </TableCell>
                   <TableCell>{formatIdr(row.priceIdr)}</TableCell>
                   <TableCell>
-                    <Badge variant={row.status === 'PENDING' ? 'secondary' : 'default'}>
-                      {row.status === 'PENDING' ? 'Menunggu' : 'Aktif'}
+                    <Badge variant={status.pending ? 'secondary' : 'default'}>
+                      {status.label}
                     </Badge>
-                    {row.paymentProvider === 'MIDTRANS' && row.paymentStatus ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Midtrans · {PAYMENT_STATUS_LABEL[row.paymentStatus] ?? row.paymentStatus}
-                      </p>
-                    ) : null}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {row.createdAt.toLocaleDateString('id-ID')}
@@ -473,25 +503,11 @@ export function AdminEnrollmentsPage({
                             onClick={() => setCancelId(row.id)}
                           >
                             <Ban className="size-3.5" />
-                            Batalkan
+                            {midtransTerminalStuck ? 'Hapus antrean' : 'Batalkan'}
                           </Button>
                         </AdminTableActions>
                       ) : (
                         <AdminTableActions>
-                          <Button
-                            size="sm"
-                            className="gap-1"
-                            disabled={isPending}
-                            onClick={() =>
-                              runAction(
-                                () => approveEnrollmentAction(row.id),
-                                'Enrollment disetujui.',
-                              )
-                            }
-                          >
-                            <Check className="size-3.5" />
-                            Setujui
-                          </Button>
                           <AdminTableActionDelete
                             label="Tolak enrollment"
                             disabled={isPending}
@@ -504,7 +520,8 @@ export function AdminEnrollmentsPage({
                     )}
                   </TableCell>
                 </TableRow>
-              ))
+              );
+              })
             )}
           </TableBody>
         </Table>
@@ -653,18 +670,31 @@ export function AdminEnrollmentsPage({
 
       <AdminConfirmDialog
         open={cancelId !== null}
-        title="Batalkan pembayaran Midtrans?"
-        description={
-          cancelTarget
-            ? `Batalkan order Midtrans dan hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
-            : 'Batalkan pembayaran Midtrans dan hapus antrean ini?'
+        title={
+          cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
+            ? 'Hapus antrean enrollment?'
+            : 'Batalkan pembayaran Midtrans?'
         }
-        confirmLabel="Batalkan"
+        description={
+          cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
+            ? `Pembayaran sudah ${PAYMENT_STATUS_LABEL[cancelTarget.paymentStatus ?? ''] ?? 'terminal'}. Hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
+            : cancelTarget
+              ? `Batalkan order Midtrans dan hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
+              : 'Batalkan pembayaran Midtrans dan hapus antrean ini?'
+        }
+        confirmLabel={
+          cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
+            ? 'Hapus antrean'
+            : 'Batalkan'
+        }
         onConfirm={() => {
           if (!cancelId) return;
+          const terminal = cancelTarget
+            ? isTerminalPaymentStatus(cancelTarget.paymentStatus)
+            : false;
           runAction(
             () => cancelMidtransEnrollmentAction(cancelId),
-            'Pembayaran Midtrans dibatalkan.',
+            terminal ? 'Antrean dihapus.' : 'Pembayaran Midtrans dibatalkan.',
           );
           setCancelId(null);
         }}
