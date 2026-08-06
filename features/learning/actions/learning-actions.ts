@@ -215,6 +215,10 @@ export async function requestCourseCheckout(courseSlug: string): Promise<CourseC
     where: { enrollmentId: enrollment.id },
     create: {
       enrollmentId: enrollment.id,
+      userId,
+      productType: 'COURSE',
+      productTitle: course.title,
+      productKey: course.slug,
       orderId,
       amountIdr: course.priceIdr,
       status: 'PENDING',
@@ -222,6 +226,10 @@ export async function requestCourseCheckout(courseSlug: string): Promise<CourseC
     },
     update: {
       orderId,
+      userId,
+      productType: 'COURSE',
+      productTitle: course.title,
+      productKey: course.slug,
       amountIdr: course.priceIdr,
       status: 'PENDING',
       snapToken: transaction.token,

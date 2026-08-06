@@ -270,10 +270,11 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
       }
       if (isPaymentSseTerminalStatus(event.status) && event.status !== 'PAID') {
         toast.error('Status pembayaran berubah.');
+        router.push(initial.historyHref);
         router.refresh();
       }
     },
-    [router],
+    [initial.historyHref, router],
   );
 
   usePaymentEvents({
@@ -304,6 +305,7 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
       }
       toast.success('Pembayaran dibatalkan.');
       setStatus('CANCELED');
+      router.push(initial.historyHref);
       router.refresh();
     } finally {
       setBusy(false);

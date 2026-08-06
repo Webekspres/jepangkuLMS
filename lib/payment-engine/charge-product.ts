@@ -20,10 +20,12 @@ export type ChargeProductResult =
 
 async function persistCharge(input: {
   enrollmentId: string;
+  userId: string;
   orderId: string;
   amountIdr: number;
   methodId: CheckoutMethodId;
   productType: EnrollmentType;
+  productTitle: string;
   productKey: string | null;
   charge: Awaited<ReturnType<ReturnType<typeof getPaymentProvider>['charge']>>;
 }) {
@@ -31,6 +33,10 @@ async function persistCharge(input: {
     where: { enrollmentId: input.enrollmentId },
     create: {
       enrollmentId: input.enrollmentId,
+      userId: input.userId,
+      productType: input.productType,
+      productTitle: input.productTitle,
+      productKey: input.productKey,
       orderId: input.orderId,
       amountIdr: input.amountIdr,
       status: input.charge.status === 'PAID' ? 'PAID' : 'PENDING',
@@ -45,6 +51,10 @@ async function persistCharge(input: {
     },
     update: {
       orderId: input.orderId,
+      userId: input.userId,
+      productType: input.productType,
+      productTitle: input.productTitle,
+      productKey: input.productKey,
       amountIdr: input.amountIdr,
       status: input.charge.status === 'PAID' ? 'PAID' : 'PENDING',
       checkoutMethod: input.methodId,
@@ -145,10 +155,12 @@ export async function chargeProductPayment(input: {
 
     const payment = await persistCharge({
       enrollmentId: input.enrollmentId,
+      userId: context.buyer.userId,
       orderId: charge.externalOrderId,
       amountIdr: context.pricing.totalIdr,
       methodId: input.methodId,
       productType: context.product.type,
+      productTitle: context.product.title,
       productKey: context.product.slug,
       charge,
     });

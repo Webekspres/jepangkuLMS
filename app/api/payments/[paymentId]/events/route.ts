@@ -60,7 +60,7 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
-  if (payment.enrollment.userId !== userId) {
+  if (payment.userId !== userId) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
@@ -71,10 +71,14 @@ export async function GET(request: Request, context: RouteContext) {
     paymentId: payment.id,
     orderId: payment.orderId,
     status: payment.status,
-    enrollmentId: payment.enrollment.id,
-    enrollmentStatus: payment.enrollment.status,
-    productType: payment.enrollment.type,
-    courseSlug: payment.enrollment.course?.slug ?? null,
+    enrollmentId: payment.enrollment?.id ?? payment.enrollmentId ?? payment.id,
+    enrollmentStatus: payment.enrollment?.status ?? 'PENDING',
+    productType: payment.enrollment?.type ?? payment.productType,
+    courseSlug:
+      payment.productType === 'COURSE'
+        ? (payment.enrollment?.course?.slug ?? payment.productKey)
+        : null,
+    productKey: payment.productKey,
   });
 
   let cleanup = () => {};
