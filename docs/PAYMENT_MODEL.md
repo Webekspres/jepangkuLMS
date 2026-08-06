@@ -1,6 +1,6 @@
 # Payment model — JepangKu LMS
 
-**Status:** Dual-mode via `PAYMENT_PROVIDER` (2026-08-04); Midtrans remains production target  
+**Status:** Midtrans-only + CMS grant (2026-08-06)  
 **Scope:** Business rules + settle path + payment engine boundaries  
 **Related:** Admin `/admin/pembayaran`; schema `Enrollment` / `Payment` / `EnrollmentLog`; code `lib/payment-engine/`, `features/checkout/`, `features/payment/`
 
@@ -23,10 +23,9 @@ Bundles later are a single SKU with one `priceIdr` that grants multiple enrollme
 | Env | Siswa | Settle |
 | :--- | :--- | :--- |
 | `midtrans` | Core/Snap checkout | Webhook → `PAID` + Enrollment `ACTIVE` |
-| `manual` | Bank transfer UI (bridge sampai Midtrans production approved) | Admin **Setujui** di Antrian |
 | unset / other | CTA unavailable + WhatsApp konsultasi | CMS grant only |
 
-`manual` is a **temporary bridge** — not a permanent ADR rollback. After Midtrans business review: set `PAYMENT_PROVIDER=midtrans` + `MIDTRANS_IS_PRODUCTION=true`.
+Manual bank-transfer bridge (`PAYMENT_PROVIDER=manual`) has been **removed**. Midtrans VA `bank_transfer` is a gateway channel, not the retired rekening bridge.
 
 ---
 
@@ -40,10 +39,9 @@ Course / Live Class / Tryout (priceIdr > 0, PAYMENT_PROVIDER=midtrans)
   → Webhook settle → Payment PAID + Enrollment ACTIVE
   → EnrollmentLog: REQUESTED (charge) → PAYMENT_SETTLED (first PAID)
 
-Course / Live Class / Tryout (priceIdr > 0, PAYMENT_PROVIDER=manual)
-  → tampil rekening (PAYMENT_BANK_*) + Konfirmasi WA
-  → Enrollment PENDING (tanpa baris Payment Midtrans)
-  → Admin Setujui → Enrollment ACTIVE (+ EnrollmentLog APPROVED)
+Cancel / expire / fail / deny (terminal Payment)
+  → close PENDING Enrollment (delete + EnrollmentLog REJECTED)
+  → storefront kembali ke CTA Bayar / Daftar (bukan banner “Menunggu…”)
 
 CMS grant
   → grantEnrollmentAction → Enrollment ACTIVE + EnrollmentLog GRANTED
@@ -63,11 +61,12 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 
 | Tab | Role |
 | :--- | :--- |
-| Antrian | Filter enrollment status + filter pembayaran Midtrans (`pending` / `paid` / `terminal` / tanpa Payment) |
+| Antrian | Default: menunggu aksi (Midtrans open `PENDING`/`CHALLENGE`, atau PENDING tanpa Payment). Filter status: Menunggu bayar \| Akses aktif \| Semua. Filter pembayaran: Semua \| Menunggu bayar \| Lunas \| Gagal/batal/expired \| Tanpa payment |
 | Riwayat | `EnrollmentLog` including **Dibayar otomatis** (`PAYMENT_SETTLED`) and **Diberikan manual** (`GRANTED`) |
 
-- Midtrans PENDING: **Batalkan** (Cancel API + tutup enrollment). Settle hanya lewat webhook.
-- Manual / tanpa Payment PENDING: **Setujui** + **Tolak**.
+- Midtrans open: **Batalkan** (Cancel API + tutup enrollment). Settle hanya lewat webhook.
+- Midtrans already terminal + Enrollment masih PENDING: **Hapus antrean** (delete tanpa Cancel API).
+- PENDING tanpa Payment: **Tolak** (legacy orphan). Grant akses lewat kartu “Aktifkan enrollment manual”.
 
 ---
 
@@ -76,8 +75,8 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 1. Unit of sale: polymorphic product (`COURSE` | `LIVE_CLASS` | `TRYOUT`).
 2. Amount = product `priceIdr` (IDR).
 3. One Midtrans order → one enrollment (when Midtrans).
-4. Free products never call Midtrans / never need bank transfer.
-5. `PAYMENT_PROVIDER=manual` requires `PAYMENT_BANK_NAME` / `ACCOUNT_NAME` / `ACCOUNT_NUMBER` in production.
+4. Free products never call Midtrans.
+5. Paid products always require Midtrans checkout when `PAYMENT_PROVIDER=midtrans`.
 
 ---
 
@@ -101,10 +100,10 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 2. ✅ SSE + Core checkout UI (Course / Live / Tryout)
 3. ✅ Local payment icons + grouped methods
 4. ✅ Student payment history
-5. ✅ Midtrans paid path + **manual bridge** via `PAYMENT_PROVIDER`
-6. ✅ `EnrollmentLog` REQUESTED + PAYMENT_SETTLED
-7. ✅ Admin payment filters + Riwayat “Dibayar otomatis”
-8. ✅ CMS grant (`GRANTED`) retained
+5. ✅ Midtrans-only path (manual bank bridge removed)
+6. ✅ Terminal Payment closes PENDING Enrollment (cancel + webhook)
+7. ✅ `EnrollmentLog` REQUESTED + PAYMENT_SETTLED
+8. ✅ Admin Antrian filters Midtrans-only + CMS grant retained
 
 ### Out of scope
 

@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentStatus, EnrollmentType, PaymentProvider, PaymentStatus } from '@prisma/client';
+import { isOpenMidtransPaymentStatus } from '@/lib/payment/payment-status';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import { prisma } from '@/lib/prisma';
 
@@ -21,6 +22,15 @@ export type AdminEnrollmentRow = {
 };
 
 export type AdminEnrollmentProductOption = { id: string; title: string };
+
+function isQueueActionNeeded(row: AdminEnrollmentRow): boolean {
+  if (row.status !== 'PENDING') return false;
+  if (!row.paymentProvider) return true;
+  if (row.paymentProvider === 'MIDTRANS') {
+    return isOpenMidtransPaymentStatus(row.paymentStatus);
+  }
+  return false;
+}
 
 export const loadAdminEnrollments = cache(async function loadAdminEnrollments(): Promise<{
   enrollments: AdminEnrollmentRow[];
@@ -93,7 +103,7 @@ export const loadAdminEnrollments = cache(async function loadAdminEnrollments():
 
   return {
     enrollments: rows,
-    pendingCount: rows.filter((row) => row.status === 'PENDING').length,
+    pendingCount: rows.filter(isQueueActionNeeded).length,
     courses,
     liveClasses,
     tryoutSessions,

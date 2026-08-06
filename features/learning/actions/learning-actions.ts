@@ -25,7 +25,6 @@ import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { getMidtransSnapClient } from '@/lib/midtrans/client';
 import { buildMidtransOrderId } from '@/lib/midtrans/payment';
 import { isMidtransEnabled } from '@/lib/midtrans/config';
-import { isManualPaymentEnabled } from '@/lib/payment/settings';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
@@ -68,7 +67,7 @@ export async function requestEnrollment(courseId: string) {
   return { enrollmentId: enrollment.id, status: enrollment.status };
 }
 
-/** Request enrollment — free → ACTIVE; paid + manual → PENDING; paid + Midtrans → checkout only. */
+/** Request enrollment — free → ACTIVE; paid → Midtrans checkout only. */
 export async function requestCourseEnrollment(courseSlug: string) {
   const userId = await requireUserId();
 
@@ -76,7 +75,7 @@ export async function requestCourseEnrollment(courseSlug: string) {
   if (!course) throw new Error('Kursus tidak ditemukan');
   if (!course.isPublished) throw new Error('Kursus belum tersedia');
 
-  if (course.priceIdr > 0 && !isManualPaymentEnabled()) {
+  if (course.priceIdr > 0) {
     throw new Error('Kursus berbayar dibayar lewat checkout Midtrans.');
   }
 

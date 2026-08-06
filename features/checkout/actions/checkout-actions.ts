@@ -13,6 +13,9 @@ import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
 import type { CheckoutMethodId, CheckoutProductType } from '@/lib/payment-engine/types';
+import {
+  closePendingEnrollmentForTerminalPayment,
+} from '@/lib/payment/close-pending-enrollment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { getPaymentSettings } from '@/lib/payment/settings';
@@ -171,6 +174,11 @@ export async function cancelPayment(
     data: { status: 'CANCELED' },
   });
 
+  const closed = await closePendingEnrollmentForTerminalPayment({
+    enrollmentId: payment.enrollmentId,
+    actorUserId: userId,
+  });
+
   await publishPaymentEvent(
     buildPaymentSseEvent({
       paymentId: payment.id,
@@ -184,6 +192,10 @@ export async function cancelPayment(
   );
 
   revalidatePath(STUDENT_ROUTES.pembayaran(paymentId));
+  for (const path of closed.revalidatePaths) {
+    revalidatePath(path);
+  }
+  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
   return { ok: true };
 }
 

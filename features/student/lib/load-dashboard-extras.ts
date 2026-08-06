@@ -256,7 +256,9 @@ export const loadTryoutSessions = cache(async function loadTryoutSessions(): Pro
     const questionCount = composed > 0 ? composed : session._count.questions;
     const enrollment = enrollmentBySessionId.get(session.id);
     const pendingPaymentId =
-      enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null;
+      enrollment?.payment?.status === 'PENDING' || enrollment?.payment?.status === 'CHALLENGE'
+        ? enrollment.payment.id
+        : null;
 
     return {
       id: session.id,

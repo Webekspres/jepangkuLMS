@@ -219,51 +219,48 @@ export async function cancelMidtransEnrollmentAction(
       message: 'Pembayaran sudah lunas. Batalkan tidak tersedia — cabut akses jika perlu.',
     };
   }
-  if (!['PENDING', 'CHALLENGE'].includes(before.payment.status)) {
-    return {
-      ok: false,
-      message: 'Status pembayaran Midtrans sudah terminal; hapus antrean tidak diperlukan.',
-    };
-  }
 
   const provider = getPaymentProvider('midtrans');
   const orderId = before.payment.orderId;
+  const paymentAlreadyTerminal = !['PENDING', 'CHALLENGE'].includes(before.payment.status);
 
-  try {
-    await provider.cancel?.(orderId);
-  } catch {
-    let remoteStatus: string | null = null;
+  if (!paymentAlreadyTerminal) {
     try {
-      const statusResult = await provider.fetchStatus(orderId);
-      remoteStatus = statusResult.status;
+      await provider.cancel?.(orderId);
     } catch {
-      return {
-        ok: false,
-        message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
-      };
+      let remoteStatus: string | null = null;
+      try {
+        const statusResult = await provider.fetchStatus(orderId);
+        remoteStatus = statusResult.status;
+      } catch {
+        return {
+          ok: false,
+          message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
+        };
+      }
+
+      if (remoteStatus === 'PAID') {
+        return {
+          ok: false,
+          message: 'Pembayaran sudah lunas di Midtrans. Batalkan tidak tersedia.',
+        };
+      }
+      if (!remoteStatus || !TERMINAL_OR_CANCELED_PAYMENT.has(remoteStatus)) {
+        return {
+          ok: false,
+          message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
+        };
+      }
     }
 
-    if (remoteStatus === 'PAID') {
-      return {
-        ok: false,
-        message: 'Pembayaran sudah lunas di Midtrans. Batalkan tidak tersedia.',
-      };
-    }
-    if (!remoteStatus || !TERMINAL_OR_CANCELED_PAYMENT.has(remoteStatus)) {
-      return {
-        ok: false,
-        message: 'Gagal membatalkan di Midtrans. Coba lagi atau cek dashboard Midtrans.',
-      };
-    }
+    await prisma.payment.update({
+      where: { id: before.payment.id },
+      data: {
+        status: 'CANCELED',
+        transactionStatus: 'cancel',
+      },
+    });
   }
-
-  await prisma.payment.update({
-    where: { id: before.payment.id },
-    data: {
-      status: 'CANCELED',
-      transactionStatus: 'cancel',
-    },
-  });
 
   return closeEnrollmentAsRejected({
     adminId,
