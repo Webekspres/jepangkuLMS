@@ -1,20 +1,33 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 import {
   getClerkPostAuthRedirectUrl,
   getClerkSignInPageUrl,
   getClerkSignUpPageUrl,
 } from '@/lib/auth/clerk-redirect-urls';
+import { resolvePostAuthRedirectAbsolute } from '@/lib/auth/oauth-urls';
 
-/** URL redirect Clerk absolut — recompute saat origin berubah (ngrok vs prod). */
+function subscribeNoop() {
+  return () => {};
+}
+
+/** Client-only flag without setState-in-effect (SSR-safe). */
+function useIsClient(): boolean {
+  return useSyncExternalStore(subscribeNoop, () => true, () => false);
+}
+
+/** URL redirect Clerk absolut — intended URL dari `?redirect_url=` (client). */
 export function useClerkRedirectUrls() {
-  return useMemo(
-    () => ({
-      postAuth: getClerkPostAuthRedirectUrl(),
-      signIn: getClerkSignInPageUrl(),
-      signUp: getClerkSignUpPageUrl(),
-    }),
-    [],
+  const ready = useIsClient();
+
+  const postAuth = useMemo(
+    () => (ready ? resolvePostAuthRedirectAbsolute() : getClerkPostAuthRedirectUrl()),
+    [ready],
   );
+
+  const signIn = useMemo(() => getClerkSignInPageUrl(), []);
+  const signUp = useMemo(() => getClerkSignUpPageUrl(), []);
+
+  return { postAuth, ready, signIn, signUp };
 }

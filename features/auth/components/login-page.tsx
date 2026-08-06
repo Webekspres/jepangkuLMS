@@ -8,7 +8,7 @@ import { AuthPageShell } from './auth-page-shell';
 
 /**
  * Login shell (brand panel kiri) + Clerk prebuilt SignIn (kanan).
- * Setelah Clerk session → dashboard (Core JWT di-sync di background).
+ * Setelah Clerk session → `redirect_url` aman, atau dashboard.
  */
 export function LoginPage() {
   const { appearance, appearanceKey, mounted } = useClerkAppearance();
@@ -34,18 +34,17 @@ export function LoginPage() {
       heading="Selamat Datang!"
       subheading="Masuk ke akun JepangKu dan lanjutkan belajar."
     >
-      {mounted ? (
+      {mounted && clerkUrls.ready ? (
         <SignIn
-          key={appearanceKey}
+          key={`${appearanceKey}-${clerkUrls.postAuth}`}
           routing="path"
           path={AUTH_ROUTES.signIn}
           signUpUrl={clerkUrls.signUp}
           fallbackRedirectUrl={clerkUrls.postAuth}
-          forceRedirectUrl={clerkUrls.postAuth}
           appearance={appearance}
         />
       ) : (
-        <div aria-hidden className="h-[320px] animate-pulse rounded-2xl bg-muted/30" />
+        <div aria-hidden className="h-80 animate-pulse rounded-2xl bg-muted/30" />
       )}
     </AuthPageShell>
   );
