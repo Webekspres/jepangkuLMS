@@ -49,7 +49,7 @@ Clerk login → Core POST /auth/token → Core JWT (claims: XP, level, roles)
 ### Implementasi sementara (2026-06-05)
 
 ```text
-Clerk login → /dashboard (langsung, tanpa gate Core)
+Clerk login → /dashboard (default) ATAU `?redirect_url=` internal yang aman
     │
     ├─► Identitas UI: Clerk (nama, avatar)
     │
@@ -60,6 +60,8 @@ Clerk login → /dashboard (langsung, tanpa gate Core)
             Sukses  → cookie jepangku_core_jwt + refresh UI
             Gagal   → diabaikan; user tetap pakai LMS
 ```
+
+**Post-login return URL (intended URL):** `proxy.ts` menulis `?redirect_url=<path>` saat user belum login membuka `/dashboard/*` atau `/admin/*`. Setelah Clerk sign-in/sign-up (termasuk Google OAuth), user dikembalikan ke path itu bila lolos `sanitizeInternalRedirectPath` (hanya path relatif `/dashboard…` / `/admin…`; tolak URL eksternal / open redirect). Buka `/sign-in` manual tanpa query → `/dashboard`.
 
 ### Perbandingan alur yang pernah dicoba
 

@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_ROUTES, CORE_JWT_COOKIE } from '@/lib/auth/constants';
+import { sanitizeInternalRedirectPath } from '@/lib/auth/oauth-urls';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { canAccessLmsAdminPanel } from '@/lib/auth/lms-roles';
 import { userHasLmsAdminAccess } from '@/lib/auth/resolve-lms-admin';
@@ -63,7 +64,13 @@ export default clerkMiddleware(
         }
 
         if (userId && isAuthEntryPath(pathname)) {
-            return NextResponse.redirect(new URL(AUTH_ROUTES.dashboard, request.url));
+            const intended = sanitizeInternalRedirectPath(
+                request.nextUrl.searchParams.get('redirect_url'),
+                request.nextUrl.origin,
+            );
+            return NextResponse.redirect(
+                new URL(intended ?? AUTH_ROUTES.dashboard, request.url),
+            );
         }
 
         if (isProtectedRoute(request) && !userId) {

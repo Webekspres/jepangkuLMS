@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { AuthenticateWithRedirectCallback, ClerkLoaded, useAuth, useClerk } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AUTH_ROUTES } from '@/lib/auth/constants';
 import {
   getClerkPostAuthRedirectUrl,
   getClerkSignInPageUrl,
   getClerkSignUpPageUrl,
 } from '@/lib/auth/clerk-redirect-urls';
+import { peekPostAuthRedirect, clearPostAuthRedirect } from '@/lib/auth/oauth-urls';
+import { getAuthRedirectUrl } from '@/lib/auth/redirect-url';
 import { resetClerkOAuthSession } from '@/lib/auth/reset-clerk-session';
 import { Button } from '@/components/ui/button';
 
@@ -19,12 +21,18 @@ function SsoCallbackHandler() {
   const [failedEarly, setFailedEarly] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  const postAuthAbsolute = useMemo(() => {
+    const intended = peekPostAuthRedirect();
+    return intended ? getAuthRedirectUrl(intended) : getClerkPostAuthRedirectUrl();
+  }, []);
+
   // Fallback: AuthenticateWithRedirectCallback kadang gagal redirect (Next.js router race)
   useEffect(() => {
     if (isLoaded && isSignedIn && userId) {
-      window.location.assign(getClerkPostAuthRedirectUrl());
+      clearPostAuthRedirect();
+      window.location.assign(postAuthAbsolute);
     }
-  }, [isLoaded, isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId, postAuthAbsolute]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setTimedOut(true), 15000);
@@ -87,10 +95,8 @@ function SsoCallbackHandler() {
       <AuthenticateWithRedirectCallback
         signInUrl={getClerkSignInPageUrl()}
         signUpUrl={getClerkSignUpPageUrl()}
-        signInFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
-        signUpFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
-        signInForceRedirectUrl={getClerkPostAuthRedirectUrl()}
-        signUpForceRedirectUrl={getClerkPostAuthRedirectUrl()}
+        signInFallbackRedirectUrl={postAuthAbsolute}
+        signUpFallbackRedirectUrl={postAuthAbsolute}
       />
       <span className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
       <p className="text-sm text-muted-foreground">Menyelesaikan login Google...</p>

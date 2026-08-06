@@ -200,11 +200,12 @@ export function getCachedCourseWithLessons(slug: string) {
           title: lesson.title,
           order: lesson.order,
           content: lesson.content ?? null,
+          lessonType: lesson.lessonType ?? null,
           hasQuiz: lesson.hasQuiz ?? false,
         })),
       };
     },
-    ['learning-course-with-lessons-v7', slug],
+    ['learning-course-with-lessons-v8', slug],
     { revalidate: 3600, tags: [LEARNING_CACHE_TAGS.coursesCatalog] },
   )(slug);
 }

@@ -27,8 +27,6 @@ export function ClerkProviderThemed({
       signUpUrl={getClerkSignUpUrl()}
       signInFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
       signUpFallbackRedirectUrl={getClerkPostAuthRedirectUrl()}
-      signInForceRedirectUrl={getClerkPostAuthRedirectUrl()}
-      signUpForceRedirectUrl={getClerkPostAuthRedirectUrl()}
       appearance={appearance}
     >
       {children}

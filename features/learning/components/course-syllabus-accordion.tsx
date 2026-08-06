@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
+import type { LessonType } from '@prisma/client';
 import { ChevronDown, Lock, Play } from 'lucide-react';
 import { AnimatedCollapse } from '@/components/ui/animated-collapse';
 import { Badge } from '@/components/ui/badge';
+import { LESSON_TYPE_LABEL } from '@/features/learning/lib/lesson-type';
 import { cn } from '@/lib/utils';
 import type { GroupedLesson } from '@/features/learning/lib/n5-lesson-modules';
 
@@ -12,6 +14,7 @@ export type SyllabusAccordionLesson = {
   slug: string;
   title: string;
   content?: string | null;
+  lessonType?: LessonType | null;
   hasQuiz?: boolean;
   locked?: boolean;
   href?: string;
@@ -80,6 +83,11 @@ export function CourseSyllabusAccordion({
               <ul className="divide-y divide-border border-t border-border">
                 {group.lessons.map((lesson, lessonIndex) => {
                   const index = groupStartIndices[groupIndex] + lessonIndex + 1;
+                  const typeLabel = lesson.lessonType
+                    ? LESSON_TYPE_LABEL[lesson.lessonType]
+                    : lesson.hasQuiz
+                      ? 'Quiz'
+                      : null;
                   const row = (
                     <>
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
@@ -95,9 +103,9 @@ export function CourseSyllabusAccordion({
                       </div>
                       {lesson.locked ? (
                         <Lock className="size-4 shrink-0 text-muted-foreground" />
-                      ) : lesson.hasQuiz ? (
+                      ) : typeLabel ? (
                         <Badge variant="secondary" className="shrink-0">
-                          Quiz
+                          {typeLabel}
                         </Badge>
                       ) : !showGlobalIndex && lesson.content ? (
                         <span className="shrink-0 text-xs text-muted-foreground">
