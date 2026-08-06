@@ -64,13 +64,6 @@ type AdminEnrollmentsPageProps = {
   tryoutSessions: AdminEnrollmentProductOption[];
 };
 
-type StatusFilter = 'all' | 'PENDING' | 'ACTIVE';
-type PaymentFilter =
-  | 'all'
-  | 'midtrans_pending'
-  | 'midtrans_paid'
-  | 'midtrans_terminal'
-  | 'no_payment';
 type HistoryActionFilter =
   | 'all'
   | 'REQUESTED'
@@ -94,8 +87,8 @@ const PRODUCT_TYPE_BADGE: Record<EnrollmentProductType, string> = {
 };
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  PENDING: 'Menunggu bayar',
-  CHALLENGE: 'Perlu review',
+  PENDING: 'Menunggu',
+  CHALLENGE: 'Menunggu',
   PAID: 'Lunas',
   DENIED: 'Ditolak',
   EXPIRED: 'Kedaluwarsa',
@@ -104,12 +97,11 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
 };
 
 function isQueueActionNeeded(row: AdminEnrollmentRow): boolean {
-  if (row.status !== 'PENDING') return false;
-  if (!row.paymentProvider) return true;
-  if (row.paymentProvider === 'MIDTRANS') {
-    return isOpenMidtransPaymentStatus(row.paymentStatus);
-  }
-  return false;
+  return (
+    row.status === 'PENDING' &&
+    row.paymentProvider === 'MIDTRANS' &&
+    isOpenMidtransPaymentStatus(row.paymentStatus)
+  );
 }
 
 function enrollmentStatusLabel(row: AdminEnrollmentRow): {
@@ -123,9 +115,9 @@ function enrollmentStatusLabel(row: AdminEnrollmentRow): {
     };
   }
   if (row.status === 'PENDING') {
-    return { label: 'Menunggu bayar', pending: true };
+    return { label: 'Menunggu', pending: true };
   }
-  return { label: 'Akses aktif', pending: false };
+  return { label: 'Aktif', pending: false };
 }
 
 export function AdminEnrollmentsPage({
@@ -141,8 +133,6 @@ export function AdminEnrollmentsPage({
   const [query, setQuery] = useState('');
   const [historyQuery, setHistoryQuery] = useState('');
   const [historyActionFilter, setHistoryActionFilter] = useState<HistoryActionFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('PENDING');
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -166,31 +156,7 @@ export function AdminEnrollmentsPage({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return enrollments.filter((row) => {
-      if (statusFilter === 'PENDING') {
-        if (!isQueueActionNeeded(row)) return false;
-      } else if (statusFilter === 'ACTIVE') {
-        if (row.status !== 'ACTIVE') return false;
-      }
-
-      if (paymentFilter === 'no_payment') {
-        if (row.paymentProvider) return false;
-      } else if (paymentFilter === 'midtrans_pending') {
-        if (
-          row.paymentProvider !== 'MIDTRANS' ||
-          !isOpenMidtransPaymentStatus(row.paymentStatus)
-        ) {
-          return false;
-        }
-      } else if (paymentFilter === 'midtrans_paid') {
-        if (row.paymentProvider !== 'MIDTRANS' || row.paymentStatus !== 'PAID') return false;
-      } else if (paymentFilter === 'midtrans_terminal') {
-        if (
-          row.paymentProvider !== 'MIDTRANS' ||
-          !isTerminalPaymentStatus(row.paymentStatus)
-        ) {
-          return false;
-        }
-      }
+      if (!isQueueActionNeeded(row)) return false;
 
       if (!q) return true;
       return (
@@ -200,7 +166,7 @@ export function AdminEnrollmentsPage({
         row.productSubtitle.toLowerCase().includes(q)
       );
     });
-  }, [enrollments, query, statusFilter, paymentFilter]);
+  }, [enrollments, query]);
 
   const filteredHistory = useMemo(() => {
     const q = historyQuery.trim().toLowerCase();
@@ -225,7 +191,7 @@ export function AdminEnrollmentsPage({
     setPage,
     setPageSize,
   } = useAdminTablePagination(filtered, {
-    resetKey: `${query}-${statusFilter}-${paymentFilter}`,
+    resetKey: query,
   });
 
   const {
@@ -269,7 +235,7 @@ export function AdminEnrollmentsPage({
     <AdminPageShell
       label="Enrollment"
       title="Manajemen Enrollment"
-      subtitle="Pantau pembayaran Midtrans, aktifkan akses via grant CMS, dan lacak riwayat enrollment."
+      subtitle="Pantau antrian pembayaran, aktifkan akses via grant, dan lacak riwayat enrollment."
     >
       {message ? (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
@@ -280,7 +246,7 @@ export function AdminEnrollmentsPage({
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Menunggu bayar
+            Menunggu
           </p>
           <p className="mt-1 text-2xl font-bold text-amber-600">{pendingCount}</p>
         </Card>
@@ -391,8 +357,7 @@ export function AdminEnrollmentsPage({
 
         <TabsContent value="queue" className="mt-0 space-y-4">
       <p className="text-xs text-muted-foreground">
-        Midtrans menunggu: Batalkan (cancel gateway + hapus antrean). Tanpa Payment: Tolak. Akses
-        langsung lewat grant di atas.
+        Daftar ini berisi enrollment yang masih menunggu pembayaran. Admin bisa membatalkan jika diperlukan.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
@@ -404,31 +369,6 @@ export function AdminEnrollmentsPage({
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="PENDING">Menunggu bayar</SelectItem>
-            <SelectItem value="ACTIVE">Akses aktif</SelectItem>
-            <SelectItem value="all">Semua</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={paymentFilter}
-          onValueChange={(value) => setPaymentFilter(value as PaymentFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-52">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua</SelectItem>
-            <SelectItem value="midtrans_pending">Menunggu bayar</SelectItem>
-            <SelectItem value="midtrans_paid">Lunas</SelectItem>
-            <SelectItem value="midtrans_terminal">Gagal/batal/expired</SelectItem>
-            <SelectItem value="no_payment">Tanpa payment</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <Card>
@@ -448,7 +388,7 @@ export function AdminEnrollmentsPage({
             {paginatedItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  Tidak ada enrollment untuk filter ini.
+                  Belum ada enrollment yang sedang menunggu pembayaran.
                 </TableCell>
               </TableRow>
             ) : (
@@ -673,14 +613,14 @@ export function AdminEnrollmentsPage({
         title={
           cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
             ? 'Hapus antrean enrollment?'
-            : 'Batalkan pembayaran Midtrans?'
+            : 'Batalkan pembayaran?'
         }
         description={
           cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
-            ? `Pembayaran sudah ${PAYMENT_STATUS_LABEL[cancelTarget.paymentStatus ?? ''] ?? 'terminal'}. Hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
+            ? `Pembayaran sudah ${PAYMENT_STATUS_LABEL[cancelTarget.paymentStatus ?? ''] ?? 'selesai'}. Hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
             : cancelTarget
-              ? `Batalkan order Midtrans dan hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
-              : 'Batalkan pembayaran Midtrans dan hapus antrean ini?'
+              ? `Batalkan pembayaran dan hapus antrean ${cancelTarget.userDisplayName ?? cancelTarget.userId} untuk ${cancelTarget.productTitle}?`
+              : 'Batalkan pembayaran dan hapus antrean ini?'
         }
         confirmLabel={
           cancelTarget && isTerminalPaymentStatus(cancelTarget.paymentStatus)
@@ -694,7 +634,7 @@ export function AdminEnrollmentsPage({
             : false;
           runAction(
             () => cancelMidtransEnrollmentAction(cancelId),
-            terminal ? 'Antrean dihapus.' : 'Pembayaran Midtrans dibatalkan.',
+            terminal ? 'Antrean dihapus.' : 'Pembayaran dibatalkan.',
           );
           setCancelId(null);
         }}

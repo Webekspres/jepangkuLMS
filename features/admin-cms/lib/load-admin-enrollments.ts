@@ -24,12 +24,11 @@ export type AdminEnrollmentRow = {
 export type AdminEnrollmentProductOption = { id: string; title: string };
 
 function isQueueActionNeeded(row: AdminEnrollmentRow): boolean {
-  if (row.status !== 'PENDING') return false;
-  if (!row.paymentProvider) return true;
-  if (row.paymentProvider === 'MIDTRANS') {
-    return isOpenMidtransPaymentStatus(row.paymentStatus);
-  }
-  return false;
+  return (
+    row.status === 'PENDING' &&
+    row.paymentProvider === 'MIDTRANS' &&
+    isOpenMidtransPaymentStatus(row.paymentStatus)
+  );
 }
 
 export const loadAdminEnrollments = cache(async function loadAdminEnrollments(): Promise<{

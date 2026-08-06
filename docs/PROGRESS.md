@@ -202,6 +202,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-06 | Payment ledger: cancel/expire tidak hapus Payment (SetNull); riwayat siswa tetap; Antrian satu filter status Indo |
 | 2026-08-06 | Midtrans-only: hapus bridge transfer manual; cancel/expire menutup Enrollment PENDING; Antrian filter/status Midtrans-first + Hapus antrean untuk payment terminal |
 | 2026-08-04 | Dual-mode payment bridge: `PAYMENT_PROVIDER=manual` restores student bank transfer + admin Setujui; Midtrans tetap target production via env flip |
 | 2026-07-31 | Midtrans cutover: retire student bank transfer; `PAYMENT_SETTLED` EnrollmentLog; admin Antrian payment filters; CMS grant tetap |

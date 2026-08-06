@@ -41,7 +41,8 @@ Course / Live Class / Tryout (priceIdr > 0, PAYMENT_PROVIDER=midtrans)
 
 Cancel / expire / fail / deny (terminal Payment)
   → close PENDING Enrollment (delete + EnrollmentLog REJECTED)
-  → storefront kembali ke CTA Bayar / Daftar (bukan banner “Menunggu…”)
+  → Payment ledger tetap (enrollmentId SetNull, status terminal)
+  → storefront kembali ke CTA Bayar / Daftar; riwayat siswa tampil di filter status (mis. Dibatalkan)
 
 CMS grant
   → grantEnrollmentAction → Enrollment ACTIVE + EnrollmentLog GRANTED

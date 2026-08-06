@@ -13,7 +13,7 @@ import { prisma } from '@/lib/prisma';
 
 type Props = { params: Promise<{ paymentId: string }> };
 
-function productView(enrollment: {
+function productViewFromEnrollment(enrollment: {
   type: CheckoutProductType;
   course: { slug: string; title: string; coverImageUrl: string | null } | null;
   liveClass: { id: string; title: string; coverImageUrl: string | null } | null;
@@ -52,6 +52,44 @@ function productView(enrollment: {
   return null;
 }
 
+function productViewFromSnapshot(input: {
+  productType: CheckoutProductType;
+  productTitle: string;
+  productKey: string | null;
+}) {
+  if (input.productType === 'COURSE') {
+    const key = input.productKey ?? '';
+    return {
+      type: 'COURSE' as const,
+      key,
+      title: input.productTitle,
+      backHref: key ? STUDENT_ROUTES.kursusDetail(key) : STUDENT_ROUTES.kursus,
+      successHref: key ? STUDENT_ROUTES.kursusDetail(key) : STUDENT_ROUTES.kursus,
+      successLabel: 'Lihat kursus',
+    };
+  }
+  if (input.productType === 'LIVE_CLASS') {
+    const key = input.productKey ?? '';
+    return {
+      type: 'LIVE_CLASS' as const,
+      key,
+      title: input.productTitle,
+      backHref: key ? STUDENT_ROUTES.liveClassDetail(key) : STUDENT_ROUTES.liveClass,
+      successHref: key ? STUDENT_ROUTES.liveClassDetail(key) : STUDENT_ROUTES.liveClass,
+      successLabel: 'Lihat Live Class',
+    };
+  }
+  const key = input.productKey ?? '';
+  return {
+    type: 'TRYOUT' as const,
+    key,
+    title: input.productTitle,
+    backHref: STUDENT_ROUTES.tryout,
+    successHref: key ? STUDENT_ROUTES.tryoutExam(key) : STUDENT_ROUTES.tryout,
+    successLabel: 'Lihat tryout',
+  };
+}
+
 export default async function PembayaranDetailRoute({ params }: Props) {
   const { paymentId } = await params;
   const userId = await requireAuthUserWithAnchor();
@@ -69,15 +107,21 @@ export default async function PembayaranDetailRoute({ params }: Props) {
     },
   });
 
-  if (!payment || payment.enrollment.userId !== userId) notFound();
+  if (!payment || payment.userId !== userId) notFound();
 
-  const product = productView(payment.enrollment);
+  const product = payment.enrollment
+    ? productViewFromEnrollment(payment.enrollment)
+    : productViewFromSnapshot({
+        productType: payment.productType,
+        productTitle: payment.productTitle,
+        productKey: payment.productKey,
+      });
   if (!product) notFound();
 
   const coverSrc = resolvePaymentProductCover({
-    type: payment.enrollment.type,
-    courseCoverUrl: payment.enrollment.course?.coverImageUrl,
-    liveClassCoverUrl: payment.enrollment.liveClass?.coverImageUrl,
+    type: payment.enrollment?.type ?? payment.productType,
+    courseCoverUrl: payment.enrollment?.course?.coverImageUrl,
+    liveClassCoverUrl: payment.enrollment?.liveClass?.coverImageUrl,
   });
 
   return (
