@@ -30,7 +30,7 @@ export function TryoutAccessPanel({ session, paymentSettings }: TryoutAccessPane
   const useMidtrans = paymentSettings.provider === 'midtrans';
   const priceLabel = formatIdr(session.priceIdr);
   const checkoutHref = session.pendingPaymentId
-    ? STUDENT_ROUTES.pembayaran(session.pendingPaymentId)
+    ? STUDENT_ROUTES.pembayaran(session.pendingPaymentId, { resume: true })
     : STUDENT_ROUTES.checkoutTryout(session.code);
 
   if (!useMidtrans) {

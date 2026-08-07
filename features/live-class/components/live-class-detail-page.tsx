@@ -342,7 +342,7 @@ function LiveClassSidebarActions({
   }
 
   const checkoutHref = liveClass.pendingPaymentId
-    ? STUDENT_ROUTES.pembayaran(liveClass.pendingPaymentId)
+    ? STUDENT_ROUTES.pembayaran(liveClass.pendingPaymentId, { resume: true })
     : STUDENT_ROUTES.checkoutLiveClass(liveClass.id);
   return (
     <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">

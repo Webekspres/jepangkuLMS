@@ -1,6 +1,7 @@
 import type { LmsNotificationType } from '@prisma/client';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { adminEnrollmentQueueWhere } from '@/lib/payment/admin-enrollment-queue';
 import { prisma } from '@/lib/prisma';
 
 export type CreateLmsNotificationInput = {
@@ -195,17 +196,7 @@ export async function notifyLiveClassApproval(input: {
 }
 
 export async function getPendingEnrollmentCount(): Promise<number> {
-  return prisma.enrollment.count({
-    where: {
-      status: 'PENDING',
-      payment: {
-        is: {
-          provider: 'MIDTRANS',
-          status: { in: ['PENDING', 'CHALLENGE'] },
-        },
-      },
-    },
-  });
+  return prisma.enrollment.count({ where: adminEnrollmentQueueWhere });
 }
 
 export type LmsNotificationView = {

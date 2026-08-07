@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Script from 'next/script';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import {
   paySnapCheckout,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
-import { openSnapPayUx } from '@/features/checkout/lib/snap-pay-ux';
+import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
 import type {
   CheckoutMethodId,
   CheckoutProductType,
@@ -62,13 +63,83 @@ export function CheckoutPage({
     methods.find((m) => m.recommended && !m.maintenance)?.id ?? methods[0]?.id ?? null,
   );
   const [isPaying, setIsPaying] = useState(false);
+  const [snapLaunchError, setSnapLaunchError] = useState<string | null>(null);
+  const snapAutoStartedRef = useRef(false);
   const priceLabel = formatIdr(product.priceIdr);
   const thumb = product.imageUrl?.trim() || DEFAULT_THUMB;
   const canLoadSnap = isSnap && Boolean(midtransClientKey) && Boolean(midtransSnapUrl);
 
-  const goPaymentDetail = (paymentId: string) => {
-    router.push(STUDENT_ROUTES.pembayaran(paymentId));
-  };
+  const goPaymentDetail = useCallback(
+    (paymentId: string) => {
+      router.replace(STUDENT_ROUTES.pembayaran(paymentId));
+    },
+    [router],
+  );
+
+  const launchSnap = useCallback(async () => {
+    if (existingPaymentId) {
+      router.replace(STUDENT_ROUTES.pembayaran(existingPaymentId, { resume: true }));
+      return;
+    }
+
+    if (!canLoadSnap) {
+      setSnapLaunchError('Snap Midtrans belum dikonfigurasi.');
+      return;
+    }
+
+    setIsPaying(true);
+    setSnapLaunchError(null);
+    try {
+      const ready = await waitForWindowSnap();
+      if (!ready) {
+        setSnapLaunchError('Snap Midtrans belum siap. Muat ulang halaman, lalu coba lagi.');
+        return;
+      }
+
+      const result = await paySnapCheckout({
+        productType: product.type,
+        productKey: product.key,
+      });
+      if (!result.ok) {
+        setSnapLaunchError(result.message);
+        toast.error(result.message);
+        return;
+      }
+      if (!result.snapToken) {
+        goPaymentDetail(result.paymentId);
+        return;
+      }
+
+      await openSnapPayUx({
+        snapToken: result.snapToken,
+        paymentId: result.paymentId,
+        callbacks: {
+          onNavigateToPaymentDetail: goPaymentDetail,
+          onToast: (kind, message) => {
+            if (kind === 'error') toast.error(message);
+            else toast.message(message);
+          },
+        },
+      });
+    } catch {
+      setSnapLaunchError('Gagal membuka Midtrans Snap. Coba lagi.');
+    } finally {
+      setIsPaying(false);
+    }
+  }, [
+    canLoadSnap,
+    existingPaymentId,
+    goPaymentDetail,
+    product.key,
+    product.type,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!isSnap || snapAutoStartedRef.current) return;
+    snapAutoStartedRef.current = true;
+    void launchSnap();
+  }, [isSnap, launchSnap]);
 
   const handlePayCore = async () => {
     if (!methodId) {
@@ -92,53 +163,44 @@ export function CheckoutPage({
     }
   };
 
-  const handlePaySnap = async () => {
-    if (!canLoadSnap) {
-      toast.error('Snap Midtrans belum dikonfigurasi.');
-      return;
-    }
-    setIsPaying(true);
-    try {
-      const result = await paySnapCheckout({
-        productType: product.type,
-        productKey: product.key,
-      });
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
-      if (!result.snapToken) {
-        toast.error('Token Snap tidak tersedia.');
-        goPaymentDetail(result.paymentId);
-        return;
-      }
-      await openSnapPayUx({
-        snapToken: result.snapToken,
-        paymentId: result.paymentId,
-        callbacks: {
-          onNavigateToPaymentDetail: goPaymentDetail,
-          onToast: (kind, message) => {
-            if (kind === 'error') toast.error(message);
-            else toast.message(message);
-          },
-        },
-      });
-    } finally {
-      setIsPaying(false);
-    }
-  };
+  if (isSnap) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
+        {canLoadSnap ? (
+          <Script
+            id="midtrans-snap"
+            src={midtransSnapUrl!}
+            data-client-key={midtransClientKey!}
+            strategy="afterInteractive"
+          />
+        ) : null}
+        <Link href={product.backHref} className="text-sm text-muted-foreground hover:text-primary">
+          ← Kembali
+        </Link>
+        {snapLaunchError ? (
+          <>
+            <p className="text-sm text-destructive">{snapLaunchError}</p>
+            <Button type="button" onClick={() => void launchSnap()} disabled={isPaying}>
+              Coba buka Snap lagi
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="size-8 animate-spin text-primary" aria-hidden />
+            <div>
+              <p className="font-heading text-lg font-bold text-foreground">Membuka Midtrans Snap…</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {product.title} · {priceLabel}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-12">
-      {canLoadSnap ? (
-        <Script
-          id="midtrans-snap"
-          src={midtransSnapUrl!}
-          data-client-key={midtransClientKey!}
-          strategy="afterInteractive"
-        />
-      ) : null}
-
       <div>
         <Link href={product.backHref} className="text-sm text-muted-foreground hover:text-primary">
           ← Kembali
@@ -147,9 +209,7 @@ export function CheckoutPage({
           Checkout
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {isSnap
-            ? 'Bayar lewat Midtrans Snap. Status akses dikonfirmasi otomatis setelah webhook — bukan dari popup saja.'
-            : 'Pilih metode pembayaran, lalu lanjutkan. Transaksi dibuat saat kamu menekan Bayar.'}
+          Pilih metode pembayaran, lalu lanjutkan. Transaksi dibuat saat kamu menekan Bayar.
         </p>
       </div>
 
@@ -188,35 +248,26 @@ export function CheckoutPage({
             className="font-semibold text-primary underline"
           >
             Buka halaman pembayaran
-          </Link>
-          {isSnap
-            ? ' untuk lanjutkan Snap atau cek status.'
-            : ' atau pilih metode baru di bawah (akan mengganti transaksi lama).'}
+          </Link>{' '}
+          atau pilih metode baru di bawah (akan mengganti transaksi lama).
         </div>
       ) : null}
 
-      {!isSnap ? (
-        <div>
-          <h2 className="mb-4 text-sm font-bold text-foreground">Metode pembayaran</h2>
-          {methods.length === 0 ? (
-            <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-              Belum ada metode Core yang diaktifkan admin. Hubungi admin atau coba lagi nanti.
-            </p>
-          ) : (
-            <PaymentMethodSelector
-              methods={methods}
-              value={methodId}
-              onChange={setMethodId}
-              disabled={isPaying}
-            />
-          )}
-        </div>
-      ) : (
-        <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          Metode pembayaran ditampilkan di jendela Midtrans Snap (sesuai Snap Preferences di
-          dashboard Midtrans).
-        </p>
-      )}
+      <div>
+        <h2 className="mb-4 text-sm font-bold text-foreground">Metode pembayaran</h2>
+        {methods.length === 0 ? (
+          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Belum ada metode Core yang diaktifkan admin. Hubungi admin atau coba lagi nanti.
+          </p>
+        ) : (
+          <PaymentMethodSelector
+            methods={methods}
+            value={methodId}
+            onChange={setMethodId}
+            disabled={isPaying}
+          />
+        )}
+      </div>
 
       <div className="sticky bottom-4 rounded-2xl border border-border bg-card/95 p-4 shadow-md backdrop-blur">
         <div className="mb-3 flex items-center justify-between text-sm">
@@ -226,10 +277,10 @@ export function CheckoutPage({
         <Button
           type="button"
           className="h-11 w-full"
-          disabled={isPaying || (!isSnap && !methodId)}
-          onClick={isSnap ? handlePaySnap : handlePayCore}
+          disabled={isPaying || !methodId}
+          onClick={handlePayCore}
         >
-          {isPaying ? 'Memproses…' : isSnap ? 'Bayar dengan Midtrans' : 'Bayar Sekarang'}
+          {isPaying ? 'Memproses…' : 'Bayar Sekarang'}
         </Button>
       </div>
     </div>

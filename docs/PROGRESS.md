@@ -202,6 +202,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-07 | Snap: skip UI checkout — auto-launch Snap; riwayat Pending → Lanjutkan (`?resume=1`) |
 | 2026-08-07 | Admin: metode pembayaran dipindah ke `/admin/metode-pembayaran`; toggle disembunyikan saat mode Snap |
 | 2026-08-07 | Dual-mode Snap interim + Core preserved: `PAYMENT_CHECKOUT_MODE`, restore `Payment.snapToken`, webhook/SSE tetap SoT |
 | 2026-08-07 | Midtrans Core-only: hapus Snap/Client Key/`PAYMENT_PROVIDER`; `PaymentMethodSetting` + admin toggles; 402 auto-disable; drop `Payment.snapToken` |
