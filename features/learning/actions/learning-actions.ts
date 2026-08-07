@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { Prisma } from '@prisma/client';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
 import { buildLmsIdempotencyKey } from '@/lib/core/activity-map';
@@ -22,9 +21,6 @@ import {
   resolveQuizXp,
 } from '@/features/student/lib/gamification-rewards';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
-import { getMidtransSnapClient } from '@/lib/midtrans/client';
-import { buildMidtransOrderId } from '@/lib/midtrans/payment';
-import { isMidtransEnabled } from '@/lib/midtrans/config';
 import { notifyEnrollmentPending } from '@/lib/lms/notifications';
 import { prisma } from '@/lib/prisma';
 import { loggers } from '@/lib/logger';
@@ -34,18 +30,6 @@ const learningLog = loggers.learning;
 async function requireUserId(): Promise<string> {
   return requireAuthUserWithAnchor();
 }
-
-type CourseCheckoutResult =
-  | { ok: true; mode: 'free'; status: 'ACTIVE'; enrollmentId: string }
-  | {
-      ok: true;
-      mode: 'midtrans';
-      status: 'PENDING' | 'ACTIVE';
-      enrollmentId: string;
-      paymentId: string;
-      snapToken: string;
-    }
-  | { ok: false; message: string };
 
 /** Request enrollment — creates PENDING row + user anchor. */
 export async function requestEnrollment(courseId: string) {
@@ -125,149 +109,6 @@ export async function requestCourseEnrollment(courseSlug: string) {
     'Course enrollment requested',
   );
   return { enrollmentId: enrollment.id, courseSlug, status: enrollment.status };
-}
-
-export async function requestCourseCheckout(courseSlug: string): Promise<CourseCheckoutResult> {
-  const userId = await requireUserId();
-  const course = await prisma.course.findUnique({
-    where: { slug: courseSlug },
-    select: { id: true, slug: true, title: true, priceIdr: true, isPublished: true },
-  });
-
-  if (!course) return { ok: false, message: 'Kursus tidak ditemukan.' };
-  if (!course.isPublished) return { ok: false, message: 'Kursus belum tersedia.' };
-
-  if (course.priceIdr <= 0) {
-    const result = await requestCourseEnrollment(courseSlug);
-    return { ok: true, mode: 'free', status: result.status as 'ACTIVE', enrollmentId: result.enrollmentId };
-  }
-
-  if (!isMidtransEnabled()) {
-    return {
-      ok: false,
-      message: 'Pembayaran online sedang tidak tersedia. Hubungi admin jika berlanjut.',
-    };
-  }
-
-  const [existing, user] = await Promise.all([
-    prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId: course.id } },
-      include: { payment: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { displayName: true, ssoDisplayName: true, ssoEmail: true, phone: true },
-    }),
-  ]);
-
-  if (existing?.status === 'ACTIVE') {
-    return {
-      ok: true,
-      mode: 'midtrans',
-      status: 'ACTIVE',
-      enrollmentId: existing.id,
-      paymentId: existing.payment?.id ?? '',
-      snapToken: existing.payment?.snapToken ?? '',
-    };
-  }
-
-  const enrollment = await prisma.enrollment.upsert({
-    where: { userId_courseId: { userId, courseId: course.id } },
-    create: { userId, courseId: course.id, type: 'COURSE', status: 'PENDING' },
-    update: { status: 'PENDING' },
-    include: { payment: true },
-  });
-
-  if (enrollment.payment?.status === 'PENDING' && enrollment.payment.snapToken) {
-    return {
-      ok: true,
-      mode: 'midtrans',
-      status: 'PENDING',
-      enrollmentId: enrollment.id,
-      paymentId: enrollment.payment.id,
-      snapToken: enrollment.payment.snapToken,
-    };
-  }
-
-  const orderId = buildMidtransOrderId(enrollment.id);
-  const snap = getMidtransSnapClient();
-  const transaction = await snap.createTransaction({
-    transaction_details: {
-      order_id: orderId,
-      gross_amount: course.priceIdr,
-    },
-    item_details: [
-      {
-        id: course.id,
-        price: course.priceIdr,
-        quantity: 1,
-        name: course.title.slice(0, 50),
-      },
-    ],
-    customer_details: {
-      first_name: user?.displayName ?? user?.ssoDisplayName ?? 'Siswa JepangKu',
-      email: user?.ssoEmail ?? undefined,
-      phone: user?.phone ?? undefined,
-    },
-  });
-
-  const payment = await prisma.payment.upsert({
-    where: { enrollmentId: enrollment.id },
-    create: {
-      enrollmentId: enrollment.id,
-      userId,
-      productType: 'COURSE',
-      productTitle: course.title,
-      productKey: course.slug,
-      orderId,
-      amountIdr: course.priceIdr,
-      status: 'PENDING',
-      snapToken: transaction.token,
-    },
-    update: {
-      orderId,
-      userId,
-      productType: 'COURSE',
-      productTitle: course.title,
-      productKey: course.slug,
-      amountIdr: course.priceIdr,
-      status: 'PENDING',
-      snapToken: transaction.token,
-      transactionId: null,
-      paymentType: null,
-      statusCode: null,
-      transactionStatus: null,
-      fraudStatus: null,
-      rawNotification: Prisma.JsonNull,
-      paidAt: null,
-    },
-  });
-
-  if (!existing) {
-    const studentName = (await resolveLmsDisplayName(userId, null)) ?? 'Siswa';
-    await logEnrollmentRequested({
-      enrollmentId: enrollment.id,
-      userId,
-      type: 'COURSE',
-      productTitle: course.title,
-      productSubtitle: course.slug,
-      studentName,
-    });
-  }
-
-  revalidatePath('/admin/pembayaran');
-  revalidatePath('/dashboard/kursus');
-  revalidatePath('/dashboard/kursus-saya');
-  revalidateTag(LEARNING_CACHE_TAGS.userEnrollments(userId), 'default');
-
-  return {
-    ok: true,
-    mode: 'midtrans',
-    status: 'PENDING',
-    enrollmentId: enrollment.id,
-    paymentId: payment.id,
-    snapToken: transaction.token,
-  };
 }
 
 /** @deprecated Gunakan requestCourseEnrollment — hanya untuk grant admin / seed. */

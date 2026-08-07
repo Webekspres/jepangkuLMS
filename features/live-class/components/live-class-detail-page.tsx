@@ -325,9 +325,7 @@ function LiveClassSidebarActions({
   }
 
   const useMidtrans =
-    liveClass.paymentSettings.provider === 'midtrans' &&
-    (liveClass.paymentSettings.checkoutMode === 'core' ||
-      liveClass.paymentSettings.checkoutMode === 'snap');
+    liveClass.paymentSettings.provider === 'midtrans';
   const priceLabel = formatIdr(liveClass.priceIdr);
   const isAwaitingPayment =
     liveClass.enrollmentStatus === 'PENDING' && Boolean(liveClass.pendingPaymentId);

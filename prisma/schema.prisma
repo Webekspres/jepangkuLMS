@@ -405,7 +405,6 @@ model Payment {
     amountIdr         Int
     currency          String          @default("IDR")
     status            PaymentStatus   @default(PENDING)
-    snapToken         String?
     /// Our checkout method id (qris, va_bca, gopay, …) — Core API checkout
     checkoutMethod    String?
     /// Normalized PaymentInstructions JSON for Payment Detail UI
@@ -429,6 +428,15 @@ model Payment {
     @@index([userId, createdAt(sort: Desc)])
     @@index([status, createdAt(sort: Desc)])
     @@index([provider, createdAt(sort: Desc)])
+}
+
+/// Which checkout methods appear in student UI (admin toggles; Midtrans has no list-channels API).
+model PaymentMethodSetting {
+    methodId        String   @id
+    enabled         Boolean  @default(false)
+    disabledReason  String?
+    updatedAt       DateTime @updatedAt
+    createdAt       DateTime @default(now())
 }
 
 /// Audit trail enrollment — permintaan siswa & tindakan admin.
