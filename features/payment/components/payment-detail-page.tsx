@@ -467,6 +467,7 @@ export function PaymentDetailPage({
         paidAt={initial.paidAt}
         coverSrc={initial.coverSrc}
         historyHref={initial.historyHref}
+        invoiceHref={STUDENT_ROUTES.pembayaranInvoice(initial.paymentId)}
         product={{
           type: initial.product.type,
           key: initial.product.key,

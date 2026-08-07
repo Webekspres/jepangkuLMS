@@ -78,6 +78,7 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 /dashboard/pembayaran *                        → Riwayat pembayaran siswa
 /dashboard/pembayaran/return *                 → Midtrans Snap finish redirect → sync → detail
 /dashboard/pembayaran/[paymentId] *            → Detail transaksi + SSE / resume Snap
+/dashboard/pembayaran/[paymentId]/invoice *    → Invoice PAID (Cetak / Simpan PDF)
 
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 

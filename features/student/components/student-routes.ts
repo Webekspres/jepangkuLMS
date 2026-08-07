@@ -12,6 +12,7 @@ export const STUDENT_ROUTES = {
     opts?.resume
       ? `/dashboard/pembayaran/${paymentId}?resume=1`
       : `/dashboard/pembayaran/${paymentId}`,
+  pembayaranInvoice: (paymentId: string) => `/dashboard/pembayaran/${paymentId}/invoice`,
   pembayaranHistory: '/dashboard/pembayaran',
   pembayaranReturn: '/dashboard/pembayaran/return',
   kana: '/dashboard/kana',

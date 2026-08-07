@@ -202,6 +202,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-07 | Invoice siswa PAID: `/dashboard/pembayaran/[id]/invoice` + Cetak/Simpan PDF; CTA Unduh invoice aktif |
 | 2026-08-07 | Snap UX: finish URL → `/pembayaran/return`; reconcile Status API after Snap; poll 5s; jangan reuse token settlement |
 | 2026-08-07 | Snap: skip UI checkout — auto-launch Snap; riwayat Pending → Lanjutkan (`?resume=1`) |
 | 2026-08-07 | Admin: metode pembayaran dipindah ke `/admin/metode-pembayaran`; toggle disembunyikan saat mode Snap |
