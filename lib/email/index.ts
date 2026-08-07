@@ -3,12 +3,20 @@ export { getResendClient } from '@/lib/email/resend';
 export { sendEmail } from '@/lib/email/send-email';
 export { dispatchWelcomeEmail, sendWelcomeEmail } from '@/lib/email/send-welcome-email';
 export {
+  buildEnrollmentActivatedIdempotencyKey,
+  buildEnrollmentActivatedSubject,
+  dispatchEnrollmentActivatedEmail,
+  sendEnrollmentActivatedEmail,
+} from '@/lib/email/send-enrollment-activated-email';
+export { dispatchEnrollmentActivatedEmailForUser } from '@/lib/email/resolve-student-mail';
+export {
   buildLiveClassReminderIdempotencyKey,
   buildLiveClassReminderSubject,
   sendLiveClassReminderEmail,
 } from '@/lib/email/send-live-class-reminder-email';
 export { parseClerkUserCreatedEvent } from '@/lib/email/parse-clerk-user-created';
 export type {
+  EnrollmentActivatedEmailInput,
   LiveClassReminderEmailInput,
   SendEmailInput,
   SendEmailResult,

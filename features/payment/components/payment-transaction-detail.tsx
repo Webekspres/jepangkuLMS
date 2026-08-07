@@ -56,6 +56,7 @@ export type PaymentTransactionDetailProps = {
   paidAt: string | null;
   coverSrc: string;
   historyHref: string;
+  invoiceHref?: string | null;
   product: {
     type: CheckoutProductType;
     key: string;
@@ -74,6 +75,7 @@ export function PaymentTransactionDetail({
   paidAt,
   coverSrc,
   historyHref,
+  invoiceHref,
   product,
 }: PaymentTransactionDetailProps) {
   const isPaid = status === 'PAID';
@@ -181,14 +183,13 @@ export function PaymentTransactionDetail({
           </Button>
         ) : null}
 
-        {isPaid ? (
-          <div className="space-y-1.5">
-            <Button type="button" variant="outline" className="w-full gap-2" disabled>
+        {isPaid && invoiceHref ? (
+          <Button asChild variant="outline" className="w-full gap-2">
+            <Link href={invoiceHref}>
               <Download className="size-4" />
               Unduh invoice
-            </Button>
-            <p className="text-center text-[11px] text-muted-foreground">Segera hadir</p>
-          </div>
+            </Link>
+          </Button>
         ) : null}
 
         <Button asChild variant="outline" className="w-full gap-2">

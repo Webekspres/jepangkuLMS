@@ -500,3 +500,29 @@
   animation: placement-eq-bar 0.85s ease-in-out infinite;
   transform-origin: bottom center;
 }
+
+/* Payment invoice — clean print / Save as PDF */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body:has([data-invoice-page]) {
+    background: white !important;
+  }
+
+  body:has([data-invoice-page]) .student-shell-chrome {
+    display: none !important;
+  }
+
+  body:has([data-invoice-page]) main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  body:has([data-invoice-page]) .invoice-print-root {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
