@@ -24,7 +24,9 @@
 | Key set + `PAYMENT_CHECKOUT_MODE=snap` | Snap popup (methods from MAP Snap Preferences) | Webhook → Status API → ACTIVE |
 | Key set + `PAYMENT_CHECKOUT_MODE=core` (default) | LMS method picker (`PaymentMethodSetting`) → Core charge | Same webhook pipeline |
 
-**Settlement SoT is always the webhook** (`applyProviderPaymentEvent`). Snap JS callbacks (`onSuccess` / `onPending` / `onError` / `onClose`) are UX only — they never mark PAID or activate Enrollment. Closing Snap does **not** cancel Payment.
+**Settlement SoT is always the webhook** (`applyProviderPaymentEvent`). Snap JS callbacks (`onSuccess` / `onPending` / `onError` / `onClose`) are UX only — they never mark PAID from the browser alone. After Snap closes/success the client **reconciles** via Midtrans Status API (same as "Cek status") and Payment Detail polls every 5s while pending (SSE fallback). Closing Snap does **not** cancel Payment.
+
+**Finish / Return to merchant:** Snap `createTransaction` sets `callbacks.finish` → `/dashboard/pembayaran/return` (uses `NEXT_PUBLIC_APP_URL`). Also set Finish URL in Midtrans MAP to `https://kursus.jepangku.com/dashboard/pembayaran/return` so dashboard default is not `example.com`.
 
 **Credentials:** match `MIDTRANS_IS_PRODUCTION` with key prefixes (`Mid-` vs `SB-`) and Snap URL. Snap mode also needs `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`.
 

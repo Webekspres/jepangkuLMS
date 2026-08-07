@@ -6,15 +6,29 @@ import { buildMidtransOrderId } from '@/lib/midtrans/payment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import type { CheckoutContext } from '@/lib/payment-engine/types';
+import {
+  canReuseSnapTokenLocally,
+  isMidtransTransactionStillOpenForSnap,
+} from '@/lib/payment-engine/snap-token-reuse';
 import { prisma } from '@/lib/prisma';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 
 const SNAP_DEFAULT_EXPIRY_MINUTES = 60;
 
 export type ChargeSnapResult =
-  | { ok: true; paymentId: string; enrollmentId: string; snapToken: string }
+  | { ok: true; paymentId: string; enrollmentId: string; snapToken: string; alreadyPaid?: false }
+  | {
+      ok: true;
+      paymentId: string;
+      enrollmentId: string;
+      snapToken: null;
+      alreadyPaid: true;
+    }
   | { ok: false; message: string };
+
+export { canReuseSnapTokenLocally, isMidtransTransactionStillOpenForSnap };
 
 function revalidateProductPaths(context: CheckoutContext) {
   revalidatePath('/admin/pembayaran');
@@ -35,18 +49,6 @@ function revalidateProductPaths(context: CheckoutContext) {
   }
 }
 
-/** Local checks before Midtrans Status API — exported for unit tests. */
-export function canReuseSnapTokenLocally(payment: {
-  status: string;
-  snapToken: string | null;
-  expiresAt: Date | null;
-}): boolean {
-  if (payment.status !== 'PENDING' && payment.status !== 'CHALLENGE') return false;
-  if (!payment.snapToken?.trim()) return false;
-  if (payment.expiresAt && payment.expiresAt.getTime() <= Date.now()) return false;
-  return true;
-}
-
 /** True when existing Snap payment can be reopened without regenerating. */
 export async function isReusableSnapPayment(payment: {
   status: string;
@@ -61,11 +63,7 @@ export async function isReusableSnapPayment(payment: {
     const raw = (await core.transaction.status(payment.orderId)) as {
       transaction_status?: string;
     };
-    const status = raw.transaction_status ?? '';
-    if (status === 'expire' || status === 'cancel' || status === 'deny' || status === 'failure') {
-      return false;
-    }
-    return true;
+    return isMidtransTransactionStillOpenForSnap(raw.transaction_status ?? '');
   } catch {
     // Status unknown — treat as unusable and regenerate
     return false;
@@ -158,14 +156,37 @@ export async function chargeSnapProductPayment(input: {
     });
 
     if (existing) {
-      const reusable = await isReusableSnapPayment(existing);
-      if (reusable && existing.snapToken) {
-        return {
-          ok: true,
-          paymentId: existing.id,
-          enrollmentId: input.enrollmentId,
-          snapToken: existing.snapToken,
-        };
+      if (canReuseSnapTokenLocally(existing)) {
+        try {
+          const core = getMidtransCoreApi();
+          const raw = (await core.transaction.status(existing.orderId)) as {
+            transaction_status?: string;
+          };
+          const txStatus = raw.transaction_status ?? '';
+
+          // Already paid at Midtrans but LMS still PENDING (webhook lag) — sync, don't reopen Snap.
+          if (txStatus === 'settlement' || txStatus === 'capture') {
+            await applyProviderPaymentEvent({ externalOrderId: existing.orderId });
+            return {
+              ok: true,
+              paymentId: existing.id,
+              enrollmentId: input.enrollmentId,
+              snapToken: null,
+              alreadyPaid: true,
+            };
+          }
+
+          if (isMidtransTransactionStillOpenForSnap(txStatus) && existing.snapToken) {
+            return {
+              ok: true,
+              paymentId: existing.id,
+              enrollmentId: input.enrollmentId,
+              snapToken: existing.snapToken,
+            };
+          }
+        } catch {
+          // Status unknown — fall through to regenerate
+        }
       }
 
       if (existing.status === 'PENDING' || existing.status === 'CHALLENGE') {
@@ -180,6 +201,8 @@ export async function chargeSnapProductPayment(input: {
     const orderId = buildMidtransOrderId(input.enrollmentId);
     const expiresAt = new Date(Date.now() + SNAP_DEFAULT_EXPIRY_MINUTES * 60_000);
     const snap = getMidtransSnapClient();
+    const appOrigin = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000';
+    const returnUrl = `${appOrigin}/dashboard/pembayaran/return`;
     const transaction = await snap.createTransaction({
       transaction_details: {
         order_id: orderId,
@@ -201,6 +224,11 @@ export async function chargeSnapProductPayment(input: {
       expiry: {
         unit: 'minutes',
         duration: SNAP_DEFAULT_EXPIRY_MINUTES,
+      },
+      // Overrides MAP Finish URL (often left as example.com) for "Return to merchant".
+      callbacks: {
+        finish: returnUrl,
+        error: returnUrl,
       },
     });
 

@@ -78,7 +78,7 @@ describe('channel not activated detection', () => {
 describe('Snap token local reuse', () => {
   test('rejects terminal status, missing token, and expired', async () => {
     const { canReuseSnapTokenLocally } = await import(
-      '@/lib/payment-engine/charge-snap-product'
+      '@/lib/payment-engine/snap-token-reuse'
     );
     expect(
       canReuseSnapTokenLocally({
@@ -108,5 +108,15 @@ describe('Snap token local reuse', () => {
         expiresAt: new Date(Date.now() + 60_000),
       }),
     ).toBe(true);
+  });
+
+  test('settlement/capture are not open for Snap reopen', async () => {
+    const { isMidtransTransactionStillOpenForSnap } = await import(
+      '@/lib/payment-engine/snap-token-reuse'
+    );
+    expect(isMidtransTransactionStillOpenForSnap('settlement')).toBe(false);
+    expect(isMidtransTransactionStillOpenForSnap('capture')).toBe(false);
+    expect(isMidtransTransactionStillOpenForSnap('pending')).toBe(true);
+    expect(isMidtransTransactionStillOpenForSnap('expire')).toBe(false);
   });
 });

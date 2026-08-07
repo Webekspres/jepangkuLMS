@@ -1,11 +1,17 @@
 /**
  * Client-only Snap UX helpers.
- * Callbacks MUST NOT settle Payment / activate Enrollment — webhook is SoT.
+ * Callbacks MUST NOT settle Payment / activate Enrollment — webhook/Status API is SoT.
+ * `onReconcile` may call Status API sync (same as "Cek status") after Snap UX ends.
  */
 
 export type SnapPayUxCallbacks = {
   onNavigateToPaymentDetail: (paymentId: string) => void;
   onToast?: (kind: 'success' | 'info' | 'error', message: string) => void;
+  /**
+   * After Snap success/pending/close — reconcile via Midtrans Status API + refresh UI.
+   * Does not mark PAID from Snap JS alone; server fetchStatus is authoritative.
+   */
+  onReconcile?: (paymentId: string) => void | Promise<void>;
 };
 
 declare global {
@@ -48,8 +54,8 @@ export function waitForWindowSnap(timeoutMs = SNAP_READY_TIMEOUT_MS): Promise<bo
 }
 
 /**
- * Open Midtrans Snap popup. UX only — navigate to Payment Detail; never settle.
- * onClose does NOT cancel the Payment.
+ * Open Midtrans Snap popup. UX only — never settle from Snap JS.
+ * onClose does NOT cancel Payment; it still reconciles in case payment already settled.
  */
 export async function openSnapPayUx(input: {
   snapToken: string;
@@ -66,33 +72,44 @@ export async function openSnapPayUx(input: {
     return;
   }
 
-  const goDetail = () => input.callbacks.onNavigateToPaymentDetail(input.paymentId);
-
-  window.snap.pay(input.snapToken, {
-    onSuccess: () => {
+  const finish = async (kind: 'success' | 'pending' | 'error' | 'close') => {
+    try {
+      await input.callbacks.onReconcile?.(input.paymentId);
+    } catch {
+      // non-fatal — detail page / Cek status remains fallback
+    }
+    if (kind === 'success') {
       input.callbacks.onToast?.(
         'info',
-        'Pembayaran diterima Midtrans. Status akan dikonfirmasi otomatis di halaman pembayaran.',
+        'Pembayaran diterima Midtrans. Mengonfirmasi status…',
       );
-      goDetail();
-    },
-    onPending: () => {
+    } else if (kind === 'pending') {
       input.callbacks.onToast?.(
         'info',
         'Selesaikan pembayaran sesuai metode yang dipilih. Status diperbarui otomatis.',
       );
-      goDetail();
-    },
-    onError: () => {
+    } else if (kind === 'error') {
       input.callbacks.onToast?.(
         'error',
         'Midtrans mengembalikan error. Cek status di halaman pembayaran atau coba lagi.',
       );
-      goDetail();
+    }
+    input.callbacks.onNavigateToPaymentDetail(input.paymentId);
+  };
+
+  window.snap.pay(input.snapToken, {
+    onSuccess: () => {
+      void finish('success');
+    },
+    onPending: () => {
+      void finish('pending');
+    },
+    onError: () => {
+      void finish('error');
     },
     onClose: () => {
-      // Closing Snap does NOT cancel Payment — user can reopen from Payment Detail.
-      goDetail();
+      // Closing Snap does NOT cancel Payment — reconcile in case already paid.
+      void finish('close');
     },
   });
 }

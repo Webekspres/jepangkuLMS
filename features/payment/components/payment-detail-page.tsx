@@ -346,25 +346,42 @@ export function PaymentDetailPage({
     }
   };
 
-  const handleSync = async () => {
-    setBusy(true);
-    try {
+  const handleSync = useCallback(
+    async (opts?: { silent?: boolean }) => {
       const result = await syncPaymentStatus(initial.paymentId);
       if (!result.ok) {
-        toast.error(result.message);
-        return;
+        if (!opts?.silent) toast.error(result.message);
+        return result;
       }
       setStatus(result.status as PaymentStatus);
       if (result.status === 'PAID') {
         toast.success('Pembayaran berhasil. Akses sudah aktif.');
-      } else {
+      } else if (!opts?.silent) {
         toast.message(`Status: ${STATUS_LABEL[result.status as PaymentStatus] ?? result.status}`);
       }
       router.refresh();
+      return result;
+    },
+    [initial.paymentId, router],
+  );
+
+  const handleSyncClick = async () => {
+    setBusy(true);
+    try {
+      await handleSync();
     } finally {
       setBusy(false);
     }
   };
+
+  // SSE can miss updates (multi-instance without Redis). Poll Status API while waiting.
+  useEffect(() => {
+    if (!live || offline) return;
+    const id = window.setInterval(() => {
+      void handleSync({ silent: true });
+    }, 5_000);
+    return () => window.clearInterval(id);
+  }, [handleSync, live, offline]);
 
   const handleResumeSnap = useCallback(async () => {
     setBusy(true);
@@ -389,8 +406,9 @@ export function PaymentDetailPage({
         toast.error(result.message);
         return;
       }
-      if (!result.snapToken) {
-        toast.error('Token Snap tidak tersedia.');
+      if (result.alreadyPaid || !result.snapToken) {
+        toast.success('Pembayaran berhasil. Akses sudah aktif.');
+        setStatus('PAID');
         router.refresh();
         return;
       }
@@ -405,6 +423,9 @@ export function PaymentDetailPage({
             if (kind === 'error') toast.error(message);
             else toast.message(message);
           },
+          onReconcile: async () => {
+            await handleSync({ silent: true });
+          },
         },
       });
       router.refresh();
@@ -412,6 +433,7 @@ export function PaymentDetailPage({
       setBusy(false);
     }
   }, [
+    handleSync,
     initial.checkoutMode,
     initial.midtransClientKey,
     initial.midtransSnapUrl,
@@ -535,7 +557,7 @@ export function PaymentDetailPage({
           variant="secondary"
           disabled={busy}
           className="w-full gap-2"
-          onClick={handleSync}
+          onClick={handleSyncClick}
         >
           <RefreshCw className={cn('size-4', busy && 'animate-spin')} />
           Cek status
