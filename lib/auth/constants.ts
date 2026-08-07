@@ -19,6 +19,7 @@ export const ADMIN_ROUTES = {
     dashboard: '/admin/dashboard',
     settings: '/admin/settings',
     pembayaran: '/admin/pembayaran',
+    metodePembayaran: '/admin/metode-pembayaran',
     kursus: '/admin/kursus',
     kursusForm: '/admin/kursus/form',
     kursusModules: (courseId: string) => `/admin/kursus/${courseId}/modul`,

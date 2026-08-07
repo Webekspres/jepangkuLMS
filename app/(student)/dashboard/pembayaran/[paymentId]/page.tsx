@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
+import { getCheckoutMode } from '@/lib/midtrans/config';
 import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { parsePaymentInstructions } from '@/lib/payment-engine/charge-product';
 import type { CheckoutProductType } from '@/lib/payment-engine/types';
+import { getPaymentSettings } from '@/lib/payment/settings';
 import {
   paymentMethodDisplayLabel,
   resolvePaymentProductCover,
@@ -124,6 +126,10 @@ export default async function PembayaranDetailRoute({ params }: Props) {
     liveClassCoverUrl: payment.enrollment?.liveClass?.coverImageUrl,
   });
 
+  const checkoutMode = getCheckoutMode();
+  const paymentSettings = getPaymentSettings();
+  const methods = checkoutMode === 'core' ? await listCheckoutMethods() : [];
+
   return (
     <PaymentDetailPage
       initial={{
@@ -132,7 +138,9 @@ export default async function PembayaranDetailRoute({ params }: Props) {
         status: payment.status,
         amountIdr: payment.amountIdr,
         checkoutMethod: payment.checkoutMethod,
-        methodLabel: paymentMethodDisplayLabel(payment.checkoutMethod),
+        methodLabel: payment.snapToken
+          ? 'Midtrans Snap'
+          : paymentMethodDisplayLabel(payment.checkoutMethod),
         instructions: parsePaymentInstructions(payment.instructions),
         expiresAt: payment.expiresAt?.toISOString() ?? null,
         createdAt: payment.createdAt.toISOString(),
@@ -140,7 +148,11 @@ export default async function PembayaranDetailRoute({ params }: Props) {
         coverSrc,
         historyHref: STUDENT_ROUTES.pembayaranHistory,
         product,
-        methods: await listCheckoutMethods(),
+        methods,
+        checkoutMode,
+        hasSnapToken: Boolean(payment.snapToken),
+        midtransClientKey: paymentSettings.midtransClientKey,
+        midtransSnapUrl: paymentSettings.midtransSnapUrl,
       }}
     />
   );

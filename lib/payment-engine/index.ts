@@ -49,6 +49,8 @@ export { getMidtransProvider, MidtransProvider } from '@/lib/payment-engine/prov
 
 export { chargeCoursePayment, chargeProductPayment, parsePaymentInstructions } from '@/lib/payment-engine/charge-product';
 
+export { chargeSnapProductPayment, isReusableSnapPayment, canReuseSnapTokenLocally } from '@/lib/payment-engine/charge-snap-product';
+
 export { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 
 export {

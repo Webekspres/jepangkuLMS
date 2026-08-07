@@ -136,7 +136,8 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 ├── /dashboard                   → Executive dashboard (KPI + Recharts + activity)
 ├── /settings                    → Integrasi GA4 / Search Console
 │
-├── /pembayaran                  → Manajemen enrollment (Midtrans auto + manual)
+├── /pembayaran                  → Manajemen enrollment (antrian + riwayat)
+├── /metode-pembayaran           → Pengaturan metode checkout (Core); Snap → info MAP
 │
 ├── /kursus                      → CMS: Manajemen Kursus
 │   ├── /import                  → Impor kursus dari workbook sensei N4/N5

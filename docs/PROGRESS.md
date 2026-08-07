@@ -183,7 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info     |   ✅   |
 | Secured video (enrolled only)      |   🟡   | API gate + player hardening; YouTube bukan DRM penuh                          |
 | Enrollment gate lesson             |   ✅   |
-| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans Core-only (`MIDTRANS_SERVER_KEY`); admin `PaymentMethodSetting`; no Snap/Client Key; CMS grant tetap; terminal Payment menutup Enrollment PENDING |
+| Model pembayaran: checkout per item (no cart) |   ✅   | Dual-mode Midtrans (`PAYMENT_CHECKOUT_MODE=snap\|core`); webhook SoT; PaymentMethodSetting utk Core; CMS grant tetap |
 | Rate Limiting (Middleware + Redis) |   🟡   | Dihapus dari `proxy.ts` (429 di staging); `lib/rate-limit/` tetap untuk nanti |
 
 ---
@@ -202,6 +202,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-07 | Admin: metode pembayaran dipindah ke `/admin/metode-pembayaran`; toggle disembunyikan saat mode Snap |
+| 2026-08-07 | Dual-mode Snap interim + Core preserved: `PAYMENT_CHECKOUT_MODE`, restore `Payment.snapToken`, webhook/SSE tetap SoT |
 | 2026-08-07 | Midtrans Core-only: hapus Snap/Client Key/`PAYMENT_PROVIDER`; `PaymentMethodSetting` + admin toggles; 402 auto-disable; drop `Payment.snapToken` |
 | 2026-08-06 | Payment ledger: cancel/expire tidak hapus Payment (SetNull); riwayat siswa tetap; Antrian satu filter status Indo |
 | 2026-08-06 | Midtrans-only: hapus bridge transfer manual; cancel/expire menutup Enrollment PENDING; Antrian filter/status Midtrans-first + Hapus antrean untuk payment terminal |

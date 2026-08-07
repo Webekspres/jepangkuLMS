@@ -10,10 +10,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   cancelPayment,
   changePaymentMethod,
+  resumeSnapCheckout,
   syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
+import { openSnapPayUx } from '@/features/checkout/lib/snap-pay-ux';
 import { PaymentTransactionDetail } from '@/features/payment/components/payment-transaction-detail';
+import Script from 'next/script';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
 import type {
   CheckoutMethodId,
@@ -51,6 +54,10 @@ export type PaymentDetailView = {
     successLabel: string;
   };
   methods: PaymentMethodMeta[];
+  checkoutMode: 'snap' | 'core';
+  hasSnapToken: boolean;
+  midtransClientKey: string | null;
+  midtransSnapUrl: string | null;
 };
 
 const STATUS_LABEL: Record<PaymentStatus, string> = {
@@ -351,6 +358,38 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     }
   };
 
+  const handleResumeSnap = async () => {
+    setBusy(true);
+    try {
+      const result = await resumeSnapCheckout(initial.paymentId);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (!result.snapToken) {
+        toast.error('Token Snap tidak tersedia.');
+        router.refresh();
+        return;
+      }
+      await openSnapPayUx({
+        snapToken: result.snapToken,
+        paymentId: result.paymentId,
+        callbacks: {
+          onNavigateToPaymentDetail: () => {
+            router.refresh();
+          },
+          onToast: (kind, message) => {
+            if (kind === 'error') toast.error(message);
+            else toast.message(message);
+          },
+        },
+      });
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!live) {
     return (
       <PaymentTransactionDetail
@@ -373,8 +412,21 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     );
   }
 
+  const isSnapMode = initial.checkoutMode === 'snap';
+  const canLoadSnap =
+    isSnapMode && Boolean(initial.midtransClientKey) && Boolean(initial.midtransSnapUrl);
+
   return (
     <div className="mx-auto max-w-lg space-y-6 pb-12">
+      {canLoadSnap ? (
+        <Script
+          id="midtrans-snap-detail"
+          src={initial.midtransSnapUrl!}
+          data-client-key={initial.midtransClientKey!}
+          strategy="afterInteractive"
+        />
+      ) : null}
+
       <div>
         <Link
           href={initial.historyHref}
@@ -407,7 +459,23 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
             <span>{STATUS_LABEL[status] ?? status}</span>
           </div>
 
-          {initial.instructions ? (
+          {isSnapMode ? (
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                Selesaikan pembayaran di jendela Midtrans Snap. Status akses hanya berubah setelah
+                konfirmasi server (webhook) — menutup popup tidak membatalkan pembayaran.
+              </p>
+              <Countdown expiresAt={initial.expiresAt} />
+              <Button
+                type="button"
+                className="w-full"
+                disabled={busy || !canLoadSnap}
+                onClick={handleResumeSnap}
+              >
+                {busy ? 'Memproses…' : 'Lanjutkan di Midtrans Snap'}
+              </Button>
+            </div>
+          ) : initial.instructions ? (
             <InstructionsPanel instructions={initial.instructions} isMobile={isMobile} />
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -428,15 +496,27 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
           <RefreshCw className={cn('size-4', busy && 'animate-spin')} />
           Cek status
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          className="w-full"
-          onClick={() => setShowMethods((v) => !v)}
-        >
-          Ganti metode
-        </Button>
+        {!isSnapMode ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            className="w-full"
+            onClick={() => setShowMethods((v) => !v)}
+          >
+            Ganti metode
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || !canLoadSnap}
+            className="w-full"
+            onClick={handleResumeSnap}
+          >
+            Buka Snap lagi
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -449,7 +529,7 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
         </Button>
       </div>
 
-      {showMethods ? (
+      {!isSnapMode && showMethods ? (
         <Card>
           <CardContent className="p-4">
             <PaymentMethodSelector
