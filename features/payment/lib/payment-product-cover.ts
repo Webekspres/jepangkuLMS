@@ -5,7 +5,7 @@ import {
 } from '@/features/learning/lib/course-display';
 import { DEFAULT_TRYOUT_COVER } from '@/features/learning/lib/load-marketing-catalog-extras';
 import { resolveMediaUrl } from '@/lib/media/image-src';
-import { getCheckoutMethod } from '@/lib/payment-engine/registry/methods';
+import { getCheckoutMethod } from '@/lib/payment-engine/registry/methods-catalog';
 import type { CheckoutMethodId } from '@/lib/payment-engine/types';
 
 export function resolvePaymentProductCover(input: {

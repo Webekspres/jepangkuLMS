@@ -6,10 +6,8 @@ import {
   mapCoreChargeStatus,
   normalizeMidtransChargeToInstructions,
 } from '@/lib/payment-engine/providers/midtrans/status-map';
-import {
-  disableCheckoutMethod,
-  isChannelNotActivatedError,
-} from '@/lib/payment-engine/registry/methods';
+import { disableCheckoutMethod } from '@/lib/payment-engine/registry/methods';
+import { isChannelNotActivatedError } from '@/lib/payment-engine/registry/methods-catalog';
 import type { PaymentProvider } from '@/lib/payment-engine/providers/types';
 import type {
   CheckoutMethodId,

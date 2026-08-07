@@ -1,4 +1,4 @@
-import { METHOD_CATALOG } from '@/lib/payment-engine/registry/methods';
+import { METHOD_CATALOG } from '@/lib/payment-engine/registry/methods-catalog';
 import type { CheckoutMethodId } from '@/lib/payment-engine/types';
 import { prisma } from '@/lib/prisma';
 
