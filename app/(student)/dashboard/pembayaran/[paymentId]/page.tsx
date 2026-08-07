@@ -140,7 +140,7 @@ export default async function PembayaranDetailRoute({ params }: Props) {
         coverSrc,
         historyHref: STUDENT_ROUTES.pembayaranHistory,
         product,
-        methods: listCheckoutMethods(),
+        methods: await listCheckoutMethods(),
       }}
     />
   );

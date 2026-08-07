@@ -5,7 +5,6 @@ import { buildMidtransOrderId } from '@/lib/midtrans/payment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import {
-  assertCheckoutReadyToCharge,
   getPaymentProvider,
   withCheckoutMethod,
 } from '@/lib/payment-engine/service';
@@ -46,7 +45,6 @@ async function persistCharge(input: {
       transactionId: input.charge.externalTransactionId,
       paymentType: input.charge.providerPaymentType,
       expiresAt: input.charge.expiresAt,
-      snapToken: null,
       paidAt: input.charge.status === 'PAID' ? new Date() : null,
     },
     update: {
@@ -63,7 +61,6 @@ async function persistCharge(input: {
       transactionId: input.charge.externalTransactionId,
       paymentType: input.charge.providerPaymentType,
       expiresAt: input.charge.expiresAt,
-      snapToken: null,
       statusCode: null,
       transactionStatus: null,
       fraudStatus: null,
@@ -119,8 +116,7 @@ export async function chargeProductPayment(input: {
   enrollmentId: string;
 }): Promise<ChargeProductResult> {
   try {
-    const context = withCheckoutMethod(input.context, input.methodId);
-    assertCheckoutReadyToCharge(context, input.methodId);
+    const context = await withCheckoutMethod(input.context, input.methodId);
 
     const existing = await prisma.payment.findUnique({
       where: { enrollmentId: input.enrollmentId },

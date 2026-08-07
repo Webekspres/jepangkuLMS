@@ -3,12 +3,13 @@ import type {
   PaymentMethodCategory,
   PaymentMethodMeta,
 } from '@/lib/payment-engine/types';
+import { prisma } from '@/lib/prisma';
 
 /**
- * Canonical method catalog. UI maps this metadata → cards; never hardcode methods in JSX.
- * Enable/disable via env `PAYMENT_METHODS_ENABLED` (comma-separated ids). Empty/unset = all enabled entries.
+ * Canonical method catalog — UI metadata only.
+ * Runtime enablement lives in PaymentMethodSetting (admin + 402 auto-disable).
  */
-const METHOD_CATALOG: PaymentMethodMeta[] = [
+export const METHOD_CATALOG: PaymentMethodMeta[] = [
   {
     id: 'qris',
     displayName: 'QRIS',
@@ -143,33 +144,32 @@ const GROUP_ORDER: { id: PaymentMethodGroupId; label: string; categories: Paymen
     { id: 'retail', label: 'Retail', categories: ['cstore'] },
   ];
 
-function parseEnabledAllowlist(): Set<CheckoutMethodId> | null {
-  const raw = process.env.PAYMENT_METHODS_ENABLED?.trim();
-  if (!raw) return null;
-  const ids = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean) as CheckoutMethodId[];
-  return new Set(ids);
-}
+const CATALOG_BY_ID = new Map(METHOD_CATALOG.map((m) => [m.id, m]));
 
 /** Local asset path for method icon (public/payment-icons). */
 export function paymentMethodIconSrc(logoKey: string): string {
   return `/payment-icons/${logoKey}.svg`;
 }
 
-/** Methods available for checkout UI (enabled, not in maintenance unless still listed). */
-export function listCheckoutMethods(): PaymentMethodMeta[] {
-  const allow = parseEnabledAllowlist();
-  return METHOD_CATALOG.filter((m) => {
-    if (!m.enabled) return false;
-    if (allow && !allow.has(m.id)) return false;
-    return true;
-  }).sort((a, b) => a.priority - b.priority);
+/** Catalog metadata (ignores admin enablement). */
+export function getCatalogMethod(id: CheckoutMethodId): PaymentMethodMeta | undefined {
+  return CATALOG_BY_ID.get(id);
+}
+
+export async function listCheckoutMethods(): Promise<PaymentMethodMeta[]> {
+  const rows = await prisma.paymentMethodSetting.findMany({
+    where: { enabled: true },
+    select: { methodId: true },
+  });
+  const enabled = new Set(rows.map((r) => r.methodId));
+
+  return METHOD_CATALOG.filter((m) => enabled.has(m.id) && !m.maintenance).sort(
+    (a, b) => a.priority - b.priority,
+  );
 }
 
 export function listCheckoutMethodGroups(
-  methods: PaymentMethodMeta[] = listCheckoutMethods(),
+  methods: PaymentMethodMeta[],
 ): PaymentMethodGroup[] {
   return GROUP_ORDER.map((group) => ({
     id: group.id,
@@ -178,11 +178,40 @@ export function listCheckoutMethodGroups(
   })).filter((g) => g.methods.length > 0);
 }
 
+/** Prefer catalog for display after charge; fallback to enabled list. */
 export function getCheckoutMethod(id: CheckoutMethodId): PaymentMethodMeta | undefined {
-  return listCheckoutMethods().find((m) => m.id === id) ?? METHOD_CATALOG.find((m) => m.id === id);
+  return getCatalogMethod(id);
 }
 
-export function isCheckoutMethodAvailable(id: CheckoutMethodId): boolean {
-  const m = listCheckoutMethods().find((entry) => entry.id === id);
-  return Boolean(m && m.enabled && !m.maintenance);
+export async function isCheckoutMethodAvailable(id: CheckoutMethodId): Promise<boolean> {
+  const row = await prisma.paymentMethodSetting.findUnique({
+    where: { methodId: id },
+    select: { enabled: true },
+  });
+  if (!row?.enabled) return false;
+  const meta = getCatalogMethod(id);
+  return Boolean(meta && !meta.maintenance);
+}
+
+export async function disableCheckoutMethod(
+  methodId: CheckoutMethodId,
+  reason: string,
+): Promise<void> {
+  await prisma.paymentMethodSetting.upsert({
+    where: { methodId },
+    create: {
+      methodId,
+      enabled: false,
+      disabledReason: reason,
+    },
+    update: {
+      enabled: false,
+      disabledReason: reason,
+    },
+  });
+}
+
+export function isChannelNotActivatedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /channel is not activated|402/i.test(message);
 }
