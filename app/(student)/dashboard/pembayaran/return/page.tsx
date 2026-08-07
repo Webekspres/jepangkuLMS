@@ -13,8 +13,8 @@ type Props = {
 };
 
 /**
- * Midtrans Snap "Return to merchant" / finish callback.
- * Syncs Status API then redirects to Payment Detail (never example.com).
+ * Midtrans Snap "Return to merchant" / finish callback (e-wallet GoPay, etc.).
+ * Sync Status API then redirect to Payment Detail with ?confirmed=1 for fast success UX.
  */
 export default async function MidtransPaymentReturnPage({ searchParams }: Props) {
   const userId = await requireAuthUserWithAnchor();
@@ -37,8 +37,8 @@ export default async function MidtransPaymentReturnPage({ searchParams }: Props)
   try {
     await applyProviderPaymentEvent({ externalOrderId: orderId });
   } catch {
-    // Still land on detail — user can Cek status / SSE
+    // Still land on detail — visibility sync / Cek status / SSE remain
   }
 
-  redirect(STUDENT_ROUTES.pembayaran(payment.id));
+  redirect(`${STUDENT_ROUTES.pembayaran(payment.id)}?confirmed=1`);
 }

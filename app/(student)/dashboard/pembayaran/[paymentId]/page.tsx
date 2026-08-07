@@ -15,7 +15,7 @@ import { prisma } from '@/lib/prisma';
 
 type Props = {
   params: Promise<{ paymentId: string }>;
-  searchParams: Promise<{ resume?: string }>;
+  searchParams: Promise<{ resume?: string; confirmed?: string }>;
 };
 
 function productViewFromEnrollment(enrollment: {
@@ -97,7 +97,7 @@ function productViewFromSnapshot(input: {
 
 export default async function PembayaranDetailRoute({ params, searchParams }: Props) {
   const { paymentId } = await params;
-  const { resume } = await searchParams;
+  const { resume, confirmed } = await searchParams;
   const userId = await requireAuthUserWithAnchor();
 
   const payment = await prisma.payment.findUnique({
@@ -137,6 +137,7 @@ export default async function PembayaranDetailRoute({ params, searchParams }: Pr
   return (
     <PaymentDetailPage
       autoResumeSnap={resume === '1' && checkoutMode === 'snap'}
+      confirmedReturn={confirmed === '1'}
       initial={{
         paymentId: payment.id,
         orderId: payment.orderId,

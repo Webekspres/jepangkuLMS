@@ -12,10 +12,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   payCheckout,
   paySnapCheckout,
-  syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
 import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
+import { fetchPaymentSync } from '@/features/payment/lib/fetch-payment-sync';
 import type {
   CheckoutMethodId,
   CheckoutProductType,
@@ -122,7 +122,7 @@ export function CheckoutPage({
               else toast.message(message);
             },
             onReconcile: async (paymentId) => {
-              await syncPaymentStatus(paymentId);
+              await fetchPaymentSync(paymentId);
             },
           },
         });

@@ -10,6 +10,7 @@ import { syncLiveClassFilledSlots } from '@/features/admin-cms/lib/enrollment-co
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import type { CmsActionResult } from '@/features/admin-cms/actions/cms-course-actions';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { revalidateStudentLearningSurfaces } from '@/lib/cache/revalidate-learning';
 import { resolvePublicDisplayName } from '@/lib/lms/display-name';
 import {
@@ -129,11 +130,16 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
       studentUserId: enrollment.userId,
       courseTitle: enrollment.course?.title ?? 'Kursus',
       courseSlug: enrollment.course?.slug ?? '',
+      productKind: 'COURSE',
     });
   } else if (enrollment.type === 'LIVE_CLASS') {
     await notifyLiveClassApproval({
       studentUserId: enrollment.userId,
       liveClassTitle: enrollment.liveClass?.title ?? 'Live Class',
+      enrollmentId: enrollment.id,
+      href: enrollment.liveClassId
+        ? STUDENT_ROUTES.liveClassDetail(enrollment.liveClassId)
+        : STUDENT_ROUTES.liveClass,
     });
   } else if (enrollment.type === 'TRYOUT') {
     await notifyEnrollmentApproved({
@@ -141,6 +147,8 @@ export async function approveEnrollmentAction(enrollmentId: string): Promise<Cms
       studentUserId: enrollment.userId,
       courseTitle: enrollment.tryoutSession?.title ?? 'Tryout',
       courseSlug: '',
+      productKind: 'TRYOUT',
+      href: STUDENT_ROUTES.tryout,
     });
   }
 

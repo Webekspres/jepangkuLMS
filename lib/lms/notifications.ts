@@ -1,6 +1,7 @@
 import type { LmsNotificationType } from '@prisma/client';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { dispatchEnrollmentActivatedEmailForUser } from '@/lib/email/resolve-student-mail';
 import { adminEnrollmentQueueWhere } from '@/lib/payment/admin-enrollment-queue';
 import { prisma } from '@/lib/prisma';
 
@@ -76,6 +77,7 @@ export async function notifyEnrollmentApproved(input: {
   courseSlug?: string;
   productTitle?: string;
   href?: string;
+  productKind?: 'COURSE' | 'LIVE_CLASS' | 'TRYOUT';
 }): Promise<void> {
   const title = input.productTitle ?? input.courseTitle ?? 'Program';
   const href =
@@ -88,6 +90,14 @@ export async function notifyEnrollmentApproved(input: {
     body: `Akses ${title} sudah aktif. Selamat belajar!`,
     href,
     dedupeKey: `enrollment-approved:${input.enrollmentId}`,
+  });
+
+  void dispatchEnrollmentActivatedEmailForUser({
+    studentUserId: input.studentUserId,
+    enrollmentId: input.enrollmentId,
+    productTitle: title,
+    href,
+    productKind: input.productKind ?? 'COURSE',
   });
 }
 
@@ -172,27 +182,27 @@ export async function notifyLiveClassRegistration(input: {
 export async function notifyLiveClassApproval(input: {
   studentUserId: string;
   liveClassTitle: string;
+  enrollmentId: string;
+  href?: string;
 }): Promise<void> {
+  const href = input.href ?? '/dashboard/live-class';
   await createLmsNotification({
     userId: input.studentUserId,
     type: 'ENROLLMENT_APPROVED',
     title: 'Akses Live Class Aktif',
     body: `Pendaftaran Anda di "${input.liveClassTitle}" sudah disetujui! Silakan cek jadwal pertemuan di dasbor.`,
-    href: '/dashboard/live-class',
+    href,
+    dedupeKey: `enrollment-approved:${input.enrollmentId}`,
   });
 
-  try {
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-    const clerkUser = await clerk.users.getUser(input.studentUserId);
-    const email = clerkUser.emailAddresses[0]?.emailAddress ?? 'unknown@example.com';
-    
-    console.log(`[EMAIL MOCK] Mengirim email persetujuan pendaftaran:
-      To: ${email}
-      Subject: Kelas Live Aktif - JepangKu LMS
-      Body: Halo ${clerkUser.firstName ?? 'Siswa'}, pendaftaran Anda untuk kelas "${input.liveClassTitle}" telah disetujui! Anda sekarang dapat mengakses link pertemuan Zoom di halaman detail kelas.`);
-  } catch (error) {
-    console.error('[EMAIL MOCK ERROR] Gagal mengambil email dari Clerk untuk approval:', error);
-  }
+  void dispatchEnrollmentActivatedEmailForUser({
+    studentUserId: input.studentUserId,
+    enrollmentId: input.enrollmentId,
+    productTitle: input.liveClassTitle,
+    href,
+    productKind: 'LIVE_CLASS',
+    ctaLabel: 'Buka Live Class',
+  });
 }
 
 export async function getPendingEnrollmentCount(): Promise<number> {

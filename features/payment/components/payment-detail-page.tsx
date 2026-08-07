@@ -11,11 +11,12 @@ import {
   cancelPayment,
   changePaymentMethod,
   resumeSnapCheckout,
-  syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
 import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
 import { PaymentTransactionDetail } from '@/features/payment/components/payment-transaction-detail';
+import { fetchPaymentSync } from '@/features/payment/lib/fetch-payment-sync';
+import { saveQrisImage } from '@/features/payment/lib/save-qris-image';
 import Script from 'next/script';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
 import type {
@@ -130,12 +131,44 @@ function Countdown({ expiresAt }: { expiresAt: string | null }) {
   );
 }
 
+function SaveQrisButton({ paymentId }: { paymentId: string }) {
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        disabled={saving}
+        className="text-sm font-semibold text-primary underline disabled:opacity-60"
+        onClick={async () => {
+          setSaving(true);
+          try {
+            const result = await saveQrisImage(paymentId);
+            if (result.ok) return;
+            if (result.aborted) return;
+            toast.error(result.message);
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        {saving ? 'Menyimpan…' : 'Simpan gambar QR'}
+      </button>
+      <p className="text-xs text-muted-foreground">
+        Atau tahan gambar QR lalu pilih Simpan Foto
+      </p>
+    </div>
+  );
+}
+
 function InstructionsPanel({
   instructions,
   isMobile,
+  paymentId,
 }: {
   instructions: PaymentInstructions;
   isMobile: boolean;
+  paymentId: string;
 }) {
   if (instructions.kind === 'qris') {
     return (
@@ -152,15 +185,7 @@ function InstructionsPanel({
             <p className="p-8 text-sm text-muted-foreground">QR belum tersedia.</p>
           )}
         </div>
-        {isMobile && instructions.qrUrl ? (
-          <a
-            href={instructions.qrUrl}
-            download="qris-jepangku.png"
-            className="text-sm font-semibold text-primary underline"
-          >
-            Simpan gambar QR
-          </a>
-        ) : null}
+        {isMobile && instructions.qrUrl ? <SaveQrisButton paymentId={paymentId} /> : null}
         <p className="text-2xl font-extrabold text-brand-red">
           {formatIdr(instructions.amountIdr)}
         </p>
@@ -250,9 +275,12 @@ function InstructionsPanel({
 export function PaymentDetailPage({
   initial,
   autoResumeSnap = false,
+  confirmedReturn = false,
 }: {
   initial: PaymentDetailView;
   autoResumeSnap?: boolean;
+  /** From Midtrans finish redirect (?confirmed=1) — toast once if already PAID. */
+  confirmedReturn?: boolean;
 }) {
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -261,6 +289,8 @@ export function PaymentDetailPage({
   const [showMethods, setShowMethods] = useState(false);
   const [offline, setOffline] = useState(false);
   const autoResumeStartedRef = useRef(false);
+  const syncInFlightRef = useRef(false);
+  const confirmedToastShownRef = useRef(false);
 
   const live = status === 'PENDING' || status === 'CHALLENGE';
 
@@ -292,14 +322,49 @@ export function PaymentDetailPage({
     [initial.historyHref, router],
   );
 
+  const handleSync = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (syncInFlightRef.current) {
+        return { ok: false as const, message: 'Sync sedang berjalan.' };
+      }
+      syncInFlightRef.current = true;
+      try {
+        const result = await fetchPaymentSync(initial.paymentId);
+        if (!result.ok) {
+          if (!opts?.silent) toast.error(result.message);
+          return result;
+        }
+        let changed = false;
+        setStatus((prev) => {
+          changed = prev !== result.status;
+          return result.status;
+        });
+        if (result.status === 'PAID') {
+          toast.success('Pembayaran berhasil. Akses sudah aktif.');
+          router.refresh();
+        } else if (!opts?.silent) {
+          toast.message(`Status: ${STATUS_LABEL[result.status] ?? result.status}`);
+          if (changed) router.refresh();
+        } else if (changed) {
+          router.refresh();
+        }
+        return result;
+      } finally {
+        syncInFlightRef.current = false;
+      }
+    },
+    [initial.paymentId, router],
+  );
+
   usePaymentEvents({
     paymentId: initial.paymentId,
     enabled: live && !offline,
     onEvent,
     onConnectionIssue: () => {
       toast.message('Koneksi status terputus', {
-        description: 'Mencoba menyambung ulang… atau tekan Cek status.',
+        description: 'Mencoba sync singkat… atau tekan Cek status.',
       });
+      void handleSync({ silent: true });
     },
   });
 
@@ -309,6 +374,37 @@ export function PaymentDetailPage({
       description: 'Status akan diperbarui otomatis saat online kembali, atau tekan Cek status.',
     });
   }, [live, offline]);
+
+  useEffect(() => {
+    if (!confirmedReturn || confirmedToastShownRef.current) return;
+    confirmedToastShownRef.current = true;
+    if (initial.status === 'PAID' || status === 'PAID') {
+      toast.success('Pembayaran berhasil. Akses sudah aktif.');
+    } else {
+      void handleSync({ silent: true });
+    }
+    router.replace(STUDENT_ROUTES.pembayaran(initial.paymentId), { scroll: false });
+  }, [confirmedReturn, handleSync, initial.paymentId, initial.status, router, status]);
+
+  // E-wallet (GoPay): when user returns to the tab, sync once — Snap callbacks often miss.
+  useEffect(() => {
+    if (!live) return;
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      void handleSync({ silent: true });
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void handleSync({ silent: true });
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [handleSync, live]);
 
   const handleCancel = async () => {
     setBusy(true);
@@ -346,25 +442,6 @@ export function PaymentDetailPage({
     }
   };
 
-  const handleSync = useCallback(
-    async (opts?: { silent?: boolean }) => {
-      const result = await syncPaymentStatus(initial.paymentId);
-      if (!result.ok) {
-        if (!opts?.silent) toast.error(result.message);
-        return result;
-      }
-      setStatus(result.status as PaymentStatus);
-      if (result.status === 'PAID') {
-        toast.success('Pembayaran berhasil. Akses sudah aktif.');
-      } else if (!opts?.silent) {
-        toast.message(`Status: ${STATUS_LABEL[result.status as PaymentStatus] ?? result.status}`);
-      }
-      router.refresh();
-      return result;
-    },
-    [initial.paymentId, router],
-  );
-
   const handleSyncClick = async () => {
     setBusy(true);
     try {
@@ -373,15 +450,6 @@ export function PaymentDetailPage({
       setBusy(false);
     }
   };
-
-  // SSE can miss updates (multi-instance without Redis). Poll Status API while waiting.
-  useEffect(() => {
-    if (!live || offline) return;
-    const id = window.setInterval(() => {
-      void handleSync({ silent: true });
-    }, 5_000);
-    return () => window.clearInterval(id);
-  }, [handleSync, live, offline]);
 
   const handleResumeSnap = useCallback(async () => {
     setBusy(true);
@@ -543,7 +611,11 @@ export function PaymentDetailPage({
               </Button>
             </div>
           ) : initial.instructions ? (
-            <InstructionsPanel instructions={initial.instructions} isMobile={isMobile} />
+            <InstructionsPanel
+              instructions={initial.instructions}
+              isMobile={isMobile}
+              paymentId={initial.paymentId}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               Instruksi pembayaran tidak tersedia. Ganti metode untuk membuat transaksi baru.

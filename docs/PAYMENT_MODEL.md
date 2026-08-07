@@ -24,9 +24,13 @@
 | Key set + `PAYMENT_CHECKOUT_MODE=snap` | Snap popup (methods from MAP Snap Preferences) | Webhook → Status API → ACTIVE |
 | Key set + `PAYMENT_CHECKOUT_MODE=core` (default) | LMS method picker (`PaymentMethodSetting`) → Core charge | Same webhook pipeline |
 
-**Settlement SoT is always the webhook** (`applyProviderPaymentEvent`). Snap JS callbacks (`onSuccess` / `onPending` / `onError` / `onClose`) are UX only — they never mark PAID from the browser alone. After Snap closes/success the client **reconciles** via Midtrans Status API (same as "Cek status") and Payment Detail polls every 5s while pending (SSE fallback). Closing Snap does **not** cancel Payment.
+**Settlement SoT is always the webhook** (`applyProviderPaymentEvent`). Snap JS callbacks are UX only — they never mark PAID from the browser alone. After Snap closes/success the client **reconciles** via `POST /api/payments/[id]/sync` (JSON Status API, same as “Cek status”). Payment Detail is **SSE-first** (`EventSource` → `/api/payments/[id]/events`); there is **no** background Server Action poll (that caused Sentry “unexpected response”). On e-wallet return (GoPay), Detail also syncs once on `visibilitychange` / `pageshow`. Closing Snap does **not** cancel Payment.
 
-**Finish / Return to merchant:** Snap `createTransaction` sets `callbacks.finish` → `/dashboard/pembayaran/return` (uses `NEXT_PUBLIC_APP_URL`). Also set Finish URL in Midtrans MAP to `https://kursus.jepangku.com/dashboard/pembayaran/return` so dashboard default is not `example.com`.
+**Finish / Return to merchant:** Snap `createTransaction` sets `callbacks.finish` → `/dashboard/pembayaran/return` (uses `NEXT_PUBLIC_APP_URL`). MAP Finish URL must match: `https://kursus.jepangku.com/dashboard/pembayaran/return`. Return page syncs then redirects to Detail `?confirmed=1`.
+
+**Email on access active:** `notifyEnrollmentApproved` / `notifyLiveClassApproval` dispatch Resend `enrollment-activated` (idempotency `lms:enrollment-activated:{enrollmentId}`) — thank-you + program title + CTA.
+
+**Simpan QR QRIS (iOS):** tombol memakai `GET /api/payments/[id]/qris` (proxy same-origin) lalu Web Share / blob download — iOS mengabaikan `<a download>` ke URL Midtrans lintas-domain. Fallback UI: tahan gambar → Simpan Foto.
 
 **Credentials:** match `MIDTRANS_IS_PRODUCTION` with key prefixes (`Mid-` vs `SB-`) and Snap URL. Snap mode also needs `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`.
 
