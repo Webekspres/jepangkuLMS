@@ -13,6 +13,7 @@ export const STUDENT_ROUTES = {
       ? `/dashboard/pembayaran/${paymentId}?resume=1`
       : `/dashboard/pembayaran/${paymentId}`,
   pembayaranHistory: '/dashboard/pembayaran',
+  pembayaranReturn: '/dashboard/pembayaran/return',
   kana: '/dashboard/kana',
   kanaScript: (script: 'hiragana' | 'katakana') => `/dashboard/kana/${script}`,
   leaderboard: '/dashboard/leaderboard',

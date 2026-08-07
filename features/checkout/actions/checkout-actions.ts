@@ -114,7 +114,13 @@ export async function startCheckout(input: {
 }
 
 export type PayCheckoutResult =
-  | { ok: true; paymentId: string; redirectPath: string; snapToken?: string }
+  | {
+      ok: true;
+      paymentId: string;
+      redirectPath: string;
+      snapToken?: string | null;
+      alreadyPaid?: boolean;
+    }
   | { ok: false; message: string };
 
 /** Core checkout — requires methodId. */
@@ -191,6 +197,7 @@ export async function paySnapCheckout(input: {
     paymentId: result.paymentId,
     redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
     snapToken: result.snapToken,
+    alreadyPaid: result.alreadyPaid === true,
   };
 }
 
@@ -249,6 +256,7 @@ export async function resumeSnapCheckout(
     paymentId: result.paymentId,
     redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
     snapToken: result.snapToken,
+    alreadyPaid: result.alreadyPaid === true,
   };
 }
 

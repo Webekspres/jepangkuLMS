@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   payCheckout,
   paySnapCheckout,
+  syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
 import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
@@ -96,31 +97,35 @@ export function CheckoutPage({
         return;
       }
 
-      const result = await paySnapCheckout({
-        productType: product.type,
-        productKey: product.key,
-      });
-      if (!result.ok) {
-        setSnapLaunchError(result.message);
-        toast.error(result.message);
-        return;
-      }
-      if (!result.snapToken) {
-        goPaymentDetail(result.paymentId);
-        return;
-      }
+        const result = await paySnapCheckout({
+          productType: product.type,
+          productKey: product.key,
+        });
+        if (!result.ok) {
+          setSnapLaunchError(result.message);
+          toast.error(result.message);
+          return;
+        }
+        if (result.alreadyPaid || !result.snapToken) {
+          toast.success('Pembayaran berhasil. Akses sudah aktif.');
+          goPaymentDetail(result.paymentId);
+          return;
+        }
 
-      await openSnapPayUx({
-        snapToken: result.snapToken,
-        paymentId: result.paymentId,
-        callbacks: {
-          onNavigateToPaymentDetail: goPaymentDetail,
-          onToast: (kind, message) => {
-            if (kind === 'error') toast.error(message);
-            else toast.message(message);
+        await openSnapPayUx({
+          snapToken: result.snapToken,
+          paymentId: result.paymentId,
+          callbacks: {
+            onNavigateToPaymentDetail: goPaymentDetail,
+            onToast: (kind, message) => {
+              if (kind === 'error') toast.error(message);
+              else toast.message(message);
+            },
+            onReconcile: async (paymentId) => {
+              await syncPaymentStatus(paymentId);
+            },
           },
-        },
-      });
+        });
     } catch {
       setSnapLaunchError('Gagal membuka Midtrans Snap. Coba lagi.');
     } finally {

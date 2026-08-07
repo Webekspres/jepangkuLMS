@@ -76,7 +76,8 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 /dashboard/checkout/live-class/[id] *          → Checkout Core (Live Class)
 /dashboard/checkout/tryout/[sessionCode] *     → Checkout Core (Tryout)
 /dashboard/pembayaran *                        → Riwayat pembayaran siswa
-/dashboard/pembayaran/[paymentId] *            → Instruksi pembayaran + SSE status
+/dashboard/pembayaran/return *                 → Midtrans Snap finish redirect → sync → detail
+/dashboard/pembayaran/[paymentId] *            → Detail transaksi + SSE / resume Snap
 
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 
