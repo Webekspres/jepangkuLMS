@@ -22,12 +22,22 @@ export type {
 export type { PaymentProvider } from '@/lib/payment-engine/providers/types';
 
 export {
+  getCatalogMethod,
   getCheckoutMethod,
-  isCheckoutMethodAvailable,
+  isChannelNotActivatedError,
   listCheckoutMethodGroups,
-  listCheckoutMethods,
+  METHOD_CATALOG,
   paymentMethodIconSrc,
+  type PaymentMethodGroup,
+  type PaymentMethodGroupId,
+} from '@/lib/payment-engine/registry/methods-catalog';
+
+export {
+  disableCheckoutMethod,
+  isCheckoutMethodAvailable,
+  listCheckoutMethods,
 } from '@/lib/payment-engine/registry/methods';
+
 
 export {
   assertCheckoutReadyToCharge,

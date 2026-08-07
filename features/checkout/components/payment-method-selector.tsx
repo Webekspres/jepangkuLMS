@@ -4,7 +4,7 @@ import Image from 'next/image';
 import {
   listCheckoutMethodGroups,
   paymentMethodIconSrc,
-} from '@/lib/payment-engine/registry/methods';
+} from '@/lib/payment-engine/registry/methods-catalog';
 import type { CheckoutMethodId, PaymentMethodMeta } from '@/lib/payment-engine/types';
 import { cn } from '@/lib/utils';
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { isMidtransEnabled } from '@/lib/midtrans/config';
-import { isChannelNotActivatedError } from '@/lib/payment-engine/registry/methods';
+import { isChannelNotActivatedError } from '@/lib/payment-engine/registry/methods-catalog';
 
 describe('midtrans core-only config', () => {
   const prev = process.env.MIDTRANS_SERVER_KEY;
