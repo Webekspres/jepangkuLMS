@@ -45,6 +45,7 @@ async function persistCharge(input: {
       transactionId: input.charge.externalTransactionId,
       paymentType: input.charge.providerPaymentType,
       expiresAt: input.charge.expiresAt,
+      snapToken: null,
       paidAt: input.charge.status === 'PAID' ? new Date() : null,
     },
     update: {
@@ -61,6 +62,7 @@ async function persistCharge(input: {
       transactionId: input.charge.externalTransactionId,
       paymentType: input.charge.providerPaymentType,
       expiresAt: input.charge.expiresAt,
+      snapToken: null,
       statusCode: null,
       transactionStatus: null,
       fraudStatus: null,

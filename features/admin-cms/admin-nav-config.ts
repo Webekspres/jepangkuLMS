@@ -1,6 +1,7 @@
 import {
     Award,
     BookOpen,
+    CreditCard,
     FileUp,
     LayoutDashboard,
     Package,
@@ -60,6 +61,13 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
                 href: ADMIN_ROUTES.pembayaran,
                 label: 'Enrollment',
                 icon: Receipt,
+                matchPrefix: true,
+            },
+            {
+                id: 'metode-pembayaran',
+                href: ADMIN_ROUTES.metodePembayaran,
+                label: 'Pembayaran',
+                icon: CreditCard,
                 matchPrefix: true,
             },
             {
@@ -136,6 +144,7 @@ export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
     admin: 'Admin',
     dashboard: 'Dashboard',
     pembayaran: 'Enrollment',
+    'metode-pembayaran': 'Pembayaran',
     users: 'Pengguna',
     kursus: 'Kursus',
     form: 'Form',

@@ -405,6 +405,8 @@ model Payment {
     amountIdr         Int
     currency          String          @default("IDR")
     status            PaymentStatus   @default(PENDING)
+    /// Snap checkout token (null for Core API charges)
+    snapToken         String?
     /// Our checkout method id (qris, va_bca, gopay, …) — Core API checkout
     checkoutMethod    String?
     /// Normalized PaymentInstructions JSON for Payment Detail UI

@@ -22,8 +22,6 @@ import type {
   AdminEnrollmentRow,
 } from '@/features/admin-cms/lib/load-admin-enrollments';
 import type { AdminEnrollmentHistoryRow } from '@/features/admin-cms/lib/load-admin-enrollment-history';
-import { AdminPaymentMethodSettingsCard } from '@/features/admin-cms/components/admin-payment-method-settings-card';
-import type { AdminPaymentMethodRow } from '@/lib/payment-engine/registry/payment-method-settings';
 import {
   ENROLLMENT_LOG_ACTION_BADGE,
   ENROLLMENT_LOG_ACTION_LABEL,
@@ -64,7 +62,6 @@ type AdminEnrollmentsPageProps = {
   courses: AdminEnrollmentProductOption[];
   liveClasses: AdminEnrollmentProductOption[];
   tryoutSessions: AdminEnrollmentProductOption[];
-  paymentMethods: AdminPaymentMethodRow[];
 };
 
 type HistoryActionFilter =
@@ -130,7 +127,6 @@ export function AdminEnrollmentsPage({
   courses,
   liveClasses,
   tryoutSessions,
-  paymentMethods,
 }: AdminEnrollmentsPageProps) {
   const router = useRouter();
   const [mainTab, setMainTab] = useState<MainTab>('queue');
@@ -246,10 +242,6 @@ export function AdminEnrollmentsPage({
           {message}
         </p>
       ) : null}
-
-      <div className="mb-6">
-        <AdminPaymentMethodSettingsCard methods={paymentMethods} />
-      </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card className="p-4">

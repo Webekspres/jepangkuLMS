@@ -1,5 +1,8 @@
 export type PaymentSettings = {
   provider: 'midtrans' | 'unavailable';
+  checkoutMode: 'snap' | 'core' | 'unavailable';
+  midtransClientKey: string | null;
+  midtransSnapUrl: string | null;
 };
 
 export type ProgramPaymentKind = 'course' | 'tryout' | 'live-class';

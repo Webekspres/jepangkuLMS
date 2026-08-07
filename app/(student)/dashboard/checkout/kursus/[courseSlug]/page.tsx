@@ -18,6 +18,9 @@ export default async function CourseCheckoutRoute({ params }: Props) {
       product={data.product}
       methods={data.methods}
       existingPaymentId={data.existingPaymentId}
+      checkoutMode={data.checkoutMode}
+      midtransClientKey={data.midtransClientKey}
+      midtransSnapUrl={data.midtransSnapUrl}
     />
   );
 }

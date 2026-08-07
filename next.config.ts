@@ -9,7 +9,13 @@ const CLERK_CSP_ORIGINS = [
   "https://static.cloudflareinsights.com",
 ].join(" ");
 
-/** Origins allowed to be framed inside the app (Clerk auth widgets, Google OAuth, embedded video) */
+/** Midtrans Snap.js + payment iframe (sandbox + production) */
+const MIDTRANS_CSP_ORIGINS = [
+  "https://app.sandbox.midtrans.com",
+  "https://app.midtrans.com",
+].join(" ");
+
+/** Origins allowed to be framed inside the app (Clerk auth widgets, Google OAuth, embedded video, Midtrans Snap) */
 const FRAME_SRC_ORIGINS = [
   "https://clerk.jepangku.com",
   "https://*.clerk.accounts.dev",
@@ -17,6 +23,7 @@ const FRAME_SRC_ORIGINS = [
   "https://accounts.google.com",
   "https://www.youtube.com",
   "https://www.youtube-nocookie.com",
+  MIDTRANS_CSP_ORIGINS,
 ].join(" ");
 
 const CONTENT_SECURITY_POLICY = [
@@ -27,7 +34,7 @@ const CONTENT_SECURITY_POLICY = [
    * browser modern akan mengabaikan 'unsafe-inline' dan memblokir semua script.
    * Lihat SECURITY_AUDIT.md H-01 untuk rencana migrasi ke nonce-based CSP.
    */
-  `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com ${CLERK_CSP_ORIGINS}`,
+  `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com ${CLERK_CSP_ORIGINS} ${MIDTRANS_CSP_ORIGINS}`,
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",

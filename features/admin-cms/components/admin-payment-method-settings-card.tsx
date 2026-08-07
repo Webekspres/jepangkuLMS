@@ -11,13 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 type AdminPaymentMethodSettingsCardProps = {
   methods: AdminPaymentMethodRow[];
+  checkoutMode: 'snap' | 'core';
 };
 
 export function AdminPaymentMethodSettingsCard({
   methods,
+  checkoutMode,
 }: AdminPaymentMethodSettingsCardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const isSnap = checkoutMode === 'snap';
 
   const toggle = (methodId: string, enabled: boolean) => {
     startTransition(async () => {
@@ -31,13 +34,38 @@ export function AdminPaymentMethodSettingsCard({
     });
   };
 
+  if (isSnap) {
+    return (
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Metode pembayaran checkout</CardTitle>
+          <CardDescription>
+            Mode aktif: <Badge variant="secondary">Snap</Badge>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Checkout siswa memakai Midtrans Snap. Daftar metode ditentukan di{' '}
+            <strong className="text-foreground">Midtrans MAP → Snap Preferences → Payment Channels</strong>
+            , bukan dari toggle LMS.
+          </p>
+          <p>
+            Toggle metode Core di bawah akan muncul lagi setelah{' '}
+            <code className="text-xs">PAYMENT_CHECKOUT_MODE=core</code> (setelah Core API Production
+            diaktifkan Midtrans).
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Metode pembayaran checkout</CardTitle>
         <CardDescription>
-          Nyalakan hanya channel yang sudah aktif di Midtrans MAP untuk Core API. Metode yang
-          ditolak Midtrans (402) otomatis dimatikan.
+          Mode aktif: <Badge variant="secondary">Core API</Badge> — nyalakan hanya channel yang sudah
+          aktif di Midtrans MAP untuk Core. Metode yang ditolak Midtrans (402) otomatis dimatikan.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
