@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Ban, CheckCircle2, Copy, Loader2, RefreshCw, WifiOff } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
   syncPaymentStatus,
 } from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
-import { openSnapPayUx } from '@/features/checkout/lib/snap-pay-ux';
+import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
 import { PaymentTransactionDetail } from '@/features/payment/components/payment-transaction-detail';
 import Script from 'next/script';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
@@ -31,6 +31,7 @@ import {
 } from '@/lib/payment/sse-types';
 import { cn } from '@/lib/utils';
 import type { PaymentStatus } from '@prisma/client';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
 export type PaymentDetailView = {
   paymentId: string;
@@ -246,13 +247,20 @@ function InstructionsPanel({
   );
 }
 
-export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
+export function PaymentDetailPage({
+  initial,
+  autoResumeSnap = false,
+}: {
+  initial: PaymentDetailView;
+  autoResumeSnap?: boolean;
+}) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [status, setStatus] = useState(initial.status);
   const [busy, setBusy] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
   const [offline, setOffline] = useState(false);
+  const autoResumeStartedRef = useRef(false);
 
   const live = status === 'PENDING' || status === 'CHALLENGE';
 
@@ -358,9 +366,24 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     }
   };
 
-  const handleResumeSnap = async () => {
+  const handleResumeSnap = useCallback(async () => {
     setBusy(true);
     try {
+      const canSnap =
+        initial.checkoutMode === 'snap' &&
+        Boolean(initial.midtransClientKey) &&
+        Boolean(initial.midtransSnapUrl);
+      if (!canSnap) {
+        toast.error('Snap Midtrans belum dikonfigurasi.');
+        return;
+      }
+
+      const ready = await waitForWindowSnap();
+      if (!ready) {
+        toast.error('Snap Midtrans belum siap. Muat ulang halaman, lalu coba lagi.');
+        return;
+      }
+
       const result = await resumeSnapCheckout(initial.paymentId);
       if (!result.ok) {
         toast.error(result.message);
@@ -388,7 +411,28 @@ export function PaymentDetailPage({ initial }: { initial: PaymentDetailView }) {
     } finally {
       setBusy(false);
     }
-  };
+  }, [
+    initial.checkoutMode,
+    initial.midtransClientKey,
+    initial.midtransSnapUrl,
+    initial.paymentId,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!autoResumeSnap || !live || initial.checkoutMode !== 'snap') return;
+    if (autoResumeStartedRef.current) return;
+    autoResumeStartedRef.current = true;
+    router.replace(STUDENT_ROUTES.pembayaran(initial.paymentId), { scroll: false });
+    void handleResumeSnap();
+  }, [
+    autoResumeSnap,
+    handleResumeSnap,
+    initial.checkoutMode,
+    initial.paymentId,
+    live,
+    router,
+  ]);
 
   if (!live) {
     return (

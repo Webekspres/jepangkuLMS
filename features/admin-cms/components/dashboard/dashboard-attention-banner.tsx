@@ -15,12 +15,12 @@ export function DashboardAttentionBanner({ pendingCount }: { pendingCount: numbe
             {pendingCount} enrollment menunggu bayar
           </p>
           <p className="text-xs text-muted-foreground">
-            Segera tinjau agar siswa bisa mulai belajar.
+            Siswa belum menyelesaikan checkout Midtrans. Pantau atau batalkan bila perlu.
           </p>
         </div>
       </div>
       <Button asChild size="sm" className="shrink-0">
-        <Link href={ADMIN_ROUTES.pembayaran}>Verifikasi pembayaran</Link>
+        <Link href={ADMIN_ROUTES.pembayaran}>Lihat antrian</Link>
       </Button>
     </div>
   );

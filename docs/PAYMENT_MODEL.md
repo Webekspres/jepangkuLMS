@@ -36,8 +36,9 @@
 
 ```text
 Course / Live Class / Tryout (priceIdr > 0)
-  → /dashboard/checkout/{kursus|live-class|tryout}/…
+  → /dashboard/checkout/{kursus|live-class|tryout}/… (Snap: auto-launch; Core: method picker)
   → SNAP: paySnapCheckout → Snap.createTransaction → Payment(snapToken) → snap.pay UX → Payment Detail + SSE
+  → SNAP resume: Detail `?resume=1` / Riwayat "Lanjutkan" → resumeSnapCheckout → snap.pay (webhook still SoT)
   → CORE: payCheckout(methodId) → Core charge → Payment(instructions) → Payment Detail + SSE
   → Webhook settle → Payment PAID + Enrollment ACTIVE → SSE
 ```
