@@ -7,7 +7,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-08-06                                                  |
+| **Terakhir diperbarui**   | 2026-08-07                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
 | **Progres global Fase 1** | **88%** (74 item terlacak)                                 |
 
@@ -183,7 +183,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info     |   ✅   |
 | Secured video (enrolled only)      |   🟡   | API gate + player hardening; YouTube bukan DRM penuh                          |
 | Enrollment gate lesson             |   ✅   |
-| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans-only (`PAYMENT_PROVIDER=midtrans` \| unavailable); CMS grant tetap; terminal Payment menutup Enrollment PENDING; audit `PAYMENT_SETTLED` |
+| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans Core-only (`MIDTRANS_SERVER_KEY`); admin `PaymentMethodSetting`; no Snap/Client Key; CMS grant tetap; terminal Payment menutup Enrollment PENDING |
 | Rate Limiting (Middleware + Redis) |   🟡   | Dihapus dari `proxy.ts` (429 di staging); `lib/rate-limit/` tetap untuk nanti |
 
 ---
@@ -202,6 +202,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-07 | Midtrans Core-only: hapus Snap/Client Key/`PAYMENT_PROVIDER`; `PaymentMethodSetting` + admin toggles; 402 auto-disable; drop `Payment.snapToken` |
 | 2026-08-06 | Payment ledger: cancel/expire tidak hapus Payment (SetNull); riwayat siswa tetap; Antrian satu filter status Indo |
 | 2026-08-06 | Midtrans-only: hapus bridge transfer manual; cancel/expire menutup Enrollment PENDING; Antrian filter/status Midtrans-first + Hapus antrean untuk payment terminal |
 | 2026-08-04 | Dual-mode payment bridge: `PAYMENT_PROVIDER=manual` restores student bank transfer + admin Setujui; Midtrans tetap target production via env flip |

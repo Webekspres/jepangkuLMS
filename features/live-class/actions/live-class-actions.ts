@@ -18,8 +18,7 @@ export type RequestLiveClassResult =
 /**
  * Daftar Live Class.
  * - Gratis → ACTIVE
- * - Berbayar + PAYMENT_PROVIDER=manual → PENDING (admin Setujui)
- * - Berbayar + Midtrans → must use checkout
+ * - Berbayar → Midtrans Core checkout (bukan path ini)
  */
 export async function requestLiveClassEnrollment(
   liveClassId: string,

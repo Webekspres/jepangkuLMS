@@ -6,6 +6,10 @@ import {
   mapCoreChargeStatus,
   normalizeMidtransChargeToInstructions,
 } from '@/lib/payment-engine/providers/midtrans/status-map';
+import {
+  disableCheckoutMethod,
+  isChannelNotActivatedError,
+} from '@/lib/payment-engine/registry/methods';
 import type { PaymentProvider } from '@/lib/payment-engine/providers/types';
 import type {
   CheckoutMethodId,
@@ -33,11 +37,35 @@ export class MidtransProvider implements PaymentProvider {
   async charge(input: ProviderChargeInput): Promise<ProviderChargeResult> {
     const core = getMidtransCoreApi();
     const payload = buildMidtransChargePayload(input);
-    const raw = (await core.charge(payload)) as Record<string, unknown>;
+
+    let raw: Record<string, unknown>;
+    try {
+      raw = (await core.charge(payload)) as Record<string, unknown>;
+    } catch (error) {
+      if (isChannelNotActivatedError(error)) {
+        await disableCheckoutMethod(
+          input.methodId,
+          error instanceof Error ? error.message : 'Payment channel is not activated.',
+        );
+        throw new Error(
+          'Metode pembayaran ini belum aktif di Midtrans. Pilih metode lain atau hubungi admin.',
+        );
+      }
+      throw error;
+    }
 
     const statusCode = asString(raw.status_code) ?? '';
     if (statusCode && !statusCode.startsWith('2')) {
       const message = asString(raw.status_message) ?? 'Midtrans charge gagal';
+      if (statusCode === '402' || isChannelNotActivatedError(message)) {
+        await disableCheckoutMethod(
+          input.methodId,
+          message || 'Payment channel is not activated.',
+        );
+        throw new Error(
+          'Metode pembayaran ini belum aktif di Midtrans. Pilih metode lain atau hubungi admin.',
+        );
+      }
       throw new Error(message);
     }
 
@@ -52,7 +80,12 @@ export class MidtransProvider implements PaymentProvider {
       externalOrderId: asString(raw.order_id) ?? input.externalOrderId,
       externalTransactionId: asString(raw.transaction_id),
       providerPaymentType: asString(raw.payment_type),
-      status: mapped === 'PAID' ? 'PAID' : mapped === 'FAILED' || mapped === 'DENIED' ? 'FAILED' : 'PENDING',
+      status:
+        mapped === 'PAID'
+          ? 'PAID'
+          : mapped === 'FAILED' || mapped === 'DENIED'
+            ? 'FAILED'
+            : 'PENDING',
       expiresAt: parseExpiry(raw),
       instructions,
       raw,

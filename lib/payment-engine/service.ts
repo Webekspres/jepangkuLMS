@@ -12,25 +12,25 @@ export function getPaymentProvider(id: PaymentProviderId = 'midtrans'): PaymentP
   throw new Error(`Payment provider not configured: ${id}`);
 }
 
-export function assertCheckoutReadyToCharge(
+export async function assertCheckoutReadyToCharge(
   context: CheckoutContext,
   methodId: CheckoutMethodId,
-): void {
+): Promise<void> {
   if (context.pricing.totalIdr <= 0) {
     throw new Error('Checkout total must be greater than zero for paid charge');
   }
   if (context.providerId !== 'midtrans') {
     throw new Error(`Unsupported payment provider: ${context.providerId}`);
   }
-  if (!isCheckoutMethodAvailable(methodId)) {
+  if (!(await isCheckoutMethodAvailable(methodId))) {
     throw new Error(`Payment method unavailable: ${methodId}`);
   }
 }
 
-export function withCheckoutMethod(
+export async function withCheckoutMethod(
   context: CheckoutContext,
   methodId: CheckoutMethodId,
-): CheckoutContext {
-  assertCheckoutReadyToCharge(context, methodId);
+): Promise<CheckoutContext> {
+  await assertCheckoutReadyToCharge(context, methodId);
   return { ...context, methodId };
 }

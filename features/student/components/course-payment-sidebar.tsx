@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
@@ -14,7 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { requestCourseCheckout, requestCourseEnrollment } from '@/features/learning/actions/learning-actions';
+import { requestCourseEnrollment } from '@/features/learning/actions/learning-actions';
 import { usePaymentEvents } from '@/features/student/hooks/use-payment-events';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
@@ -30,47 +29,6 @@ import {
 import { cn } from '@/lib/utils';
 import type { PaymentStatus } from '@prisma/client';
 import { STUDENT_ROUTES } from './student-routes';
-
-declare global {
-  interface Window {
-    snap?: {
-      pay: (
-        token: string,
-        options?: {
-          onSuccess?: (result: unknown) => void;
-          onPending?: (result: unknown) => void;
-          onError?: (result: unknown) => void;
-          onClose?: () => void;
-        },
-      ) => void;
-    };
-  }
-}
-
-type SnapLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
-
-const SNAP_READY_TIMEOUT_MS = 10_000;
-const SNAP_POLL_MS = 50;
-
-function waitForWindowSnap(timeoutMs = SNAP_READY_TIMEOUT_MS): Promise<boolean> {
-  if (typeof window !== 'undefined' && window.snap) return Promise.resolve(true);
-
-  return new Promise((resolve) => {
-    const started = Date.now();
-    const tick = () => {
-      if (window.snap) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - started >= timeoutMs) {
-        resolve(false);
-        return;
-      }
-      window.setTimeout(tick, SNAP_POLL_MS);
-    };
-    tick();
-  });
-}
 
 type CoursePaymentSidebarProps = {
   courseSlug: string;
@@ -103,9 +61,7 @@ export function CoursePaymentSidebar({
 }: CoursePaymentSidebarProps) {
   const router = useRouter();
   const [isRequesting, setIsRequesting] = useState(false);
-  /** Set when checkout starts; falls back to server prop after refresh. */
-  const [checkoutPaymentId, setCheckoutPaymentId] = useState<string | null>(null);
-  const activePaymentId = checkoutPaymentId ?? initialPaymentId;
+  const activePaymentId = initialPaymentId;
   /** SSE override; cleared when server `paymentStatus` prop changes. */
   const [ssePaymentStatus, setSsePaymentStatus] = useState<PaymentStatus | null>(null);
   const [trackedPaymentStatus, setTrackedPaymentStatus] = useState(paymentStatus);
@@ -113,19 +69,11 @@ export function CoursePaymentSidebar({
     setTrackedPaymentStatus(paymentStatus);
     setSsePaymentStatus(null);
   }
-  const [snapLoadStatus, setSnapLoadStatus] = useState<SnapLoadStatus>('loading');
 
   const isFree = isFreeCourse(priceIdr);
   const priceLabel = formatIdr(priceIdr);
   const isActive = enrollmentStatus === 'ACTIVE';
   const isMidtrans = paymentSettings.provider === 'midtrans';
-  const isCoreCheckout = isMidtrans && paymentSettings.checkoutMode !== 'snap';
-  const shouldLoadSnap =
-    isMidtrans &&
-    !isCoreCheckout &&
-    Boolean(paymentSettings.midtransClientKey) &&
-    Boolean(paymentSettings.midtransSnapUrl);
-  const snapStatus: SnapLoadStatus = shouldLoadSnap ? snapLoadStatus : 'idle';
   const displayPaymentStatus = ssePaymentStatus ?? paymentStatus;
   const isAwaitingPayment =
     enrollmentStatus === 'PENDING' && isOpenMidtransPaymentStatus(displayPaymentStatus);
@@ -161,116 +109,20 @@ export function CoursePaymentSidebar({
     onEvent: handlePaymentEvent,
   });
 
-  const openSnap = async (snapToken: string) => {
-    if (snapStatus === 'error') {
-      toast.error('Script Snap Midtrans gagal dimuat. Muat ulang halaman lalu coba lagi.');
-      return;
-    }
-
-    const ready = window.snap ? true : await waitForWindowSnap();
-    if (!ready || !window.snap) {
-      toast.error('Snap Midtrans belum siap. Coba lagi sebentar.');
-      return;
-    }
-
-    if (snapStatus !== 'ready') setSnapLoadStatus('ready');
-
-    window.snap.pay(snapToken, {
-      onSuccess: () => {
-        toast.success('Pembayaran diterima. Status kursus akan diperbarui otomatis.');
-        router.refresh();
-      },
-      onPending: () => {
-        toast.success('Pembayaran dibuat. Selesaikan pembayaran sesuai metode yang dipilih.');
-        router.refresh();
-      },
-      onError: () => {
-        toast.error('Midtrans mengembalikan error saat memproses pembayaran.');
-        router.refresh();
-      },
-      onClose: () => {
-        router.refresh();
-      },
-    });
-  };
-
-  const handleConfirmPayment = async () => {
-    if (isCoreCheckout) {
-      if (isAwaitingPayment && activePaymentId) {
-        router.push(STUDENT_ROUTES.pembayaran(activePaymentId));
-        return;
-      }
-      router.push(STUDENT_ROUTES.checkoutKursus(courseSlug));
-      return;
-    }
-
+  const handleConfirmPayment = () => {
     if (!isMidtrans) {
       toast.error('Pembayaran online sedang tidak tersedia. Hubungi admin jika berlanjut.');
       return;
     }
-
-    if (snapStatus === 'error') {
-      toast.error('Script Snap Midtrans gagal dimuat. Muat ulang halaman lalu coba lagi.');
+    if (isAwaitingPayment && activePaymentId) {
+      router.push(STUDENT_ROUTES.pembayaran(activePaymentId));
       return;
     }
-
-    setIsRequesting(true);
-    try {
-      const result = await requestCourseCheckout(courseSlug);
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
-      if (result.mode === 'free') {
-        router.refresh();
-        return;
-      }
-      if (result.mode === 'midtrans') {
-        if (result.status === 'ACTIVE') {
-          toast.success('Akses kursus sudah aktif.');
-          router.refresh();
-          return;
-        }
-        if (result.paymentId) {
-          setCheckoutPaymentId(result.paymentId);
-        }
-        await openSnap(result.snapToken);
-      } else {
-        router.refresh();
-      }
-    } finally {
-      setIsRequesting(false);
-    }
+    router.push(STUDENT_ROUTES.checkoutKursus(courseSlug));
   };
 
   return (
     <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-      {shouldLoadSnap ? (
-        <Script
-          id="midtrans-snap"
-          src={paymentSettings.midtransSnapUrl!}
-          data-client-key={paymentSettings.midtransClientKey!}
-          strategy="afterInteractive"
-          onLoad={() => {
-            const ready = Boolean(window.snap);
-            setSnapLoadStatus(ready ? 'ready' : 'error');
-            if (process.env.NODE_ENV === 'development') {
-              console.debug('[midtrans-snap] script onLoad', {
-                hasWindowSnap: ready,
-                src: paymentSettings.midtransSnapUrl,
-              });
-            }
-          }}
-          onError={() => {
-            setSnapLoadStatus('error');
-            if (process.env.NODE_ENV === 'development') {
-              console.debug('[midtrans-snap] script onError', {
-                src: paymentSettings.midtransSnapUrl,
-              });
-            }
-          }}
-        />
-      ) : null}
       <Card className="shadow-sm">
         <CardContent className="space-y-5 p-5">
           {isActive ? (
@@ -343,9 +195,8 @@ export function CoursePaymentSidebar({
                     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                       <p className="font-semibold">Menunggu penyelesaian pembayaran</p>
                       <p className="mt-1 text-xs text-amber-800">
-                        {isCoreCheckout
-                          ? `Status: ${displayPaymentStatus ?? 'PENDING'}. Selesaikan di halaman pembayaran — status diperbarui otomatis.`
-                          : `Midtrans status saat ini: ${displayPaymentStatus ?? 'PENDING'}. Status akan diperbarui otomatis setelah pembayaran berhasil.`}
+                        Status: {displayPaymentStatus ?? 'PENDING'}. Selesaikan di halaman
+                        pembayaran — status diperbarui otomatis.
                       </p>
                     </div>
                   ) : null}
@@ -356,30 +207,18 @@ export function CoursePaymentSidebar({
                     </p>
                   ) : null}
 
-                  {isMidtrans && snapStatus === 'error' ? (
-                    <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-                      Script Snap Midtrans gagal dimuat. Muat ulang halaman, lalu coba lagi.
-                    </p>
-                  ) : null}
-
                   <Button
                     type="button"
                     className="h-11 w-full gap-2"
-                    disabled={isRequesting || !isMidtrans || (isMidtrans && snapStatus === 'error')}
+                    disabled={!isMidtrans}
                     onClick={handleConfirmPayment}
                   >
                     <Shield className="size-4" />
-                    {isRequesting
-                      ? 'Memproses…'
-                      : isMidtrans
-                        ? isAwaitingPayment
-                          ? 'Lanjutkan Pembayaran'
-                          : isCoreCheckout
-                            ? 'Beli Kursus'
-                            : snapStatus === 'loading'
-                              ? 'Menyiapkan Snap…'
-                              : 'Bayar Sekarang'
-                        : 'Pembayaran tidak tersedia'}
+                    {!isMidtrans
+                      ? 'Pembayaran tidak tersedia'
+                      : isAwaitingPayment
+                        ? 'Lanjutkan Pembayaran'
+                        : 'Beli Kursus'}
                   </Button>
 
                   <Button

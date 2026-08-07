@@ -12,13 +12,12 @@ import {
 import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { applyProviderPaymentEvent } from '@/lib/payment-engine/status/apply-event';
 import { getPaymentProvider } from '@/lib/payment-engine/service';
-import type { CheckoutMethodId, CheckoutProductType } from '@/lib/payment-engine/types';
+import type { CheckoutMethodId, CheckoutProductType, PaymentMethodMeta } from '@/lib/payment-engine/types';
 import {
   closePendingEnrollmentForTerminalPayment,
 } from '@/lib/payment/close-pending-enrollment';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
-import { getPaymentSettings } from '@/lib/payment/settings';
 import { prisma } from '@/lib/prisma';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 
@@ -26,8 +25,8 @@ async function requireUserId() {
   return requireAuthUserWithAnchor();
 }
 
-function assertCoreCheckout() {
-  return isMidtransEnabled() && getPaymentSettings().checkoutMode === 'core';
+function assertMidtransCheckout() {
+  return isMidtransEnabled();
 }
 
 function productKeyFromEnrollment(enrollment: {
@@ -53,7 +52,7 @@ export type StartCheckoutResult =
         backHref: string;
         successHref: string;
       };
-      methods: ReturnType<typeof listCheckoutMethods>;
+      methods: PaymentMethodMeta[];
       existingPaymentId: string | null;
       existingPaymentStatus: string | null;
     }
@@ -65,8 +64,8 @@ export async function startCheckout(input: {
 }): Promise<StartCheckoutResult> {
   const userId = await requireUserId();
 
-  if (!assertCoreCheckout()) {
-    return { ok: false, message: 'Checkout Core Midtrans tidak aktif.' };
+  if (!assertMidtransCheckout()) {
+    return { ok: false, message: 'Checkout Midtrans tidak aktif.' };
   }
 
   const built = await resolveProductCheckout(userId, input.productType, input.productKey);
@@ -92,7 +91,7 @@ export async function startCheckout(input: {
       backHref: built.backHref,
       successHref: built.successHref,
     },
-    methods: listCheckoutMethods(),
+    methods: await listCheckoutMethods(),
     existingPaymentId:
       enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null,
     existingPaymentStatus: enrollment?.payment?.status ?? null,
@@ -110,7 +109,7 @@ export async function payCheckout(input: {
 }): Promise<PayCheckoutResult> {
   const userId = await requireUserId();
 
-  if (!assertCoreCheckout()) {
+  if (!assertMidtransCheckout()) {
     return { ok: false, message: 'Checkout Core Midtrans tidak aktif.' };
   }
 
