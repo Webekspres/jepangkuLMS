@@ -47,7 +47,7 @@ export function CoreConnectionBanner() {
   return (
     <div
       role="status"
-      className="border-b border-amber-500/25 bg-amber-500/10 px-4 py-3 md:px-8"
+      className="student-shell-chrome border-b border-amber-500/25 bg-amber-500/10 px-4 py-3 md:px-8"
     >
       <div className="container mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-2.5">

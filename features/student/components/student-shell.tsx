@@ -48,14 +48,10 @@ export function StudentShell({ children }: StudentShellProps) {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="student-shell-chrome">
-        <StudentNav />
-        {isCoreIntegrationEnabled() ? <CoreConnectionBanner /> : null}
-      </div>
+      <StudentNav />
+      {isCoreIntegrationEnabled() ? <CoreConnectionBanner /> : null}
       <main className="container mx-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
-      <div className="student-shell-chrome">
-        <KanaFloatingLauncher />
-      </div>
+      <KanaFloatingLauncher />
     </div>
   );
 }

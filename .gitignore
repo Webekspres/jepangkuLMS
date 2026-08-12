@@ -80,3 +80,7 @@ docs/sample-imports/
 
 # Cover image uploads (dev fallback when R2 unavailable)
 /public/uploads/
+
+# graphify — local knowledge graph, do not commit
+/graphify-out/
+.cursor/rules/graphify.mdc

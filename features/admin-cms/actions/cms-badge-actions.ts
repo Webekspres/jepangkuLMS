@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { requireAdminAction } from '@/features/admin-cms/lib/require-admin-action';
 import { BADGE_IMAGE_MAX_BYTES, BADGE_IMAGE_MIME_TYPES } from '@/lib/media/constants';
 import {
@@ -10,7 +11,10 @@ import { deleteFromR2, extractR2KeyFromUrl, isR2Configured, uploadToR2 } from '@
 import type { LmsBadgeUnlockRule, LevelJLPT } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseLmsBadgeRarity } from '@/lib/lms/badge-rarity';
+import { grantBadgeToUser } from '@/lib/lms/badge-unlock';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import { uuidSchema } from '@/lib/validations/shared';
 
 export type CmsBadgeActionResult =
   | { ok: true; id?: string }
@@ -18,7 +22,6 @@ export type CmsBadgeActionResult =
 
 /** Unlock rules exposed in CMS (retired rules remain in DB enum for compatibility). */
 const CMS_UNLOCK_RULES = new Set([
-  'MANUAL',
   'FIRST_LESSON',
   'FIRST_LIVE_CLASS_JOIN',
   'TRYOUT_SCORE_THRESHOLD',
@@ -26,6 +29,9 @@ const CMS_UNLOCK_RULES = new Set([
   'SPECIFIC_MODULE_COMPLETE',
   'SPECIFIC_LESSON_COMPLETE',
 ]);
+
+/** MANUAL stays valid on save for legacy badges that already use it. */
+const CMS_UNLOCK_RULES_WITH_LEGACY = new Set([...CMS_UNLOCK_RULES, 'MANUAL']);
 
 function slugifyCode(input: string): string {
   return input
@@ -53,8 +59,10 @@ async function nextBadgeSortOrder(): Promise<number> {
 }
 
 function parseBadgeMeta(formData: FormData) {
-  const unlockRuleRaw = String(formData.get('unlockRule') ?? 'MANUAL');
-  const unlockRule = CMS_UNLOCK_RULES.has(unlockRuleRaw) ? unlockRuleRaw : 'MANUAL';
+  const unlockRuleRaw = String(formData.get('unlockRule') ?? 'FIRST_LESSON');
+  const unlockRule = CMS_UNLOCK_RULES_WITH_LEGACY.has(unlockRuleRaw)
+    ? unlockRuleRaw
+    : 'FIRST_LESSON';
   const unlockValueRaw = String(formData.get('unlockValue') ?? '').trim();
   const unlockValue =
     unlockRule === 'TRYOUT_SCORE_THRESHOLD' && unlockValueRaw ? Number(unlockValueRaw) : null;
@@ -347,6 +355,56 @@ export async function deleteBadgeAction(id: string): Promise<CmsBadgeActionResul
       ok: false,
       message:
         error instanceof Error ? error.message : 'Gagal menghapus badge. Coba lagi atau hubungi admin.',
+    };
+  }
+}
+
+const grantBadgeSchema = z.object({
+  userId: z.string().trim().min(1, 'Siswa wajib dipilih'),
+  badgeId: uuidSchema,
+});
+
+export async function grantBadgeAction(formData: FormData): Promise<CmsBadgeActionResult> {
+  try {
+    await requireAdminAction();
+
+    const parsed = grantBadgeSchema.safeParse({
+      userId: formData.get('userId'),
+      badgeId: formData.get('badgeId'),
+    });
+    if (!parsed.success) {
+      const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
+      return { ok: false, message: first ?? 'Data grant tidak valid.' };
+    }
+
+    const { userId, badgeId } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) return { ok: false, message: 'Siswa tidak ditemukan.' };
+
+    const badge = await prisma.lmsBadge.findUnique({
+      where: { id: badgeId },
+      select: { id: true },
+    });
+    if (!badge) return { ok: false, message: 'Badge tidak ditemukan.' };
+
+    const result = await grantBadgeToUser(userId, badgeId);
+    if (result === 'not_found') return { ok: false, message: 'Badge tidak ditemukan.' };
+    if (result === 'already_owned') {
+      return { ok: false, message: 'Siswa sudah memiliki badge ini.' };
+    }
+
+    revalidatePath(ADMIN_ROUTES.badges);
+    revalidatePath(ADMIN_ROUTES.badgesGrant);
+    revalidatePath(ADMIN_ROUTES.users);
+    revalidatePath(ADMIN_ROUTES.userDetail(userId));
+    revalidatePath(STUDENT_ROUTES.achievements);
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error ? error.message : 'Gagal memberikan badge. Coba lagi atau hubungi admin.',
     };
   }
 }

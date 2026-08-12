@@ -153,6 +153,7 @@ export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
     quiz: 'Bank Soal',
     import: 'Import Kursus',
     badges: 'Badge',
+    grant: 'Beri Badge',
     'live-class': 'Live Class',
     tryout: 'JLPT Tryout',
     bank: 'Bank Soal JLPT',
