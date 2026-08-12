@@ -11,6 +11,7 @@ export type StudentAchievementBadge = {
   xp: number;
   unlocked: boolean;
   date: string | null;
+  unlockedAt: string | null;
   rarity: BadgeRarity;
   badgeType: string;
   requirementText?: string;
@@ -59,6 +60,7 @@ export function mergeCoreBadges(
       xp: 0,
       unlocked: Boolean(userBadge),
       date: userBadge ? formatBadgeDate(userBadge.unlockedAt) : null,
+      unlockedAt: userBadge?.unlockedAt ?? null,
       rarity: mapBadgeTypeToRarity(item.badgeType),
       badgeType: item.badgeType,
     };
@@ -77,6 +79,7 @@ export function mapUnlockedCoreBadges(unlocked: CoreUserBadgeItem[]): StudentAch
     xp: 0,
     unlocked: true,
     date: formatBadgeDate(item.unlockedAt),
+    unlockedAt: item.unlockedAt,
     rarity: mapBadgeTypeToRarity(item.badgeType),
     badgeType: item.badgeType,
   }));

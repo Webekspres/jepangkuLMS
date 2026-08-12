@@ -6,7 +6,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { ArrowLeft, LogOut, Search } from 'lucide-react';
-import { ADMIN_NAV_GROUPS, getActiveAdminNavHref } from '@/features/admin-cms/admin-nav-config';
+import {
+  getActiveAdminNavHref,
+  resolveAdminNavGroups,
+  type AdminNavGroup,
+} from '@/features/admin-cms/admin-nav-config';
+import type { CheckoutMode } from '@/lib/midtrans/config';
 import { ADMIN_ROUTES, AUTH_ROUTES } from '@/lib/auth/constants';
 import { BRAND_LOGO_SRC } from '@/lib/brand-logo';
 import { signOutFromApp } from '@/lib/auth/sign-out-client';
@@ -17,28 +22,42 @@ type AdminSidebarProps = {
   onNavigate?: () => void;
   className?: string;
   pendingEnrollmentCount?: number;
+  checkoutMode?: CheckoutMode;
 };
 
-function filterNavGroups(query: string) {
+function filterNavGroups(query: string, baseGroups: AdminNavGroup[]) {
   const q = query.trim().toLowerCase();
-  if (!q) return ADMIN_NAV_GROUPS;
+  if (!q) return baseGroups;
 
-  return ADMIN_NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.label.toLowerCase().includes(q)),
-  })).filter((group) => group.items.length > 0);
+  return baseGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.label.toLowerCase().includes(q)),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 export function AdminSidebar({
   onNavigate,
   className,
   pendingEnrollmentCount = 0,
+  checkoutMode = 'core',
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { signOut } = useClerk();
   const [search, setSearch] = useState('');
-  const filteredGroups = useMemo(() => filterNavGroups(search), [search]);
-  const activeHref = useMemo(() => getActiveAdminNavHref(pathname), [pathname]);
+  const navGroups = useMemo(
+    () => resolveAdminNavGroups({ checkoutMode }),
+    [checkoutMode],
+  );
+  const filteredGroups = useMemo(
+    () => filterNavGroups(search, navGroups),
+    [search, navGroups],
+  );
+  const activeHref = useMemo(
+    () => getActiveAdminNavHref(pathname, navGroups),
+    [pathname, navGroups],
+  );
 
   return (
     <aside
