@@ -35,7 +35,7 @@ export async function setPaymentMethodEnabled(input: {
     },
   });
 
-  revalidatePath('/admin/pembayaran');
+  revalidatePath('/admin/metode-pembayaran');
   revalidatePath('/dashboard/checkout', 'layout');
   return { ok: true };
 }

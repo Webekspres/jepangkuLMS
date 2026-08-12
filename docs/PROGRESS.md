@@ -7,9 +7,9 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-08-07                                                  |
+| **Terakhir diperbarui**   | 2026-08-12                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **88%** (74 item terlacak)                                 |
+| **Progres global Fase 1** | **88%** (76 item terlacak)                                 |
 
 ### Progres global
 
@@ -20,15 +20,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      17 |     13 |     4 |     0 |     86% |
-| Halaman & routing        |      33 |     27 |     6 |     0 |     89% |
+| Halaman & routing        |      35 |     29 |     6 |     0 |     90% |
 | Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       7 |      6 |     1 |     0 |     91% |
-| **Total**                |  **74** | **60** | **13** | **1** | **88%** |
+| **Total**                |  **76** | **62** | **13** | **1** | **88%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(60 + 5.2) ÷ 74 ≈ 88%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(62 + 5.2) ÷ 76 ≈ 88%`.
 
 ---
 
@@ -48,7 +48,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      13 |        4 |     0 |
-| Halaman & routing        |      27 |        6 |     0 |
+| Halaman & routing        |      29 |        6 |     0 |
 | Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       6 |        1 |     0 |
@@ -139,6 +139,8 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/admin/kursus/import`                     |   ✅   | Impor multi-template (`official-course-v1` + sensei N4/N5); pratinjau struktur modul/pelajaran, kode error/warning, unduh laporan `.txt`; integration test official + rollback validasi |
 | `/admin/quiz`                              |   ✅   | **Info page** — bank soal di lesson workspace ([ADMIN_QUIZ.md](./ADMIN_QUIZ.md)) |
 | `/admin/quiz/import`                       |   ✅   | Redirect ke info quiz                                                            |
+| `/admin/badges`                            |   ✅   | Katalog + tab Riwayat (sumber otomatis vs grant admin)                           |
+| `/admin/badges/grant`                      |   ✅   | Grant dari katalog (tombol di halaman Badge; bukan item sidebar)                 |
 
 ---
 
@@ -147,13 +149,13 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Domain           | Status | Catatan                                                                        |
 | :--------------- | :----: | :----------------------------------------------------------------------------- |
 | **learning**     |   ✅   | Enroll, progress, kuis, marketing queries, Q&A nested + player video hardened   |
-| **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + daftar peserta per program          |
+| **admin-cms**    |   ✅   | CRUD kursus/modul/lesson/enrollment/import + grant badge Manual + daftar peserta per program |
 | **student**      |   ✅   | Dashboard, profil, achievements, loaders, unified reward notification (toast/dialog/bottom-sheet) |
 | **tryout**       |   ✅   | Paket + sesi; blok ujian by level (N5–N3 / N1–N2); Choukai audio master + continuous player |
 | **placement**    |   🟡   | Hub/ujian/hasil + Mondai Intro navigator Choukai; Bunpou dari Excel; Choukai masih stub asset |
 | **live-class**   |   ✅   | Jadwal dari `LiveClass` model                                                  |
 | **public-api**   |   ✅   | Partner katalog                                                                |
-| **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta |
+| **gamification** |   ✅   | Badge unlock rules + bonus XP Core, equip sebagai title, admin CMS unlock meta + grant Manual |
 | **kana**         |   🟡   | Chart + modal + FAB; stroke GIF mistval; audio huruf 104; vocab image Unsplash dikurasi |
 | **quiz-engine**  |   🟡   | Inline di lesson; bukan focus-mode terpisah                                    |
 
@@ -183,7 +185,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Public read kursus/tryout info     |   ✅   |
 | Secured video (enrolled only)      |   🟡   | API gate + player hardening; YouTube bukan DRM penuh                          |
 | Enrollment gate lesson             |   ✅   |
-| Model pembayaran: checkout per item (no cart) |   ✅   | Midtrans Core-only (`MIDTRANS_SERVER_KEY`); admin `PaymentMethodSetting`; no Snap/Client Key; CMS grant tetap; terminal Payment menutup Enrollment PENDING |
+| Model pembayaran: checkout per item (no cart) |   ✅   | Dual-mode Midtrans (`PAYMENT_CHECKOUT_MODE=snap\|core`); webhook SoT; PaymentMethodSetting utk Core; CMS grant tetap |
 | Rate Limiting (Middleware + Redis) |   🟡   | Dihapus dari `proxy.ts` (429 di staging); `lib/rate-limit/` tetap untuk nanti |
 
 ---
@@ -202,6 +204,15 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-12 | Hapus **Beri Badge** dari sidebar; entry via tombol di `/admin/badges` |
+| 2026-08-12 | Grant badge dari katalog (bukan Manual-only); tab Riwayat di `/admin/badges` (aturan vs admin); hapus opsi Manual dari form baru |
+| 2026-08-12 | Admin CMS grant badge Manual: submenu Gamifikasi **Beri Badge** (`/admin/badges/grant`), `grantBadgeToUser` + notifikasi, riwayat paginated |
+| 2026-08-07 | Email akses aktif (Resend); SSE-first Detail; sync JSON API; GoPay return `?confirmed=1` + visibility sync; hapus poll Server Action (Sentry) |
+| 2026-08-07 | Invoice siswa PAID: `/dashboard/pembayaran/[id]/invoice` + Cetak/Simpan PDF; CTA Unduh invoice aktif |
+| 2026-08-07 | Snap UX: finish URL → `/pembayaran/return`; reconcile Status API after Snap; poll 5s; jangan reuse token settlement |
+| 2026-08-07 | Snap: skip UI checkout — auto-launch Snap; riwayat Pending → Lanjutkan (`?resume=1`) |
+| 2026-08-07 | Admin: metode pembayaran dipindah ke `/admin/metode-pembayaran`; toggle disembunyikan saat mode Snap |
+| 2026-08-07 | Dual-mode Snap interim + Core preserved: `PAYMENT_CHECKOUT_MODE`, restore `Payment.snapToken`, webhook/SSE tetap SoT |
 | 2026-08-07 | Midtrans Core-only: hapus Snap/Client Key/`PAYMENT_PROVIDER`; `PaymentMethodSetting` + admin toggles; 402 auto-disable; drop `Payment.snapToken` |
 | 2026-08-06 | Payment ledger: cancel/expire tidak hapus Payment (SetNull); riwayat siswa tetap; Antrian satu filter status Indo |
 | 2026-08-06 | Midtrans-only: hapus bridge transfer manual; cancel/expire menutup Enrollment PENDING; Antrian filter/status Midtrans-first + Hapus antrean untuk payment terminal |

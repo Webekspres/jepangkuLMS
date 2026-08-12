@@ -1,6 +1,6 @@
 # Payment model — JepangKu LMS
 
-**Status:** Midtrans Core API only + CMS grant (2026-08-07)  
+**Status:** Dual-mode Midtrans (`snap` | `core`) + CMS grant (2026-08-07)  
 **Scope:** Business rules + settle path + payment engine boundaries  
 **Related:** Admin `/admin/pembayaran`; schema `Enrollment` / `Payment` / `PaymentMethodSetting` / `EnrollmentLog`; code `lib/payment-engine/`, `features/checkout/`, `features/payment/`
 
@@ -16,51 +16,40 @@
 | Cart (multi-line) | Out of scope |
 | CMS grant | **Kept** — admin may `GRANTED` access without payment |
 
-Bundles later are a single SKU with one `priceIdr` that grants multiple enrollments — still one checkout.
-
-### Midtrans availability
+### Midtrans availability & checkout mode
 
 | Condition | Siswa | Settle |
 | :--- | :--- | :--- |
-| `MIDTRANS_SERVER_KEY` set | Core API checkout (server-only) | Webhook → `PAID` + Enrollment `ACTIVE` |
-| Server key unset | CTA unavailable + WhatsApp konsultasi | CMS grant only |
+| `MIDTRANS_SERVER_KEY` unset | CTA unavailable + WhatsApp | CMS grant only |
+| Key set + `PAYMENT_CHECKOUT_MODE=snap` | Snap popup (methods from MAP Snap Preferences) | Webhook → Status API → ACTIVE |
+| Key set + `PAYMENT_CHECKOUT_MODE=core` (default) | LMS method picker (`PaymentMethodSetting`) → Core charge | Same webhook pipeline |
 
-**No Snap, no Client Key, no browser → Midtrans.** Runtime credentials: `MIDTRANS_SERVER_KEY` + `MIDTRANS_IS_PRODUCTION`.
+**Settlement SoT is always the webhook** (`applyProviderPaymentEvent`). Snap JS callbacks are UX only — they never mark PAID from the browser alone. After Snap closes/success the client **reconciles** via `POST /api/payments/[id]/sync` (JSON Status API, same as “Cek status”). Payment Detail is **SSE-first** (`EventSource` → `/api/payments/[id]/events`); there is **no** background Server Action poll (that caused Sentry “unexpected response”). On e-wallet return (GoPay), Detail also syncs once on `visibilitychange` / `pageshow`. Closing Snap does **not** cancel Payment.
 
-Manual bank-transfer bridge and Snap popup have been **removed**.
+**Finish / Return to merchant:** Snap `createTransaction` sets `callbacks.finish` → `/dashboard/pembayaran/return` (uses `NEXT_PUBLIC_APP_URL`). MAP Finish URL must match: `https://kursus.jepangku.com/dashboard/pembayaran/return`. Return page syncs then redirects to Detail `?confirmed=1`.
 
-### Checkout methods
+**Email on access active:** `notifyEnrollmentApproved` / `notifyLiveClassApproval` dispatch Resend `enrollment-activated` (idempotency `lms:enrollment-activated:{enrollmentId}`) — thank-you + program title + CTA.
 
-Catalog metadata lives in `lib/payment-engine/registry/methods.ts`. Runtime enablement is `PaymentMethodSetting` (admin toggles on `/admin/pembayaran`). Midtrans has no Core API to list activated channels; 402 “channel not activated” auto-disables the method.
+**Simpan QR QRIS (iOS):** tombol memakai `GET /api/payments/[id]/qris` (proxy same-origin) lalu Web Share / blob download — iOS mengabaikan `<a download>` ke URL Midtrans lintas-domain. Fallback UI: tahan gambar → Simpan Foto.
+
+**Credentials:** match `MIDTRANS_IS_PRODUCTION` with key prefixes (`Mid-` vs `SB-`) and Snap URL. Snap mode also needs `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`.
+
+**Flip Snap → Core** after Midtrans activates Core API Production: set `PAYMENT_CHECKOUT_MODE=core` (no schema migration). Enable methods in Admin.
 
 ---
 
-## Current state
+## Current flows
 
 ```text
-Course / Live Class / Tryout (priceIdr > 0, MIDTRANS_SERVER_KEY set)
-  → /dashboard/checkout/{kursus|live-class|tryout}/… → metode (admin-enabled only)
-  → Server Action → Midtrans Core charge → Payment.instructions
-  → /dashboard/pembayaran/[paymentId] + SSE (+ Cek status)
-  → Webhook settle → Payment PAID + Enrollment ACTIVE
-  → EnrollmentLog: REQUESTED (charge) → PAYMENT_SETTLED (first PAID)
-
-Cancel / expire / fail / deny (terminal Payment)
-  → close PENDING Enrollment (delete + EnrollmentLog REJECTED)
-  → Payment ledger tetap (enrollmentId SetNull, status terminal)
-  → storefront kembali ke CTA Bayar / Daftar; riwayat siswa tampil di filter status
-
-CMS grant
-  → grantEnrollmentAction → Enrollment ACTIVE + EnrollmentLog GRANTED
-
-priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
-
-/dashboard/pembayaran → riwayat pembayaran siswa (Midtrans)
+Course / Live Class / Tryout (priceIdr > 0)
+  → /dashboard/checkout/{kursus|live-class|tryout}/… (Snap: auto-launch; Core: method picker)
+  → SNAP: paySnapCheckout → Snap.createTransaction → Payment(snapToken) → snap.pay UX → Payment Detail + SSE
+  → SNAP resume: Detail `?resume=1` / Riwayat "Lanjutkan" → resumeSnapCheckout → snap.pay (webhook still SoT)
+  → CORE: payCheckout(methodId) → Core charge → Payment(instructions) → Payment Detail + SSE
+  → Webhook settle → Payment PAID + Enrollment ACTIVE → SSE
 ```
 
-- **Access SoT:** `Enrollment.status`
-- **Money SoT (Midtrans):** `Payment.status`
-- Engine: `lib/payment-engine/` — provider-agnostic types; Midtrans adapter under `providers/midtrans/`
+Payment↔Enrollment is 1:1 (`enrollmentId` unique). Re-charge / regenerate Snap upserts the same Payment row after best-effort cancel of the prior Midtrans order.
 
 ---
 
@@ -68,13 +57,8 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 
 | Area | Role |
 | :--- | :--- |
-| Metode pembayaran | Toggle channel yang tampil di checkout siswa |
-| Antrian | Midtrans open `PENDING`/`CHALLENGE` |
-| Riwayat | `EnrollmentLog` including **Dibayar otomatis** (`PAYMENT_SETTLED`) and **Diberikan manual** (`GRANTED`) |
-
-- Midtrans open: **Batalkan** (Cancel API + tutup enrollment). Settle hanya lewat webhook.
-- Midtrans already terminal + Enrollment masih PENDING: **Hapus antrean** (delete tanpa Cancel API).
-- PENDING tanpa Payment: **Tolak** (legacy orphan). Grant akses lewat kartu “Aktifkan enrollment manual”.
+| Metode pembayaran | Core mode only — toggles LMS picker; Snap uses MAP Preferences |
+| Antrian / Riwayat | Unchanged |
 
 ---
 
@@ -82,42 +66,24 @@ priceIdr <= 0 → Enrollment ACTIVE immediately (no PSP)
 
 1. Unit of sale: polymorphic product (`COURSE` | `LIVE_CLASS` | `TRYOUT`).
 2. Amount = product `priceIdr` (IDR).
-3. One Midtrans order → one enrollment (when Midtrans).
+3. One Midtrans order → one enrollment.
 4. Free products never call Midtrans.
-5. Paid products require Midtrans Core checkout when Server Key is configured.
-6. Browser never loads Midtrans scripts or credentials.
-
----
-
-## Midtrans status → `PaymentStatus`
-
-| Midtrans | LMS |
-| :--- | :--- |
-| capture / settlement (ok) | `PAID` |
-| pending | `PENDING` |
-| challenge | `CHALLENGE` |
-| deny | `DENIED` |
-| expire | `EXPIRED` |
-| cancel | `CANCELED` |
-| other failure | `FAILED` |
+5. Enrollment ACTIVE only after server-side settlement (webhook / sync Status API).
+6. Snap token reuse: only when PENDING/CHALLENGE, token present, not expired, Midtrans status still open; else regenerate on same Payment.
 
 ---
 
 ## Implementation checklist
 
-1. ✅ Payment ↔ Enrollment + Midtrans webhook/Status API
-2. ✅ SSE + Core checkout UI (Course / Live / Tryout)
-3. ✅ Local payment icons + grouped methods
-4. ✅ Student payment history
-5. ✅ Midtrans Core-only (Snap + Client Key + manual bridge removed)
-6. ✅ Terminal Payment closes PENDING Enrollment (cancel + webhook)
-7. ✅ `EnrollmentLog` REQUESTED + PAYMENT_SETTLED
-8. ✅ Admin method toggles + 402 auto-disable
-9. ✅ Admin Antrian Midtrans-open + CMS grant retained
+1. ✅ Webhook + Status API settlement + SSE
+2. ✅ Product-agnostic checkout (Course / Live / Tryout)
+3. ✅ Core charge path preserved
+4. ✅ Snap interim dual-mode (`PAYMENT_CHECKOUT_MODE`)
+5. ✅ Payment Detail + reopen Snap; SSE intact
+6. ✅ CMS grant + Antrian Midtrans-open
 
 ### Out of scope
 
-- Cart, vouchers, second PSP, subscriptions, refunds
-- Proof-of-transfer upload
-- Pulling live channel list from Midtrans (API does not exist)
-- Backfill historical EnrollmentLog for old payments
+- Settling from Snap JS callbacks
+- Cart, vouchers, second PSP
+- Midtrans list-channels API (does not exist)

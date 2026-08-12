@@ -76,7 +76,9 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 /dashboard/checkout/live-class/[id] *          → Checkout Core (Live Class)
 /dashboard/checkout/tryout/[sessionCode] *     → Checkout Core (Tryout)
 /dashboard/pembayaran *                        → Riwayat pembayaran siswa
-/dashboard/pembayaran/[paymentId] *            → Instruksi pembayaran + SSE status
+/dashboard/pembayaran/return *                 → Midtrans Snap finish redirect → sync → detail
+/dashboard/pembayaran/[paymentId] *            → Detail transaksi + SSE / resume Snap
+/dashboard/pembayaran/[paymentId]/invoice *    → Invoice PAID (Cetak / Simpan PDF)
 
 /dashboard/kursus-saya *         → Kursus terdaftar user (progress + lanjut belajar)
 
@@ -136,7 +138,8 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 ├── /dashboard                   → Executive dashboard (KPI + Recharts + activity)
 ├── /settings                    → Integrasi GA4 / Search Console
 │
-├── /pembayaran                  → Manajemen enrollment (Midtrans auto + manual)
+├── /pembayaran                  → Manajemen enrollment (antrian + riwayat)
+├── /metode-pembayaran           → Pengaturan metode checkout (Core); Snap → info MAP
 │
 ├── /kursus                      → CMS: Manajemen Kursus
 │   ├── /import                  → Impor kursus dari workbook sensei N4/N5
@@ -151,6 +154,10 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 │   ├── /import                  → Legacy notice → arahkan ke /paket/import
 │   ├── /[sessionId]/susun       → Redirect → paket sesi / /paket
 │   └── /[sessionId]/soal        → Redirect → /susun (legacy)
+│
+├── /badges                      → CMS katalog badge LMS + tab Riwayat
+│   ├── /form                    → Buat / edit badge
+│   └── /grant                   → Grant badge ke siswa (tombol dari halaman Badge)
 │
 └── /quiz                        → Info bank soal (kelola per pelajaran di lesson workspace)
 ```

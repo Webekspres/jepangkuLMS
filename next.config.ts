@@ -9,14 +9,22 @@ const CLERK_CSP_ORIGINS = [
   "https://static.cloudflareinsights.com",
 ].join(" ");
 
-/** Origins allowed to be framed inside the app (Clerk auth widgets, Google OAuth, embedded video) */
+/** Midtrans Snap.js + payment iframe (sandbox + production) */
+const MIDTRANS_CSP_ORIGINS = [
+  "https://app.sandbox.midtrans.com",
+  "https://app.midtrans.com",
+].join(" ");
+
+/** Origins allowed to be framed inside the app (Clerk auth widgets, Google OAuth, embedded video, Midtrans Snap) */
 const FRAME_SRC_ORIGINS = [
   "https://clerk.jepangku.com",
   "https://*.clerk.accounts.dev",
+  "https://clerk.shared.lcl.dev",
   "https://challenges.cloudflare.com",
   "https://accounts.google.com",
   "https://www.youtube.com",
   "https://www.youtube-nocookie.com",
+  MIDTRANS_CSP_ORIGINS,
 ].join(" ");
 
 const CONTENT_SECURITY_POLICY = [
@@ -27,7 +35,7 @@ const CONTENT_SECURITY_POLICY = [
    * browser modern akan mengabaikan 'unsafe-inline' dan memblokir semua script.
    * Lihat SECURITY_AUDIT.md H-01 untuk rencana migrasi ke nonce-based CSP.
    */
-  `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com ${CLERK_CSP_ORIGINS}`,
+  `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com ${CLERK_CSP_ORIGINS} ${MIDTRANS_CSP_ORIGINS}`,
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
@@ -36,8 +44,13 @@ const CONTENT_SECURITY_POLICY = [
   `frame-src 'self' ${FRAME_SRC_ORIGINS}`,
 ].join("; ");
 
+const isProd = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Prefer http://localhost:3000 for Clerk OAuth (matches Dashboard paths).
+  // LAN hostname only for asset/HMR when opening the Network URL during next dev.
+  allowedDevOrigins: ["127.0.0.1"],
   experimental: {
     serverActions: {
       // App allows 2 MB uploads; leave headroom for multipart boundaries/metadata.
@@ -96,27 +109,34 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    const securityHeaders = [
+      {
+        key: "Content-Security-Policy",
+        value: CONTENT_SECURITY_POLICY,
+      },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value:
+          'camera=(), microphone=(), geolocation=(), clipboard-write=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
+      },
+    ];
+
+    // HSTS on localhost breaks OAuth return (browser upgrades http://localhost → https://).
+    // Only emit in production builds.
+    if (isProd) {
+      securityHeaders.push({
+        key: "Strict-Transport-Security",
+        value: "max-age=31536000; includeSubDomains",
+      });
+    }
+
     return [
       {
         source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: CONTENT_SECURITY_POLICY,
-          },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=31536000; includeSubDomains",
-          },
-          {
-            key: "Permissions-Policy",
-            value:
-              'camera=(), microphone=(), geolocation=(), clipboard-write=(self "https://www.youtube-nocookie.com" "https://www.youtube.com")',
-          },
-        ],
+        headers: securityHeaders,
       },
       {
         source: "/api/student/:path*",

@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
+import { getCheckoutMode } from '@/lib/midtrans/config';
 import { listCheckoutMethods } from '@/lib/payment-engine/registry/methods';
 import { parsePaymentInstructions } from '@/lib/payment-engine/charge-product';
 import type { CheckoutProductType } from '@/lib/payment-engine/types';
+import { getPaymentSettings } from '@/lib/payment/settings';
 import {
   paymentMethodDisplayLabel,
   resolvePaymentProductCover,
@@ -11,7 +13,10 @@ import { PaymentDetailPage } from '@/features/payment/components/payment-detail-
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
 import { prisma } from '@/lib/prisma';
 
-type Props = { params: Promise<{ paymentId: string }> };
+type Props = {
+  params: Promise<{ paymentId: string }>;
+  searchParams: Promise<{ resume?: string; confirmed?: string }>;
+};
 
 function productViewFromEnrollment(enrollment: {
   type: CheckoutProductType;
@@ -90,8 +95,9 @@ function productViewFromSnapshot(input: {
   };
 }
 
-export default async function PembayaranDetailRoute({ params }: Props) {
+export default async function PembayaranDetailRoute({ params, searchParams }: Props) {
   const { paymentId } = await params;
+  const { resume, confirmed } = await searchParams;
   const userId = await requireAuthUserWithAnchor();
 
   const payment = await prisma.payment.findUnique({
@@ -124,15 +130,23 @@ export default async function PembayaranDetailRoute({ params }: Props) {
     liveClassCoverUrl: payment.enrollment?.liveClass?.coverImageUrl,
   });
 
+  const checkoutMode = getCheckoutMode();
+  const paymentSettings = getPaymentSettings();
+  const methods = checkoutMode === 'core' ? await listCheckoutMethods() : [];
+
   return (
     <PaymentDetailPage
+      autoResumeSnap={resume === '1' && checkoutMode === 'snap'}
+      confirmedReturn={confirmed === '1'}
       initial={{
         paymentId: payment.id,
         orderId: payment.orderId,
         status: payment.status,
         amountIdr: payment.amountIdr,
         checkoutMethod: payment.checkoutMethod,
-        methodLabel: paymentMethodDisplayLabel(payment.checkoutMethod),
+        methodLabel: payment.snapToken
+          ? 'Midtrans Snap'
+          : paymentMethodDisplayLabel(payment.checkoutMethod),
         instructions: parsePaymentInstructions(payment.instructions),
         expiresAt: payment.expiresAt?.toISOString() ?? null,
         createdAt: payment.createdAt.toISOString(),
@@ -140,7 +154,11 @@ export default async function PembayaranDetailRoute({ params }: Props) {
         coverSrc,
         historyHref: STUDENT_ROUTES.pembayaranHistory,
         product,
-        methods: await listCheckoutMethods(),
+        methods,
+        checkoutMode,
+        hasSnapToken: Boolean(payment.snapToken),
+        midtransClientKey: paymentSettings.midtransClientKey,
+        midtransSnapUrl: paymentSettings.midtransSnapUrl,
       }}
     />
   );

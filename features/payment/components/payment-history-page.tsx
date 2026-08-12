@@ -133,8 +133,10 @@ export function PaymentHistoryPage({ items }: { items: StudentPaymentHistoryItem
                     </div>
                     <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
                       <p className="font-extrabold text-brand-red">{formatIdr(item.amountIdr)}</p>
-                      <Button asChild size="sm" variant="secondary">
-                        <Link href={item.detailHref}>Detail</Link>
+                      <Button asChild size="sm" variant={item.resumePending ? 'default' : 'secondary'}>
+                        <Link href={item.detailHref}>
+                          {item.resumePending ? 'Lanjutkan' : 'Detail'}
+                        </Link>
                       </Button>
                     </div>
                   </div>

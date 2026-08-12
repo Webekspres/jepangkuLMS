@@ -69,7 +69,7 @@ export function AdminDashboardPage({ insights }: { insights: AdminDashboardInsig
           <AdminStatCard
             title="Pembayaran Pending"
             value={formatDisplayNumber(kpis.pendingEnrollments)}
-            description="Menunggu verifikasi admin"
+            description="Checkout Midtrans belum lunas"
             icon={Clock}
             accentClassName="bg-brand-yellow/10 text-yellow-700"
           />

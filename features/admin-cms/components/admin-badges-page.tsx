@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Award, Pencil, Plus, Search } from 'lucide-react';
+import { Award, Gift, History, LayoutGrid, Pencil, Plus, Search } from 'lucide-react';
 import { AdminConfirmDialog } from '@/features/admin-cms/components/admin-confirm-dialog';
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminTablePagination } from '@/features/admin-cms/components/admin-table-pagination';
@@ -15,7 +15,8 @@ import {
 } from '@/features/admin-cms/components/admin-table-actions';
 import { deleteBadgeAction } from '@/features/admin-cms/actions/cms-badge-actions';
 import { useAdminTablePagination } from '@/features/admin-cms/hooks/use-admin-table-pagination';
-import type { AdminBadgeRow } from '@/features/admin-cms/lib/load-admin-badges';
+import type { AdminBadgeRow, AdminBadgeUnlockRow } from '@/features/admin-cms/lib/load-admin-badges';
+import type { LmsBadgeUnlockSource } from '@prisma/client';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { mapLmsBadgeRarityToDisplay } from '@/lib/lms/badge-rarity';
@@ -24,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger, TabCountBadge } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
     Table,
@@ -33,6 +35,24 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+
+const UNLOCK_SOURCE_LABEL: Record<LmsBadgeUnlockSource, string> = {
+    RULE: 'Otomatis (aturan)',
+    ADMIN: 'Grant admin',
+};
+
+const UNLOCK_SOURCE_BADGE: Record<LmsBadgeUnlockSource, string> = {
+    RULE: 'bg-muted text-muted-foreground',
+    ADMIN: 'bg-blue-500/10 text-blue-600',
+};
+
+function formatUnlockedAt(value: Date | string): string {
+    return new Date(value).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+}
 
 function BadgeRarityChip({ rarity }: { rarity: AdminBadgeRow['rarity'] | null | undefined }) {
     const rarityLabel = mapLmsBadgeRarityToDisplay(rarity ?? undefined);
@@ -51,13 +71,17 @@ function BadgeRarityChip({ rarity }: { rarity: AdminBadgeRow['rarity'] | null | 
 
 export function AdminBadgesPage({
     badges,
+    unlocks,
     r2Configured,
 }: {
     badges: AdminBadgeRow[];
+    unlocks: AdminBadgeUnlockRow[];
     r2Configured: boolean;
 }) {
     const router = useRouter();
+    const [mainTab, setMainTab] = useState<'catalog' | 'history'>('catalog');
     const [query, setQuery] = useState('');
+    const [historyQuery, setHistoryQuery] = useState('');
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const [message, setMessage] = useState<string | null>(null);
@@ -83,6 +107,28 @@ export function AdminBadgesPage({
         setPageSize,
     } = useAdminTablePagination(filtered, { resetKey: query });
 
+    const filteredUnlocks = useMemo(() => {
+        const q = historyQuery.trim().toLowerCase();
+        if (!q) return unlocks;
+        return unlocks.filter(
+            (row) =>
+                row.studentName.toLowerCase().includes(q) ||
+                (row.studentEmail?.toLowerCase().includes(q) ?? false) ||
+                row.badgeTitle.toLowerCase().includes(q) ||
+                row.badgeCode.toLowerCase().includes(q) ||
+                UNLOCK_SOURCE_LABEL[row.source].toLowerCase().includes(q),
+        );
+    }, [unlocks, historyQuery]);
+
+    const {
+        paginatedItems: paginatedUnlocks,
+        page: historyPage,
+        pageSize: historyPageSize,
+        totalItems: historyTotalItems,
+        setPage: setHistoryPage,
+        setPageSize: setHistoryPageSize,
+    } = useAdminTablePagination(filteredUnlocks, { resetKey: historyQuery });
+
     const deleteTarget = badges.find((badge) => badge.id === deleteId);
 
     return (
@@ -91,12 +137,20 @@ export function AdminBadgesPage({
             title="Kelola Badge"
             subtitle="Badge LMS disimpan lokal — gambar di-upload ke Cloudflare R2."
             action={
-                <Button asChild>
-                    <Link href={ADMIN_ROUTES.badgesForm}>
-                        <Plus className="size-4" />
-                        Badge Baru
-                    </Link>
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button asChild variant="outline">
+                        <Link href={ADMIN_ROUTES.badgesGrant}>
+                            <Gift className="size-4" />
+                            Beri Badge
+                        </Link>
+                    </Button>
+                    <Button asChild>
+                        <Link href={ADMIN_ROUTES.badgesForm}>
+                            <Plus className="size-4" />
+                            Badge Baru
+                        </Link>
+                    </Button>
+                </div>
             }
         >
             {!r2Ready ? (
@@ -119,7 +173,26 @@ export function AdminBadgesPage({
                 </p>
             ) : null}
 
-            <Card className="mb-6 border-border p-4">
+            <Tabs
+                value={mainTab}
+                onValueChange={(value) => setMainTab(value as 'catalog' | 'history')}
+                className="gap-4"
+            >
+                <TabsList variant="line">
+                    <TabsTrigger value="catalog">
+                        <LayoutGrid className="size-3.5" />
+                        Katalog
+                        <TabCountBadge count={badges.length} />
+                    </TabsTrigger>
+                    <TabsTrigger value="history">
+                        <History className="size-3.5" />
+                        Riwayat
+                        <TabCountBadge count={unlocks.length} />
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="catalog" className="mt-0 space-y-4">
+            <Card className="border-border p-4">
                 <div className="relative max-w-md">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -216,6 +289,109 @@ export function AdminBadgesPage({
                     itemLabel="badge"
                 />
             </Card>
+                </TabsContent>
+
+                <TabsContent value="history" className="mt-0 space-y-4">
+                    <div className="relative max-w-md">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={historyQuery}
+                            onChange={(event) => setHistoryQuery(event.target.value)}
+                            placeholder="Cari siswa, badge, atau sumber..."
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <Card className="overflow-hidden border-border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-xs uppercase tracking-wider">Siswa</TableHead>
+                                    <TableHead className="text-xs uppercase tracking-wider">Badge</TableHead>
+                                    <TableHead className="text-xs uppercase tracking-wider">Rarity</TableHead>
+                                    <TableHead className="text-xs uppercase tracking-wider">Sumber</TableHead>
+                                    <TableHead className="text-xs uppercase tracking-wider">Diberikan</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredUnlocks.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                                            <Award className="mx-auto mb-2 size-8 opacity-40" />
+                                            Belum ada siswa yang mendapatkan badge.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    paginatedUnlocks.map((row) => (
+                                        <TableRow key={row.id}>
+                                            <TableCell>
+                                                <Link
+                                                    href={ADMIN_ROUTES.userDetail(row.userId)}
+                                                    className="font-medium text-foreground hover:underline"
+                                                >
+                                                    {row.studentName}
+                                                </Link>
+                                                {row.studentEmail ? (
+                                                    <p className="text-xs text-muted-foreground">{row.studentEmail}</p>
+                                                ) : null}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    {row.badgeImageUrl ? (
+                                                        <Image
+                                                            src={row.badgeImageUrl}
+                                                            alt=""
+                                                            width={36}
+                                                            height={36}
+                                                            unoptimized={isUnoptimizedImageSrc(row.badgeImageUrl)}
+                                                            className="size-9 rounded-lg object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-sm">
+                                                            🏅
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <p className="font-medium text-foreground">{row.badgeTitle}</p>
+                                                        <Badge variant="secondary" className="font-mono text-[10px]">
+                                                            {row.badgeCode}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <BadgeRarityChip rarity={row.rarity} />
+                                            </TableCell>
+                                            <TableCell>
+                                                <span
+                                                    className={cn(
+                                                        'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                                        UNLOCK_SOURCE_BADGE[row.source],
+                                                    )}
+                                                >
+                                                    {UNLOCK_SOURCE_LABEL[row.source]}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="tabular-nums text-muted-foreground">
+                                                {formatUnlockedAt(row.unlockedAt)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+
+                        <AdminTablePagination
+                            page={historyPage}
+                            pageSize={historyPageSize}
+                            totalItems={historyTotalItems}
+                            onPageChange={setHistoryPage}
+                            onPageSizeChange={setHistoryPageSize}
+                            itemLabel="unlock"
+                        />
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             <AdminConfirmDialog
                 open={deleteId != null}

@@ -8,8 +8,13 @@ export const STUDENT_ROUTES = {
   checkoutLiveClass: (liveClassId: string) => `/dashboard/checkout/live-class/${liveClassId}`,
   checkoutTryout: (sessionCode: string) =>
     `/dashboard/checkout/tryout/${encodeURIComponent(sessionCode)}`,
-  pembayaran: (paymentId: string) => `/dashboard/pembayaran/${paymentId}`,
+  pembayaran: (paymentId: string, opts?: { resume?: boolean }) =>
+    opts?.resume
+      ? `/dashboard/pembayaran/${paymentId}?resume=1`
+      : `/dashboard/pembayaran/${paymentId}`,
+  pembayaranInvoice: (paymentId: string) => `/dashboard/pembayaran/${paymentId}/invoice`,
   pembayaranHistory: '/dashboard/pembayaran',
+  pembayaranReturn: '/dashboard/pembayaran/return',
   kana: '/dashboard/kana',
   kanaScript: (script: 'hiragana' | 'katakana') => `/dashboard/kana/${script}`,
   leaderboard: '/dashboard/leaderboard',

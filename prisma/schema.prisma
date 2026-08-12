@@ -137,6 +137,11 @@ enum LmsCoreSyncStatus {
     SKIPPED
 }
 
+enum LmsBadgeUnlockSource {
+    RULE
+    ADMIN
+}
+
 enum LmsBadgeRarity {
     COMMON
     RARE
@@ -303,11 +308,12 @@ model LmsBadge {
 }
 
 model UserBadge {
-    id             String   @id @default(uuid())
+    id             String                @id @default(uuid())
     userId         String
     badgeId        String
-    unlockedAt     DateTime @default(now())
-    xpBonusAwarded Boolean  @default(false)
+    unlockedAt     DateTime              @default(now())
+    xpBonusAwarded Boolean               @default(false)
+    source         LmsBadgeUnlockSource  @default(RULE)
 
     user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     badge LmsBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
@@ -405,6 +411,8 @@ model Payment {
     amountIdr         Int
     currency          String          @default("IDR")
     status            PaymentStatus   @default(PENDING)
+    /// Snap checkout token (null for Core API charges)
+    snapToken         String?
     /// Our checkout method id (qris, va_bca, gopay, …) — Core API checkout
     checkoutMethod    String?
     /// Normalized PaymentInstructions JSON for Payment Detail UI

@@ -141,7 +141,7 @@ export async function evaluateBadgeUnlocks(
     if (existing) continue;
 
     await prisma.userBadge.create({
-      data: { userId, badgeId: badge.id, xpBonusAwarded: badge.xpBonus > 0 },
+      data: { userId, badgeId: badge.id, xpBonusAwarded: badge.xpBonus > 0, source: 'RULE' },
     });
 
     await awardBadgeBonusXp(userId, badge.id, badge.xpBonus);
@@ -160,19 +160,28 @@ export async function evaluateBadgeUnlocks(
   return unlockedCodes;
 }
 
-/** Grant manual badge (admin). */
-export async function grantBadgeToUser(userId: string, badgeId: string): Promise<boolean> {
+export type GrantBadgeResult = 'granted' | 'already_owned' | 'not_found';
+
+/** Grant badge to a user (admin). Idempotent on (userId, badgeId). */
+export async function grantBadgeToUser(userId: string, badgeId: string): Promise<GrantBadgeResult> {
   const badge = await prisma.lmsBadge.findUnique({ where: { id: badgeId } });
-  if (!badge) return false;
+  if (!badge) return 'not_found';
 
   const existing = await prisma.userBadge.findUnique({
     where: { userId_badgeId: { userId, badgeId } },
   });
-  if (existing) return false;
+  if (existing) return 'already_owned';
 
   await prisma.userBadge.create({
-    data: { userId, badgeId, xpBonusAwarded: badge.xpBonus > 0 },
+    data: { userId, badgeId, xpBonusAwarded: badge.xpBonus > 0, source: 'ADMIN' },
   });
   await awardBadgeBonusXp(userId, badge.id, badge.xpBonus);
-  return true;
+  await notifyBadgeUnlocked({
+    userId,
+    badgeId: badge.id,
+    badgeTitle: badge.title,
+    xpBonus: badge.xpBonus,
+  });
+  badgeLog.info({ userId, badgeCode: badge.code, xpBonus: badge.xpBonus }, 'Badge granted');
+  return 'granted';
 }

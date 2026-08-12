@@ -80,7 +80,7 @@ export function KanaFloatingLauncher() {
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none fixed bottom-4 left-4 z-40 flex flex-col items-start gap-2 pb-safe sm:bottom-6 sm:left-6"
+      className="student-shell-chrome pointer-events-none fixed bottom-4 left-4 z-40 flex flex-col items-start gap-2 pb-safe sm:bottom-6 sm:left-6"
     >
       <AnimatePresence initial={false}>
         {open ? (

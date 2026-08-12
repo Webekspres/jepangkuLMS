@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { EnrollmentLogAction, EnrollmentType, LevelJLPT } from '@prisma/client';
+import { adminEnrollmentQueueWhere } from '@/lib/payment/admin-enrollment-queue';
 import { prisma } from '@/lib/prisma';
 
 export type DashboardRangeDays = 7 | 30;
@@ -179,7 +180,7 @@ export const loadAdminDashboardInsights = cache(async function loadAdminDashboar
     }),
     prisma.course.count(),
     prisma.course.count({ where: { isPublished: true } }),
-    prisma.enrollment.count({ where: { status: 'PENDING' } }),
+    prisma.enrollment.count({ where: adminEnrollmentQueueWhere }),
     prisma.enrollment.count({ where: { status: 'ACTIVE' } }),
     prisma.enrollment.count(),
     prisma.liveClass.count({ where: { isPublished: true } }),

@@ -3,8 +3,9 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { requireAuthUserWithAnchor } from '@/lib/auth/require-auth-user';
 import { LEARNING_CACHE_TAGS } from '@/lib/cache/learning-cache';
-import { isMidtransEnabled } from '@/lib/midtrans/config';
+import { getCheckoutMode, isMidtransEnabled } from '@/lib/midtrans/config';
 import { chargeProductPayment } from '@/lib/payment-engine/charge-product';
+import { chargeSnapProductPayment } from '@/lib/payment-engine/charge-snap-product';
 import {
   checkoutPathFor,
   resolveProductCheckout,
@@ -16,6 +17,7 @@ import type { CheckoutMethodId, CheckoutProductType, PaymentMethodMeta } from '@
 import {
   closePendingEnrollmentForTerminalPayment,
 } from '@/lib/payment/close-pending-enrollment';
+import { getPaymentSettings } from '@/lib/payment/settings';
 import { buildPaymentSseEvent } from '@/lib/payment/sse-event';
 import { publishPaymentEvent } from '@/lib/payment/sse-hub';
 import { prisma } from '@/lib/prisma';
@@ -43,6 +45,7 @@ function productKeyFromEnrollment(enrollment: {
 export type StartCheckoutResult =
   | {
       ok: true;
+      checkoutMode: 'snap' | 'core';
       product: {
         type: CheckoutProductType;
         key: string;
@@ -55,6 +58,8 @@ export type StartCheckoutResult =
       methods: PaymentMethodMeta[];
       existingPaymentId: string | null;
       existingPaymentStatus: string | null;
+      midtransClientKey: string | null;
+      midtransSnapUrl: string | null;
     }
   | { ok: false; message: string };
 
@@ -68,6 +73,9 @@ export async function startCheckout(input: {
     return { ok: false, message: 'Checkout Midtrans tidak aktif.' };
   }
 
+  const checkoutMode = getCheckoutMode();
+  const paymentSettings = getPaymentSettings();
+
   const built = await resolveProductCheckout(userId, input.productType, input.productKey);
   if ('error' in built) return { ok: false, message: built.error };
 
@@ -80,8 +88,11 @@ export async function startCheckout(input: {
     return { ok: false, message: 'Kamu sudah punya akses ke produk ini.' };
   }
 
+  const methods = checkoutMode === 'core' ? await listCheckoutMethods() : [];
+
   return {
     ok: true,
+    checkoutMode,
     product: {
       type: built.context.product.type,
       key: built.productKey,
@@ -91,17 +102,28 @@ export async function startCheckout(input: {
       backHref: built.backHref,
       successHref: built.successHref,
     },
-    methods: await listCheckoutMethods(),
+    methods,
     existingPaymentId:
-      enrollment?.payment?.status === 'PENDING' ? enrollment.payment.id : null,
+      enrollment?.payment?.status === 'PENDING' || enrollment?.payment?.status === 'CHALLENGE'
+        ? enrollment.payment.id
+        : null,
     existingPaymentStatus: enrollment?.payment?.status ?? null,
+    midtransClientKey: paymentSettings.midtransClientKey,
+    midtransSnapUrl: paymentSettings.midtransSnapUrl,
   };
 }
 
 export type PayCheckoutResult =
-  | { ok: true; paymentId: string; redirectPath: string }
+  | {
+      ok: true;
+      paymentId: string;
+      redirectPath: string;
+      snapToken?: string | null;
+      alreadyPaid?: boolean;
+    }
   | { ok: false; message: string };
 
+/** Core checkout — requires methodId. */
 export async function payCheckout(input: {
   productType: CheckoutProductType;
   productKey: string;
@@ -110,7 +132,10 @@ export async function payCheckout(input: {
   const userId = await requireUserId();
 
   if (!assertMidtransCheckout()) {
-    return { ok: false, message: 'Checkout Core Midtrans tidak aktif.' };
+    return { ok: false, message: 'Checkout Midtrans tidak aktif.' };
+  }
+  if (getCheckoutMode() !== 'core') {
+    return { ok: false, message: 'Mode checkout bukan Core. Gunakan pembayaran Snap.' };
   }
 
   const built = await resolveProductCheckout(userId, input.productType, input.productKey);
@@ -134,6 +159,104 @@ export async function payCheckout(input: {
     ok: true,
     paymentId: result.paymentId,
     redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
+  };
+}
+
+/** Snap checkout — product-agnostic; no methodId (Snap Preferences). */
+export async function paySnapCheckout(input: {
+  productType: CheckoutProductType;
+  productKey: string;
+}): Promise<PayCheckoutResult> {
+  const userId = await requireUserId();
+
+  if (!assertMidtransCheckout()) {
+    return { ok: false, message: 'Checkout Midtrans tidak aktif.' };
+  }
+  if (getCheckoutMode() !== 'snap') {
+    return { ok: false, message: 'Mode checkout bukan Snap. Gunakan checkout Core.' };
+  }
+
+  const built = await resolveProductCheckout(userId, input.productType, input.productKey);
+  if ('error' in built) return { ok: false, message: built.error };
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: built.enrollmentWhere,
+    create: built.enrollmentCreate,
+    update: { status: 'PENDING' },
+  });
+
+  const result = await chargeSnapProductPayment({
+    context: built.context,
+    enrollmentId: enrollment.id,
+  });
+
+  if (!result.ok) return result;
+
+  return {
+    ok: true,
+    paymentId: result.paymentId,
+    redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
+    snapToken: result.snapToken,
+    alreadyPaid: result.alreadyPaid === true,
+  };
+}
+
+/** Reopen or regenerate Snap token for an existing open payment (1:1 enrollment). */
+export async function resumeSnapCheckout(
+  paymentId: string,
+): Promise<PayCheckoutResult> {
+  const userId = await requireUserId();
+
+  if (!assertMidtransCheckout() || getCheckoutMode() !== 'snap') {
+    return { ok: false, message: 'Checkout Snap tidak aktif.' };
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      enrollment: {
+        include: {
+          course: { select: { slug: true } },
+          liveClass: { select: { id: true } },
+          tryoutSession: { select: { code: true } },
+        },
+      },
+    },
+  });
+
+  if (!payment || payment.userId !== userId) {
+    return { ok: false, message: 'Pembayaran tidak ditemukan.' };
+  }
+  if (!payment.enrollment || !payment.enrollmentId) {
+    return {
+      ok: false,
+      message: 'Pembayaran ini sudah ditutup. Mulai checkout baru dari halaman produk.',
+    };
+  }
+  if (payment.status !== 'PENDING' && payment.status !== 'CHALLENGE') {
+    return { ok: false, message: 'Pembayaran ini tidak bisa dilanjutkan.' };
+  }
+
+  const productKey =
+    payment.productKey ?? productKeyFromEnrollment(payment.enrollment);
+  if (!productKey) return { ok: false, message: 'Produk terkait tidak ditemukan.' };
+
+  const built = await resolveProductCheckout(userId, payment.enrollment.type, productKey);
+  if ('error' in built) return { ok: false, message: built.error };
+
+  const result = await chargeSnapProductPayment({
+    context: built.context,
+    enrollmentId: payment.enrollmentId,
+  });
+
+  if (!result.ok) return result;
+
+  return {
+    ok: true,
+    paymentId: result.paymentId,
+    redirectPath: STUDENT_ROUTES.pembayaran(result.paymentId),
+    snapToken: result.snapToken,
+    alreadyPaid: result.alreadyPaid === true,
   };
 }
 
@@ -209,6 +332,10 @@ export async function changePaymentMethod(input: {
   methodId: CheckoutMethodId;
 }): Promise<PayCheckoutResult> {
   const userId = await requireUserId();
+
+  if (getCheckoutMode() !== 'core') {
+    return { ok: false, message: 'Ganti metode hanya tersedia di mode Core checkout.' };
+  }
 
   const payment = await prisma.payment.findUnique({
     where: { id: input.paymentId },

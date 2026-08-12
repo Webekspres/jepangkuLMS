@@ -140,6 +140,8 @@ export async function applyProviderPaymentEvent(input: {
       await notifyLiveClassApproval({
         studentUserId: payment.userId,
         liveClassTitle: enrollment.liveClass.title,
+        enrollmentId: enrollment.id,
+        href: STUDENT_ROUTES.liveClassDetail(enrollment.liveClass.id),
       });
     } else if (enrollment.type === 'TRYOUT' && enrollment.tryoutSession) {
       await notifyEnrollmentApproved({
@@ -147,6 +149,7 @@ export async function applyProviderPaymentEvent(input: {
         studentUserId: payment.userId,
         productTitle: enrollment.tryoutSession.title,
         href: STUDENT_ROUTES.tryoutExam(enrollment.tryoutSession.code),
+        productKind: 'TRYOUT',
       });
     } else {
       await notifyEnrollmentApproved({
@@ -156,6 +159,7 @@ export async function applyProviderPaymentEvent(input: {
         href: enrollment.course?.slug
           ? STUDENT_ROUTES.kursusDetail(enrollment.course.slug)
           : STUDENT_ROUTES.kursus,
+        productKind: 'COURSE',
       });
     }
   }

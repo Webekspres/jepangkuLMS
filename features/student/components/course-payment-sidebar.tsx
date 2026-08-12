@@ -115,7 +115,7 @@ export function CoursePaymentSidebar({
       return;
     }
     if (isAwaitingPayment && activePaymentId) {
-      router.push(STUDENT_ROUTES.pembayaran(activePaymentId));
+      router.push(STUDENT_ROUTES.pembayaran(activePaymentId, { resume: true }));
       return;
     }
     router.push(STUDENT_ROUTES.checkoutKursus(courseSlug));

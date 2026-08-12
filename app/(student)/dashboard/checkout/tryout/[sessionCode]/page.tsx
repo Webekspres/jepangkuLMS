@@ -19,6 +19,9 @@ export default async function TryoutCheckoutRoute({ params }: Props) {
       product={data.product}
       methods={data.methods}
       existingPaymentId={data.existingPaymentId}
+      checkoutMode={data.checkoutMode}
+      midtransClientKey={data.midtransClientKey}
+      midtransSnapUrl={data.midtransSnapUrl}
     />
   );
 }

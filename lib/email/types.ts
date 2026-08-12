@@ -11,6 +11,18 @@ export type WelcomeEmailInput = {
   userId?: string;
 };
 
+export type EnrollmentActivatedEmailInput = {
+  email: string;
+  name: string;
+  enrollmentId: string;
+  productTitle: string;
+  /** Human label: Kursus / Live Class / Tryout */
+  productKindLabel: string;
+  /** Absolute or app-relative path for CTA */
+  href: string;
+  ctaLabel?: string;
+};
+
 export type LiveClassReminderEmailInput = {
   email: string;
   name: string;

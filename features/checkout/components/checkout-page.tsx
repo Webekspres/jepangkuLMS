@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { payCheckout } from '@/features/checkout/actions/checkout-actions';
+import {
+  payCheckout,
+  paySnapCheckout,
+} from '@/features/checkout/actions/checkout-actions';
 import { PaymentMethodSelector } from '@/features/checkout/components/payment-method-selector';
+import { openSnapPayUx, waitForWindowSnap } from '@/features/checkout/lib/snap-pay-ux';
+import { fetchPaymentSync } from '@/features/payment/lib/fetch-payment-sync';
 import type {
   CheckoutMethodId,
   CheckoutProductType,
@@ -32,6 +39,9 @@ type CheckoutPageProps = {
   product: CheckoutProductSummary;
   methods: PaymentMethodMeta[];
   existingPaymentId: string | null;
+  checkoutMode: 'snap' | 'core';
+  midtransClientKey: string | null;
+  midtransSnapUrl: string | null;
 };
 
 const TYPE_LABEL: Record<CheckoutProductType, string> = {
@@ -40,16 +50,103 @@ const TYPE_LABEL: Record<CheckoutProductType, string> = {
   TRYOUT: 'JLPT Tryout',
 };
 
-export function CheckoutPage({ product, methods, existingPaymentId }: CheckoutPageProps) {
+export function CheckoutPage({
+  product,
+  methods,
+  existingPaymentId,
+  checkoutMode,
+  midtransClientKey,
+  midtransSnapUrl,
+}: CheckoutPageProps) {
   const router = useRouter();
+  const isSnap = checkoutMode === 'snap';
   const [methodId, setMethodId] = useState<CheckoutMethodId | null>(
     methods.find((m) => m.recommended && !m.maintenance)?.id ?? methods[0]?.id ?? null,
   );
   const [isPaying, setIsPaying] = useState(false);
+  const [snapLaunchError, setSnapLaunchError] = useState<string | null>(null);
+  const snapAutoStartedRef = useRef(false);
   const priceLabel = formatIdr(product.priceIdr);
   const thumb = product.imageUrl?.trim() || DEFAULT_THUMB;
+  const canLoadSnap = isSnap && Boolean(midtransClientKey) && Boolean(midtransSnapUrl);
 
-  const handlePay = async () => {
+  const goPaymentDetail = useCallback(
+    (paymentId: string) => {
+      router.replace(STUDENT_ROUTES.pembayaran(paymentId));
+    },
+    [router],
+  );
+
+  const launchSnap = useCallback(async () => {
+    if (existingPaymentId) {
+      router.replace(STUDENT_ROUTES.pembayaran(existingPaymentId, { resume: true }));
+      return;
+    }
+
+    if (!canLoadSnap) {
+      setSnapLaunchError('Snap Midtrans belum dikonfigurasi.');
+      return;
+    }
+
+    setIsPaying(true);
+    setSnapLaunchError(null);
+    try {
+      const ready = await waitForWindowSnap();
+      if (!ready) {
+        setSnapLaunchError('Snap Midtrans belum siap. Muat ulang halaman, lalu coba lagi.');
+        return;
+      }
+
+        const result = await paySnapCheckout({
+          productType: product.type,
+          productKey: product.key,
+        });
+        if (!result.ok) {
+          setSnapLaunchError(result.message);
+          toast.error(result.message);
+          return;
+        }
+        if (result.alreadyPaid || !result.snapToken) {
+          toast.success('Pembayaran berhasil. Akses sudah aktif.');
+          goPaymentDetail(result.paymentId);
+          return;
+        }
+
+        await openSnapPayUx({
+          snapToken: result.snapToken,
+          paymentId: result.paymentId,
+          callbacks: {
+            onNavigateToPaymentDetail: goPaymentDetail,
+            onToast: (kind, message) => {
+              if (kind === 'error') toast.error(message);
+              else toast.message(message);
+            },
+            onReconcile: async (paymentId) => {
+              await fetchPaymentSync(paymentId);
+            },
+          },
+        });
+    } catch {
+      setSnapLaunchError('Gagal membuka Midtrans Snap. Coba lagi.');
+    } finally {
+      setIsPaying(false);
+    }
+  }, [
+    canLoadSnap,
+    existingPaymentId,
+    goPaymentDetail,
+    product.key,
+    product.type,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (!isSnap || snapAutoStartedRef.current) return;
+    snapAutoStartedRef.current = true;
+    void launchSnap();
+  }, [isSnap, launchSnap]);
+
+  const handlePayCore = async () => {
     if (!methodId) {
       toast.error('Pilih metode pembayaran dulu.');
       return;
@@ -70,6 +167,42 @@ export function CheckoutPage({ product, methods, existingPaymentId }: CheckoutPa
       setIsPaying(false);
     }
   };
+
+  if (isSnap) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
+        {canLoadSnap ? (
+          <Script
+            id="midtrans-snap"
+            src={midtransSnapUrl!}
+            data-client-key={midtransClientKey!}
+            strategy="afterInteractive"
+          />
+        ) : null}
+        <Link href={product.backHref} className="text-sm text-muted-foreground hover:text-primary">
+          ← Kembali
+        </Link>
+        {snapLaunchError ? (
+          <>
+            <p className="text-sm text-destructive">{snapLaunchError}</p>
+            <Button type="button" onClick={() => void launchSnap()} disabled={isPaying}>
+              Coba buka Snap lagi
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="size-8 animate-spin text-primary" aria-hidden />
+            <div>
+              <p className="font-heading text-lg font-bold text-foreground">Membuka Midtrans Snap…</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {product.title} · {priceLabel}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-12">
@@ -119,7 +252,7 @@ export function CheckoutPage({ product, methods, existingPaymentId }: CheckoutPa
             href={STUDENT_ROUTES.pembayaran(existingPaymentId)}
             className="font-semibold text-primary underline"
           >
-            Lanjutkan pembayaran sebelumnya
+            Buka halaman pembayaran
           </Link>{' '}
           atau pilih metode baru di bawah (akan mengganti transaksi lama).
         </div>
@@ -127,12 +260,18 @@ export function CheckoutPage({ product, methods, existingPaymentId }: CheckoutPa
 
       <div>
         <h2 className="mb-4 text-sm font-bold text-foreground">Metode pembayaran</h2>
-        <PaymentMethodSelector
-          methods={methods}
-          value={methodId}
-          onChange={setMethodId}
-          disabled={isPaying}
-        />
+        {methods.length === 0 ? (
+          <p className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Belum ada metode Core yang diaktifkan admin. Hubungi admin atau coba lagi nanti.
+          </p>
+        ) : (
+          <PaymentMethodSelector
+            methods={methods}
+            value={methodId}
+            onChange={setMethodId}
+            disabled={isPaying}
+          />
+        )}
       </div>
 
       <div className="sticky bottom-4 rounded-2xl border border-border bg-card/95 p-4 shadow-md backdrop-blur">
@@ -143,8 +282,8 @@ export function CheckoutPage({ product, methods, existingPaymentId }: CheckoutPa
         <Button
           type="button"
           className="h-11 w-full"
-          disabled={!methodId || isPaying}
-          onClick={handlePay}
+          disabled={isPaying || !methodId}
+          onClick={handlePayCore}
         >
           {isPaying ? 'Memproses…' : 'Bayar Sekarang'}
         </Button>
