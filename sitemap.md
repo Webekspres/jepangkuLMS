@@ -155,6 +155,10 @@ Manajemen konten materi dan validasi pembayaran. Impor massal via workbook Excel
 │   ├── /[sessionId]/susun       → Redirect → paket sesi / /paket
 │   └── /[sessionId]/soal        → Redirect → /susun (legacy)
 │
+├── /badges                      → CMS katalog badge LMS + tab Riwayat
+│   ├── /form                    → Buat / edit badge
+│   └── /grant                   → Grant badge ke siswa (tombol dari halaman Badge)
+│
 └── /quiz                        → Info bank soal (kelola per pelajaran di lesson workspace)
 ```
 

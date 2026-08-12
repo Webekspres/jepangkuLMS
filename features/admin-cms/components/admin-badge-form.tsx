@@ -61,7 +61,6 @@ type BadgeTargetCourse = {
 
 // Zod schema for client-side form validation
 const CMS_UNLOCK_RULES = [
-  'MANUAL',
   'FIRST_LESSON',
   'FIRST_LIVE_CLASS_JOIN',
   'TRYOUT_SCORE_THRESHOLD',
@@ -71,8 +70,9 @@ const CMS_UNLOCK_RULES = [
 ] as const;
 
 function normalizeCmsUnlockRule(rule: string | undefined): string {
+  if (rule === 'MANUAL') return 'MANUAL';
   if (rule && (CMS_UNLOCK_RULES as readonly string[]).includes(rule)) return rule;
-  return 'MANUAL';
+  return 'FIRST_LESSON';
 }
 
 function previewSlugFromTitle(title: string): string {
@@ -435,7 +435,9 @@ export function AdminBadgeFormPage({
                   <SelectValue placeholder="Pilih aturan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MANUAL">Manual (admin grant)</SelectItem>
+                  {unlockRule === 'MANUAL' ? (
+                    <SelectItem value="MANUAL">Tidak otomatis (hanya grant admin)</SelectItem>
+                  ) : null}
                   <SelectItem value="FIRST_LESSON">Lesson pertama selesai</SelectItem>
                   <SelectItem value="FIRST_LIVE_CLASS_JOIN">Hadiri Live Class pertama</SelectItem>
                   <SelectItem value="TRYOUT_SCORE_THRESHOLD">Skor tryout JLPT minimum</SelectItem>
@@ -445,7 +447,9 @@ export function AdminBadgeFormPage({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Otomatis saat siswa memicu event belajar yang sesuai.
+                {unlockRule === 'MANUAL'
+                  ? 'Badge ini tidak unlock otomatis. Berikan lewat tombol Beri Badge di halaman Kelola Badge, atau pilih aturan di atas.'
+                  : 'Otomatis saat siswa memicu event belajar yang sesuai. Admin tetap bisa grant lewat tombol Beri Badge.'}
               </p>
             </div>
 

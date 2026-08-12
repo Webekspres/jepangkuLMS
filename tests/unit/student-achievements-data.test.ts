@@ -18,6 +18,7 @@ const SAMPLE_BADGES: AchievementBadge[] = [
     xp: 25,
     unlocked: true,
     date: 'Jun 2026',
+    unlockedAt: '2026-06-01T00:00:00.000Z',
     rarity: 'Common',
     badgeType: 'LMS',
   },
@@ -31,6 +32,7 @@ const SAMPLE_BADGES: AchievementBadge[] = [
     xp: 40,
     unlocked: false,
     date: null,
+    unlockedAt: null,
     rarity: 'Rare',
     badgeType: 'LMS',
   },
@@ -44,6 +46,7 @@ const SAMPLE_BADGES: AchievementBadge[] = [
     xp: 50,
     unlocked: true,
     date: 'Jun 2026',
+    unlockedAt: '2026-06-15T00:00:00.000Z',
     rarity: 'Epic',
     badgeType: 'LMS',
   },
@@ -57,6 +60,7 @@ const SAMPLE_BADGES: AchievementBadge[] = [
     xp: 75,
     unlocked: false,
     date: null,
+    unlockedAt: null,
     rarity: 'Legendary',
     badgeType: 'LMS',
   },
@@ -88,6 +92,16 @@ describe('achievement badge rarity filters', () => {
     const epicUnlocked = filterAchievementBadges(SAMPLE_BADGES, 'unlocked', 'Epic', 'default');
     expect(epicUnlocked).toHaveLength(1);
     expect(epicUnlocked[0]?.code).toBe('n5-high-performer');
+  });
+
+  test('default sort puts unlocked badges first and newest unlock first', () => {
+    const sorted = filterAchievementBadges(SAMPLE_BADGES, 'all', 'all', 'default');
+    expect(sorted.map((badge) => badge.code)).toEqual([
+      'n5-high-performer',
+      'word-rookie',
+      'n5-progress-achiever',
+      'n5-perfect-master',
+    ]);
   });
 
   test('filter order covers every rarity tier', () => {

@@ -34,6 +34,7 @@ export const ADMIN_ROUTES = {
     badges: '/admin/badges',
     badgesForm: '/admin/badges/form',
     badgesFormEdit: (id: string) => `/admin/badges/form?id=${id}`,
+    badgesGrant: '/admin/badges/grant',
     users: '/admin/users',
     userDetail: (userId: string) => `/admin/users/${encodeURIComponent(userId)}`,
     liveClass: '/admin/live-class',

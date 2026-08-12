@@ -12,7 +12,6 @@ import {
 import { AdminPageShell } from '@/features/admin-cms/components/admin-page-shell';
 import { AdminStatCard } from '@/features/admin-cms/components/admin-stat-card';
 import { DashboardAttentionBanner } from '@/features/admin-cms/components/dashboard/dashboard-attention-banner';
-import { DashboardQuickActions } from '@/features/admin-cms/components/dashboard/dashboard-quick-actions';
 import { DashboardRangeToggle } from '@/features/admin-cms/components/dashboard/dashboard-range-toggle';
 import { DashboardRecentActivity } from '@/features/admin-cms/components/dashboard/dashboard-recent-activity';
 import { EnrollmentTrendChart } from '@/features/admin-cms/components/dashboard/charts/enrollment-trend-chart';
@@ -43,8 +42,6 @@ export function AdminDashboardPage({ insights }: { insights: AdminDashboardInsig
       action={<DashboardRangeToggle rangeDays={rangeDays} />}
     >
       <div className="space-y-6">
-        <DashboardQuickActions />
-
         <DashboardAttentionBanner pendingCount={kpis.pendingEnrollments} />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

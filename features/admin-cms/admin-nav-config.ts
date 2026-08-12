@@ -13,6 +13,9 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { ADMIN_ROUTES } from '@/lib/auth/constants';
+import type { CheckoutMode } from '@/lib/midtrans/config';
+
+export const PAYMENT_METHODS_NAV_ITEM_ID = 'metode-pembayaran';
 
 export type AdminNavItem = {
     id: string;
@@ -153,6 +156,7 @@ export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
     quiz: 'Bank Soal',
     import: 'Import Kursus',
     badges: 'Badge',
+    grant: 'Beri Badge',
     'live-class': 'Live Class',
     tryout: 'JLPT Tryout',
     bank: 'Bank Soal JLPT',
@@ -164,9 +168,23 @@ export const ADMIN_BREADCRUMB_LABELS: Record<string, string> = {
     'kursus/import': 'Import Kursus',
 };
 
+/** Snap checkout: metode Core API dikelola di Midtrans MAP, bukan CMS. */
+export function resolveAdminNavGroups(options?: { checkoutMode?: CheckoutMode }): AdminNavGroup[] {
+    const hidePaymentMethods = options?.checkoutMode === 'snap';
+    if (!hidePaymentMethods) return ADMIN_NAV_GROUPS;
+
+    return ADMIN_NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.id !== PAYMENT_METHODS_NAV_ITEM_ID),
+    })).filter((group) => group.items.length > 0);
+}
+
 /** Longest-prefix match — hindari /admin/kursus menang atas sub-rute lain. */
-export function getActiveAdminNavHref(pathname: string): string {
-    const allItems = ADMIN_NAV_GROUPS.flatMap((group) => group.items);
+export function getActiveAdminNavHref(
+    pathname: string,
+    groups: AdminNavGroup[] = ADMIN_NAV_GROUPS,
+): string {
+    const allItems = groups.flatMap((group) => group.items);
     let best: AdminNavItem | null = null;
 
     for (const item of allItems) {

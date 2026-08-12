@@ -151,7 +151,16 @@ export function filterAchievementBadges(
     return true;
   }).filter((b) => (rarity === 'all' ? true : resolveAchievementBadgeRarity(b.rarity) === rarity));
 
-  if (sort === 'rarity-desc') {
+  if (sort === 'default') {
+    list = [...list].sort((a, b) => {
+      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+      if (!a.unlocked && !b.unlocked) return 0;
+
+      const aTime = a.unlockedAt ? Date.parse(a.unlockedAt) : 0;
+      const bTime = b.unlockedAt ? Date.parse(b.unlockedAt) : 0;
+      return bTime - aTime;
+    });
+  } else if (sort === 'rarity-desc') {
     list = [...list].sort(
       (a, b) =>
         BADGE_RARITY_ORDER.indexOf(resolveAchievementBadgeRarity(a.rarity)) -

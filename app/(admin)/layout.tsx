@@ -4,6 +4,7 @@ import { resolveClerkIdentity } from '@/features/auth/lib/clerk-user-display';
 import { AdminShell } from '@/features/admin-cms/components/admin-shell';
 import { getPendingEnrollmentCount } from '@/lib/lms/notifications';
 import { loadResolvedLmsProfilePresentation } from '@/lib/lms/user-profile';
+import { getCheckoutMode } from '@/lib/midtrans/config';
 
 /** Auth + DB-backed shell — skip static generation during CI `next build`. */
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,10 @@ export default async function AdminAreaLayout({ children }: { children: React.Re
     await syncUserAnchor(userId).catch(() => undefined);
   }
 
-  const pendingEnrollmentCount = await getPendingEnrollmentCount();
+  const [pendingEnrollmentCount, checkoutMode] = await Promise.all([
+    getPendingEnrollmentCount(),
+    Promise.resolve(getCheckoutMode()),
+  ]);
 
   let sessionProfile: Awaited<ReturnType<typeof loadResolvedLmsProfilePresentation>> | null =
     null;
@@ -30,7 +34,11 @@ export default async function AdminAreaLayout({ children }: { children: React.Re
 
   return (
     <div className="fixed inset-0 overflow-hidden">
-      <AdminShell pendingEnrollmentCount={pendingEnrollmentCount} sessionProfile={sessionProfile}>
+      <AdminShell
+        pendingEnrollmentCount={pendingEnrollmentCount}
+        sessionProfile={sessionProfile}
+        checkoutMode={checkoutMode}
+      >
         {children}
       </AdminShell>
     </div>

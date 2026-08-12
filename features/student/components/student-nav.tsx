@@ -148,7 +148,7 @@ export function StudentNav() {
   return (
     <nav
       className={cn(
-        'sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md ',
+        'student-shell-chrome sticky top-0 border-b border-border bg-header shadow-sm backdrop-blur-md ',
         menuOpen ? 'z-102' : 'z-50',
       )}
     >

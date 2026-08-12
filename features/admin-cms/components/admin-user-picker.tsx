@@ -7,6 +7,7 @@ import type { AdminUserSearchResult } from '@/features/admin-cms/lib/search-admi
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 
 const CLERK_USER_ID_PATTERN = /^user_[a-zA-Z0-9]+$/;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -41,7 +42,6 @@ export function AdminUserPicker({
 }: AdminUserPickerProps) {
   const fallbackId = useId();
   const inputId = id ?? fallbackId;
-  const containerRef = useRef<HTMLDivElement>(null);
   const searchSeqRef = useRef(0);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<AdminUserSearchResult[]>([]);
@@ -70,16 +70,6 @@ export function AdminUserPicker({
       return () => window.clearTimeout(timer);
     }
   }, [value, selectedUser?.id]);
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, []);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -172,7 +162,7 @@ export function AdminUserPicker({
   const showEmptyState = showDropdown && hasSearched && !isPending && results.length === 0;
 
   return (
-    <div ref={containerRef} className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col gap-2', className)}>
       {hideLabel ? null : <Label htmlFor={inputId}>{label}</Label>}
 
       {selectedUser ? (
@@ -199,74 +189,87 @@ export function AdminUserPicker({
           </button>
         </div>
       ) : (
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id={inputId}
-            value={query}
-            onChange={(event) => handleQueryChange(event.target.value)}
-            onFocus={() => {
-              if (results.length > 0 || showEmptyState) setOpen(true);
-            }}
-            placeholder="Cari nama atau Clerk ID…"
-            className="h-10 pl-9 pr-9"
-            disabled={disabled}
-            required={required}
-            autoComplete="off"
-            spellCheck={false}
-            role="combobox"
-            aria-expanded={showDropdown}
-            aria-controls={`${inputId}-listbox`}
-            aria-autocomplete="list"
-          />
-          {isPending ? (
-            <Loader2 className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-          ) : null}
-
-          {showDropdown ? (
-            <div
-              id={`${inputId}-listbox`}
-              role="listbox"
-              className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-popover p-1 shadow-md"
-            >
-              {results.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  role="option"
-                  aria-selected={value === user.id}
-                  className="flex w-full items-start gap-2 rounded-sm px-2 py-2 text-left transition-colors hover:bg-muted"
-                  onClick={() => selectUser(user)}
-                >
-                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <User className="size-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {user.resolvedDisplayName}
-                    </p>
-                    {user.displayName &&
-                    user.ssoDisplayName &&
-                    user.displayName.trim() !== user.ssoDisplayName.trim() ? (
-                      <p className="truncate text-xs text-muted-foreground">
-                        SSO: {user.ssoDisplayName}
-                      </p>
-                    ) : null}
-                    {user.ssoEmail ? (
-                      <p className="truncate text-xs text-muted-foreground">{user.ssoEmail}</p>
-                    ) : null}
-                    <p className="truncate font-mono text-[10px] text-muted-foreground">{user.id}</p>
-                  </div>
-                  {value === user.id ? <Check className="mt-1 size-4 shrink-0 text-primary" /> : null}
-                </button>
-              ))}
-
-              {showEmptyState ? (
-                <p className="px-3 py-2 text-sm text-muted-foreground">Tidak ada pengguna ditemukan.</p>
+        <Popover
+          open={showDropdown}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) setOpen(false);
+          }}
+          modal={false}
+        >
+          <PopoverAnchor asChild>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id={inputId}
+                value={query}
+                onChange={(event) => handleQueryChange(event.target.value)}
+                onFocus={() => {
+                  if (results.length > 0 || (hasSearched && trimmedQuery.length >= MIN_SEARCH_LENGTH)) {
+                    setOpen(true);
+                  }
+                }}
+                placeholder="Cari nama atau Clerk ID…"
+                className="h-10 pl-9 pr-9"
+                disabled={disabled}
+                required={required}
+                autoComplete="off"
+                spellCheck={false}
+                role="combobox"
+                aria-expanded={showDropdown}
+                aria-controls={`${inputId}-listbox`}
+                aria-autocomplete="list"
+              />
+              {isPending ? (
+                <Loader2 className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
               ) : null}
             </div>
-          ) : null}
-        </div>
+          </PopoverAnchor>
+
+          <PopoverContent
+            id={`${inputId}-listbox`}
+            role="listbox"
+            align="start"
+            sideOffset={4}
+            className="w-[var(--radix-popover-anchor-width)] max-h-56 overflow-auto p-1"
+            onOpenAutoFocus={(event) => event.preventDefault()}
+          >
+            {results.map((user) => (
+              <button
+                key={user.id}
+                type="button"
+                role="option"
+                aria-selected={value === user.id}
+                className="flex w-full items-start gap-2 rounded-sm px-2 py-2 text-left transition-colors hover:bg-muted"
+                onClick={() => selectUser(user)}
+              >
+                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="size-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {user.resolvedDisplayName}
+                  </p>
+                  {user.displayName &&
+                  user.ssoDisplayName &&
+                  user.displayName.trim() !== user.ssoDisplayName.trim() ? (
+                    <p className="truncate text-xs text-muted-foreground">
+                      SSO: {user.ssoDisplayName}
+                    </p>
+                  ) : null}
+                  {user.ssoEmail ? (
+                    <p className="truncate text-xs text-muted-foreground">{user.ssoEmail}</p>
+                  ) : null}
+                  <p className="truncate font-mono text-[10px] text-muted-foreground">{user.id}</p>
+                </div>
+                {value === user.id ? <Check className="mt-1 size-4 shrink-0 text-primary" /> : null}
+              </button>
+            ))}
+
+            {showEmptyState ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">Tidak ada pengguna ditemukan.</p>
+            ) : null}
+          </PopoverContent>
+        </Popover>
       )}
 
       {showHint ? (
