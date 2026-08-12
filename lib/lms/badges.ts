@@ -111,6 +111,7 @@ export async function loadLmsBadgesForUser(
             xp: badge.xpBonus,
             unlocked: Boolean(userBadge),
             date: userBadge ? formatBadgeDate(userBadge.unlockedAt) : null,
+            unlockedAt: userBadge?.unlockedAt.toISOString() ?? null,
             rarity: mapLmsBadgeRarityToDisplay(badge.rarity),
             badgeType: 'LMS',
             requirementText: requirementLabel(
