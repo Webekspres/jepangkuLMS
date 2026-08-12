@@ -5,16 +5,19 @@ import { usePathname } from 'next/navigation';
 import { AdminSidebar } from '@/features/admin-cms/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin-cms/components/admin-topbar';
 import type { ResolvedLmsProfilePresentation } from '@/lib/lms/user-profile';
+import type { CheckoutMode } from '@/lib/midtrans/config';
 import { cn } from '@/lib/utils';
 
 export function AdminShell({
   children,
   pendingEnrollmentCount = 0,
   sessionProfile = null,
+  checkoutMode = 'core',
 }: {
   children: React.ReactNode;
   pendingEnrollmentCount?: number;
   sessionProfile?: ResolvedLmsProfilePresentation | null;
+  checkoutMode?: CheckoutMode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -27,7 +30,11 @@ export function AdminShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
-      <AdminSidebar className="hidden lg:flex" pendingEnrollmentCount={pendingEnrollmentCount} />
+      <AdminSidebar
+        className="hidden lg:flex"
+        pendingEnrollmentCount={pendingEnrollmentCount}
+        checkoutMode={checkoutMode}
+      />
 
       {mobileOpen ? (
         <>
@@ -41,6 +48,7 @@ export function AdminShell({
             className="fixed inset-y-0 left-0 z-50 lg:hidden"
             onNavigate={() => setMobileOpen(false)}
             pendingEnrollmentCount={pendingEnrollmentCount}
+            checkoutMode={checkoutMode}
           />
         </>
       ) : null}
