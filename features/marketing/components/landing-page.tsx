@@ -237,12 +237,14 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="mb-5 text-center text-[clamp(2rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white lg:text-left">
-              Mulai Perjalanan Bahasa Jepangmu
+            <h1 className="mb-5 text-center text-[clamp(1.25rem,4vw,3.25rem)] leading-[1.08] font-extrabold tracking-tight text-white whitespace-nowrap lg:text-left">
+              Persiapkan Tiket Menuju
               <br />
               <span className="bg-linear-to-r from-brand-red to-brand-yellow bg-clip-text text-transparent">
-                Hari Ini
+                Jepang Versi Kamu
               </span>
+              <br />
+              Mulai Sekarang Juga!
             </h1>
             <p className="mx-auto mb-0 max-w-lg text-center text-base leading-relaxed text-white/70 md:text-lg lg:mx-0 lg:mb-6 lg:text-left">
               Roadmap belajar dari N5 hingga N1
