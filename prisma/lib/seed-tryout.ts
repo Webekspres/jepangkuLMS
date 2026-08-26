@@ -127,10 +127,11 @@ const N5_FASE1_QUESTIONS: TryoutQuestionSeed[] = [
 const SESSIONS = [
   {
     code: 'fase-1',
-    title: 'Simulasi JLPT — Fase 1',
+    title: 'Simulasi JLPT N5 — Fase 1 (Gratis)',
     phaseLabel: 'Fase 1',
     level: 'N5' as const,
-    description: 'Sesi simulasi perdana — cocok untuk pemanasan dan mengukur baseline.',
+    description:
+      'Sesi simulasi perdana gratis — cocok untuk pemanasan, mengukur baseline, dan kenalan format CBT JLPT N5.',
     sortOrder: 1,
     isActive: true,
     priceIdr: 0,
@@ -140,32 +141,15 @@ const SESSIONS = [
     title: 'Simulasi JLPT N5 — Fase 1 Premium',
     phaseLabel: 'Fase 1 Premium',
     level: 'N5' as const,
-    description: 'Versi berbayar untuk simulasi N5 dengan alur enrollment/payment lokal.',
+    description:
+      'Versi berbayar simulasi N5 lengkap: timer, skor, dan review jawaban setelah enrollment aktif.',
     sortOrder: 2,
     isActive: true,
     priceIdr: 79_000,
   },
-  {
-    code: 'fase-3',
-    title: 'Simulasi JLPT N3 — Fase 3',
-    phaseLabel: 'Fase 3',
-    level: 'N3' as const,
-    description: 'Simulasi intensif menjelang ujian resmi.',
-    sortOrder: 3,
-    isActive: true,
-    priceIdr: 99_000,
-  },
-  {
-    code: 'fase-4',
-    title: 'Simulasi JLPT N2 — Fase 4',
-    phaseLabel: 'Fase 4',
-    level: 'N2' as const,
-    description: 'Final drill — kondisi ujian penuh.',
-    sortOrder: 4,
-    isActive: true,
-    priceIdr: 129_000,
-  },
 ] as const;
+
+const ACTIVE_TRYOUT_CODES = SESSIONS.map((s) => s.code);
 
 const SECTION_ABBR: Record<TryoutSectionCode, string> = {
   MOJI_GOI: 'MG',
@@ -339,4 +323,9 @@ export async function seedTryoutSessions(prisma: PrismaClient): Promise<void> {
       await seedFase1N5Bank(prisma, row.id);
     }
   }
+
+  await prisma.tryoutSession.updateMany({
+    where: { code: { notIn: [...ACTIVE_TRYOUT_CODES] } },
+    data: { isActive: false },
+  });
 }
