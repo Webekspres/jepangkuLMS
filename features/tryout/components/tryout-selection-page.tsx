@@ -99,7 +99,7 @@ export function TryoutSelectionPage({
   return (
     <div className="space-y-8 pb-10">
       <StudentProgramHero
-        backgroundSrc="/assets/Cover-JLPT-TryOut.webp"
+        backgroundSrc="/assets/bg-tryout.webp"
         badge={{ icon: Trophy, label: 'Olimpiade intensif JLPT' }}
         title="Simulasi Ujian"
         titleAccent="JLPT Terstandarisasi"

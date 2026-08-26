@@ -10,7 +10,7 @@ type PlacementHubHeroProps = {
 export function PlacementHubHero({ totalQuestions }: PlacementHubHeroProps) {
   return (
     <StudentProgramHero
-      backgroundSrc="/assets/placement-test-cover.webp"
+      backgroundSrc="/assets/bg-placement.webp"
       badge={{ icon: Compass, label: 'Program · Tes Penempatan' }}
       title="Temukan jalur belajar"
       titleAccent="yang pas untukmu"
