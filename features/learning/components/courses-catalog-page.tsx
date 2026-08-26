@@ -187,7 +187,7 @@ export function CoursesCatalogPage({
 
       <MarketingCoverProgramSection
         title="Live Class"
-        subtitle="Belajar bareng sensei secara langsung — daftar untuk melihat jadwal lengkap."
+        subtitle="Belajar bareng sensei secara langsung — lihat detail jadwal dan harga."
         items={liveClasses}
         emptyTitle="Belum ada Live Class"
         emptyDescription="Jadwal kelas langsung belum tersedia. Cek lagi nanti."
@@ -195,7 +195,7 @@ export function CoursesCatalogPage({
 
       <MarketingCoverProgramSection
         title="Try Out JLPT"
-        subtitle="Simulasi ujian resmi — daftar untuk memilih sesi dan mulai latihan."
+        subtitle="Simulasi ujian resmi — lihat detail sesi sebelum daftar."
         items={tryouts}
         emptyTitle="Belum ada Try Out JLPT"
         emptyDescription="Sesi simulasi JLPT belum tersedia. Cek lagi nanti."

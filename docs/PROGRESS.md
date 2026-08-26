@@ -7,28 +7,28 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | **Fase**                  | 1 (MVP)                                                     |
 | **Target**                | Akhir Juni 2026                                             |
 | **Base domain**           | `kursus.jepangku.com`                                       |
-| **Terakhir diperbarui**   | 2026-08-12                                                  |
+| **Terakhir diperbarui**   | 2026-08-26                                                  |
 | **Arsitektur**            | [ECOSYSTEM.md](./ECOSYSTEM.md) — LMS + Core + Portal Berita |
-| **Progres global Fase 1** | **88%** (76 item terlacak)                                 |
+| **Progres global Fase 1** | **89%** (79 item terlacak)                                 |
 
 ### Progres global
 
 ```text
-[█████████████████░░░] 88%
+[██████████████████░░] 89%
 ```
 
 | Area                     | Bobot\* |     ✅ |    🟡 |    ⬜ |  % area |
 | :----------------------- | ------: | -----: | ----: | ----: | ------: |
 | Infrastruktur & platform |      17 |     13 |     4 |     0 |     86% |
-| Halaman & routing        |      35 |     29 |     6 |     0 |     90% |
+| Halaman & routing        |      38 |     32 |     6 |     0 |     91% |
 | Domain `features/`       |       9 |      7 |     2 |     0 |     87% |
 | Data & integrasi         |       8 |      7 |     0 |     1 |     87% |
 | Keamanan & bisnis        |       7 |      6 |     1 |     0 |     91% |
-| **Total**                |  **76** | **62** | **13** | **1** | **88%** |
+| **Total**                |  **79** | **65** | **13** | **1** | **89%** |
 
 \*Jumlah baris terlacak di §1–§5 (🔮 Fase 2 tidak dihitung).
 
-**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(62 + 5.2) ÷ 76 ≈ 88%`.
+**Rumus:** `((✅ × 1) + (🟡 × 0,4) + (⬜ × 0)) ÷ total × 100` → `(65 + 5.2) ÷ 79 ≈ 89%`.
 
 ---
 
@@ -48,7 +48,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Area                     | Selesai | Sebagian | Belum |
 | :----------------------- | ------: | -------: | ----: |
 | Infrastruktur & platform |      13 |        4 |     0 |
-| Halaman & routing        |      29 |        6 |     0 |
+| Halaman & routing        |      32 |        6 |     0 |
 | Domain `features/`       |       7 |        2 |     0 |
 | Data & integrasi         |       7 |        0 |     1 |
 | Keamanan & bisnis        |       6 |        1 |     0 |
@@ -86,9 +86,11 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | Route                                          | Status | Catatan                                               |
 | :--------------------------------------------- | :----: | :---------------------------------------------------- |
 | `/`                                            |   🟡   | Landing lengkap; data marketing statis                |
-| `/kursus`                                      |   ✅   | **Prisma** published + filter; teaser Live Class & Tryout (cover + Lihat Detail → `/sign-up`) |
-| `/kursus/[slug]`                               |   ✅   | Detail marketing + CTA Daftar/Masuk; login → dashboard detail |
+| `/kursus`                                      |   ✅   | Katalog Prisma + kartu Live Class & Tryout (desc, harga, Lihat Detail → detail publik) |
+| `/kursus/[slug]`                               |   ✅   | Detail marketing; CTA Daftar/Masuk → `?redirect_url=` `/dashboard/kursus/[slug]` |
+| `/live-class/[id]`                             |   ✅   | Detail Live Class publik (guest); login → `/dashboard/live-class/[id]` |
 | `/tryout`                                      |   🟡   | Halaman info publik (bukan ujian interaktif)          |
+| `/tryout/[sessionCode]`                        |   ✅   | Detail sesi tryout publik; CTA → post-login `/dashboard/tryout` |
 | `/tes-penempatan`                              |   🟡   | Info publik; CTA → `/dashboard/tes-penempatan` |
 | `/tentang`, `/cara-belajar`, `/hubungi`, legal |   ✅   |                                                       |
 
@@ -112,6 +114,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/profil`                             |   ✅   | Hero + stats + edit (display name, avatar R2, badge title)                              |
 | `/dashboard/achievements`                       |   ✅   | Badge LMS + milestone JLPT dari hasil tryout                                            |
 | `/dashboard/live-class`                         |   ✅   | Jadwal live class dari DB                                                               |
+| `/dashboard/live-class/[id]`                    |   ✅   | Detail + enrollment / Zoom                                                              |
 | `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per blok JLPT (N5–N3: 3; N1–N2: 2) + analisa hasil                   |
 | `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro blok → soal terisolasi → submit (N1/N2 gabung Vocab+Grammar)          |
 | `/dashboard/tryout/hasil/[attemptId]`           |   ✅   | Popup animasi hasil + tier SOS/Latihan/Aman + tabel skor & analisa bagian + detail soal |
@@ -204,6 +207,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-26 | Marketing Live Class & Tryout: kartu katalog (desc+harga) → detail publik `/live-class/[id]` & `/tryout/[sessionCode]`; CTA auth `authEntryWithReturn` → path dasbor siswa |
 | 2026-08-12 | Hapus **Beri Badge** dari sidebar; entry via tombol di `/admin/badges` |
 | 2026-08-12 | Grant badge dari katalog (bukan Manual-only); tab Riwayat di `/admin/badges` (aturan vs admin); hapus opsi Manual dari form baru |
 | 2026-08-12 | Admin CMS grant badge Manual: submenu Gamifikasi **Beri Badge** (`/admin/badges/grant`), `grantBadgeToUser` + notifikasi, riwayat paginated |

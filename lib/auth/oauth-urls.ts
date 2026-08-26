@@ -139,3 +139,16 @@ export function resolvePostAuthRedirect(): string {
 export function resolvePostAuthRedirectAbsolute(): string {
   return getAuthRedirectUrl(resolvePostAuthRedirect());
 }
+
+/**
+ * Link ke /sign-in atau /sign-up dengan `?redirect_url=` ke path dasbor/admin yang aman.
+ * Path tidak valid → entry tanpa query (fallback dashboard setelah auth).
+ */
+export function authEntryWithReturn(
+  entry: typeof AUTH_ROUTES.signIn | typeof AUTH_ROUTES.signUp,
+  returnPath: string,
+): string {
+  const safe = sanitizeInternalRedirectPath(returnPath);
+  if (!safe) return entry;
+  return `${entry}?redirect_url=${encodeURIComponent(safe)}`;
+}
