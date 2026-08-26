@@ -127,3 +127,64 @@ export const loadLiveClassDetail = cache(async function loadLiveClassDetail(
     sessions,
   };
 });
+
+/**
+ * Detail live class untuk marketing publik — tanpa auth, tanpa meeting/recording URL.
+ */
+export const loadMarketingLiveClassDetail = cache(
+  async function loadMarketingLiveClassDetail(
+    id: string,
+  ): Promise<LiveClassDetailView | null> {
+    const row = await prisma.liveClass.findFirst({
+      where: { id, isPublished: true },
+      include: { sessions: { orderBy: { scheduledAt: 'asc' } } },
+    });
+
+    if (!row) return null;
+
+    const now = new Date();
+    const enrollmentClosed = isLiveClassEnrollmentClosed(row.sessions[0]?.scheduledAt, now);
+    const accessMessage = enrollmentClosed
+      ? 'Pendaftaran live class ini sudah ditutup H-1 sebelum pertemuan pertama.'
+      : null;
+
+    const sessions: LiveClassDetailSession[] = row.sessions.map((session) => {
+      const status = resolveLiveSessionStatus(session.scheduledAt, session.endsAt, now);
+      return {
+        id: session.id,
+        title: session.title,
+        scheduledAtISO: session.scheduledAt.toISOString(),
+        endsAtISO: session.endsAt.toISOString(),
+        dateLabel: formatJakartaDateLong(session.scheduledAt),
+        timeLabel: formatJakartaTimeRange(session.scheduledAt, session.endsAt),
+        status,
+        meetingUrl: null,
+        recordingUrl: null,
+      };
+    });
+
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      senseiName: row.senseiName,
+      senseiLevel: row.senseiLevel,
+      category: row.category,
+      level: row.level,
+      priceIdr: row.priceIdr,
+      maxSlots: row.maxSlots,
+      filledSlots: row.filledSlots,
+      coverImageUrl: row.coverImageUrl,
+      paymentLink: null,
+      paymentSettings: getPaymentSettings(),
+      isFull: row.filledSlots >= row.maxSlots,
+      sessionCount: row.sessions.length,
+      isEnrolled: false,
+      enrollmentStatus: 'NONE',
+      pendingPaymentId: null,
+      enrollmentClosed,
+      accessMessage,
+      sessions,
+    };
+  },
+);

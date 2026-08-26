@@ -23,11 +23,43 @@ type LiveClassSeed = {
   sessions: LiveSessionSeed[];
 };
 
+/** Tepat 2 program: 1 gratis + 1 berbayar. */
 const LIVE_CLASSES: LiveClassSeed[] = [
+  {
+    title: 'Kanji Speed Drill N5',
+    description:
+      'Sesi drill intensif: baca, tulis, dan hafal kanji N5 dengan metode visual mnemonik bersama sensei — cocok untuk pemula yang ingin percepat hafalan.',
+    senseiName: 'Sensei Hana Matsuda',
+    senseiLevel: 'N1 Native',
+    category: 'Kanji',
+    level: 'N5',
+    priceIdr: 0,
+    maxSlots: 25,
+    filledSlots: 18,
+    isPublished: true,
+    sessions: [
+      {
+        title: 'Pertemuan 1 — 50 Kanji Dasar',
+        daysFromNow: 3,
+        hour: 20,
+        minute: 0,
+        durationMinutes: 60,
+        meetingUrl: 'https://zoom.us/j/kanjidrill-1',
+      },
+      {
+        title: 'Pertemuan 2 — 50 Kanji Lanjutan',
+        daysFromNow: 5,
+        hour: 20,
+        minute: 0,
+        durationMinutes: 60,
+        meetingUrl: 'https://zoom.us/j/kanjidrill-2',
+      },
+    ],
+  },
   {
     title: 'Batch N4: Tata Bahasa Intensif',
     description:
-      'Program 3 pertemuan menguasai pola kalimat inti N4 — て-form, bentuk sopan, dan aplikasi sehari-hari.',
+      'Program 3 pertemuan menguasai pola kalimat inti N4 — て-form, bentuk sopan, dan aplikasi sehari-hari bersama sensei secara live.',
     senseiName: 'Sensei Yuki Tanaka',
     senseiLevel: 'N2 Instructor',
     category: 'Tata Bahasa',
@@ -63,69 +95,9 @@ const LIVE_CLASSES: LiveClassSeed[] = [
       },
     ],
   },
-  {
-    title: 'Kanji Speed Drill N5',
-    description:
-      'Sesi drill intensif: baca, tulis, dan hafal kanji N5 dengan metode visual mnemonik bersama.',
-    senseiName: 'Sensei Hana Matsuda',
-    senseiLevel: 'N1 Native',
-    category: 'Kanji',
-    level: 'N5',
-    priceIdr: 0,
-    maxSlots: 25,
-    filledSlots: 18,
-    isPublished: true,
-    sessions: [
-      {
-        title: 'Pertemuan 1 — 50 Kanji Dasar',
-        daysFromNow: 3,
-        hour: 20,
-        minute: 0,
-        durationMinutes: 60,
-        meetingUrl: 'https://zoom.us/j/kanjidrill-1',
-      },
-      {
-        title: 'Pertemuan 2 — 50 Kanji Lanjutan',
-        daysFromNow: 5,
-        hour: 20,
-        minute: 0,
-        durationMinutes: 60,
-        meetingUrl: 'https://zoom.us/j/kanjidrill-2',
-      },
-    ],
-  },
-  {
-    title: 'Daily Conversation: Situasi di Kantor',
-    description:
-      'Praktik percakapan sehari-hari di lingkungan kerja Jepang — salam, meminta tolong, melapor ke atasan.',
-    senseiName: 'Sensei Kenji Watanabe',
-    senseiLevel: 'N1 Business',
-    category: 'Speaking',
-    level: 'N3',
-    priceIdr: 200_000,
-    maxSlots: 20,
-    filledSlots: 13,
-    isPublished: true,
-    sessions: [
-      {
-        title: 'Pertemuan 1 — Salam & Perkenalan Formal',
-        daysFromNow: 4,
-        hour: 18,
-        minute: 30,
-        durationMinutes: 90,
-        meetingUrl: 'https://zoom.us/j/bizconvo-1',
-      },
-      {
-        title: 'Pertemuan 2 — Melapor & Meminta Tolong',
-        daysFromNow: 8,
-        hour: 18,
-        minute: 30,
-        durationMinutes: 90,
-        meetingUrl: 'https://zoom.us/j/bizconvo-2',
-      },
-    ],
-  },
 ];
+
+const KEEP_TITLES = LIVE_CLASSES.map((p) => p.title);
 
 function addDays(base: Date, days: number, hour: number, minute: number): Date {
   const d = new Date(base);
@@ -177,4 +149,9 @@ export async function seedLiveClasses(prisma: PrismaClient): Promise<void> {
       }),
     });
   }
+
+  await prisma.liveClass.updateMany({
+    where: { title: { notIn: KEEP_TITLES } },
+    data: { isPublished: false },
+  });
 }

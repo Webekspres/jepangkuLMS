@@ -12,12 +12,15 @@ import {
   ExternalLink,
   Lock,
   PlayCircle,
+  UserPlus,
   Users,
   Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
+import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
+import { PublicNavbar } from '@/features/marketing/components/public-navbar';
 import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import { requestLiveClassEnrollment, recordLiveClassSessionJoinAction } from '@/features/live-class/actions/live-class-actions';
@@ -29,6 +32,8 @@ import type {
   LiveClassDetailSession,
   LiveClassDetailView,
 } from '@/features/live-class/lib/load-live-class-detail';
+import { AUTH_ROUTES } from '@/lib/auth/constants';
+import { authEntryWithReturn } from '@/lib/auth/oauth-urls';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
@@ -272,17 +277,82 @@ function EnrolledAccessCard({
   );
 }
 
+function LiveClassMarketingGuestSidebar({ liveClass }: { liveClass: LiveClassDetailView }) {
+  const returnPath = STUDENT_ROUTES.liveClassDetail(liveClass.id);
+  const signUpHref = authEntryWithReturn(AUTH_ROUTES.signUp, returnPath);
+  const signInHref = authEntryWithReturn(AUTH_ROUTES.signIn, returnPath);
+  const isFree = isFreeCourse(liveClass.priceIdr);
+  const priceLabel = formatIdr(liveClass.priceIdr);
+
+  if (liveClass.accessMessage) {
+    return (
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Pendaftaran ditutup</p>
+            <p className="wrap-break-word text-xs text-muted-foreground">{liveClass.accessMessage}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <div>
+        <p
+          className={cn(
+            'text-2xl font-extrabold',
+            isFree ? 'text-emerald-600' : 'text-brand-red',
+          )}
+        >
+          {isFree ? 'GRATIS' : priceLabel}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {isFree
+            ? 'Masuk akun untuk mendaftar — akses aktif setelah pendaftaran.'
+            : 'Bayar online setelah masuk akun — akses aktif otomatis setelah pembayaran berhasil.'}
+        </p>
+      </div>
+      {liveClass.isFull ? (
+        <Button disabled size="lg" className="h-11 w-full">
+          Kelas Penuh
+        </Button>
+      ) : (
+        <>
+          <Button asChild className="h-11 w-full gap-2 font-bold" size="lg">
+            <Link href={signUpHref}>
+              <UserPlus className="size-4" />
+              {isFree ? 'Daftar Gratis' : 'Daftar Sekarang'}
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
+            <Link href={signInHref}>{isFree ? 'Masuk' : 'Masuk untuk beli'}</Link>
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function LiveClassSidebarActions({
   liveClass,
   isPending,
   onEnroll,
   now,
+  variant = 'student',
 }: {
   liveClass: LiveClassDetailView;
   isPending: boolean;
   onEnroll: () => Promise<void>;
   now: number;
+  variant?: 'student' | 'marketing';
 }) {
+  if (variant === 'marketing') {
+    return <LiveClassMarketingGuestSidebar liveClass={liveClass} />;
+  }
+
   if (liveClass.enrollmentStatus === 'ACTIVE') {
     return (
       <EnrolledAccessCard liveClassId={liveClass.id} sessions={liveClass.sessions} now={now} />
@@ -381,13 +451,16 @@ function LiveClassSidebarActions({
 export function LiveClassDetailPage({
   liveClass,
   studentDisplayName: _studentDisplayName,
+  variant = 'student',
 }: {
   liveClass: LiveClassDetailView;
   studentDisplayName: string | null;
+  variant?: 'student' | 'marketing';
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
+  const isMarketing = variant === 'marketing';
 
   // Tick agar status sesi berpindah otomatis (upcoming → live → ended).
   useEffect(() => {
@@ -427,16 +500,17 @@ export function LiveClassDetailPage({
     isPending,
     onEnroll: handleEnroll,
     now,
+    variant,
   };
 
-  return (
+  const detailBody = (
     <div className="mx-auto w-full min-w-0 max-w-5xl space-y-8 pb-10">
       <Link
-        href="/dashboard/live-class"
+        href={isMarketing ? '/kursus' : '/dashboard/live-class'}
         className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Semua Live Class
+        {isMarketing ? 'Kembali ke Katalog' : 'Semua Live Class'}
       </Link>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -565,6 +639,18 @@ export function LiveClassDetailPage({
           </div>
         </aside>
       </div>
+    </div>
+  );
+
+  if (!isMarketing) {
+    return detailBody;
+  }
+
+  return (
+    <div className="min-h-screen bg-background font-sans text-foreground">
+      <PublicNavbar activeHref="/kursus" />
+      <div className="container mx-auto px-4 py-8 sm:py-10 md:px-8">{detailBody}</div>
+      <MarketingFooter />
     </div>
   );
 }

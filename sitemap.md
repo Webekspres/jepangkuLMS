@@ -31,13 +31,21 @@ Berisi halaman statis publik. Jika user yang sudah login mengakses root path (`/
 │
 ├── /kursus                      → Katalog Kursus (Read-Only)
 │   ├── Filter: Level JLPT (N5, N4, N3, N2, N1) & Kategori
+│   ├── Section: Live Class & Try Out (kartu + Lihat Detail)
 │   └── /[courseSlug]            → Detail Kursus Publik
 │       ├── Deskripsi & Total Durasi
 │       ├── Silabus (Preview Locked)
-│       └── CTA: Mulai Belajar (Redirect ke login jika belum auth)
+│       └── CTA: Daftar/Masuk → post-login `/dashboard/kursus/[courseSlug]`
+│
+├── /live-class/[id]             → Detail Live Class Publik
+│   ├── Deskripsi, jadwal, harga (tanpa meeting URL)
+│   └── CTA: Daftar/Masuk → post-login `/dashboard/live-class/[id]`
 │
 ├── /tryout                      → Halaman Info Tryout JLPT (Read-Only)
-│   └── Info Tryout, Jadwal, & CTA Daftar
+│   ├── Info Tryout, Jadwal, & CTA Daftar
+│   └── /[sessionCode]           → Detail Sesi Tryout Publik
+│       ├── Deskripsi, harga, meta sesi
+│       └── CTA: Daftar/Masuk → post-login `/dashboard/tryout`
 │
 └── /tes-penempatan              → Halaman Info Tes Penempatan (Read-Only)
     └── Penjelasan + CTA Daftar / Masuk
@@ -88,7 +96,8 @@ Jantung utama aplikasi LMS. Mengelola progres belajar, pemutaran video materi, d
 
 /dashboard/live-class *          → Jadwal Live Class (Zoom)
 ├── Filter kategori + pencarian
-└── Kartu kelas + link meeting
+├── Kartu kelas + link meeting
+└── /[id] *                      → Detail Live Class + enrollment / Zoom
 
 /dashboard/tryout *              → Simulasi JLPT (pilih sesi + level)
 ├── /riwayat *                   → Riwayat tryout siswa + buka analisa ulang

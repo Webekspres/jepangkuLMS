@@ -21,6 +21,7 @@ import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { LIVE_CLASS_FILTER_CATEGORIES } from '@/features/live-class/lib/live-class-categories';
 import { resolveLiveClassCoverUrl } from '@/features/learning/lib/course-display';
 import type { LiveClassView } from '@/features/student/lib/load-dashboard-extras';
+import { StudentProgramHero } from '@/features/student/components/student-program-hero';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
 import { cn } from '@/lib/utils';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
@@ -59,43 +60,25 @@ export function LiveClassPage({ classes }: LiveClassPageProps) {
 
   return (
     <div className="space-y-8 pb-10">
-      <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center sm:px-10">
-        <div className="absolute inset-0">
-          <Image
-            src="/assets/Cover-LiveClass.webp"
-            alt="Ilustrasi live class"
-            fill
-            sizes="(max-width: 640px) 100vw, 80rem"
-            className="object-cover"
-            priority
+      <StudentProgramHero
+        backgroundSrc="/assets/bg-live_class.webp"
+        badge={{ icon: Video, label: 'Jadwal Live Class' }}
+        title="Belajar Langsung Bersama"
+        titleAccent="Sensei Berpengalaman"
+        subtitle="Sesi live via Zoom — tanya jawab langsung, latihan interaktif, dan feedback real-time."
+        fullBleed
+      >
+        <div className="relative mx-auto max-w-xl">
+          <Search className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari kelas, sensei..."
+            aria-label="Cari live class"
+            className="w-full rounded-2xl border border-border/80 bg-card/95 py-3.5 pr-4 pl-12 text-base shadow-md outline-none backdrop-blur-sm transition-colors focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
           />
-          <div className="absolute inset-0 bg-brand-hero-navy/85" />
         </div>
-        <div className="relative z-10 mx-auto max-w-2xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
-            <Video className="size-4 text-brand-yellow" />
-            Jadwal Live Class
-          </div>
-          <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-white">
-            Belajar Langsung Bersama{' '}
-            <span className="bg-linear-to-r from-brand-orange to-brand-yellow bg-clip-text text-transparent">
-              Sensei Berpengalaman
-            </span>
-          </h1>
-          <p className="mt-3 text-sm text-white/75 sm:text-base">
-            Sesi live via Zoom — tanya jawab langsung, latihan interaktif, dan feedback real-time.
-          </p>
-          <div className="relative mx-auto mt-6 max-w-md">
-            <Search className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-white/40" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari kelas, sensei..."
-              className="w-full rounded-2xl border border-white/20 bg-white/10 py-3.5 pr-4 pl-10 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/40"
-            />
-          </div>
-        </div>
-      </section>
+      </StudentProgramHero>
 
       <div className="flex flex-wrap items-center justify-center gap-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
         <span>
