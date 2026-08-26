@@ -113,12 +113,12 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 | `/dashboard/leaderboard`                        |   ✅   | LMS poin + podium hierarki + mobile responsive                                          |
 | `/dashboard/profil`                             |   ✅   | Hero + stats + edit (display name, avatar R2, badge title)                              |
 | `/dashboard/achievements`                       |   ✅   | Badge LMS + milestone JLPT dari hasil tryout                                            |
-| `/dashboard/live-class`                         |   ✅   | Jadwal live class dari DB                                                               |
+| `/dashboard/live-class`                         |   ✅   | Hero full-bleed selaras kursus + jadwal dari DB                                         |
 | `/dashboard/live-class/[id]`                    |   ✅   | Detail + enrollment / Zoom                                                              |
-| `/dashboard/tryout`                             |   ✅   | Pilih sesi + ujian per blok JLPT (N5–N3: 3; N1–N2: 2) + analisa hasil                   |
+| `/dashboard/tryout`                             |   ✅   | Hero full-bleed selaras kursus; pilih sesi + ujian per blok JLPT                        |
 | `/dashboard/tryout/[session]/[level]`           |   ✅   | Mode fokus: intro blok → soal terisolasi → submit (N1/N2 gabung Vocab+Grammar)          |
 | `/dashboard/tryout/hasil/[attemptId]`           |   ✅   | Popup animasi hasil + tier SOS/Latihan/Aman + tabel skor & analisa bagian + detail soal |
-| `/dashboard/tes-penempatan`                     |   🟡   | Hub + stub paper; asset sensei belum final                                              |
+| `/dashboard/tes-penempatan`                     |   🟡   | Hero full-bleed selaras kursus; hub + stub paper; asset sensei belum final              |
 | `/dashboard/tes-penempatan/ujian`               |   🟡   | Focus UI: Bunpou flat + Choukai Mondai Intro/navigator grup; audio kontinu; stub soal Choukai |
 | `/dashboard/tes-penempatan/hasil/[attemptId]`   |   🟡   | Rekomendasi level dari score bands; isi soal masih stub                                 |
 | `/dashboard/checkout/...`                       |   ✅   | Shared Core checkout: kursus / live-class / tryout + ikon metode tergrup                |
@@ -207,6 +207,7 @@ Living document untuk melacak apa yang sudah dikerjakan vs belum. **Single sourc
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                       |
 | :--------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-26 | Hero Program siswa diseragamkan: `StudentProgramHero` full-bleed (pola kursus) untuk Live Class, Tryout, Tes Penempatan |
 | 2026-08-26 | Marketing Live Class & Tryout: kartu katalog (desc+harga) → detail publik `/live-class/[id]` & `/tryout/[sessionCode]`; CTA auth `authEntryWithReturn` → path dasbor siswa |
 | 2026-08-12 | Hapus **Beri Badge** dari sidebar; entry via tombol di `/admin/badges` |
 | 2026-08-12 | Grant badge dari katalog (bukan Manual-only); tab Riwayat di `/admin/badges` (aturan vs admin); hapus opsi Manual dari form baru |

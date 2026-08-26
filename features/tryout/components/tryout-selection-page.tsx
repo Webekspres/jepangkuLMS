@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Clock, Trophy } from 'lucide-react';
@@ -10,6 +9,7 @@ import { LEVEL_ACCENT } from '@/features/learning/components/courses-data';
 import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import type { TryoutSessionView } from '@/features/student/lib/load-dashboard-extras';
 import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { StudentProgramHero } from '@/features/student/components/student-program-hero';
 import { TryoutAccessPanel } from '@/features/tryout/components/tryout-access-panel';
 import { formatIdr, isFreeCourse } from '@/lib/lms/format-price';
 import type { PaymentSettings } from '@/lib/payment/enrollment-payment-messages';
@@ -98,33 +98,14 @@ export function TryoutSelectionPage({
 
   return (
     <div className="space-y-8 pb-10">
-      <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center sm:px-10">
-        <div className="absolute inset-0">
-          <Image
-            src="/assets/Cover-JLPT-TryOut.webp"
-            alt="Ilustrasi simulasi ujian JLPT"
-            fill
-            sizes="(max-width: 640px) 100vw, 80rem"
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-brand-hero-navy/85" />
-        </div>
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-brand-red/20 blur-[80px]" />
-        <div className="pointer-events-none absolute -bottom-8 left-8 h-32 w-32 rounded-full bg-primary/20 blur-[60px]" />
-        <div className="relative z-10">
-          <p className="mb-2 text-xs font-bold tracking-[0.18em] text-white/50 uppercase">
-            Olimpiade intensif JLPT
-          </p>
-          <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-white">
-            Simulasi Ujian JLPT
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/70">
-            Pilih sesi simulasi. Setiap sesi terkunci ke satu level JLPT. Bagian MOJI GOI, BUNPOU
-            DOKKAI, dan CHOKAI dikerjakan terpisah — seperti ujian resmi.
-          </p>
-        </div>
-      </section>
+      <StudentProgramHero
+        backgroundSrc="/assets/Cover-JLPT-TryOut.webp"
+        badge={{ icon: Trophy, label: 'Olimpiade intensif JLPT' }}
+        title="Simulasi Ujian"
+        titleAccent="JLPT Terstandarisasi"
+        subtitle="Pilih sesi simulasi. Setiap sesi terkunci ke satu level JLPT. Bagian MOJI GOI, BUNPOU DOKKAI, dan CHOKAI dikerjakan terpisah — seperti ujian resmi."
+        fullBleed
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[

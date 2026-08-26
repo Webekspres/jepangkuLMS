@@ -1,4 +1,7 @@
-import Image from 'next/image';
+'use client';
+
+import { Compass } from 'lucide-react';
+import { StudentProgramHero } from '@/features/student/components/student-program-hero';
 
 type PlacementHubHeroProps = {
   totalQuestions: number;
@@ -6,37 +9,13 @@ type PlacementHubHeroProps = {
 
 export function PlacementHubHero({ totalQuestions }: PlacementHubHeroProps) {
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-brand-hero-navy px-6 py-10 text-center text-white sm:px-10">
-      <div className="absolute inset-0">
-        <Image
-          src="/assets/placement-test-cover.webp"
-          alt="Ilustrasi tes penempatan"
-          fill
-          sizes="(max-width: 640px) 100vw, 80rem"
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-brand-hero-navy/85" />
-      </div>
-      <div
-        className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-brand-red/20 blur-[80px]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-8 left-8 h-32 w-32 rounded-full bg-primary/20 blur-[60px]"
-        aria-hidden
-      />
-      <div className="relative z-10 mx-auto max-w-xl">
-        <p className="mb-2 text-xs font-bold tracking-[0.18em] text-white/50 uppercase">
-          Program · Tes Penempatan
-        </p>
-        <h1 className="text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold text-white">
-          Temukan jalur belajar <br/> yang pas
-        </h1>
-        <p className="mx-auto mt-3 text-sm text-white/70">
-          Tes singkat {totalQuestions} soal untuk rekomendasi jalur N5 atau N4.
-        </p>
-      </div>
-    </section>
+    <StudentProgramHero
+      backgroundSrc="/assets/placement-test-cover.webp"
+      badge={{ icon: Compass, label: 'Program · Tes Penempatan' }}
+      title="Temukan jalur belajar"
+      titleAccent="yang pas untukmu"
+      subtitle={`Tes singkat ${totalQuestions} soal untuk rekomendasi jalur N5 atau N4.`}
+      fullBleed
+    />
   );
 }
