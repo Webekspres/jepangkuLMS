@@ -219,6 +219,18 @@ Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerj
 
 ---
 
+## 🧠 Knowledge Graph Kodebase (`graphify`)
+
+Repo ini punya **knowledge graph** yang dibangun dengan skill `/graphify`, tersimpan di `graphify-out/`. Folder ini adalah **artefak lokal per mesin** dan sudah terdaftar di `.gitignore` — jangan pernah commit folder atau isinya.
+
+Aturan untuk Agent:
+
+1. **Tanya arsitektur → query graph dulu.** Untuk pertanyaan tentang kodebase, arsitektur, atau relasi antar file/domain (mis. "bagaimana alur enrollment?", "siapa yang memanggil fungsi X?", "data mengalir dari mana ke mana?"), jalankan `graphify query "<pertanyaan>"` atau muat skill `/graphify` **sebelum** grep/eksplorasi manual — lebih cepat dan hemat token.
+2. **Jangan rebuild sembarangan.** Jika `graphify-out/graph.json` ada, graph sudah terbangun — langsung query. Jalankan `/graphify --update` hanya setelah perubahan struktural besar (domain `features/` baru, refactor lintas modul), bukan untuk edit kecil.
+3. **Folder ini bukan bagian repo.** Selain tidak di-commit, jangan jadikan `graphify-out/` referensi path impor kode aplikasi — itu hanya metadata penjelajahan.
+
+---
+
 ## 🏃‍♂️ Perintah Terminal Harian
 * Menjalankan Dev Server: `bun dev`
 * Testing:
@@ -233,6 +245,9 @@ Jika ragu apakah suatu item layak `✅`, biarkan `🟡` dan jelaskan sisa pekerj
   * Seed: `bun run db:seed`
   * Studio: `bun run db:studio`
   * Reset DB (dev): `bun run db:reset`
+* Knowledge graph kodebase (`graphify-out/`, lihat § Knowledge Graph):
+  * Query arsitektur: `graphify query "<pertanyaan>"`
+  * Rebuild incremental (hanya setelah refactor besar): `graphify . --update`
 
 ---
 

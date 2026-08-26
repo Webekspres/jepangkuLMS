@@ -21,6 +21,9 @@ import { JLPT_ACCENT } from '@/features/marketing/components/landing-data';
 import { MarketingFooter } from '@/features/marketing/components/marketing-footer';
 import { PUBLIC_NAV_STICKY_TOP } from '@/features/marketing/components/marketing-nav-layout';
 import { PublicNavbar } from '@/features/marketing/components/public-navbar';
+import { STUDENT_ROUTES } from '@/features/student/components/student-routes';
+import { AUTH_ROUTES } from '@/lib/auth/constants';
+import { authEntryWithReturn } from '@/lib/auth/oauth-urls';
 import { isUnoptimizedImageSrc } from '@/lib/media/image-src';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl } from '@/lib/admin-contact';
@@ -35,6 +38,9 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
   const accent = JLPT_ACCENT[course.accent];
   const isFree = course.priceNum === 0;
   const isAvailable = course.availability === 'tersedia';
+  const returnPath = STUDENT_ROUTES.kursusDetail(course.slug);
+  const signUpHref = authEntryWithReturn(AUTH_ROUTES.signUp, returnPath);
+  const signInHref = authEntryWithReturn(AUTH_ROUTES.signIn, returnPath);
 
   const syllabusGroups = useMemo(
     () =>
@@ -248,13 +254,13 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                 {isAvailable && isFree ? (
                   <>
                     <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-up">
+                      <Link href={signUpHref}>
                         <UserPlus className="size-4" />
                         Daftar Gratis
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-in">Masuk</Link>
+                      <Link href={signInHref}>Masuk</Link>
                     </Button>
                   </>
                 ) : isAvailable && !isFree ? (
@@ -264,19 +270,19 @@ export function CourseDetailPage({ course }: CourseDetailPageProps) {
                       berhasil.
                     </p>
                     <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-up">
+                      <Link href={signUpHref}>
                         <UserPlus className="size-4" />
                         Daftar Sekarang
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-in">Masuk untuk beli</Link>
+                      <Link href={signInHref}>Masuk untuk beli</Link>
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button asChild className="mb-3 h-11 w-full gap-2 font-bold">
-                      <Link href="/sign-up">
+                      <Link href={signUpHref}>
                         Daftar untuk Notifikasi Rilis
                         <ChevronRight className="size-4" />
                       </Link>

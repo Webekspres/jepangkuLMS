@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { sanitizeInternalRedirectPath } from '@/lib/auth/oauth-urls';
+import { AUTH_ROUTES } from '@/lib/auth/constants';
+import { authEntryWithReturn, sanitizeInternalRedirectPath } from '@/lib/auth/oauth-urls';
 
 const ORIGIN = 'https://kursus.jepangku.com';
 
@@ -40,5 +41,24 @@ describe('sanitizeInternalRedirectPath', () => {
     expect(sanitizeInternalRedirectPath('', ORIGIN)).toBeNull();
     expect(sanitizeInternalRedirectPath('dashboard', ORIGIN)).toBeNull();
     expect(sanitizeInternalRedirectPath('\\/dashboard', ORIGIN)).toBeNull();
+  });
+});
+
+describe('authEntryWithReturn', () => {
+  test('appends safe redirect_url for student detail paths', () => {
+    expect(authEntryWithReturn(AUTH_ROUTES.signIn, '/dashboard/kursus/n5')).toBe(
+      '/sign-in?redirect_url=%2Fdashboard%2Fkursus%2Fn5',
+    );
+    expect(
+      authEntryWithReturn(AUTH_ROUTES.signUp, '/dashboard/live-class/abc'),
+    ).toBe('/sign-up?redirect_url=%2Fdashboard%2Flive-class%2Fabc');
+    expect(authEntryWithReturn(AUTH_ROUTES.signIn, '/dashboard/tryout')).toBe(
+      '/sign-in?redirect_url=%2Fdashboard%2Ftryout',
+    );
+  });
+
+  test('falls back to bare entry when path is not allowlisted', () => {
+    expect(authEntryWithReturn(AUTH_ROUTES.signUp, '/kursus/n5')).toBe('/sign-up');
+    expect(authEntryWithReturn(AUTH_ROUTES.signIn, 'https://evil.com')).toBe('/sign-in');
   });
 });
