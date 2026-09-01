@@ -71,6 +71,16 @@ Schema **Core** (canonical): [jepangku-core/docs/](../jepangku-core/docs/) — j
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Tracker implementasi |
 | [AGENTS.md](AGENTS.md) | Aturan coding agents |
 
+## Handover (Sep 2026)
+
+Dokumentasi serah terima proyek untuk developer pengganti:
+
+📦 **[docs/handover/README.md](docs/handover/README.md)** — mulai di sini
+
+📖 **[docs/handover/guide/README.md](docs/handover/guide/README.md)** — panduan pakai website (siswa & admin/sensei)
+
+📄 **[docs/handover/guide/JepangKu-LMS-Panduan-Lengkap.pdf](docs/handover/guide/JepangKu-LMS-Panduan-Lengkap.pdf)** — versi PDF lengkap (bagikan ke sensei/staf)
+
 ## Branching
 
 - `main` — stabil, buildable
